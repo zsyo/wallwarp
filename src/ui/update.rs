@@ -1,6 +1,7 @@
 use super::App;
 use super::message::AppMessage;
 use std::time::Duration;
+use crate::utils::startup;
 
 impl App {
     pub fn subscription(&self) -> iced::Subscription<AppMessage> {
@@ -62,6 +63,12 @@ impl App {
                     if needs_save {
                         println!("窗口尺寸或位置已保存");
                     }
+                }
+            }
+            AppMessage::AutoStartupToggled(enabled) => {
+                self.config.set_auto_startup(enabled);
+                if let Err(e) = startup::set_auto_startup(enabled) {
+                    eprintln!("设置开机启动失败: {}", e);
                 }
             }
         }

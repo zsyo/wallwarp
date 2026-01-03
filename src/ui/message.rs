@@ -7,4 +7,5 @@ pub enum AppMessage {
     WindowMoved(i32, i32),   // 窗口位置改变事件
     PageSelected(ActivePage),
     DebounceTimer,
+    AutoStartupToggled(bool),
 }

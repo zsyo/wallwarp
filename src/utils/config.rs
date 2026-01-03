@@ -8,6 +8,7 @@ const WINDOW_WIDTH_KEY: &str = "window_width";
 const WINDOW_HEIGHT_KEY: &str = "window_height";
 const WINDOW_POSITION_X_KEY: &str = "window_pos_x";
 const WINDOW_POSITION_Y_KEY: &str = "window_pos_y";
+const AUTO_STARTUP_KEY: &str = "auto_startup";
 
 #[derive(Clone)]
 pub struct Config {
@@ -16,6 +17,7 @@ pub struct Config {
     pub window_height: u32,
     pub window_pos_x: Option<i32>,
     pub window_pos_y: Option<i32>,
+    pub auto_startup: bool,
     // 将来可以在这里添加更多配置项
     settings: HashMap<String, String>,
 }
@@ -28,6 +30,7 @@ impl Config {
             window_height: 800,         // 默认窗口高度
             window_pos_x: None,         // 默认窗口位置
             window_pos_y: None,         // 默认窗口位置
+            auto_startup: false,        // 默认不随电脑启动
             settings: HashMap::new(),
         };
 
@@ -93,6 +96,9 @@ impl Config {
                             self.window_pos_y = Some(pos_y);
                         }
                     }
+                    AUTO_STARTUP_KEY => {
+                        self.auto_startup = value.parse::<bool>().unwrap_or(false);
+                    }
                     _ => {} // 其他配置项
                 }
             }
@@ -128,6 +134,9 @@ impl Config {
             content.push_str(&format!("{}={}\n", WINDOW_POSITION_Y_KEY, pos_y));
         }
 
+        // 添加随电脑启动配置
+        content.push_str(&format!("{}={}\n", AUTO_STARTUP_KEY, self.auto_startup));
+
         // 如果有其他设置也添加进来
         for (key, value) in &self.settings {
             if key != DEFAULT_LANGUAGE_KEY
@@ -135,6 +144,7 @@ impl Config {
                 && key != WINDOW_HEIGHT_KEY
                 && key != WINDOW_POSITION_X_KEY
                 && key != WINDOW_POSITION_Y_KEY
+                && key != AUTO_STARTUP_KEY
             {
                 content.push_str(&format!("{}={}\n", key, value));
             }
@@ -232,5 +242,12 @@ impl Config {
             .insert(WINDOW_POSITION_X_KEY.to_string(), x.to_string());
         self.settings
             .insert(WINDOW_POSITION_Y_KEY.to_string(), y.to_string());
+    }
+
+    pub fn set_auto_startup(&mut self, enable: bool) {
+        self.auto_startup = enable;
+        self.settings
+            .insert(AUTO_STARTUP_KEY.to_string(), enable.to_string());
+        self.save_to_file();
     }
 }

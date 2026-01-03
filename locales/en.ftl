@@ -12,5 +12,9 @@ download-tasks = Download Tasks
     .title = Download Tasks
 
 settings = Settings
-    .title = Settings
-    .switch-lang = Switch Language
+    .system-config = System Configuration
+    .app-language = Application Language:
+    .auto-startup = Auto startup:
+    .temp-config = Temporary Configuration
+    .temp-option = Temporary Option:
+    .temp-value = Temporary Value
