@@ -5,17 +5,21 @@ use unic_langid::LanguageIdentifier;
 
 // --- 内置语言配置常量 ---
 const DEFAULT_LANG: &str = r#"
-app-title = "幻变 - 壁纸管理器"
+app-name = 幻变
+app-title = 幻变 - 壁纸管理器
+
+online-wallpapers = 在线壁纸
+    .title = 在线壁纸
+
+local-list = 本地列表
+    .title = 本地壁纸列表
+
+download-tasks = 下载任务
+    .title = 下载任务管理
 
 settings = 设置
-    .lang-name = 简体中文
+    .title = 设置中心
     .switch-lang = 切换语言
-
-load-wallpapers = 加载壁纸
-previous = 上一个
-next = 下一个
-select = 选择
-apply = 应用
 "#;
 
 pub struct I18n {
