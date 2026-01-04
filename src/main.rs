@@ -11,7 +11,7 @@ fn main() -> iced::Result {
 
     // 根据配置创建窗口设置
     let mut window_settings = window::Settings {
-        size: Size::new(config.window_width as f32, config.window_height as f32),
+        size: Size::new(config.display.width as f32, config.display.height as f32),
         min_size: Some(Size::new(960.0, 640.0)),
         icon: Some(wallwarp::utils::images::get_iced_icon("logo.ico")),
         exit_on_close_request: false, // 关键：不自动退出
@@ -19,7 +19,7 @@ fn main() -> iced::Result {
     };
 
     // 如果配置中有窗口位置，则设置位置
-    if let (Some(pos_x), Some(pos_y)) = (config.window_pos_x, config.window_pos_y) {
+    if let (Some(pos_x), Some(pos_y)) = (config.display.x, config.display.y) {
         window_settings.position = window::Position::Specific([pos_x as f32, pos_y as f32].into());
     }
 

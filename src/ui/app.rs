@@ -13,7 +13,7 @@ impl App {
 
     pub fn new_with_config(mut i18n: I18n, config: Config) -> Self {
         // 根据配置设置语言
-        i18n.set_language(config.language.clone());
+        i18n.set_language(config.global.language.clone());
 
         let _tray_icon = Self::init_tray(&i18n);
 

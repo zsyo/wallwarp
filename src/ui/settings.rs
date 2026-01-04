@@ -28,7 +28,7 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
             .spacing(10),
             iced::widget::row!(
                 text(app.i18n.t("settings.auto-startup")).width(Length::FillPortion(1)),
-                toggler(app.config.auto_startup).on_toggle(AppMessage::AutoStartupToggled)
+                toggler(app.config.global.auto_startup).on_toggle(AppMessage::AutoStartupToggled)
             )
             .height(Length::Fixed(20.0))
             .width(Length::Fill)
@@ -39,19 +39,19 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                     iced::widget::radio(
                         app.i18n.t("close-action-options.ask"),
                         CloseAction::Ask,
-                        Some(app.config.close_action.clone()),
+                        Some(app.config.global.close_action.clone()),
                         AppMessage::CloseActionSelected
                     ),
                     iced::widget::radio(
                         app.i18n.t("close-action-options.minimize-to-tray"),
                         CloseAction::MinimizeToTray,
-                        Some(app.config.close_action.clone()),
+                        Some(app.config.global.close_action.clone()),
                         AppMessage::CloseActionSelected
                     ),
                     iced::widget::radio(
                         app.i18n.t("close-action-options.close-app"),
                         CloseAction::CloseApp,
-                        Some(app.config.close_action.clone()),
+                        Some(app.config.global.close_action.clone()),
                         AppMessage::CloseActionSelected
                     )
                 ]

@@ -1,300 +1,105 @@
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-const CONFIG_FILE: &str = "config.ini";
-const DEFAULT_LANGUAGE_KEY: &str = "language";
-const WINDOW_WIDTH_KEY: &str = "window_width";
-const WINDOW_HEIGHT_KEY: &str = "window_height";
-const WINDOW_POSITION_X_KEY: &str = "window_pos_x";
-const WINDOW_POSITION_Y_KEY: &str = "window_pos_y";
-const AUTO_STARTUP_KEY: &str = "auto_startup";
-const CLOSE_ACTION_KEY: &str = "close_action";
+const CONFIG_FILE: &str = "config.toml"; // 建议改为 .toml 后缀
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
+    pub global: GlobalConfig,
+    pub display: DisplayConfig,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct GlobalConfig {
     pub language: String,
-    pub window_width: u32,
-    pub window_height: u32,
-    pub window_pos_x: Option<i32>,
-    pub window_pos_y: Option<i32>,
     pub auto_startup: bool,
     pub close_action: CloseAction,
-    // 将来可以在这里添加更多配置项
-    settings: HashMap<String, String>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct DisplayConfig {
+    pub width: u32,
+    pub height: u32,
+    pub x: Option<i32>,
+    pub y: Option<i32>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")] // 自动处理枚举与字符串的转换，如 "minimize_to_tray"
 pub enum CloseAction {
-    Ask,          // 每次询问
+    Ask,            // 每次询问
     MinimizeToTray, // 最小化到托盘
-    CloseApp,     // 关闭程序
-}
-
-impl std::str::FromStr for CloseAction {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "ask" => Ok(CloseAction::Ask),
-            "minimize_to_tray" => Ok(CloseAction::MinimizeToTray),
-            "close_app" => Ok(CloseAction::CloseApp),
-            _ => Ok(CloseAction::Ask), // 默认值
-        }
-    }
-}
-
-impl std::fmt::Display for CloseAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CloseAction::Ask => write!(f, "ask"),
-            CloseAction::MinimizeToTray => write!(f, "minimize_to_tray"),
-            CloseAction::CloseApp => write!(f, "close_app"),
-        }
-    }
+    CloseApp,       // 关闭程序
 }
 
 impl Config {
+    /// 初始化配置：尝试读取，失败则创建默认
     pub fn new(lang: &str) -> Self {
-        let mut config = Config {
-            language: lang.to_string(), // 默认语言为中文
-            window_width: 1200,         // 默认窗口宽度
-            window_height: 800,         // 默认窗口高度
-            window_pos_x: None,         // 默认窗口位置
-            window_pos_y: None,         // 默认窗口位置
-            auto_startup: false,        // 默认不随电脑启动
-            close_action: CloseAction::Ask, // 默认每次询问
-            settings: HashMap::new(),
-        };
-
-        // 尝试从配置文件加载设置
-        config.load_from_file();
-        config
-    }
-
-    pub fn load_from_file(&mut self) {
         let config_path = Path::new(CONFIG_FILE);
 
-        if !config_path.exists() {
-            // 配置文件不存在，创建默认配置
-            self.create_default_config();
-            return;
+        if let Ok(content) = fs::read_to_string(config_path) {
+            if let Ok(config) = toml::from_str::<Config>(&content) {
+                return config;
+            }
         }
 
-        match fs::read_to_string(config_path) {
-            Ok(content) => {
-                self.parse_config(&content);
-            }
-            Err(e) => {
-                eprintln!("读取配置文件时出错: {}", e);
-                // 如果读取失败，使用默认配置
-                self.create_default_config();
-            }
+        // 如果文件不存在或解析失败，返回默认值并保存
+        let default_config = Self::default_with_lang(lang);
+        default_config.save_to_file();
+        default_config
+    }
+
+    fn default_with_lang(lang: &str) -> Self {
+        Config {
+            global: GlobalConfig {
+                language: lang.to_string(),
+                auto_startup: false,
+                close_action: CloseAction::Ask,
+            },
+            display: DisplayConfig {
+                width: 1200,
+                height: 800,
+                x: None,
+                y: None,
+            },
         }
     }
 
-    fn parse_config(&mut self, content: &str) {
-        for line in content.lines() {
-            let line = line.trim();
-            if line.is_empty() || line.starts_with('#') {
-                continue; // 跳过空行和注释
-            }
-
-            if let Some(pos) = line.find('=') {
-                let key = line[..pos].trim().to_string();
-                let value = line[pos + 1..].trim().to_string();
-
-                self.settings.insert(key.clone(), value.clone());
-
-                // 特定配置项处理
-                match key.as_str() {
-                    DEFAULT_LANGUAGE_KEY => self.language = value,
-                    WINDOW_WIDTH_KEY => {
-                        if let Ok(width) = value.parse::<u32>() {
-                            self.window_width = width;
-                        }
-                    }
-                    WINDOW_HEIGHT_KEY => {
-                        if let Ok(height) = value.parse::<u32>() {
-                            self.window_height = height;
-                        }
-                    }
-                    WINDOW_POSITION_X_KEY => {
-                        if let Ok(pos_x) = value.parse::<i32>() {
-                            self.window_pos_x = Some(pos_x);
-                        }
-                    }
-                    WINDOW_POSITION_Y_KEY => {
-                        if let Ok(pos_y) = value.parse::<i32>() {
-                            self.window_pos_y = Some(pos_y);
-                        }
-                    }
-                    AUTO_STARTUP_KEY => {
-                        self.auto_startup = value.parse::<bool>().unwrap_or(false);
-                    }
-                    CLOSE_ACTION_KEY => {
-                        self.close_action = value.parse::<CloseAction>().unwrap_or(CloseAction::Ask);
-                    }
-                    _ => {} // 其他配置项
-                }
-            }
-        }
-    }
-
+    /// 核心保存逻辑：一行代码搞定序列化
     pub fn save_to_file(&self) {
-        let content = self.generate_config_content();
-
-        match fs::write(CONFIG_FILE, content) {
-            Ok(_) => {
-                // 仅在调试时输出，避免在正常运行时输出
-                // println!("配置已保存到文件: {}", CONFIG_FILE);
+        match toml::to_string_pretty(self) {
+            Ok(content) => {
+                let _ = fs::write(CONFIG_FILE, content);
             }
-            Err(e) => {
-                eprintln!("保存配置文件时出错: {}", e);
-            }
+            Err(e) => eprintln!("TOML 序列化失败: {}", e),
         }
-    }
-
-    fn generate_config_content(&self) -> String {
-        let mut content = String::new();
-        content.push_str("# WallWarp 配置文件\n");
-        content.push_str(&format!("{}={}\n", DEFAULT_LANGUAGE_KEY, self.language));
-        content.push_str(&format!("{}={}\n", WINDOW_WIDTH_KEY, self.window_width));
-        content.push_str(&format!("{}={}\n", WINDOW_HEIGHT_KEY, self.window_height));
-
-        if let Some(pos_x) = self.window_pos_x {
-            content.push_str(&format!("{}={}\n", WINDOW_POSITION_X_KEY, pos_x));
-        }
-
-        if let Some(pos_y) = self.window_pos_y {
-            content.push_str(&format!("{}={}\n", WINDOW_POSITION_Y_KEY, pos_y));
-        }
-
-        // 添加随电脑启动配置
-        content.push_str(&format!("{}={}\n", AUTO_STARTUP_KEY, self.auto_startup));
-
-        // 添加关闭按钮行为配置
-        content.push_str(&format!("{}={}\n", CLOSE_ACTION_KEY, self.close_action));
-
-        // 如果有其他设置也添加进来
-        for (key, value) in &self.settings {
-            if key != DEFAULT_LANGUAGE_KEY
-                && key != WINDOW_WIDTH_KEY
-                && key != WINDOW_HEIGHT_KEY
-                && key != WINDOW_POSITION_X_KEY
-                && key != WINDOW_POSITION_Y_KEY
-                && key != AUTO_STARTUP_KEY
-                && key != CLOSE_ACTION_KEY
-            {
-                content.push_str(&format!("{}={}\n", key, value));
-            }
-        }
-
-        content
-    }
-
-    fn create_default_config(&self) {
-        let mut content = String::new();
-        content.push_str("# WallWarp 配置文件\n");
-        content.push_str(&format!("{}=zh-cn\n", DEFAULT_LANGUAGE_KEY));
-        content.push_str(&format!("{}={}\n", WINDOW_WIDTH_KEY, self.window_width));
-        content.push_str(&format!("{}={}\n", WINDOW_HEIGHT_KEY, self.window_height));
-
-        match fs::write(CONFIG_FILE, content) {
-            Ok(_) => {
-                println!("已创建默认配置文件: {}", CONFIG_FILE);
-            }
-            Err(e) => {
-                eprintln!("创建默认配置文件时出错: {}", e);
-            }
-        }
-    }
-
-    pub fn set_language(&mut self, language: String) {
-        self.language = language.clone();
-        self.settings
-            .insert(DEFAULT_LANGUAGE_KEY.to_string(), language);
-        self.save_to_file();
     }
 
     pub fn update_window_size(&mut self, width: u32, height: u32) {
-        self.window_width = width;
-        self.window_height = height;
-        self.settings
-            .insert(WINDOW_WIDTH_KEY.to_string(), width.to_string());
-        self.settings
-            .insert(WINDOW_HEIGHT_KEY.to_string(), height.to_string());
+        self.display.width = width;
+        self.display.height = height;
         self.save_to_file();
     }
 
     pub fn update_window_position(&mut self, x: i32, y: i32) {
-        self.window_pos_x = Some(x);
-        self.window_pos_y = Some(y);
-        self.settings
-            .insert(WINDOW_POSITION_X_KEY.to_string(), x.to_string());
-        self.settings
-            .insert(WINDOW_POSITION_Y_KEY.to_string(), y.to_string());
+        self.display.x = Some(x);
+        self.display.y = Some(y);
         self.save_to_file();
     }
 
-    pub fn update_window_config(
-        &mut self,
-        width: u32,
-        height: u32,
-        x: Option<i32>,
-        y: Option<i32>,
-    ) {
-        self.window_width = width;
-        self.window_height = height;
-
-        if let Some(pos_x) = x {
-            self.window_pos_x = Some(pos_x);
-            self.settings
-                .insert(WINDOW_POSITION_X_KEY.to_string(), pos_x.to_string());
-        }
-
-        if let Some(pos_y) = y {
-            self.window_pos_y = Some(pos_y);
-            self.settings
-                .insert(WINDOW_POSITION_Y_KEY.to_string(), pos_y.to_string());
-        }
-
-        self.settings
-            .insert(WINDOW_WIDTH_KEY.to_string(), width.to_string());
-        self.settings
-            .insert(WINDOW_HEIGHT_KEY.to_string(), height.to_string());
+    pub fn set_language(&mut self, lang: String) {
+        self.global.language = lang.clone();
         self.save_to_file();
-    }
-
-    pub fn set_window_size(&mut self, width: u32, height: u32) {
-        self.window_width = width;
-        self.window_height = height;
-        self.settings
-            .insert(WINDOW_WIDTH_KEY.to_string(), width.to_string());
-        self.settings
-            .insert(WINDOW_HEIGHT_KEY.to_string(), height.to_string());
-    }
-
-    pub fn set_window_position(&mut self, x: i32, y: i32) {
-        self.window_pos_x = Some(x);
-        self.window_pos_y = Some(y);
-        self.settings
-            .insert(WINDOW_POSITION_X_KEY.to_string(), x.to_string());
-        self.settings
-            .insert(WINDOW_POSITION_Y_KEY.to_string(), y.to_string());
     }
 
     pub fn set_auto_startup(&mut self, enable: bool) {
-        self.auto_startup = enable;
-        self.settings
-            .insert(AUTO_STARTUP_KEY.to_string(), enable.to_string());
+        self.global.auto_startup = enable;
         self.save_to_file();
     }
 
     pub fn set_close_action(&mut self, action: CloseAction) {
-        self.close_action = action.clone();
-        self.settings
-            .insert(CLOSE_ACTION_KEY.to_string(), action.to_string());
+        self.global.close_action = action;
         self.save_to_file();
     }
 }

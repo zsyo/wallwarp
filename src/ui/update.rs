@@ -71,7 +71,7 @@ impl App {
                 if elapsed >= Duration::from_millis(300) {
                     // 保存窗口大小
                     if let Some((width, height)) = self.pending_window_size.take() {
-                        if width > 0 || height > 0 {
+                        if width > 0 && height > 0 {
                             // 同步窗口大小到配置文件
                             self.config.update_window_size(width, height);
                             println!("窗口尺寸已同步至配置文件, 宽: {width}, 高: {height}");
@@ -98,7 +98,7 @@ impl App {
             }
             AppMessage::WindowCloseRequested => {
                 // 根据配置处理关闭请求
-                match self.config.close_action {
+                match self.config.global.close_action {
                     crate::utils::config::CloseAction::MinimizeToTray => {
                         // 最小化到托盘 - 发送一个MinimizeToTray消息到主函数
                         return iced::Task::perform(async {}, |_| AppMessage::MinimizeToTray);
