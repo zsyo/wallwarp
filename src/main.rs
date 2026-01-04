@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use iced::{Size, window};
 use wallwarp::i18n::I18n;
 use wallwarp::ui::App;

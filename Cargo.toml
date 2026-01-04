@@ -23,3 +23,13 @@ winreg = "0.55"
 tray-icon = "0.21.3"
 
 [build-dependencies]
+winresource = "0.1.28"
+
+[package.metadata.packager]
+before-packaging-command = "cargo build --release"
+# 指定需要包含的资源文件
+resources = ["locales"]
+
+[[package.metadata.packager.binaries]]
+path = "wallwarp.exe"
+main = true
