@@ -1,21 +1,21 @@
 use super::{ActivePage, App, AppMessage};
 use crate::utils::images;
-use iced::widget::{button, column, container, row, text};
+use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Element, Length};
 
 pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
-    let content = match app.active_page {
+    let content: Element<'_, AppMessage> = match app.active_page {
         ActivePage::OnlineWallpapers => {
             // TODO: 实现在线壁纸页面
-            column![text("在线壁纸页面").size(24)]
+            column![text("在线壁纸页面").size(24)].into()
         }
         ActivePage::LocalList => {
             // TODO: 实现本地壁纸列表页面
-            column![text("本地壁纸列表页面").size(24)]
+            column![text("本地壁纸列表页面").size(24)].into()
         }
         ActivePage::DownloadProgress => {
             // TODO: 实现下载进度页面
-            column![text("下载进度页面").size(24)]
+            column![text("下载进度页面").size(24)].into()
         }
         ActivePage::Settings => super::settings::settings_view(app),
     };
@@ -75,12 +75,24 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         ..Default::default()
     });
 
-    let main_content = container(content)
+    let main_content = container(
+        scrollable(content)
+            .height(Length::Fill)
+    )
         .width(Length::FillPortion(4))
         .height(Length::Fill)
-        .padding(20);
+        .padding(20)
+        .style(|theme: &iced::Theme| iced::widget::container::Style {
+            border: iced::border::Border {
+                color: theme.extended_palette().primary.strong.color,
+                width: 1.0,
+                radius: iced::border::Radius::from(5.0),
+            },
+            ..Default::default()
+        });
 
     let layout = row![sidebar, main_content]
+        .spacing(20)
         .width(Length::Fill)
         .height(Length::Fill);
 

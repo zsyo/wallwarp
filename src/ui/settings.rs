@@ -4,7 +4,7 @@ use crate::utils::config::CloseAction;
 use crate::utils::images;
 use iced::{
     Alignment, Length,
-    widget::{button, column, container, pick_list, row, text, text_input, toggler},
+    widget::{button, column, container, pick_list, row, scrollable, text, text_input, toggler},
 };
 use std::str::FromStr;
 
@@ -44,7 +44,7 @@ impl FromStr for ProxyProtocol {
 }
 
 /// 渲染设置页面的UI组件
-pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
+pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
     let system_config_section = container(
         column!(
             text(app.i18n.t("settings.system-config"))
@@ -474,16 +474,20 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
         ..Default::default()
     });
 
-    column!(
-        system_config_section,
-        data_config_section,
-        api_config_section,
-        about_config_section,
+    scrollable(
+        column!(
+            system_config_section,
+            data_config_section,
+            api_config_section,
+            about_config_section,
+        )
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .padding(20)
+        .spacing(10)
     )
-    .width(Length::Fill)
-    .align_x(Alignment::Center)
-    .padding(20)
-    .spacing(10)
+    .height(Length::Fill)
+    .into()
 }
 
 /// 将路径转换为绝对路径进行展示
