@@ -1,4 +1,4 @@
-use super::message::AppMessage;
+use super::AppMessage;
 use super::{ActivePage, App};
 use iced::{
     Alignment, Element, Length,

@@ -9,6 +9,7 @@ const WINDOW_HEIGHT_KEY: &str = "window_height";
 const WINDOW_POSITION_X_KEY: &str = "window_pos_x";
 const WINDOW_POSITION_Y_KEY: &str = "window_pos_y";
 const AUTO_STARTUP_KEY: &str = "auto_startup";
+const CLOSE_ACTION_KEY: &str = "close_action";
 
 #[derive(Clone)]
 pub struct Config {
@@ -18,8 +19,39 @@ pub struct Config {
     pub window_pos_x: Option<i32>,
     pub window_pos_y: Option<i32>,
     pub auto_startup: bool,
+    pub close_action: CloseAction,
     // 将来可以在这里添加更多配置项
     settings: HashMap<String, String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CloseAction {
+    Ask,          // 每次询问
+    MinimizeToTray, // 最小化到托盘
+    CloseApp,     // 关闭程序
+}
+
+impl std::str::FromStr for CloseAction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ask" => Ok(CloseAction::Ask),
+            "minimize_to_tray" => Ok(CloseAction::MinimizeToTray),
+            "close_app" => Ok(CloseAction::CloseApp),
+            _ => Ok(CloseAction::Ask), // 默认值
+        }
+    }
+}
+
+impl std::fmt::Display for CloseAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CloseAction::Ask => write!(f, "ask"),
+            CloseAction::MinimizeToTray => write!(f, "minimize_to_tray"),
+            CloseAction::CloseApp => write!(f, "close_app"),
+        }
+    }
 }
 
 impl Config {
@@ -31,6 +63,7 @@ impl Config {
             window_pos_x: None,         // 默认窗口位置
             window_pos_y: None,         // 默认窗口位置
             auto_startup: false,        // 默认不随电脑启动
+            close_action: CloseAction::Ask, // 默认每次询问
             settings: HashMap::new(),
         };
 
@@ -99,6 +132,9 @@ impl Config {
                     AUTO_STARTUP_KEY => {
                         self.auto_startup = value.parse::<bool>().unwrap_or(false);
                     }
+                    CLOSE_ACTION_KEY => {
+                        self.close_action = value.parse::<CloseAction>().unwrap_or(CloseAction::Ask);
+                    }
                     _ => {} // 其他配置项
                 }
             }
@@ -137,6 +173,9 @@ impl Config {
         // 添加随电脑启动配置
         content.push_str(&format!("{}={}\n", AUTO_STARTUP_KEY, self.auto_startup));
 
+        // 添加关闭按钮行为配置
+        content.push_str(&format!("{}={}\n", CLOSE_ACTION_KEY, self.close_action));
+
         // 如果有其他设置也添加进来
         for (key, value) in &self.settings {
             if key != DEFAULT_LANGUAGE_KEY
@@ -145,6 +184,7 @@ impl Config {
                 && key != WINDOW_POSITION_X_KEY
                 && key != WINDOW_POSITION_Y_KEY
                 && key != AUTO_STARTUP_KEY
+                && key != CLOSE_ACTION_KEY
             {
                 content.push_str(&format!("{}={}\n", key, value));
             }
@@ -248,6 +288,13 @@ impl Config {
         self.auto_startup = enable;
         self.settings
             .insert(AUTO_STARTUP_KEY.to_string(), enable.to_string());
+        self.save_to_file();
+    }
+
+    pub fn set_close_action(&mut self, action: CloseAction) {
+        self.close_action = action.clone();
+        self.settings
+            .insert(CLOSE_ACTION_KEY.to_string(), action.to_string());
         self.save_to_file();
     }
 }

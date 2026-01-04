@@ -1,12 +1,28 @@
-pub mod message;
+pub mod app;
+pub mod main;
 pub mod settings;
+pub mod tray;
 pub mod update;
-pub mod view;
 
 use crate::i18n::I18n;
+use crate::utils::config::CloseAction;
 use crate::utils::config::Config;
-use iced;
-use message::AppMessage;
+use tray_icon::TrayIcon;
+
+#[derive(Debug, Clone)]
+pub enum AppMessage {
+    LanguageSelected(String),
+    WindowResized(u32, u32), // 窗口大小改变事件
+    WindowMoved(i32, i32),   // 窗口位置改变事件
+    DebounceTimer,
+    PageSelected(ActivePage),
+    AutoStartupToggled(bool),
+    CloseActionSelected(CloseAction),
+    WindowCloseRequested,
+    MinimizeToTray,
+    TrayIconClicked,
+    TrayMenuEvent(String),
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ActivePage {
@@ -17,46 +33,17 @@ pub enum ActivePage {
 }
 
 pub struct App {
-    i18n: I18n,
-    config: Config,
+    pub i18n: I18n,
+    pub config: Config,
     active_page: ActivePage,
     pending_window_size: Option<(u32, u32)>,
     pending_window_position: Option<(i32, i32)>,
     debounce_timer: std::time::Instant,
+    _tray_icon: TrayIcon,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl App {
-    pub fn new() -> Self {
-        let i18n = I18n::new();
-        let config = Config::new(&i18n.current_lang);
-        Self::new_with_config(i18n, config)
-    }
-
-    pub fn new_with_config(mut i18n: I18n, config: Config) -> Self {
-        // 根据配置设置语言
-        i18n.set_language(config.language.clone());
-
-        Self {
-            i18n,
-            config,
-            active_page: ActivePage::OnlineWallpapers,
-            pending_window_size: None,
-            pending_window_position: None,
-            debounce_timer: std::time::Instant::now(),
-        }
-    }
-
-    pub fn title(&self) -> String {
-        self.i18n.t("app-title")
-    }
-
-    pub fn view(&self) -> iced::Element<'_, AppMessage> {
-        self.view_internal()
     }
 }

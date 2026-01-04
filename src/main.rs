@@ -1,7 +1,6 @@
 use iced::{Size, window};
 use wallwarp::i18n::I18n;
 use wallwarp::ui::App;
-use wallwarp::ui::message::AppMessage;
 use wallwarp::utils::config::Config;
 
 fn main() -> iced::Result {
@@ -14,6 +13,8 @@ fn main() -> iced::Result {
     let mut window_settings = window::Settings {
         size: Size::new(config.window_width as f32, config.window_height as f32),
         min_size: Some(Size::new(960.0, 640.0)),
+        icon: Some(wallwarp::utils::images::get_iced_icon("logo.ico")),
+        exit_on_close_request: false, // 关键：不自动退出
         ..window::Settings::default()
     };
 
@@ -34,19 +35,11 @@ fn main() -> iced::Result {
 
             (App::new_with_config(i18n, config), iced::Task::none())
         },
-        app_update,
-        app_view,
+        App::update,
+        App::view,
     )
     .subscription(|app: &App| app.subscription())
     .window(window_settings)
     .title(|app: &App| app.title())
     .run()
-}
-
-fn app_update(app: &mut App, message: AppMessage) {
-    app.update(message);
-}
-
-fn app_view(app: &App) -> iced::Element<'_, AppMessage> {
-    app.view()
 }

@@ -18,12 +18,29 @@ download-tasks = 下载任务
     .title = 下载任务管理
 
 settings = 设置
+    .title = 设置中心
+    .switch-lang = 切换语言
     .system-config = 系统配置
     .app-language = 程序语言:
     .auto-startup = 随电脑启动:
+    .close-action = 关闭按钮行为:
     .temp-config = 临时配置
     .temp-option = 临时选项:
     .temp-value = 临时值
+
+startup-state =
+    .on = 开
+    .off = 关
+
+close-action-options =
+    .ask = 每次询问
+    .minimize-to-tray = 最小化到托盘
+    .close-app = 关闭程序
+
+menu =
+    .tray-show = 显示窗口
+    .tray-settings = 设置
+    .tray-quit = 退出程序
 "#;
 
 pub struct I18n {

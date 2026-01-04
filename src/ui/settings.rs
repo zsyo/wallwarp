@@ -1,5 +1,6 @@
 use super::App;
-use super::message::AppMessage;
+use super::AppMessage;
+use crate::utils::config::CloseAction;
 use iced::{
     Alignment, Length,
     widget::{column, container, pick_list, text, toggler},
@@ -30,6 +31,32 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                 toggler(app.config.auto_startup).on_toggle(AppMessage::AutoStartupToggled)
             )
             .height(Length::Fixed(20.0))
+            .width(Length::Fill)
+            .spacing(10),
+            iced::widget::row!(
+                text(app.i18n.t("settings.close-action")).width(Length::FillPortion(1)),
+                iced::widget::row![
+                    iced::widget::radio(
+                        app.i18n.t("close-action-options.ask"),
+                        CloseAction::Ask,
+                        Some(app.config.close_action.clone()),
+                        AppMessage::CloseActionSelected
+                    ),
+                    iced::widget::radio(
+                        app.i18n.t("close-action-options.minimize-to-tray"),
+                        CloseAction::MinimizeToTray,
+                        Some(app.config.close_action.clone()),
+                        AppMessage::CloseActionSelected
+                    ),
+                    iced::widget::radio(
+                        app.i18n.t("close-action-options.close-app"),
+                        CloseAction::CloseApp,
+                        Some(app.config.close_action.clone()),
+                        AppMessage::CloseActionSelected
+                    )
+                ]
+                .spacing(10)
+            )
             .width(Length::Fill)
             .spacing(10)
         )
