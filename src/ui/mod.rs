@@ -29,6 +29,10 @@ pub enum AppMessage {
     ClearPath(String),
     RestoreDefaultPath(String),
     WallhavenApiKeyChanged(String),
+    ProxyProtocolChanged(String),
+    ProxyAddressChanged(String),
+    ProxyPortChanged(String),
+    SaveProxy,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -47,6 +51,10 @@ pub struct App {
     pending_window_position: Option<(i32, i32)>,
     debounce_timer: std::time::Instant,
     _tray_icon: TrayIcon,
+    // 代理设置的临时状态
+    pub proxy_protocol: String,
+    pub proxy_address: String,
+    pub proxy_port: String,
 }
 
 impl Default for App {

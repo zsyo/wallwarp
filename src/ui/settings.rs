@@ -4,8 +4,44 @@ use crate::utils::config::CloseAction;
 use crate::utils::images;
 use iced::{
     Alignment, Length,
-    widget::{button, column, container, pick_list, row, text, toggler},
+    widget::{button, column, container, pick_list, row, text, text_input, toggler},
 };
+use std::str::FromStr;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ProxyProtocol {
+    Http,
+    Socks5,
+}
+
+impl std::fmt::Display for ProxyProtocol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProxyProtocol::Http => write!(f, "http"),
+            ProxyProtocol::Socks5 => write!(f, "socks5"),
+        }
+    }
+}
+
+impl ProxyProtocol {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ProxyProtocol::Http => "http",
+            ProxyProtocol::Socks5 => "socks5",
+        }
+    }
+}
+
+impl FromStr for ProxyProtocol {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "socks5" => Ok(ProxyProtocol::Socks5),
+            _ => Ok(ProxyProtocol::Http), // 默认为http
+        }
+    }
+}
 
 /// 渲染设置页面的UI组件
 pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
@@ -59,6 +95,59 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                     )
                 ]
                 .spacing(10)
+            )
+            .align_y(Alignment::Center)
+            .height(Length::Fixed(30.0))
+            .width(Length::Fill)
+            .spacing(10),
+            // 代理设置
+            iced::widget::row!(
+                text(app.i18n.t("settings.proxy")).width(Length::FillPortion(1)),
+                row!(
+                    // 协议选择
+                    pick_list(
+                        [ProxyProtocol::Http, ProxyProtocol::Socks5],
+                        ProxyProtocol::from_str(&app.proxy_protocol).ok(),
+                        |protocol| AppMessage::ProxyProtocolChanged(protocol.as_str().to_string())
+                    )
+                    .width(Length::Fixed(80.0)),
+                    container(iced::widget::Space::new()).width(Length::Fixed(5.0)),
+                    // 地址输入
+                    text_input(
+                        &app.i18n.t("settings.proxy-address-placeholder"),
+                        &app.proxy_address
+                    )
+                    .width(Length::FillPortion(2))
+                    .align_x(Alignment::Center)
+                    .padding(5)
+                    .on_input(AppMessage::ProxyAddressChanged),
+                    container(iced::widget::Space::new()).width(Length::Fixed(5.0)),
+                    // 端口输入
+                    text_input(
+                        &app.i18n.t("settings.proxy-port-placeholder"),
+                        &app.proxy_port
+                    )
+                    .width(Length::Fixed(80.0))
+                    .align_x(Alignment::Center)
+                    .padding(5)
+                    .on_input(AppMessage::ProxyPortChanged),
+                    container(iced::widget::Space::new()).width(Length::Fixed(5.0)),
+                    // 保存按钮
+                    button(text(app.i18n.t("settings.proxy-save")).size(14))
+                        .on_press(AppMessage::SaveProxy)
+                        .style(|_theme: &iced::Theme, status| {
+                            let base = iced::widget::button::text(_theme, status);
+                            iced::widget::button::Style {
+                                background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                    0, 123, 255,
+                                ))), // 蓝色
+                                text_color: iced::Color::WHITE,
+                                ..base
+                            }
+                        })
+                )
+                .width(Length::FillPortion(2))
+                .spacing(0) // 我们手动控制间距，所以设置为0
             )
             .align_y(Alignment::Center)
             .height(Length::Fixed(30.0))

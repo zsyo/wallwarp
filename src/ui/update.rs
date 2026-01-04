@@ -255,6 +255,36 @@ impl App {
             AppMessage::WallhavenApiKeyChanged(api_key) => {
                 self.config.set_wallhaven_api_key(api_key);
             }
+            AppMessage::ProxyProtocolChanged(protocol) => {
+                self.proxy_protocol = protocol;
+            }
+            AppMessage::ProxyAddressChanged(address) => {
+                self.proxy_address = address;
+            }
+            AppMessage::ProxyPortChanged(port) => {
+                self.proxy_port = port;
+            }
+            AppMessage::SaveProxy => {
+                // 检查地址和端口是否都设置且端口格式正确
+                let is_address_valid = !self.proxy_address.trim().is_empty();
+                let is_port_valid = if let Ok(port) = self.proxy_port.parse::<u16>() {
+                    port != 0  // u16的范围是0-65535，所以只需检查不为0
+                } else {
+                    false  // 端口不是有效数字
+                };
+
+                if is_address_valid && is_port_valid {
+                    // 地址和端口都有效，保存代理设置
+                    let proxy_url = format!("{}://{}:{}", self.proxy_protocol, self.proxy_address, self.proxy_port);
+                    self.config.set_proxy(proxy_url);
+                } else {
+                    // 地址或端口无效，保存为空字符串（相当于关闭代理）
+                    self.config.set_proxy(String::new());
+                    // 同时清空地址和端口输入框
+                    self.proxy_address = String::new();
+                    self.proxy_port = String::new();
+                }
+            }
         }
         iced::Task::none()
     }

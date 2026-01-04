@@ -17,6 +17,7 @@ pub struct GlobalConfig {
     pub language: String,
     pub auto_startup: bool,
     pub close_action: CloseAction,
+    pub proxy: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -69,6 +70,7 @@ impl Config {
                 language: lang.to_string(),
                 auto_startup: false,
                 close_action: CloseAction::Ask,
+                proxy: String::new(),
             },
             data: DataConfig {
                 data_path: "data".to_string(),
@@ -140,6 +142,11 @@ impl Config {
 
     pub fn set_wallhaven_api_key(&mut self, key: String) {
         self.api.wallhaven_api_key = key;
+        self.save_to_file();
+    }
+
+    pub fn set_proxy(&mut self, proxy: String) {
+        self.global.proxy = proxy;
         self.save_to_file();
     }
 
