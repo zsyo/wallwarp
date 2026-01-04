@@ -8,6 +8,7 @@ const CONFIG_FILE: &str = "config.toml"; // 建议改为 .toml 后缀
 pub struct Config {
     pub global: GlobalConfig,
     pub data: DataConfig,
+    pub api: ApiConfig,
     pub display: DisplayConfig,
 }
 
@@ -22,6 +23,11 @@ pub struct GlobalConfig {
 pub struct DataConfig {
     pub data_path: String,
     pub cache_path: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct ApiConfig {
+    pub wallhaven_api_key: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -68,6 +74,9 @@ impl Config {
                 data_path: "data".to_string(),
                 cache_path: "cache".to_string(),
             },
+            api: ApiConfig {
+                wallhaven_api_key: String::new(),
+            },
             display: DisplayConfig {
                 width: 1200,
                 height: 800,
@@ -75,10 +84,10 @@ impl Config {
                 y: None,
             },
         };
-        
+
         // 尝试创建默认的数据和缓存目录
         Self::create_default_directories(&default_config);
-        
+
         default_config
     }
 
@@ -129,16 +138,21 @@ impl Config {
         self.save_to_file();
     }
 
+    pub fn set_wallhaven_api_key(&mut self, key: String) {
+        self.api.wallhaven_api_key = key;
+        self.save_to_file();
+    }
+
     /// 创建默认的数据和缓存目录
     fn create_default_directories(config: &Config) {
         let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-        
+
         // 创建数据目录
         let data_path = current_dir.join(&config.data.data_path);
         if let Err(e) = std::fs::create_dir_all(&data_path) {
             eprintln!("Failed to create data directory {:?}: {}", data_path, e);
         }
-        
+
         // 创建缓存目录
         let cache_path = current_dir.join(&config.data.cache_path);
         if let Err(e) = std::fs::create_dir_all(&cache_path) {

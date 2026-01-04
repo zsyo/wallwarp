@@ -192,15 +192,16 @@ impl App {
                     "cache" => &self.config.data.cache_path,
                     _ => return iced::Task::none(),
                 };
-                
+
                 // 获取绝对路径并打开
-                let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let current_dir =
+                    std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
                 let full_path = if std::path::PathBuf::from(path_to_open).is_absolute() {
                     path_to_open.clone()
                 } else {
                     current_dir.join(path_to_open).to_string_lossy().to_string()
                 };
-                
+
                 if let Err(e) = open::that(&full_path) {
                     eprintln!("Failed to open path {}: {}", full_path, e);
                 }
@@ -211,15 +212,19 @@ impl App {
                     "cache" => &self.config.data.cache_path,
                     _ => return iced::Task::none(),
                 };
-                
+
                 // 获取绝对路径并清空内容
-                let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let current_dir =
+                    std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
                 let full_path = if std::path::PathBuf::from(path_to_clear).is_absolute() {
                     path_to_clear.clone()
                 } else {
-                    current_dir.join(path_to_clear).to_string_lossy().to_string()
+                    current_dir
+                        .join(path_to_clear)
+                        .to_string_lossy()
+                        .to_string()
                 };
-                
+
                 // 尝试清空目录内容
                 if let Ok(entries) = std::fs::read_dir(&full_path) {
                     for entry in entries {
@@ -246,6 +251,9 @@ impl App {
                     }
                     _ => {}
                 }
+            }
+            AppMessage::WallhavenApiKeyChanged(api_key) => {
+                self.config.set_wallhaven_api_key(api_key);
             }
         }
         iced::Task::none()

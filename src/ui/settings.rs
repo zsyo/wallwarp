@@ -91,6 +91,7 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                     iced::widget::text_input("", &get_absolute_path(&app.config.data.data_path))
                         .width(Length::Fill)
                         .size(14)
+                        .align_x(Alignment::Center)
                         .on_input(|_| AppMessage::DataPathSelected("".to_string())) // 不响应输入，实现只读效果
                         .padding(5),
                     container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
@@ -163,6 +164,7 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                     iced::widget::text_input("", &get_absolute_path(&app.config.data.cache_path))
                         .width(Length::Fill)
                         .size(14)
+                        .align_x(Alignment::Center)
                         .on_input(|_| AppMessage::CachePathSelected("".to_string())) // 不响应输入，实现只读效果
                         .padding(5),
                     container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
@@ -227,6 +229,43 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                 .width(Length::FillPortion(4))
                 .spacing(0) // 我们手动控制间距，所以设置为0
             )
+            .height(Length::Fixed(30.0))
+            .width(Length::Fill)
+            .spacing(10),
+        )
+        .padding(15)
+        .spacing(10),
+    )
+    .width(Length::Fill)
+    .style(|theme: &iced::Theme| iced::widget::container::Style {
+        border: iced::border::Border {
+            color: theme.extended_palette().primary.strong.color,
+            width: 1.0,
+            radius: iced::border::Radius::from(5.0),
+        },
+        ..Default::default()
+    });
+
+    let api_config_section = container(
+        column!(
+            text(app.i18n.t("settings.api-config"))
+                .size(16)
+                .width(Length::Fill)
+                .align_x(Alignment::Center),
+            // WallHeven API KEY 配置
+            iced::widget::row!(
+                text(app.i18n.t("settings.wallhaven-api-key")).width(Length::FillPortion(1)),
+                iced::widget::text_input(
+                    &app.i18n.t("settings.wallhaven-api-key-placeholder"),
+                    &app.config.api.wallhaven_api_key
+                )
+                .width(Length::FillPortion(3))
+                .size(14)
+                .align_x(Alignment::Center)
+                .on_input(AppMessage::WallhavenApiKeyChanged)
+                .padding(5)
+            )
+            .align_y(Alignment::Center)
             .height(Length::Fixed(30.0))
             .width(Length::Fill)
             .spacing(10),
@@ -349,6 +388,7 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
     column!(
         system_config_section,
         data_config_section,
+        api_config_section,
         about_config_section,
     )
     .width(Length::Fill)

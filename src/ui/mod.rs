@@ -28,6 +28,7 @@ pub enum AppMessage {
     OpenPath(String),
     ClearPath(String),
     RestoreDefaultPath(String),
+    WallhavenApiKeyChanged(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
