@@ -1,5 +1,6 @@
-use super::{App, AppMessage, ActivePage};
-use iced::widget::{column, container, row, text, button};
+use super::{ActivePage, App, AppMessage};
+use crate::utils::images;
+use iced::widget::{button, column, container, row, text};
 use iced::{Alignment, Element, Length};
 
 pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
@@ -16,32 +17,54 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
             // TODO: 实现下载进度页面
             column![text("下载进度页面").size(24)]
         }
-        ActivePage::Settings => {
-            super::settings::settings_view(app)
-        }
+        ActivePage::Settings => super::settings::settings_view(app),
     };
 
+    let (img, width, height) = images::load_rgba_from_assets("logo.ico", 128);
     let sidebar = container(
         column![
-            text(app.i18n.t("app-title")).size(24).width(Length::Fill).align_x(Alignment::Center),
-            button(text(app.i18n.t("online-wallpapers.title")).width(Length::Fill).align_x(Alignment::Center))
-                .on_press(AppMessage::PageSelected(ActivePage::OnlineWallpapers))
-                .padding(10),
-            button(text(app.i18n.t("local-list.title")).width(Length::Fill).align_x(Alignment::Center))
-                .on_press(AppMessage::PageSelected(ActivePage::LocalList))
-                .padding(10),
-            button(text(app.i18n.t("download-tasks.title")).width(Length::Fill).align_x(Alignment::Center))
-                .on_press(AppMessage::PageSelected(ActivePage::DownloadProgress))
-                .padding(10),
-            button(text(app.i18n.t("settings")).width(Length::Fill).align_x(Alignment::Center))
-                .on_press(AppMessage::PageSelected(ActivePage::Settings))
-                .padding(10),
+            text(app.i18n.t("app-name"))
+                .size(24)
+                .width(Length::Fill)
+                .align_x(Alignment::Center),
+            iced::widget::image(iced::widget::image::Handle::from_rgba(width, height, img))
+                .width(Length::Fixed(128.0))
+                .height(Length::Fixed(128.0)),
+            container(iced::widget::Space::new()).height(Length::Fixed(20.0)),
+            button(
+                text(app.i18n.t("online-wallpapers.title"))
+                    .width(Length::Fill)
+                    .align_x(Alignment::Center)
+            )
+            .on_press(AppMessage::PageSelected(ActivePage::OnlineWallpapers))
+            .padding(10),
+            button(
+                text(app.i18n.t("local-list.title"))
+                    .width(Length::Fill)
+                    .align_x(Alignment::Center)
+            )
+            .on_press(AppMessage::PageSelected(ActivePage::LocalList))
+            .padding(10),
+            button(
+                text(app.i18n.t("download-tasks.title"))
+                    .width(Length::Fill)
+                    .align_x(Alignment::Center)
+            )
+            .on_press(AppMessage::PageSelected(ActivePage::DownloadProgress))
+            .padding(10),
+            button(
+                text(app.i18n.t("settings"))
+                    .width(Length::Fill)
+                    .align_x(Alignment::Center)
+            )
+            .on_press(AppMessage::PageSelected(ActivePage::Settings))
+            .padding(10),
         ]
         .spacing(5)
         .padding(10)
-        .align_x(Alignment::Start),
+        .align_x(Alignment::Center),
     )
-    .width(Length::FillPortion(1))
+    .width(Length::Fixed(180.0))
     .height(Length::Fill)
     .style(|theme: &iced::Theme| iced::widget::container::Style {
         border: iced::border::Border {
@@ -57,7 +80,9 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         .height(Length::Fill)
         .padding(20);
 
-    let layout = row![sidebar, main_content].width(Length::Fill).height(Length::Fill);
+    let layout = row![sidebar, main_content]
+        .width(Length::Fill)
+        .height(Length::Fill);
 
     container(layout)
         .width(Length::Fill)
