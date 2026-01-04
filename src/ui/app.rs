@@ -37,6 +37,8 @@ impl App {
             proxy_protocol,
             proxy_address,
             proxy_port,
+            show_close_confirmation: false,
+            remember_close_setting: false,
         }
     }
 
@@ -73,6 +75,12 @@ impl App {
     }
 
     pub fn view(&self) -> iced::Element<'_, AppMessage> {
-        self.view_internal()
+        // 如果显示关闭确认对话框，则只显示对话框，不显示底层内容
+        if self.show_close_confirmation {
+            super::close_confirmation::close_confirmation_view(self)
+        } else {
+            // 否则显示正常界面
+            super::main::view_internal(self)
+        }
     }
 }

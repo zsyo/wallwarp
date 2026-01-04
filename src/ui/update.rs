@@ -108,8 +108,8 @@ impl App {
                         return iced::exit();
                     }
                     crate::utils::config::CloseAction::Ask => {
-                        // 这里应该弹出确认对话框，但暂时先最小化到托盘
-                        return iced::Task::perform(async {}, |_| AppMessage::MinimizeToTray);
+                        // 显示关闭确认对话框
+                        return iced::Task::perform(async {}, |_| AppMessage::ShowCloseConfirmation);
                     }
                 }
             }
@@ -284,6 +284,39 @@ impl App {
                     self.proxy_address = String::new();
                     self.proxy_port = String::new();
                 }
+            }
+            AppMessage::ShowCloseConfirmation => {
+                self.show_close_confirmation = true;
+            }
+            AppMessage::CloseConfirmationResponse(action, remember_setting) => {
+                // 隐藏对话框
+                self.show_close_confirmation = false;
+                
+                // 如果勾选了记住设置，则更新配置
+                if remember_setting {
+                    let new_close_action = match action {
+                        super::CloseConfirmationAction::MinimizeToTray => crate::utils::config::CloseAction::MinimizeToTray,
+                        super::CloseConfirmationAction::CloseApp => crate::utils::config::CloseAction::CloseApp,
+                    };
+                    self.config.set_close_action(new_close_action);
+                }
+                
+                // 根据选择执行相应操作
+                match action {
+                    super::CloseConfirmationAction::MinimizeToTray => {
+                        return iced::Task::perform(async {}, |_| AppMessage::MinimizeToTray);
+                    }
+                    super::CloseConfirmationAction::CloseApp => {
+                        return iced::exit();
+                    }
+                }
+            }
+            AppMessage::CloseConfirmationCancelled => {
+                // 隐藏对话框，不执行任何操作
+                self.show_close_confirmation = false;
+            }
+            AppMessage::ToggleRememberSetting(checked) => {
+                self.remember_close_setting = checked;
             }
         }
         iced::Task::none()

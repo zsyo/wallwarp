@@ -1,117 +1,67 @@
-use super::AppMessage;
-use super::{ActivePage, App};
-use iced::{
-    Alignment, Element, Length,
-    widget::{button, column, container, row, text},
-};
+use super::{App, AppMessage, ActivePage};
+use iced::widget::{column, container, row, text, button};
+use iced::{Alignment, Element, Length};
 
-use super::settings;
+pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
+    let content = match app.active_page {
+        ActivePage::OnlineWallpapers => {
+            // TODO: 实现在线壁纸页面
+            column![text("在线壁纸页面").size(24)]
+        }
+        ActivePage::LocalList => {
+            // TODO: 实现本地壁纸列表页面
+            column![text("本地壁纸列表页面").size(24)]
+        }
+        ActivePage::DownloadProgress => {
+            // TODO: 实现下载进度页面
+            column![text("下载进度页面").size(24)]
+        }
+        ActivePage::Settings => {
+            super::settings::settings_view(app)
+        }
+    };
 
-impl App {
-    pub fn view_internal(&self) -> Element<'_, AppMessage> {
-        // 左侧菜单
-        let menu = column!()
-            .push(
-                container(text(self.i18n.t("app-name")).size(24))
-                    .width(Length::Fill)
-                    .align_x(iced::alignment::Horizontal::Center),
-            )
-            .push(container(iced::widget::Space::new()).height(Length::Fixed(150.0)))
-            .push(
-                column!(
-                    button(
-                        container(text(self.i18n.t("online-wallpapers")))
-                            .width(Length::Fill)
-                            .align_x(iced::alignment::Horizontal::Center)
-                    )
-                    .on_press(AppMessage::PageSelected(ActivePage::OnlineWallpapers))
-                    .width(Length::Fill)
-                    .style(match self.active_page {
-                        ActivePage::OnlineWallpapers => iced::widget::button::primary,
-                        _ => iced::widget::button::secondary,
-                    }),
-                    button(
-                        container(text(self.i18n.t("local-list")))
-                            .width(Length::Fill)
-                            .align_x(iced::alignment::Horizontal::Center)
-                    )
-                    .on_press(AppMessage::PageSelected(ActivePage::LocalList))
-                    .width(Length::Fill)
-                    .style(match self.active_page {
-                        ActivePage::LocalList => iced::widget::button::primary,
-                        _ => iced::widget::button::secondary,
-                    }),
-                    button(
-                        container(text(self.i18n.t("download-tasks")))
-                            .width(Length::Fill)
-                            .align_x(iced::alignment::Horizontal::Center)
-                    )
-                    .on_press(AppMessage::PageSelected(ActivePage::DownloadProgress))
-                    .width(Length::Fill)
-                    .style(match self.active_page {
-                        ActivePage::DownloadProgress => iced::widget::button::primary,
-                        _ => iced::widget::button::secondary,
-                    }),
-                    button(
-                        container(text(self.i18n.t("settings")))
-                            .width(Length::Fill)
-                            .align_x(iced::alignment::Horizontal::Center)
-                    )
-                    .on_press(AppMessage::PageSelected(ActivePage::Settings))
-                    .width(Length::Fill)
-                    .style(match self.active_page {
-                        ActivePage::Settings => iced::widget::button::primary,
-                        _ => iced::widget::button::secondary,
-                    })
-                )
-                .spacing(10),
-            )
-            .padding(10)
-            .spacing(10);
+    let sidebar = container(
+        column![
+            text(app.i18n.t("app-title")).size(24).width(Length::Fill).align_x(Alignment::Center),
+            button(text(app.i18n.t("online-wallpapers.title")).width(Length::Fill).align_x(Alignment::Center))
+                .on_press(AppMessage::PageSelected(ActivePage::OnlineWallpapers))
+                .padding(10),
+            button(text(app.i18n.t("local-list.title")).width(Length::Fill).align_x(Alignment::Center))
+                .on_press(AppMessage::PageSelected(ActivePage::LocalList))
+                .padding(10),
+            button(text(app.i18n.t("download-tasks.title")).width(Length::Fill).align_x(Alignment::Center))
+                .on_press(AppMessage::PageSelected(ActivePage::DownloadProgress))
+                .padding(10),
+            button(text(app.i18n.t("settings")).width(Length::Fill).align_x(Alignment::Center))
+                .on_press(AppMessage::PageSelected(ActivePage::Settings))
+                .padding(10),
+        ]
+        .spacing(5)
+        .padding(10)
+        .align_x(Alignment::Start),
+    )
+    .width(Length::FillPortion(1))
+    .height(Length::Fill)
+    .style(|theme: &iced::Theme| iced::widget::container::Style {
+        border: iced::border::Border {
+            color: theme.extended_palette().primary.strong.color,
+            width: 1.0,
+            radius: iced::border::Radius::from(5.0),
+        },
+        ..Default::default()
+    });
 
-        // 右侧内容区域
-        let content = match self.active_page {
-            ActivePage::OnlineWallpapers => {
-                column!(text(self.i18n.t("online-wallpapers.title")).size(24))
-                    .width(Length::Fill)
-                    .align_x(Alignment::Center)
-                    .padding(20)
-            }
-            ActivePage::LocalList => column!(text(self.i18n.t("local-list.title")).size(24))
-                .width(Length::Fill)
-                .align_x(Alignment::Center)
-                .padding(20),
-            ActivePage::DownloadProgress => {
-                column!(text(self.i18n.t("download-tasks.title")).size(24))
-                    .width(Length::Fill)
-                    .align_x(Alignment::Center)
-                    .padding(20)
-            }
-            ActivePage::Settings => settings::settings_view(self).into(),
-        };
+    let main_content = container(content)
+        .width(Length::FillPortion(4))
+        .height(Length::Fill)
+        .padding(20);
 
-        // 组合左右两部分，包含分隔线
-        let layout = row!(
-            container(menu).width(180),
-            // 分隔线
-            container(iced::widget::Space::new())
-                .width(2)
-                .height(Length::Fill)
-                .style(|theme: &iced::Theme| iced::widget::container::Style {
-                    background: Some(iced::Background::Color(
-                        theme.extended_palette().primary.strong.color
-                    )),
-                    ..Default::default()
-                }),
-            container(content).width(Length::Fill)
-        )
+    let layout = row![sidebar, main_content].width(Length::Fill).height(Length::Fill);
+
+    container(layout)
         .width(Length::Fill)
-        .height(Length::Fill);
-
-        container(layout)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(10)
-            .into()
-    }
+        .height(Length::Fill)
+        .padding(10)
+        .into()
 }

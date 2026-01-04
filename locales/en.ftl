@@ -45,6 +45,14 @@ close-action-options =
     .minimize-to-tray = Minimize to tray
     .close-app = Close app
 
+close-confirmation =
+    .title = Confirm Close
+    .message = How would you like to close the application?
+    .minimize-to-tray = Minimize to tray
+    .exit = Exit
+    .cancel = Cancel
+    .remember-setting = Remember setting
+
 menu =
     .tray-show = Show window
     .tray-settings = Settings

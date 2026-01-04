@@ -45,6 +45,14 @@ close-action-options =
     .minimize-to-tray = 最小化到托盘
     .close-app = 关闭程序
 
+close-confirmation =
+    .title = 确认关闭
+    .message = 您想要如何关闭应用程序？
+    .minimize-to-tray = 最小化到托盘
+    .exit = 退出
+    .cancel = 取消
+    .remember-setting = 记住设置
+
 menu =
     .tray-show = 显示窗口
     .tray-settings = 设置

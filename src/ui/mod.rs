@@ -1,4 +1,5 @@
 pub mod app;
+pub mod close_confirmation;
 pub mod main;
 pub mod settings;
 pub mod tray;
@@ -8,6 +9,12 @@ use crate::i18n::I18n;
 use crate::utils::config::CloseAction;
 use crate::utils::config::Config;
 use tray_icon::TrayIcon;
+
+#[derive(Debug, Clone)]
+pub enum CloseConfirmationAction {
+    MinimizeToTray,
+    CloseApp,
+}
 
 #[derive(Debug, Clone)]
 pub enum AppMessage {
@@ -33,6 +40,11 @@ pub enum AppMessage {
     ProxyAddressChanged(String),
     ProxyPortChanged(String),
     SaveProxy,
+    // 关闭确认对话框相关消息
+    ShowCloseConfirmation,
+    CloseConfirmationResponse(CloseConfirmationAction, bool), // (动作, 是否记住设置)
+    CloseConfirmationCancelled,
+    ToggleRememberSetting(bool),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -55,6 +67,9 @@ pub struct App {
     pub proxy_protocol: String,
     pub proxy_address: String,
     pub proxy_port: String,
+    // 关闭确认对话框状态
+    pub show_close_confirmation: bool,
+    pub remember_close_setting: bool,
 }
 
 impl Default for App {
