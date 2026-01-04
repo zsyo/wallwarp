@@ -1,9 +1,10 @@
 use super::App;
 use super::AppMessage;
 use crate::utils::config::CloseAction;
+use crate::utils::images;
 use iced::{
     Alignment, Length,
-    widget::{column, container, pick_list, text, toggler},
+    widget::{button, column, container, pick_list, row, text, toggler},
 };
 
 /// 渲染设置页面的UI组件
@@ -15,7 +16,7 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                 .width(Length::Fill)
                 .align_x(Alignment::Center),
             iced::widget::row!(
-                text(app.i18n.t("settings.app-language")).width(Length::FillPortion(1)),
+                text(app.i18n.t("settings.app-language")).width(Length::Fill),
                 pick_list(
                     &app.i18n.available_langs[..],
                     Some(app.i18n.current_lang.clone()),
@@ -23,14 +24,16 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                 )
                 .width(Length::Fixed(80.0))
             )
-            .height(Length::Fixed(20.0))
+            .align_y(Alignment::Center)
+            .height(Length::Fixed(30.0))
             .width(Length::Fill)
             .spacing(10),
             iced::widget::row!(
                 text(app.i18n.t("settings.auto-startup")).width(Length::FillPortion(1)),
                 toggler(app.config.global.auto_startup).on_toggle(AppMessage::AutoStartupToggled)
             )
-            .height(Length::Fixed(20.0))
+            .align_y(Alignment::Center)
+            .height(Length::Fixed(30.0))
             .width(Length::Fill)
             .spacing(10),
             iced::widget::row!(
@@ -57,6 +60,8 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
                 ]
                 .spacing(10)
             )
+            .align_y(Alignment::Center)
+            .height(Length::Fixed(30.0))
             .width(Length::Fill)
             .spacing(10)
         )
@@ -73,18 +78,260 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
         ..Default::default()
     });
 
-    let temp_config_section = container(
+    let data_config_section = container(
         column!(
-            text(app.i18n.t("settings.temp-config"))
+            text(app.i18n.t("settings.data-config"))
+                .size(16)
+                .width(Length::Fill)
+                .align_x(Alignment::Center),
+            // 数据路径配置
+            row!(
+                text(app.i18n.t("settings.data-path")).width(Length::FillPortion(1)),
+                row!(
+                    iced::widget::text_input("", &get_absolute_path(&app.config.data.data_path))
+                        .width(Length::Fill)
+                        .size(14)
+                        .on_input(|_| AppMessage::DataPathSelected("".to_string())) // 不响应输入，实现只读效果
+                        .padding(5),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(text(app.i18n.t("settings.select-path")).size(14).center())
+                        .on_press(AppMessage::DataPathSelected("SELECT_DATA_PATH".to_string()))
+                        .style(|_theme: &iced::Theme, status| {
+                            let base = iced::widget::button::text(_theme, status);
+                            iced::widget::button::Style {
+                                background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                    0, 123, 255,
+                                ))), // 蓝色
+                                text_color: iced::Color::WHITE,
+                                ..base
+                            }
+                        }),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(text(app.i18n.t("settings.open-path")).size(14).center())
+                        .on_press(AppMessage::OpenPath("data".to_string()))
+                        .style(|_theme: &iced::Theme, status| {
+                            let base = iced::widget::button::text(_theme, status);
+                            iced::widget::button::Style {
+                                background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                    40, 167, 69,
+                                ))), // 绿色
+                                text_color: iced::Color::WHITE,
+                                ..base
+                            }
+                        }),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(text(app.i18n.t("settings.clear-path")).size(14).center())
+                        .on_press(AppMessage::ClearPath("data".to_string()))
+                        .style(|_theme: &iced::Theme, status| {
+                            let base = iced::widget::button::text(_theme, status);
+                            iced::widget::button::Style {
+                                background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                    220, 53, 69,
+                                ))), // 红色
+                                text_color: iced::Color::WHITE,
+                                ..base
+                            }
+                        }),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(
+                        text(app.i18n.t("settings.restore-default"))
+                            .size(14)
+                            .center()
+                    )
+                    .on_press(AppMessage::RestoreDefaultPath("data".to_string()))
+                    .style(|_theme: &iced::Theme, status| {
+                        let base = iced::widget::button::text(_theme, status);
+                        iced::widget::button::Style {
+                            background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                108, 117, 125,
+                            ))), // 灰色
+                            text_color: iced::Color::WHITE,
+                            ..base
+                        }
+                    })
+                )
+                .width(Length::FillPortion(4))
+                .spacing(0) // 我们手动控制间距，所以设置为0
+            )
+            .height(Length::Fixed(30.0))
+            .width(Length::Fill)
+            .spacing(10),
+            // 缓存路径配置
+            row!(
+                text(app.i18n.t("settings.cache-path")).width(Length::FillPortion(1)),
+                row!(
+                    iced::widget::text_input("", &get_absolute_path(&app.config.data.cache_path))
+                        .width(Length::Fill)
+                        .size(14)
+                        .on_input(|_| AppMessage::CachePathSelected("".to_string())) // 不响应输入，实现只读效果
+                        .padding(5),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(text(app.i18n.t("settings.select-path")).size(14).center())
+                        .on_press(AppMessage::CachePathSelected(
+                            "SELECT_CACHE_PATH".to_string()
+                        ))
+                        .style(|_theme: &iced::Theme, status| {
+                            let base = iced::widget::button::text(_theme, status);
+                            iced::widget::button::Style {
+                                background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                    0, 123, 255,
+                                ))), // 蓝色
+                                text_color: iced::Color::WHITE,
+                                ..base
+                            }
+                        }),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(text(app.i18n.t("settings.open-path")).size(14).center())
+                        .on_press(AppMessage::OpenPath("cache".to_string()))
+                        .style(|_theme: &iced::Theme, status| {
+                            let base = iced::widget::button::text(_theme, status);
+                            iced::widget::button::Style {
+                                background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                    40, 167, 69,
+                                ))), // 绿色
+                                text_color: iced::Color::WHITE,
+                                ..base
+                            }
+                        }),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(text(app.i18n.t("settings.clear-path")).size(14).center())
+                        .on_press(AppMessage::ClearPath("cache".to_string()))
+                        .style(|_theme: &iced::Theme, status| {
+                            let base = iced::widget::button::text(_theme, status);
+                            iced::widget::button::Style {
+                                background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                    220, 53, 69,
+                                ))), // 红色
+                                text_color: iced::Color::WHITE,
+                                ..base
+                            }
+                        }),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(
+                        text(app.i18n.t("settings.restore-default"))
+                            .size(14)
+                            .center()
+                    )
+                    .on_press(AppMessage::RestoreDefaultPath("cache".to_string()))
+                    .style(|_theme: &iced::Theme, status| {
+                        let base = iced::widget::button::text(_theme, status);
+                        iced::widget::button::Style {
+                            background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                108, 117, 125,
+                            ))), // 灰色
+                            text_color: iced::Color::WHITE,
+                            ..base
+                        }
+                    })
+                )
+                .width(Length::FillPortion(4))
+                .spacing(0) // 我们手动控制间距，所以设置为0
+            )
+            .height(Length::Fixed(30.0))
+            .width(Length::Fill)
+            .spacing(10),
+        )
+        .padding(15)
+        .spacing(10),
+    )
+    .width(Length::Fill)
+    .style(|theme: &iced::Theme| iced::widget::container::Style {
+        border: iced::border::Border {
+            color: theme.extended_palette().primary.strong.color,
+            width: 1.0,
+            radius: iced::border::Radius::from(5.0),
+        },
+        ..Default::default()
+    });
+
+    let (img, width, height) = images::load_rgba_from_assets("logo.ico", 128);
+    let about_config_section = container(
+        column!(
+            text(app.i18n.t("settings.about-config"))
                 .size(16)
                 .width(Length::Fill)
                 .align_x(Alignment::Center),
             iced::widget::row!(
-                text(app.i18n.t("settings.temp-option")).width(Length::FillPortion(1)),
-                text(app.i18n.t("settings.temp-value")).width(Length::FillPortion(1))
+                // 左侧信息
+                container(
+                    column!(
+                        iced::widget::row!(
+                            text(app.i18n.t("settings.about-name")),
+                            text(app.i18n.t("app-title"))
+                                .width(Length::Fill)
+                                .align_x(Alignment::Center)
+                        )
+                        .width(Length::Fill)
+                        .spacing(10),
+                        iced::widget::row!(
+                            text(app.i18n.t("settings.about-version")),
+                            text(env!("CARGO_PKG_VERSION"))
+                                .width(Length::Fill)
+                                .align_x(Alignment::Center)
+                        )
+                        .width(Length::Fill)
+                        .spacing(10),
+                        iced::widget::row!(
+                            text(app.i18n.t("settings.about-author")),
+                            button(text("zsyo").width(Length::Fill).align_x(Alignment::Center))
+                                .padding(0)
+                                .style(|theme: &iced::Theme, _status| {
+                                    let palette = theme.extended_palette();
+                                    iced::widget::button::Style {
+                                        text_color: palette.primary.base.color,
+                                        ..iced::widget::button::text(
+                                            theme,
+                                            iced::widget::button::Status::Active,
+                                        )
+                                    }
+                                })
+                                .on_press(AppMessage::OpenUrl(
+                                    "https://github.com/zsyo".to_string()
+                                ))
+                        )
+                        .height(Length::Fixed(16.0))
+                        .width(Length::Fill)
+                        .align_y(Alignment::Center)
+                        .spacing(10),
+                        iced::widget::row!(
+                            text(app.i18n.t("settings.about-repo")),
+                            button(
+                                text("https://github.com/zsyo/wallwarp")
+                                    .width(Length::Fill)
+                                    .align_x(Alignment::Center)
+                            )
+                            .padding(0)
+                            .style(|theme: &iced::Theme, _status| {
+                                let palette = theme.extended_palette();
+                                iced::widget::button::Style {
+                                    text_color: palette.primary.base.color,
+                                    ..iced::widget::button::text(
+                                        theme,
+                                        iced::widget::button::Status::Active,
+                                    )
+                                }
+                            })
+                            .on_press(AppMessage::OpenUrl(
+                                "https://github.com/zsyo/wallwarp".to_string()
+                            ))
+                        )
+                        .height(Length::Fixed(16.0))
+                        .width(Length::Fill)
+                        .align_y(Alignment::Center)
+                        .spacing(10)
+                    )
+                    .spacing(15)
+                )
+                .width(Length::Fixed(350.0)),
+                container(iced::widget::Space::new()).width(Length::Fill),
+                // 右侧图标
+                iced::widget::image(iced::widget::image::Handle::from_rgba(width, height, img))
+                    .width(Length::Fixed(128.0))
+                    .height(Length::Fixed(128.0)),
+                container(iced::widget::Space::new()).width(Length::Fixed(40.0)),
             )
             .width(Length::Fill)
-            .spacing(10)
+            .spacing(15)
         )
         .padding(15)
         .spacing(10),
@@ -99,9 +346,25 @@ pub fn settings_view(app: &App) -> iced::widget::Column<'_, AppMessage> {
         ..Default::default()
     });
 
-    column!(system_config_section, temp_config_section)
-        .width(Length::Fill)
-        .align_x(Alignment::Center)
-        .padding(20)
-        .spacing(10)
+    column!(
+        system_config_section,
+        data_config_section,
+        about_config_section,
+    )
+    .width(Length::Fill)
+    .align_x(Alignment::Center)
+    .padding(20)
+    .spacing(10)
+}
+
+/// 将路径转换为绝对路径进行展示
+fn get_absolute_path(path: &str) -> String {
+    let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    let path_buf = std::path::PathBuf::from(path);
+
+    if path_buf.is_absolute() {
+        path.to_string()
+    } else {
+        current_dir.join(path_buf).to_string_lossy().to_string()
+    }
 }

@@ -22,6 +22,12 @@ pub enum AppMessage {
     MinimizeToTray,
     TrayIconClicked,
     TrayMenuEvent(String),
+    OpenUrl(String),
+    DataPathSelected(String),
+    CachePathSelected(String),
+    OpenPath(String),
+    ClearPath(String),
+    RestoreDefaultPath(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -7,7 +7,7 @@ use tray_icon::Icon as TrayIcon;
 static ASSETS_DIR: Dir = include_dir!("$CARGO_MANIFEST_DIR/assets");
 
 // 通用函数：将资源文件转为 (RGBA字节, 宽度, 高度)
-fn load_rgba_from_assets(path: &str, size: u32) -> (Vec<u8>, u32, u32) {
+pub fn load_rgba_from_assets(path: &str, size: u32) -> (Vec<u8>, u32, u32) {
     let file = ASSETS_DIR
         .get_file(path)
         .expect(&format!("在 assets 中找不到文件: {}", path));

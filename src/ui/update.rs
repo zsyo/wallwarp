@@ -142,7 +142,129 @@ impl App {
                 }
                 _ => {}
             },
+            AppMessage::OpenUrl(url) => {
+                if let Err(e) = open::that(&url) {
+                    eprintln!("Failed to open URL {}: {}", url, e);
+                }
+            }
+            AppMessage::DataPathSelected(path) => {
+                if !path.is_empty() && path != "SELECT_DATA_PATH" {
+                    // 这是异步任务返回的实际路径
+                    self.config.set_data_path(path);
+                } else if path == "SELECT_DATA_PATH" {
+                    // 这是用户点击按钮时的原始消息，触发异步任务
+                    return iced::Task::perform(select_data_path_async(), |selected_path| {
+                        if !selected_path.is_empty() {
+                            AppMessage::DataPathSelected(selected_path)
+                        } else {
+                            AppMessage::DataPathSelected("".to_string()) // 用户取消选择
+                        }
+                    });
+                }
+            }
+            AppMessage::CachePathSelected(path) => {
+                if !path.is_empty() && path != "SELECT_CACHE_PATH" && path != "SELECT_DATA_PATH" {
+                    // 这是异步任务返回的实际路径
+                    self.config.set_cache_path(path);
+                } else if path == "SELECT_CACHE_PATH" {
+                    // 这是用户点击按钮时的原始消息，触发异步任务
+                    return iced::Task::perform(select_cache_path_async(), |selected_path| {
+                        if !selected_path.is_empty() {
+                            AppMessage::CachePathSelected(selected_path)
+                        } else {
+                            AppMessage::CachePathSelected("".to_string()) // 用户取消选择
+                        }
+                    });
+                } else if path == "SELECT_DATA_PATH" {
+                    // 这是用户点击数据路径输入框时的原始消息，触发异步任务
+                    return iced::Task::perform(select_data_path_async(), |selected_path| {
+                        if !selected_path.is_empty() {
+                            AppMessage::DataPathSelected(selected_path)
+                        } else {
+                            AppMessage::DataPathSelected("".to_string()) // 用户取消选择
+                        }
+                    });
+                }
+            }
+            AppMessage::OpenPath(path_type) => {
+                let path_to_open = match path_type.as_str() {
+                    "data" => &self.config.data.data_path,
+                    "cache" => &self.config.data.cache_path,
+                    _ => return iced::Task::none(),
+                };
+                
+                // 获取绝对路径并打开
+                let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let full_path = if std::path::PathBuf::from(path_to_open).is_absolute() {
+                    path_to_open.clone()
+                } else {
+                    current_dir.join(path_to_open).to_string_lossy().to_string()
+                };
+                
+                if let Err(e) = open::that(&full_path) {
+                    eprintln!("Failed to open path {}: {}", full_path, e);
+                }
+            }
+            AppMessage::ClearPath(path_type) => {
+                let path_to_clear = match path_type.as_str() {
+                    "data" => &self.config.data.data_path,
+                    "cache" => &self.config.data.cache_path,
+                    _ => return iced::Task::none(),
+                };
+                
+                // 获取绝对路径并清空内容
+                let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let full_path = if std::path::PathBuf::from(path_to_clear).is_absolute() {
+                    path_to_clear.clone()
+                } else {
+                    current_dir.join(path_to_clear).to_string_lossy().to_string()
+                };
+                
+                // 尝试清空目录内容
+                if let Ok(entries) = std::fs::read_dir(&full_path) {
+                    for entry in entries {
+                        if let Ok(entry) = entry {
+                            let path = entry.path();
+                            if path.is_file() {
+                                let _ = std::fs::remove_file(&path);
+                            } else if path.is_dir() {
+                                let _ = std::fs::remove_dir_all(&path);
+                            }
+                        }
+                    }
+                }
+            }
+            AppMessage::RestoreDefaultPath(path_type) => {
+                match path_type.as_str() {
+                    "data" => {
+                        // 恢复默认的数据路径 "data"
+                        self.config.set_data_path("data".to_string());
+                    }
+                    "cache" => {
+                        // 恢复默认的缓存路径 "cache"
+                        self.config.set_cache_path("cache".to_string());
+                    }
+                    _ => {}
+                }
+            }
         }
         iced::Task::none()
+    }
+}
+
+// 异步函数用于打开目录选择对话框
+async fn select_data_path_async() -> String {
+    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+        path.to_string_lossy().to_string()
+    } else {
+        "".to_string() // 用户取消选择
+    }
+}
+
+async fn select_cache_path_async() -> String {
+    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+        path.to_string_lossy().to_string()
+    } else {
+        "".to_string() // 用户取消选择
     }
 }
