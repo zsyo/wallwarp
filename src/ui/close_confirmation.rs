@@ -11,6 +11,7 @@ pub fn close_confirmation_view(app: &App) -> iced::Element<'_, AppMessage> {
         return iced::widget::Space::new().into();
     }
 
+    // 创建对话框内容
     let dialog_content = column![
         text(app.i18n.t("close-confirmation.title"))
             .size(16)
@@ -77,40 +78,53 @@ pub fn close_confirmation_view(app: &App) -> iced::Element<'_, AppMessage> {
     .spacing(15)
     .align_x(Alignment::Center);
 
-    // 创建模态对话框：带透明背景的覆盖层，包含居中的对话框
-    container(
-        // 使用居中容器包装对话框内容
-        container(
-            container(dialog_content)
+    // 将对话框包装在容器中，设置样式（白色背景，边框）
+    let modal_dialog = container(dialog_content)
+        .width(Length::Shrink)
+        .height(Length::Shrink)
+        .max_width(500) // 限制对话框最大宽度
+        .padding(10)
+        .style(|_theme: &iced::Theme| iced::widget::container::Style {
+            background: Some(iced::Background::Color(iced::Color::WHITE)),
+            border: iced::border::Border {
+                radius: iced::border::Radius::from(8.0),
+                width: 1.0,
+                color: iced::Color::from_rgb(0.8, 0.8, 0.8),
+            },
+            ..Default::default()
+        });
+
+    // 创建完整的模态内容：使用容器包含半透明背景和居中的对话框
+    let modal_content = container(
+        // 使用stack将遮罩层和居中对话框叠加
+        iced::widget::stack(vec![
+            // 半透明背景遮罩
+            container(iced::widget::Space::new())
                 .width(Length::Fill)
-                .height(Length::Shrink)
-                .max_width(500) // 限制对话框最大宽度
-                .padding(10)
+                .height(Length::Fill)
                 .style(|_theme: &iced::Theme| iced::widget::container::Style {
-                    background: Some(iced::Background::Color(iced::Color::WHITE)),
-                    border: iced::border::Border {
-                        radius: iced::border::Radius::from(8.0),
-                        width: 1.0,
-                        color: iced::Color::from_rgb(0.8, 0.8, 0.8),
-                    },
+                    background: Some(iced::Background::Color(iced::Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.5, // 半透明背景，实现模态效果
+                    })),
                     ..Default::default()
-                }),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x(Length::Fill)
-        .center_y(Length::Fill),
+                })
+                .into(),
+            // 居中的对话框
+            container(modal_dialog)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .center_x(Length::Fill)
+                .center_y(Length::Fill)
+                .into(),
+        ])
     )
     .width(Length::Fill)
-    .height(Length::Fill)
-    .style(|_theme: &iced::Theme| iced::widget::container::Style {
-        background: Some(iced::Background::Color(iced::Color {
-            r: 0.0,
-            g: 0.0,
-            b: 0.0,
-            a: 0.5, // 半透明背景，实现模态效果
-        })),
-        ..Default::default()
-    })
-    .into()
+    .height(Length::Fill);
+
+    // 返回使用opaque包装的模态内容
+    iced::widget::opaque(modal_content)
+        .into()
 }

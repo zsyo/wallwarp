@@ -7,6 +7,13 @@ online-wallpapers = Online Wallpapers
 
 local-list = Local List
     .title = Local List
+    .loading = Loading...
+    .load-failed = Load Failed
+    .no-wallpapers = No local wallpapers found
+    .load-more = Load More...
+    .all-loaded = All wallpapers loaded
+    .loading-error = Loading Error
+    .image-loading = Loading...
 
 download-tasks = Download Tasks
     .title = Download Tasks
@@ -35,6 +42,7 @@ settings = Settings
     .about-author = Author:
     .about-version = Version:
     .about-repo = Repository:
+    .save = Save
 
 startup-state =
     .on = ON
@@ -52,6 +60,12 @@ close-confirmation =
     .exit = Exit
     .cancel = Cancel
     .remember-setting = Remember setting
+
+path-clear-confirmation =
+    .title = Confirm Clear
+    .message = Are you sure you want to clear the contents of the following directory?
+    .confirm = Confirm Clear
+    .cancel = Cancel
 
 menu =
     .tray-show = Show window

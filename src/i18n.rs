@@ -13,6 +13,13 @@ online-wallpapers = 在线壁纸
 
 local-list = 本地列表
     .title = 本地壁纸
+    .loading = 加载中...
+    .load-failed = 加载失败
+    .no-wallpapers = 没有找到本地壁纸
+    .load-more = 加载更多...
+    .all-loaded = 已加载全部壁纸
+    .loading-error = 加载失败
+    .image-loading = 加载中...
 
 download-tasks = 下载任务
     .title = 下载管理
@@ -22,6 +29,13 @@ settings = 设置
     .app-language = 程序语言:
     .auto-startup = 随电脑启动:
     .close-action = 关闭按钮行为:
+    .proxy = 代理设置:
+    .proxy-address-placeholder = 地址
+    .proxy-port-placeholder = 端口
+    .proxy-save = 保存
+    .api-config = API配置
+    .wallhaven-api-key = WallHeven APIKEY:
+    .wallhaven-api-key-placeholder = 输入API KEY
     .data-config = 数据配置
     .data-path = 数据路径:
     .cache-path = 缓存路径:
@@ -43,6 +57,14 @@ close-action-options =
     .ask = 每次询问
     .minimize-to-tray = 最小化到托盘
     .close-app = 关闭程序
+
+close-confirmation =
+    .title = 确认关闭
+    .message = 您想要如何关闭应用程序？
+    .minimize-to-tray = 最小化到托盘
+    .exit = 退出
+    .cancel = 取消
+    .remember-setting = 记住设置
 
 menu =
     .tray-show = 显示窗口

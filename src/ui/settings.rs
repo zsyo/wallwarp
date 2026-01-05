@@ -4,7 +4,9 @@ use crate::utils::config::CloseAction;
 use crate::utils::images;
 use iced::{
     Alignment, Length,
-    widget::{button, column, container, pick_list, row, scrollable, text, text_input, toggler},
+    widget::{
+        Id, button, column, container, pick_list, row, scrollable, text, text_input, toggler,
+    },
 };
 use std::str::FromStr;
 
@@ -211,7 +213,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                         }),
                     container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
                     button(text(app.i18n.t("settings.clear-path")).size(14).center())
-                        .on_press(AppMessage::ClearPath("data".to_string()))
+                        .on_press(AppMessage::ShowPathClearConfirmation("data".to_string()))
                         .style(|_theme: &iced::Theme, status| {
                             let base = iced::widget::button::text(_theme, status);
                             iced::widget::button::Style {
@@ -286,7 +288,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                         }),
                     container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
                     button(text(app.i18n.t("settings.clear-path")).size(14).center())
-                        .on_press(AppMessage::ClearPath("cache".to_string()))
+                        .on_press(AppMessage::ShowPathClearConfirmation("cache".to_string()))
                         .style(|_theme: &iced::Theme, status| {
                             let base = iced::widget::button::text(_theme, status);
                             iced::widget::button::Style {
@@ -344,15 +346,32 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
             // WallHeven API KEY 配置
             iced::widget::row!(
                 text(app.i18n.t("settings.wallhaven-api-key")).width(Length::FillPortion(1)),
-                iced::widget::text_input(
-                    &app.i18n.t("settings.wallhaven-api-key-placeholder"),
-                    &app.config.api.wallhaven_api_key
+                iced::widget::row!(
+                    iced::widget::text_input(
+                        &app.i18n.t("settings.wallhaven-api-key-placeholder"),
+                        &app.wallhaven_api_key
+                    )
+                    .width(Length::Fill)
+                    .size(14)
+                    .align_x(Alignment::Center)
+                    .on_input(AppMessage::WallhavenApiKeyChanged)
+                    .padding(5),
+                    container(iced::widget::Space::new()).width(Length::Fixed(2.0)),
+                    button(text(app.i18n.t("settings.save")).size(14).center())
+                        .on_press(AppMessage::SaveWallhavenApiKey)
+                        .style(|_theme: &iced::Theme, status| {
+                            let base = iced::widget::button::text(_theme, status);
+                            iced::widget::button::Style {
+                                background: Some(iced::Background::Color(iced::Color::from_rgb8(
+                                    0, 123, 255,
+                                ))), // 蓝色
+                                text_color: iced::Color::WHITE,
+                                ..base
+                            }
+                        })
                 )
                 .width(Length::FillPortion(3))
-                .size(14)
-                .align_x(Alignment::Center)
-                .on_input(AppMessage::WallhavenApiKeyChanged)
-                .padding(5)
+                .spacing(0) // 我们手动控制间距，所以设置为0
             )
             .align_y(Alignment::Center)
             .height(Length::Fixed(30.0))
@@ -484,9 +503,10 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         .width(Length::Fill)
         .align_x(Alignment::Center)
         .padding(20)
-        .spacing(10)
+        .spacing(10),
     )
     .height(Length::Fill)
+    .id(Id::new("settings_scroll"))
     .into()
 }
 

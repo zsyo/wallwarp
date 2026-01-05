@@ -1,5 +1,4 @@
 use iced::window::icon as iced_icon;
-use image::GenericImageView;
 use include_dir::{Dir, include_dir};
 use tray_icon::Icon as TrayIcon;
 
@@ -19,8 +18,9 @@ pub fn load_rgba_from_assets(path: &str, size: u32) -> (Vec<u8>, u32, u32) {
         img = img.resize_exact(size, size, image::imageops::FilterType::Lanczos3);
     }
 
+    let img = img.to_rgba8();
     let (width, height) = img.dimensions();
-    let rgba = img.to_rgba8().into_raw();
+    let rgba = img.into_raw();
 
     (rgba, width, height)
 }

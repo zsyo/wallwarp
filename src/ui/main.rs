@@ -1,6 +1,6 @@
 use super::{ActivePage, App, AppMessage};
 use crate::utils::images;
-use iced::widget::{button, column, container, row, scrollable, text};
+use iced::widget::{button, column, container, row, text};
 use iced::{Alignment, Element, Length};
 
 pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
@@ -10,8 +10,8 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
             column![text("在线壁纸页面").size(24)].into()
         }
         ActivePage::LocalList => {
-            // TODO: 实现本地壁纸列表页面
-            column![text("本地壁纸列表页面").size(24)].into()
+            // 使用local模块实现的本地壁纸列表页面，传递当前窗口宽度以实现响应式布局
+            super::local::local_view(&app.i18n, &app.config, app.current_window_width, &app.local_state)
         }
         ActivePage::DownloadProgress => {
             // TODO: 实现下载进度页面
@@ -36,28 +36,44 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
                     .width(Length::Fill)
                     .align_x(Alignment::Center)
             )
-            .on_press(AppMessage::PageSelected(ActivePage::OnlineWallpapers))
+            .on_press_maybe(if app.active_page != ActivePage::OnlineWallpapers {
+                Some(AppMessage::PageSelected(ActivePage::OnlineWallpapers))
+            } else {
+                None
+            })
             .padding(10),
             button(
                 text(app.i18n.t("local-list.title"))
                     .width(Length::Fill)
                     .align_x(Alignment::Center)
             )
-            .on_press(AppMessage::PageSelected(ActivePage::LocalList))
+            .on_press_maybe(if app.active_page != ActivePage::LocalList {
+                Some(AppMessage::PageSelected(ActivePage::LocalList))
+            } else {
+                None
+            })
             .padding(10),
             button(
                 text(app.i18n.t("download-tasks.title"))
                     .width(Length::Fill)
                     .align_x(Alignment::Center)
             )
-            .on_press(AppMessage::PageSelected(ActivePage::DownloadProgress))
+            .on_press_maybe(if app.active_page != ActivePage::DownloadProgress {
+                Some(AppMessage::PageSelected(ActivePage::DownloadProgress))
+            } else {
+                None
+            })
             .padding(10),
             button(
                 text(app.i18n.t("settings"))
                     .width(Length::Fill)
                     .align_x(Alignment::Center)
             )
-            .on_press(AppMessage::PageSelected(ActivePage::Settings))
+            .on_press_maybe(if app.active_page != ActivePage::Settings {
+                Some(AppMessage::PageSelected(ActivePage::Settings))
+            } else {
+                None
+            })
             .padding(10),
         ]
         .spacing(5)
@@ -75,10 +91,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         ..Default::default()
     });
 
-    let main_content = container(
-        scrollable(content)
-            .height(Length::Fill)
-    )
+    let main_content = container(content)
         .width(Length::FillPortion(4))
         .height(Length::Fill)
         .padding(20)

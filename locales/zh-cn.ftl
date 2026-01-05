@@ -7,6 +7,13 @@ online-wallpapers = 在线壁纸
 
 local-list = 本地列表
     .title = 本地壁纸
+    .loading = 加载中...
+    .load-failed = 加载失败
+    .no-wallpapers = 没有找到本地壁纸
+    .load-more = 加载更多...
+    .all-loaded = 已加载全部壁纸
+    .loading-error = 加载失败
+    .image-loading = 加载中...
 
 download-tasks = 下载任务
     .title = 下载管理
@@ -35,6 +42,7 @@ settings = 设置
     .about-version = 版本:
     .about-author = 作者:
     .about-repo = 开源地址:
+    .save = 保存
 
 startup-state =
     .on = 开
@@ -52,6 +60,12 @@ close-confirmation =
     .exit = 退出
     .cancel = 取消
     .remember-setting = 记住设置
+
+path-clear-confirmation =
+    .title = 确认清空
+    .message = 您确定要清空以下目录的内容吗？
+    .confirm = 确认清空
+    .cancel = 取消
 
 menu =
     .tray-show = 显示窗口
