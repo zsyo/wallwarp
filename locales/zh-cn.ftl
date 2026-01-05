@@ -6,10 +6,10 @@ online-wallpapers = 在线壁纸
     .title = 在线壁纸
 
 local-list = 本地列表
-    .title = 本地壁纸列表
+    .title = 本地壁纸
 
 download-tasks = 下载任务
-    .title = 下载任务管理
+    .title = 下载管理
 
 settings = 设置
     .system-config = 系统配置
