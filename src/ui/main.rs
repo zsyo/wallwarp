@@ -1,5 +1,5 @@
 use super::{ActivePage, App, AppMessage};
-use crate::utils::images;
+use crate::utils::assets;
 use iced::widget::{button, column, container, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -11,7 +11,12 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         }
         ActivePage::LocalList => {
             // 使用local模块实现的本地壁纸列表页面，传递当前窗口宽度以实现响应式布局
-            super::local::local_view(&app.i18n, &app.config, app.current_window_width, &app.local_state)
+            super::local::local_view(
+                &app.i18n,
+                &app.config,
+                app.current_window_width,
+                &app.local_state,
+            )
         }
         ActivePage::DownloadProgress => {
             // TODO: 实现下载进度页面
@@ -20,7 +25,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         ActivePage::Settings => super::settings::settings_view(app),
     };
 
-    let (img, width, height) = images::load_rgba_from_assets("logo.ico", 128);
+    let (img, width, height) = assets::get_logo(128);
     let sidebar = container(
         column![
             text(app.i18n.t("app-name"))

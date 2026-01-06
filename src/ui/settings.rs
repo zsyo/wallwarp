@@ -1,7 +1,7 @@
 use super::App;
 use super::AppMessage;
+use crate::utils::assets;
 use crate::utils::config::CloseAction;
-use crate::utils::images;
 use iced::{
     Alignment, Length,
     widget::{
@@ -391,7 +391,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         ..Default::default()
     });
 
-    let (img, width, height) = images::load_rgba_from_assets("logo.ico", 128);
+    let (img, width, height) = assets::get_logo(128);
     let about_config_section = container(
         column!(
             text(app.i18n.t("settings.about-config"))
