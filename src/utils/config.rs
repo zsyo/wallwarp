@@ -35,8 +35,6 @@ pub struct ApiConfig {
 pub struct DisplayConfig {
     pub width: u32,
     pub height: u32,
-    pub x: Option<i32>,
-    pub y: Option<i32>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
@@ -83,8 +81,6 @@ impl Config {
             display: DisplayConfig {
                 width: 1200,
                 height: 800,
-                x: None,
-                y: None,
             },
         };
 
@@ -98,10 +94,6 @@ impl Config {
         if self.display.width < 1280 || self.display.height < 800 {
             self.display.width = 1280;
             self.display.height = 800;
-        }
-        if self.display.x.is_some_and(|v| v < 0) || self.display.y.is_some_and(|v| v < 0) {
-            self.display.x = None;
-            self.display.y = None;
         }
         self.save_to_file();
     }
@@ -119,12 +111,6 @@ impl Config {
     pub fn update_window_size(&mut self, width: u32, height: u32) {
         self.display.width = width;
         self.display.height = height;
-        self.save_to_file();
-    }
-
-    pub fn update_window_position(&mut self, x: i32, y: i32) {
-        self.display.x = Some(x);
-        self.display.y = Some(y);
         self.save_to_file();
     }
 

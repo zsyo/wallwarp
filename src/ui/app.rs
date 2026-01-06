@@ -16,8 +16,7 @@ impl App {
         i18n.set_language(config.global.language.clone());
 
         // 检查代理配置格式，如果不正确则还原为空字符串
-        let (proxy_protocol, proxy_address, proxy_port) =
-            Self::parse_proxy_string(&config.global.proxy);
+        let (proxy_protocol, proxy_address, proxy_port) = Self::parse_proxy_string(&config.global.proxy);
         if config.global.proxy != format!("{}://{}:{}", proxy_protocol, proxy_address, proxy_port)
             && !config.global.proxy.is_empty()
         {
@@ -33,7 +32,6 @@ impl App {
             config: config.clone(),
             active_page: super::ActivePage::OnlineWallpapers,
             pending_window_size: None,
-            pending_window_position: None,
             debounce_timer: std::time::Instant::now(),
             _tray_icon,
             proxy_protocol,
@@ -71,11 +69,7 @@ impl App {
                 if let Ok(port) = port_str.parse::<u16>() {
                     if port != 0 {
                         // u16的范围是0-65535，所以只需检查不为0
-                        return (
-                            protocol.to_string(),
-                            address.to_string(),
-                            port_str.to_string(),
-                        );
+                        return (protocol.to_string(), address.to_string(), port_str.to_string());
                     }
                 }
             }
@@ -126,9 +120,7 @@ impl App {
                     .style(|_theme: &iced::Theme, _status| {
                         let base = iced::widget::button::text(_theme, _status);
                         iced::widget::button::Style {
-                            background: Some(iced::Background::Color(iced::Color::from_rgb8(
-                                220, 53, 69,
-                            ))), // 红色
+                            background: Some(iced::Background::Color(iced::Color::from_rgb8(220, 53, 69))), // 红色
                             text_color: iced::Color::WHITE,
                             ..base
                         }
@@ -138,9 +130,7 @@ impl App {
                     .style(|_theme: &iced::Theme, _status| {
                         let base = iced::widget::button::text(_theme, _status);
                         iced::widget::button::Style {
-                            background: Some(iced::Background::Color(iced::Color::from_rgb8(
-                                108, 117, 125,
-                            ))), // 灰色
+                            background: Some(iced::Background::Color(iced::Color::from_rgb8(108, 117, 125))), // 灰色
                             text_color: iced::Color::WHITE,
                             ..base
                         }
@@ -224,23 +214,26 @@ impl App {
             ),
         };
 
-        let notification_content = container(text(&self.notification_message).size(14).style(
-            move |_theme| iced::widget::text::Style {
-                color: Some(text_color),
-            },
-        ))
-        .padding(10)
-        .width(Length::Shrink)
-        .height(Length::Shrink)
-        .style(move |_theme| iced::widget::container::Style {
-            background: Some(iced::Background::Color(bg_color)),
-            border: iced::border::Border {
-                radius: iced::border::Radius::from(8.0),
-                width: 1.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            ..Default::default()
-        });
+        let notification_content =
+            container(
+                text(&self.notification_message)
+                    .size(14)
+                    .style(move |_theme| iced::widget::text::Style {
+                        color: Some(text_color),
+                    }),
+            )
+            .padding(10)
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .style(move |_theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                border: iced::border::Border {
+                    radius: iced::border::Radius::from(8.0),
+                    width: 1.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            });
 
         // 将通知放在窗口底部中央
         container(

@@ -1,7 +1,7 @@
 use super::AppMessage;
 use crate::services::local::Wallpaper;
 use crate::utils::config::Config;
-use iced::widget::{button, column, row, scrollable, text, Id};
+use iced::widget::{Id, button, column, row, scrollable, text};
 use iced::{Alignment, Element, Length};
 
 #[derive(Debug, Clone)]
@@ -35,13 +35,11 @@ pub enum WallpaperLoadStatus {
 pub struct LocalState {
     pub wallpapers: Vec<WallpaperLoadStatus>, // 使用新的加载状态枚举
     pub all_paths: Vec<String>,               // 存储所有壁纸路径
-    pub loading: bool,                        // 是否正在加载壁纸列表
     pub loading_page: bool,                   // 是否正在加载当前页面
     pub current_page: usize,                  // 当前页码
     pub page_size: usize,                     // 每页显示数量
     pub total_count: usize,                   // 总壁纸数量
-    pub error: Option<String>,
-    pub rotation_angle: f32, // 加载动画的旋转角度
+    pub rotation_angle: f32,                  // 加载动画的旋转角度
     // 模态窗口相关状态
     pub modal_visible: bool,        // 模态窗口是否可见
     pub current_image_index: usize, // 当前显示的图片索引
@@ -52,12 +50,10 @@ impl Default for LocalState {
         Self {
             wallpapers: Vec::new(),
             all_paths: Vec::new(),
-            loading: true,
             loading_page: false,
             current_page: 0,
             page_size: 20, // 默认每页20张
             total_count: 0,
-            error: None,
             rotation_angle: 0.0,    // 初始旋转角度为0
             modal_visible: false,   // 默认不显示模态窗口
             current_image_index: 0, // 默认当前图片索引为0
@@ -72,68 +68,36 @@ pub fn local_view<'a>(
     local_state: &'a LocalState,
 ) -> Element<'a, AppMessage> {
     // 正常内容区域
-    let content = if local_state.loading {
-        // 显示加载动画
-        // 使用简单的点动画作为加载指示器
-        let dots = (0..3)
-            .map(|i| {
-                let dot_element = if i as f32 == (local_state.rotation_angle / 120.0).floor() % 3.0
-                {
-                    text("●").size(16).into() // 活跃点
-                } else {
-                    text("●")
-                        .size(16)
-                        .style(|_theme: &iced::Theme| {
-                            iced::widget::text::Style {
-                                color: Some([0.7, 0.7, 0.7].into()), // 灰色点
-                            }
-                        })
-                        .into()
-                };
-                dot_element
-            })
-            .collect::<Vec<_>>();
-
-        let loading_dots = row(dots).spacing(5);
-        let loading_text = text(i18n.t("local-list.loading")).size(16);
-
-        column![loading_dots, loading_text]
-            .spacing(10)
-            .width(Length::Shrink)
-            .height(Length::Shrink)
-            .align_x(Alignment::Center)
-    } else if let Some(ref error) = local_state.error {
-        // 显示错误信息
-        column![text(format!("{}: {}", i18n.t("local-list.load-failed"), error)).size(16)]
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .align_x(Alignment::Center)
-    } else if local_state.all_paths.is_empty() {
+    let content = if local_state.all_paths.is_empty() {
         // 显示空状态
-        column![text(i18n.t("local-list.no-wallpapers")).size(16)]
+        column![text(i18n.t("local-list.no-wallpapers")).size(24)]
             .width(Length::Fill)
             .align_x(Alignment::Center)
-            .padding(20)
+            .padding(360)
     } else {
-        // 固定图片尺寸为300*200，不再根据窗口宽度动态调整
+        // 固定图片尺寸为300*200
         let image_width = 300.0;
         let image_height = 200.0;
+        let spacing = 20.0; // 图片之间的间距
 
-        // 计算每行显示的图片数量（基于窗口宽度和固定间距）
-        let items_per_row = std::cmp::max(1, (window_width as f32 / (image_width + 20.0)) as usize);
+        // 计算实际可用于显示图片的区域宽度
+        // window_width 是整个窗口宽度，需要减去外侧区域宽度
+        let available_width = (window_width as f32 - spacing).max(image_width);
 
-        // 创建图片网格
+        // 计算每行能“完整”容纳的图片数量
+        let unit_width = image_width + spacing;
+        let items_per_row = (available_width / unit_width).floor() as usize;
+        let items_per_row = items_per_row.max(1);
+
+        // 创建图片网格容器
         let mut content = column![]
-            .spacing(20) // 设置行间距为20
-            .width(Length::Fill)
-            .align_x(Alignment::Center);
+            .spacing(spacing)
+            .width(Length::Fill) // 撑满右侧区域
+            .align_x(Alignment::Center); // 使内部的行容器整体居中
 
         // 按行组织图片 - 使用wallpapers来构建网格
         for chunk in local_state.wallpapers.chunks(items_per_row) {
-            let mut row_container = row![]
-                .spacing(20)
-                .width(Length::Fill)
-                .align_y(Alignment::Center);
+            let mut row_container = row![].spacing(spacing).align_y(Alignment::Center);
 
             for wallpaper_status in chunk {
                 let image_element = match wallpaper_status {
@@ -142,9 +106,7 @@ pub fn local_view<'a>(
                         // 使用简单的点动画作为加载指示器
                         let dots = (0..3)
                             .map(|i| {
-                                let dot_element = if i as f32
-                                    == (local_state.rotation_angle / 120.0).floor() % 3.0
-                                {
+                                let dot_element = if i as f32 == (local_state.rotation_angle / 120.0).floor() % 3.0 {
                                     text("●").size(24).into() // 活跃点
                                 } else {
                                     text("●")
@@ -163,11 +125,13 @@ pub fn local_view<'a>(
                         let loading_image = row(dots).spacing(3);
 
                         let loading_text =
-                            text(i18n.t("local-list.image-loading")).size(24).style(|_theme: &iced::Theme| {
-                                iced::widget::text::Style {
-                                    color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
-                                }
-                            });
+                            text(i18n.t("local-list.image-loading"))
+                                .size(24)
+                                .style(|_theme: &iced::Theme| {
+                                    iced::widget::text::Style {
+                                        color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
+                                    }
+                                });
 
                         let inner_content = iced::widget::container(
                             column![loading_image, loading_text]
@@ -202,8 +166,7 @@ pub fn local_view<'a>(
                     }
                     WallpaperLoadStatus::Loaded(wallpaper) => {
                         // 显示已加载的壁纸
-                        let image_handle =
-                            iced::widget::image::Handle::from_path(&wallpaper.thumbnail_path);
+                        let image_handle = iced::widget::image::Handle::from_path(&wallpaper.thumbnail_path);
                         let image = iced::widget::image(image_handle)
                             .width(Length::Fixed(image_width))
                             .height(Length::Fixed(image_height))
@@ -232,17 +195,18 @@ pub fn local_view<'a>(
 
                         button(styled_image)
                             .padding(0)
-                            .on_press(super::AppMessage::Local(LocalMessage::ShowModal(
-                                wallpaper_index,
-                            )))
+                            .on_press(super::AppMessage::Local(LocalMessage::ShowModal(wallpaper_index)))
                     }
                     WallpaperLoadStatus::Error(error_msg) => {
                         // 显示错误占位图
-                        let error_text = text(i18n.t("local-list.loading-error")).size(12).style(|_theme: &iced::Theme| {
-                            iced::widget::text::Style {
-                                color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
-                            }
-                        });
+                        let error_text =
+                            text(i18n.t("local-list.loading-error"))
+                                .size(12)
+                                .style(|_theme: &iced::Theme| {
+                                    iced::widget::text::Style {
+                                        color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
+                                    }
+                                });
                         let error_image = text(error_msg).size(10).style(|_theme: &iced::Theme| {
                             iced::widget::text::Style {
                                 color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
@@ -282,26 +246,31 @@ pub fn local_view<'a>(
                 row_container = row_container.push(image_element);
             }
 
-            content = content.push(row_container);
+            // 将行容器包装在一个居中容器中，以实现整体居中
+            let centered_row = iced::widget::container(row_container)
+                .width(Length::Fill)
+                .center_x(Length::Fill);
+            content = content.push(centered_row);
         }
 
         // 如果还有更多壁纸未加载且当前没有在加载中，则添加一个加载更多区域
-        if local_state.current_page * local_state.page_size < local_state.total_count
-            && !local_state.loading_page
-        {
+        if local_state.current_page * local_state.page_size < local_state.total_count && !local_state.loading_page {
             // 滚动到底部触发加载更多
             let load_more_button = button(text(i18n.t("local-list.load-more")).size(16))
                 .padding(10)
                 .on_press(super::AppMessage::Local(LocalMessage::ScrollToBottom));
 
-            content = content.push(load_more_button);
+            content = content.push(load_more_button)
         } else if local_state.current_page * local_state.page_size >= local_state.total_count {
             // 显示已加载全部壁纸
             let all_loaded_text = text(i18n.t("local-list.all-loaded")).size(14);
-            content = content.push(all_loaded_text);
+            content = content.push(all_loaded_text)
         }
-
-        content.into()
+        column![
+            iced::widget::Space::new().height(spacing),
+            content,
+            iced::widget::Space::new().height(spacing)
+        ]
     };
 
     // 将基础内容包装在 scrollable 中，作为 stack 的底层
@@ -338,36 +307,34 @@ pub fn local_view<'a>(
             .on_press(AppMessage::Local(LocalMessage::CloseModal));
 
         // 构建模态窗口内容
-        let modal_content = iced::widget::container(
-            iced::widget::column![
-                // 顶部关闭按钮行
-                iced::widget::row![
-                    iced::widget::container(iced::widget::Space::new())
-                        .width(Length::Fill)
-                        .height(Length::Shrink),
-                    close_button
-                ]
-                .padding(10),
-                // 图片交互行
-                iced::widget::row![
-                    iced::widget::container(prev_button)
-                        .width(Length::Shrink)
-                        .center_y(Length::Fill),
-                    iced::widget::container(modal_image)
-                        .width(Length::Fill)
-                        .height(Length::Fill)
-                        .center_x(Length::Fill)
-                        .center_y(Length::Fill),
-                    iced::widget::container(next_button)
-                        .width(Length::Shrink)
-                        .center_y(Length::Fill),
-                ]
-                .spacing(10)
-                .align_y(Alignment::Center)
-                .width(Length::Fill)
-                .height(Length::Fill)
+        let modal_content = iced::widget::container(iced::widget::column![
+            // 顶部关闭按钮行
+            iced::widget::row![
+                iced::widget::container(iced::widget::Space::new())
+                    .width(Length::Fill)
+                    .height(Length::Shrink),
+                close_button
             ]
-        )
+            .padding(10),
+            // 图片交互行
+            iced::widget::row![
+                iced::widget::container(prev_button)
+                    .width(Length::Shrink)
+                    .center_y(Length::Fill),
+                iced::widget::container(modal_image)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .center_x(Length::Fill)
+                    .center_y(Length::Fill),
+                iced::widget::container(next_button)
+                    .width(Length::Shrink)
+                    .center_y(Length::Fill),
+            ]
+            .spacing(10)
+            .align_y(Alignment::Center)
+            .width(Length::Fill)
+            .height(Length::Fill)
+        ])
         .width(Length::Fill)
         .height(Length::Fill)
         .style(|_theme: &iced::Theme| iced::widget::container::Style {

@@ -20,7 +20,6 @@ pub enum CloseConfirmationAction {
 pub enum AppMessage {
     LanguageSelected(String),
     WindowResized(u32, u32), // 窗口大小改变事件
-    WindowMoved(i32, i32),   // 窗口位置改变事件
     DebounceTimer,
     PageSelected(ActivePage),
     AutoStartupToggled(bool),
@@ -46,7 +45,7 @@ pub enum AppMessage {
     SaveProxy,
     // 通知相关消息
     ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
-    HideNotification,                          // 隐藏通知（用于定时隐藏）
+    HideNotification,                           // 隐藏通知（用于定时隐藏）
     // 关闭确认对话框相关消息
     ShowCloseConfirmation,
     CloseConfirmationResponse(CloseConfirmationAction, bool), // (动作, 是否记住设置)
@@ -74,7 +73,6 @@ pub struct App {
     pub config: crate::utils::config::Config,
     active_page: ActivePage,
     pending_window_size: Option<(u32, u32)>,
-    pending_window_position: Option<(i32, i32)>,
     debounce_timer: std::time::Instant,
     _tray_icon: TrayIcon,
     // 代理设置的临时状态

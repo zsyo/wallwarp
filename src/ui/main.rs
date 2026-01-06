@@ -4,6 +4,14 @@ use iced::widget::{button, column, container, row, text};
 use iced::{Alignment, Element, Length};
 
 pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
+    let sidebar_width = 180.0;
+    let row_spacing = 20.0;
+    let outer_padding = 20.0; // 左右各 10
+
+    // 计算 main_content 内部真正的可用宽度
+    let functional_area_width =
+        (app.current_window_width as f32 - sidebar_width - row_spacing - outer_padding).max(1.0);
+
     let content: Element<'_, AppMessage> = match app.active_page {
         ActivePage::OnlineWallpapers => {
             // TODO: 实现在线壁纸页面
@@ -11,12 +19,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         }
         ActivePage::LocalList => {
             // 使用local模块实现的本地壁纸列表页面，传递当前窗口宽度以实现响应式布局
-            super::local::local_view(
-                &app.i18n,
-                &app.config,
-                app.current_window_width,
-                &app.local_state,
-            )
+            super::local::local_view(&app.i18n, &app.config, functional_area_width as u32, &app.local_state)
         }
         ActivePage::DownloadProgress => {
             // TODO: 实现下载进度页面
@@ -99,7 +102,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
     let main_content = container(content)
         .width(Length::FillPortion(4))
         .height(Length::Fill)
-        .padding(20)
+        .padding(0)
         .style(|theme: &iced::Theme| iced::widget::container::Style {
             border: iced::border::Border {
                 color: theme.extended_palette().primary.strong.color,

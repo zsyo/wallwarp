@@ -12,17 +12,12 @@ fn main() -> iced::Result {
     // 首先加载配置
     let config = Config::new(&i18n.current_lang);
 
-    let mut position = window::Position::Centered;
-    if let (Some(pos_x), Some(pos_y)) = (config.display.x, config.display.y) {
-        position = window::Position::Specific([pos_x as f32, pos_y as f32].into());
-    }
-
     let (rgba, width, height) = assets::get_logo(128);
     let icon = window::icon::from_rgba(rgba, width, height).expect("生成 Iced 图标失败");
 
     // 根据配置创建窗口设置
-    let mut window_settings = window::Settings {
-        position,
+    let settings = window::Settings {
+        position: window::Position::Centered,
         size: Size::new(config.display.width as f32, config.display.height as f32),
         min_size: Some(Size::new(1280.0, 800.0)),
         icon: Some(icon),
@@ -30,13 +25,7 @@ fn main() -> iced::Result {
         ..window::Settings::default()
     };
 
-    // 如果配置中有窗口位置，则设置位置
-    if let (Some(pos_x), Some(pos_y)) = (config.display.x, config.display.y) {
-        window_settings.position = window::Position::Specific([pos_x as f32, pos_y as f32].into());
-    }
-
     let init_data = std::cell::RefCell::new(Some((i18n, config)));
-
     iced::application(
         move || {
             // 通过 borrow_mut() 获取可变引用并 take() 出数据
@@ -48,7 +37,7 @@ fn main() -> iced::Result {
         App::view,
     )
     .subscription(|app: &App| app.subscription())
-    .window(window_settings)
+    .window(settings)
     .title(|app: &App| app.title())
     .run()
 }
