@@ -206,7 +206,8 @@ pub fn local_view<'a>(
                             iced::widget::image::Handle::from_path(&wallpaper.thumbnail_path);
                         let image = iced::widget::image(image_handle)
                             .width(Length::Fixed(image_width))
-                            .height(Length::Fixed(image_height));
+                            .height(Length::Fixed(image_height))
+                            .content_fit(iced::ContentFit::Fill); // 使用Fill模式使图片拉伸铺满容器
 
                         // 使用container包装图片，添加浅灰色背景和深灰色边框
                         let styled_image = iced::widget::container(image)
@@ -317,7 +318,7 @@ pub fn local_view<'a>(
 
         // 创建图片，使用 content_fit 确保图片比例正确且不超出
         let modal_image = iced::widget::image(image_handle)
-            .content_fit(iced::ContentFit::Contain) // 确保大图比例正确且不超出
+            .content_fit(iced::ContentFit::Contain) // 在模态窗口中保持Contain模式以确保全图可见
             .width(Length::Fill)
             .height(Length::Fill);
 

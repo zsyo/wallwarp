@@ -12,13 +12,19 @@ fn main() -> iced::Result {
     // 首先加载配置
     let config = Config::new(&i18n.current_lang);
 
+    let mut position = window::Position::Centered;
+    if let (Some(pos_x), Some(pos_y)) = (config.display.x, config.display.y) {
+        position = window::Position::Specific([pos_x as f32, pos_y as f32].into());
+    }
+
     let (rgba, width, height) = assets::get_logo(128);
     let icon = window::icon::from_rgba(rgba, width, height).expect("生成 Iced 图标失败");
 
     // 根据配置创建窗口设置
     let mut window_settings = window::Settings {
+        position,
         size: Size::new(config.display.width as f32, config.display.height as f32),
-        min_size: Some(Size::new(960.0, 640.0)),
+        min_size: Some(Size::new(1280.0, 800.0)),
         icon: Some(icon),
         exit_on_close_request: false, // 关键：不自动退出
         ..window::Settings::default()

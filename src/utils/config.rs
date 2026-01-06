@@ -53,7 +53,8 @@ impl Config {
         let config_path = Path::new(CONFIG_FILE);
 
         if let Ok(content) = fs::read_to_string(config_path) {
-            if let Ok(config) = toml::from_str::<Config>(&content) {
+            if let Ok(mut config) = toml::from_str::<Config>(&content) {
+                config.fix_config();
                 return config;
             }
         }
@@ -91,6 +92,18 @@ impl Config {
         Self::create_default_directories(&default_config);
 
         default_config
+    }
+
+    fn fix_config(&mut self) {
+        if self.display.width < 1280 || self.display.height < 800 {
+            self.display.width = 1280;
+            self.display.height = 800;
+        }
+        if self.display.x.is_some_and(|v| v < 0) || self.display.y.is_some_and(|v| v < 0) {
+            self.display.x = None;
+            self.display.y = None;
+        }
+        self.save_to_file();
     }
 
     /// 核心保存逻辑：一行代码搞定序列化
