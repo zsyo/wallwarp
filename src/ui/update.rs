@@ -499,14 +499,14 @@ impl App {
                             let absolute_idx = start_idx + i;
 
                             tasks.push(iced::Task::perform(
-                                async_load_single_wallpaper(path, cache_path),
+                                async_load_single_wallpaper(path.clone(), cache_path),
                                 move |result| match result {
                                     Ok(wallpaper) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(
                                         vec![(absolute_idx, wallpaper)],
                                     )),
                                     Err(_) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(
                                         absolute_idx,
-                                        crate::services::local::Wallpaper::new("".to_string(), "加载失败".to_string()),
+                                        crate::services::local::Wallpaper::new(path, "加载失败".to_string()),
                                     )])), // 创建失败状态
                                 },
                             ));
@@ -568,6 +568,16 @@ impl App {
                         println!("选择了壁纸: {}", wallpaper.path);
                     }
                     super::local::LocalMessage::ShowModal(index) => {
+                        // 检查要显示的图片是否为失败状态
+                        if let Some(wallpaper_status) = self.local_state.wallpapers.get(index) {
+                            if let super::local::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                                if wallpaper.name == "加载失败" {
+                                    // 如果是失败的图片，不显示模态窗口
+                                    return iced::Task::none();
+                                }
+                            }
+                        }
+
                         // 显示模态窗口，设置当前图片索引
                         self.local_state.current_image_index = index;
                         self.local_state.modal_visible = true;
@@ -577,24 +587,72 @@ impl App {
                         self.local_state.modal_visible = false;
                     }
                     super::local::LocalMessage::NextImage => {
-                        // 显示下一张图片
+                        // 显示下一张图片，跳过加载失败的图片
                         if !self.local_state.all_paths.is_empty() {
-                            if self.local_state.current_image_index < self.local_state.all_paths.len() - 1 {
-                                self.local_state.current_image_index += 1;
-                            } else {
-                                // 如果已经是最后一张，则循环到第一张
-                                self.local_state.current_image_index = 0;
+                            let mut next_index = self.local_state.current_image_index;
+
+                            // 循环查找下一张有效的图片
+                            loop {
+                                if next_index < self.local_state.all_paths.len() - 1 {
+                                    next_index += 1;
+                                } else {
+                                    // 如果已经是最后一张，则循环到第一张
+                                    next_index = 0;
+                                }
+
+                                // 检查是否回到起始位置（即没有找到有效图片）
+                                if next_index == self.local_state.current_image_index {
+                                    break;
+                                }
+
+                                // 检查当前索引对应的壁纸是否为失败状态
+                                if let Some(wallpaper_status) = self.local_state.wallpapers.get(next_index) {
+                                    if let super::local::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                                        if wallpaper.name != "加载失败" {
+                                            // 找到有效的图片，更新当前索引
+                                            self.local_state.current_image_index = next_index;
+                                            break;
+                                        }
+                                    } else {
+                                        // 如果壁纸还在加载中，也跳过
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }
                     super::local::LocalMessage::PreviousImage => {
-                        // 显示上一张图片
+                        // 显示上一张图片，跳过加载失败的图片
                         if !self.local_state.all_paths.is_empty() {
-                            if self.local_state.current_image_index > 0 {
-                                self.local_state.current_image_index -= 1;
-                            } else {
-                                // 如果是第一张，则循环到最后一张
-                                self.local_state.current_image_index = self.local_state.all_paths.len() - 1;
+                            let mut prev_index = self.local_state.current_image_index;
+
+                            // 循环查找上一张有效的图片
+                            loop {
+                                if prev_index > 0 {
+                                    prev_index -= 1;
+                                } else {
+                                    // 如果是第一张，则循环到最后一张
+                                    prev_index = self.local_state.all_paths.len() - 1;
+                                }
+
+                                // 检查是否回到起始位置（即没有找到有效图片）
+                                if prev_index == self.local_state.current_image_index {
+                                    break;
+                                }
+
+                                // 检查当前索引对应的壁纸是否为失败状态
+                                if let Some(wallpaper_status) = self.local_state.wallpapers.get(prev_index) {
+                                    if let super::local::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                                        if wallpaper.name != "加载失败" {
+                                            // 找到有效的图片，更新当前索引
+                                            self.local_state.current_image_index = prev_index;
+                                            break;
+                                        }
+                                    } else {
+                                        // 如果壁纸还在加载中，也跳过
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }

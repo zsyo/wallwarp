@@ -2,7 +2,7 @@ use super::AppMessage;
 use crate::services::local::Wallpaper;
 use crate::utils::config::Config;
 use iced::widget::{Id, button, column, row, scrollable, text};
-use iced::{Alignment, Element, Length};
+use iced::{Alignment, Color, Element, Font, Length};
 
 #[derive(Debug, Clone)]
 pub enum LocalMessage {
@@ -27,7 +27,6 @@ pub enum LocalMessage {
 pub enum WallpaperLoadStatus {
     Loading,           // 正在加载
     Loaded(Wallpaper), // 已加载完成
-    Error(String),     // 加载错误
 }
 
 // 定义加载状态
@@ -165,81 +164,89 @@ pub fn local_view<'a>(
                             .height(Length::Fixed(image_height))
                     }
                     WallpaperLoadStatus::Loaded(wallpaper) => {
-                        // 显示已加载的壁纸
-                        let image_handle = iced::widget::image::Handle::from_path(&wallpaper.thumbnail_path);
-                        let image = iced::widget::image(image_handle)
+                        // 检查是否为加载失败的壁纸
+                        if wallpaper.name == "加载失败" {
+                            // 显示错误占位图
+                            let error_image = text("\u{F428}")
+                                .font(Font::with_name("bootstrap-icons"))
+                                .color(Color::BLACK)
+                                .size(56);
+                            let error_text =
+                                text(i18n.t("local-list.loading-error"))
+                                    .size(18)
+                                    .style(|_theme: &iced::Theme| {
+                                        iced::widget::text::Style {
+                                            color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
+                                        }
+                                    });
+                            let error_path = text(&wallpaper.path).size(10).style(|_theme: &iced::Theme| {
+                                iced::widget::text::Style {
+                                    color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
+                                }
+                            }); // 显示路径中的错误信息
+
+                            let inner_content = iced::widget::container(
+                                column![error_image, error_text, error_path]
+                                    .width(Length::Fill)
+                                    .align_x(Alignment::Center),
+                            )
                             .width(Length::Fixed(image_width))
                             .height(Length::Fixed(image_height))
-                            .content_fit(iced::ContentFit::Fill); // 使用Fill模式使图片拉伸铺满容器
+                            .center_x(Length::Fill)
+                            .center_y(Length::Fill);
 
-                        // 使用container包装图片，添加浅灰色背景和深灰色边框
-                        let styled_image = iced::widget::container(image)
-                            .width(Length::Fixed(image_width))
-                            .height(Length::Fixed(image_height))
-                            .style(|theme: &iced::Theme| iced::widget::container::Style {
-                                background: Some(iced::Background::Color([0.9, 0.9, 0.9].into())), // 浅灰色背景
-                                border: iced::border::Border {
-                                    color: theme.extended_palette().primary.weak.color, // 深灰色边框
-                                    width: 1.0,
-                                    radius: iced::border::Radius::from(4.0),
-                                },
-                                ..Default::default()
-                            });
-
-                        // 获取当前壁纸在all_paths中的索引
-                        let wallpaper_index = local_state
-                            .all_paths
-                            .iter()
-                            .position(|p| p == &wallpaper.path)
-                            .unwrap_or(0);
-
-                        button(styled_image)
-                            .padding(0)
-                            .on_press(super::AppMessage::Local(LocalMessage::ShowModal(wallpaper_index)))
-                    }
-                    WallpaperLoadStatus::Error(error_msg) => {
-                        // 显示错误占位图
-                        let error_text =
-                            text(i18n.t("local-list.loading-error"))
-                                .size(12)
-                                .style(|_theme: &iced::Theme| {
-                                    iced::widget::text::Style {
-                                        color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
-                                    }
+                            // 使用container包装错误占位图，添加浅灰色背景和深灰色边框
+                            let error_content = iced::widget::container(inner_content)
+                                .width(Length::Fixed(image_width))
+                                .height(Length::Fixed(image_height))
+                                .style(|theme: &iced::Theme| iced::widget::container::Style {
+                                    background: Some(iced::Background::Color([0.9, 0.9, 0.9].into())), // 浅灰色背景
+                                    border: iced::border::Border {
+                                        color: theme.extended_palette().primary.weak.color, // 深灰色边框
+                                        width: 1.0,
+                                        radius: iced::border::Radius::from(4.0),
+                                    },
+                                    ..Default::default()
                                 });
-                        let error_image = text(error_msg).size(10).style(|_theme: &iced::Theme| {
-                            iced::widget::text::Style {
-                                color: Some([0.3, 0.3, 0.3].into()), // 深灰色文字
-                            }
-                        });
 
-                        let inner_content = iced::widget::container(
-                            column![error_text, error_image]
-                                .width(Length::Fill)
-                                .height(Length::Fill)
-                                .align_x(Alignment::Center),
-                        )
-                        .width(Length::Fixed(image_width))
-                        .height(Length::Fixed(image_height));
+                            // 加载失败的图片不响应点击事件
+                            button(error_content)
+                                .padding(0)
+                                .width(Length::Fixed(image_width))
+                                .height(Length::Fixed(image_height))
+                        } else {
+                            // 显示已加载的壁纸
+                            let image_handle = iced::widget::image::Handle::from_path(&wallpaper.thumbnail_path);
+                            let image = iced::widget::image(image_handle)
+                                .width(Length::Fixed(image_width))
+                                .height(Length::Fixed(image_height))
+                                .content_fit(iced::ContentFit::Fill); // 使用Fill模式使图片拉伸铺满容器
 
-                        // 使用container包装错误占位图，添加浅灰色背景和深灰色边框
-                        let error_content = iced::widget::container(inner_content)
-                            .width(Length::Fixed(image_width))
-                            .height(Length::Fixed(image_height))
-                            .style(|theme: &iced::Theme| iced::widget::container::Style {
-                                background: Some(iced::Background::Color([0.9, 0.9, 0.9].into())), // 浅灰色背景
-                                border: iced::border::Border {
-                                    color: theme.extended_palette().primary.weak.color, // 深灰色边框
-                                    width: 1.0,
-                                    radius: iced::border::Radius::from(4.0),
-                                },
-                                ..Default::default()
-                            });
+                            // 使用container包装图片，添加浅灰色背景和深灰色边框
+                            let styled_image = iced::widget::container(image)
+                                .width(Length::Fixed(image_width))
+                                .height(Length::Fixed(image_height))
+                                .style(|theme: &iced::Theme| iced::widget::container::Style {
+                                    background: Some(iced::Background::Color([0.9, 0.9, 0.9].into())), // 浅灰色背景
+                                    border: iced::border::Border {
+                                        color: theme.extended_palette().primary.weak.color, // 深灰色边框
+                                        width: 1.0,
+                                        radius: iced::border::Radius::from(4.0),
+                                    },
+                                    ..Default::default()
+                                });
 
-                        button(error_content)
-                            .padding(0)
-                            .width(Length::Fixed(image_width))
-                            .height(Length::Fixed(image_height))
+                            // 获取当前壁纸在all_paths中的索引
+                            let wallpaper_index = local_state
+                                .all_paths
+                                .iter()
+                                .position(|p| p == &wallpaper.path)
+                                .unwrap_or(0);
+
+                            button(styled_image)
+                                .padding(0)
+                                .on_press(super::AppMessage::Local(LocalMessage::ShowModal(wallpaper_index)))
+                        }
                     }
                 };
 

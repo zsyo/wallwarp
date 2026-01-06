@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use iced::{Size, window};
+use iced::{Size, font, window};
 use wallwarp::i18n::I18n;
 use wallwarp::ui::App;
 use wallwarp::utils::assets;
@@ -31,7 +31,10 @@ fn main() -> iced::Result {
             // 通过 borrow_mut() 获取可变引用并 take() 出数据
             let (i18n, config) = init_data.borrow_mut().take().expect("App can only be initialized once");
 
-            (App::new_with_config(i18n, config), iced::Task::none())
+            // 加载图标字体
+            let load_font_task = font::load(assets::ICON_FONT).discard();
+
+            (App::new_with_config(i18n, config), load_font_task)
         },
         App::update,
         App::view,
