@@ -8,11 +8,12 @@ iced = { version = "0.14.0", features = ["tokio", "image", "advanced"] }
 tokio = { version = "1.49.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 image = { version = "0.25", features = ["webp"] }
+gif = "0.14.1"
 toml = "0.9.10"
 open = "5.3"
 rfd = "0.17.1"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
-fast_image_resize = { version = "5.5.0", features = ["image"] }
+fast_image_resize = { version = "5.6.0", features = ["image"] }
 rayon = "1.11.0"
 
 # i18n

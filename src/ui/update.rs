@@ -28,6 +28,9 @@ impl App {
             // 添加动画定时器 - 每100毫秒更新一次旋转角度
             time::every(Duration::from_millis(100))
                 .map(|_| AppMessage::Local(super::local::LocalMessage::AnimationTick)),
+            // 添加动态图帧更新定时器 - 每50毫秒更新一次
+            time::every(Duration::from_millis(50))
+                .map(|_| AppMessage::Local(super::local::LocalMessage::AnimatedFrameUpdate)),
         ])
     }
 
@@ -581,10 +584,35 @@ impl App {
                         // 显示模态窗口，设置当前图片索引
                         self.local_state.current_image_index = index;
                         self.local_state.modal_visible = true;
+
+                        // 尝试初始化动态图解码器
+                        if let Some(path) = self.local_state.all_paths.get(index) {
+                            let path = std::path::PathBuf::from(path);
+                            println!("尝试解码图片: {:?}", path);
+                            match crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
+                                Ok(decoder) => {
+                                    println!("解码成功，帧数: {}", decoder.frame_count());
+                                    // 只有当图片是动态图时才设置解码器
+                                    if decoder.frame_count() > 1 {
+                                        self.local_state.animated_decoder = Some(decoder);
+                                        println!("设置动态图解码器");
+                                    } else {
+                                        self.local_state.animated_decoder = None;
+                                        println!("图片不是动态图，不设置解码器");
+                                    }
+                                }
+                                Err(e) => {
+                                    println!("解码失败: {}", e);
+                                    self.local_state.animated_decoder = None;
+                                }
+                            }
+                        }
                     }
                     super::local::LocalMessage::CloseModal => {
                         // 关闭模态窗口
                         self.local_state.modal_visible = false;
+                        // 清理动态图解码器
+                        self.local_state.animated_decoder = None;
                     }
                     super::local::LocalMessage::NextImage => {
                         // 显示下一张图片，跳过加载失败的图片
@@ -611,6 +639,20 @@ impl App {
                                         if wallpaper.name != "加载失败" {
                                             // 找到有效的图片，更新当前索引
                                             self.local_state.current_image_index = next_index;
+
+                                            // 尝试初始化动态图解码器
+                                            if let Some(path) = self.local_state.all_paths.get(next_index) {
+                                                let path = std::path::PathBuf::from(path);
+                                                if let Ok(decoder) = crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
+                                                    if decoder.frame_count() > 1 {
+                                                        self.local_state.animated_decoder = Some(decoder);
+                                                    } else {
+                                                        self.local_state.animated_decoder = None;
+                                                    }
+                                                } else {
+                                                    self.local_state.animated_decoder = None;
+                                                }
+                                            }
                                             break;
                                         }
                                     } else {
@@ -646,6 +688,20 @@ impl App {
                                         if wallpaper.name != "加载失败" {
                                             // 找到有效的图片，更新当前索引
                                             self.local_state.current_image_index = prev_index;
+
+                                            // 尝试初始化动态图解码器
+                                            if let Some(path) = self.local_state.all_paths.get(prev_index) {
+                                                let path = std::path::PathBuf::from(path);
+                                                if let Ok(decoder) = crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
+                                                    if decoder.frame_count() > 1 {
+                                                        self.local_state.animated_decoder = Some(decoder);
+                                                    } else {
+                                                        self.local_state.animated_decoder = None;
+                                                    }
+                                                } else {
+                                                    self.local_state.animated_decoder = None;
+                                                }
+                                            }
                                             break;
                                         }
                                     } else {
@@ -670,6 +726,12 @@ impl App {
                         // 更新旋转角度以创建动画效果
                         // 每次增加15度，如果超过360度则重置
                         self.local_state.rotation_angle = (self.local_state.rotation_angle + 15.0) % 360.0;
+                    }
+                    super::local::LocalMessage::AnimatedFrameUpdate => {
+                        // 更新动态图帧
+                        if let Some(ref mut decoder) = self.local_state.animated_decoder {
+                            decoder.update();
+                        }
                     }
                 }
             }

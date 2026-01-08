@@ -16,10 +16,11 @@ pub enum LocalMessage {
     ScrollToBottom,                           // 滚动到底部，加载更多
     AnimationTick,                            // 动画定时器
     // 模态窗口相关消息
-    ShowModal(usize), // 显示模态窗口，参数为当前壁纸索引
-    CloseModal,       // 关闭模态窗口
-    NextImage,        // 下一张图片
-    PreviousImage,    // 上一张图片
+    ShowModal(usize),             // 显示模态窗口，参数为当前壁纸索引
+    CloseModal,                   // 关闭模态窗口
+    NextImage,                    // 下一张图片
+    PreviousImage,                // 上一张图片
+    AnimatedFrameUpdate,          // 更新动态图帧
 }
 
 // 定义单个壁纸的加载状态
@@ -30,7 +31,7 @@ pub enum WallpaperLoadStatus {
 }
 
 // 定义加载状态
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct LocalState {
     pub wallpapers: Vec<WallpaperLoadStatus>, // 使用新的加载状态枚举
     pub all_paths: Vec<String>,               // 存储所有壁纸路径
@@ -42,6 +43,7 @@ pub struct LocalState {
     // 模态窗口相关状态
     pub modal_visible: bool,        // 模态窗口是否可见
     pub current_image_index: usize, // 当前显示的图片索引
+    pub animated_decoder: Option<crate::utils::animated_image::AnimatedDecoder>, // 动态图解码器
 }
 
 impl Default for LocalState {
@@ -56,6 +58,7 @@ impl Default for LocalState {
             rotation_angle: 0.0,    // 初始旋转角度为0
             modal_visible: false,   // 默认不显示模态窗口
             current_image_index: 0, // 默认当前图片索引为0
+            animated_decoder: None, // 默认没有动态图解码器
         }
     }
 }
@@ -290,10 +293,19 @@ pub fn local_view<'a>(
     if local_state.modal_visible && !local_state.all_paths.is_empty() {
         // 获取当前图片路径
         let current_path = &local_state.all_paths[local_state.current_image_index];
-        let image_handle = iced::widget::image::Handle::from_path(current_path);
 
         // 创建图片，使用 content_fit 确保图片比例正确且不超出
-        let modal_image = iced::widget::image(image_handle)
+        let modal_image = if let Some(ref decoder) = local_state.animated_decoder {
+            // 使用动态图解码器的当前帧
+            let current_frame = decoder.current_frame();
+            iced::widget::image(current_frame.handle.clone())
+        } else {
+            // 使用静态图片
+            let image_handle = iced::widget::image::Handle::from_path(current_path);
+            iced::widget::image(image_handle)
+        };
+
+        let modal_image = modal_image
             .content_fit(iced::ContentFit::Contain) // 在模态窗口中保持Contain模式以确保全图可见
             .width(Length::Fill)
             .height(Length::Fill);
