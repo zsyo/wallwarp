@@ -2,7 +2,13 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-const CONFIG_FILE: &str = "config.toml"; // 建议改为 .toml 后缀
+const CONFIG_FILE: &str = "config.toml";
+const DEFAULT_WINDOW_WIDTH: u32 = 1200;
+const DEFAULT_WINDOW_HEIGHT: u32 = 800;
+const MIN_WINDOW_WIDTH: u32 = 1280;
+const MIN_WINDOW_HEIGHT: u32 = 800;
+const DEFAULT_DATA_PATH: &str = "data";
+const DEFAULT_CACHE_PATH: &str = "cache";
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -38,15 +44,14 @@ pub struct DisplayConfig {
 }
 
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")] // 自动处理枚举与字符串的转换，如 "minimize_to_tray"
+#[serde(rename_all = "snake_case")]
 pub enum CloseAction {
-    Ask,            // 每次询问
-    MinimizeToTray, // 最小化到托盘
-    CloseApp,       // 关闭程序
+    Ask,
+    MinimizeToTray,
+    CloseApp,
 }
 
 impl Config {
-    /// 初始化配置：尝试读取，失败则创建默认
     pub fn new(lang: &str) -> Self {
         let config_path = Path::new(CONFIG_FILE);
 
@@ -57,7 +62,6 @@ impl Config {
             }
         }
 
-        // 如果文件不存在或解析失败，返回默认值并保存
         let default_config = Self::default_with_lang(lang);
         default_config.save_to_file();
         default_config
@@ -72,33 +76,31 @@ impl Config {
                 proxy: String::new(),
             },
             data: DataConfig {
-                data_path: "data".to_string(),
-                cache_path: "cache".to_string(),
+                data_path: DEFAULT_DATA_PATH.to_string(),
+                cache_path: DEFAULT_CACHE_PATH.to_string(),
             },
             api: ApiConfig {
                 wallhaven_api_key: String::new(),
             },
             display: DisplayConfig {
-                width: 1200,
-                height: 800,
+                width: DEFAULT_WINDOW_WIDTH,
+                height: DEFAULT_WINDOW_HEIGHT,
             },
         };
 
-        // 尝试创建默认的数据和缓存目录
         Self::create_default_directories(&default_config);
 
         default_config
     }
 
     fn fix_config(&mut self) {
-        if self.display.width < 1280 || self.display.height < 800 {
-            self.display.width = 1280;
-            self.display.height = 800;
+        if self.display.width < MIN_WINDOW_WIDTH || self.display.height < MIN_WINDOW_HEIGHT {
+            self.display.width = MIN_WINDOW_WIDTH;
+            self.display.height = MIN_WINDOW_HEIGHT;
         }
         self.save_to_file();
     }
 
-    /// 核心保存逻辑：一行代码搞定序列化
     pub fn save_to_file(&self) {
         match toml::to_string_pretty(self) {
             Ok(content) => {
@@ -149,17 +151,14 @@ impl Config {
         self.save_to_file();
     }
 
-    /// 创建默认的数据和缓存目录
     fn create_default_directories(config: &Config) {
         let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
 
-        // 创建数据目录
         let data_path = current_dir.join(&config.data.data_path);
         if let Err(e) = std::fs::create_dir_all(&data_path) {
             eprintln!("Failed to create data directory {:?}: {}", data_path, e);
         }
 
-        // 创建缓存目录
         let cache_path = current_dir.join(&config.data.cache_path);
         if let Err(e) = std::fs::create_dir_all(&cache_path) {
             eprintln!("Failed to create cache directory {:?}: {}", cache_path, e);

@@ -7,11 +7,102 @@ use std::time::Duration;
 use tray_icon::{TrayIconEvent, menu::MenuEvent};
 
 impl App {
+    // 辅助方法：初始化动态图解码器
+    fn init_animated_decoder(&mut self, index: usize) {
+        if let Some(path) = self.local_state.all_paths.get(index) {
+            let path = std::path::PathBuf::from(path);
+            match crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
+                Ok(decoder) => {
+                    if decoder.frame_count() > 1 {
+                        self.local_state.animated_decoder = Some(decoder);
+                    } else {
+                        self.local_state.animated_decoder = None;
+                    }
+                }
+                Err(_) => {
+                    self.local_state.animated_decoder = None;
+                }
+            }
+        }
+    }
+
+    // 辅助方法：查找下一个有效的图片索引
+    fn find_next_valid_image_index(&self, start_index: usize, direction: i32) -> Option<usize> {
+        if self.local_state.all_paths.is_empty() {
+            return None;
+        }
+
+        let total = self.local_state.all_paths.len();
+        let mut current_index = start_index;
+        let loop_count = total; // 防止无限循环
+
+        for _ in 0..loop_count {
+            // 根据方向更新索引
+            if direction > 0 {
+                // 向前查找
+                current_index = if current_index < total - 1 {
+                    current_index + 1
+                } else {
+                    0
+                };
+            } else {
+                // 向后查找
+                current_index = if current_index > 0 {
+                    current_index - 1
+                } else {
+                    total - 1
+                };
+            }
+
+            // 检查是否回到起始位置
+            if current_index == start_index {
+                return None;
+            }
+
+            // 检查当前索引是否有效
+            if let Some(wallpaper_status) = self.local_state.wallpapers.get(current_index) {
+                if let super::local::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                    if wallpaper.name != "加载失败" {
+                        return Some(current_index);
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
+    // 辅助方法：获取绝对路径
+    fn get_absolute_path(&self, relative_path: &str) -> String {
+        let path = std::path::PathBuf::from(relative_path);
+        if path.is_absolute() {
+            relative_path.to_string()
+        } else {
+            std::env::current_dir()
+                .unwrap_or_else(|_| std::path::PathBuf::from("."))
+                .join(relative_path)
+                .to_string_lossy()
+                .to_string()
+        }
+    }
+
+    // 辅助方法：显示通知
+    fn show_notification(&mut self, message: String, notification_type: super::NotificationType) -> iced::Task<AppMessage> {
+        self.notification_message = message;
+        self.notification_type = notification_type;
+        self.show_notification = true;
+
+        iced::Task::perform(
+            async {
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            },
+            |_| AppMessage::HideNotification,
+        )
+    }
     pub fn subscription(&self) -> iced::Subscription<AppMessage> {
         use iced::event;
         use iced::time;
         use iced::window;
-        use std::time::Duration;
 
         iced::Subscription::batch([
             event::listen_with(|event, _status, _loop_status| match event {
@@ -180,7 +271,7 @@ impl App {
                     self.config.set_data_path(path);
                 } else if path == "SELECT_DATA_PATH" {
                     // 这是用户点击按钮时的原始消息，触发异步任务
-                    return iced::Task::perform(select_data_path_async(), |selected_path| {
+                    return iced::Task::perform(select_folder_async(), |selected_path| {
                         if !selected_path.is_empty() {
                             AppMessage::DataPathSelected(selected_path)
                         } else {
@@ -195,7 +286,7 @@ impl App {
                     self.config.set_cache_path(path);
                 } else if path == "SELECT_CACHE_PATH" {
                     // 这是用户点击按钮时的原始消息，触发异步任务
-                    return iced::Task::perform(select_cache_path_async(), |selected_path| {
+                    return iced::Task::perform(select_folder_async(), |selected_path| {
                         if !selected_path.is_empty() {
                             AppMessage::CachePathSelected(selected_path)
                         } else {
@@ -204,7 +295,7 @@ impl App {
                     });
                 } else if path == "SELECT_DATA_PATH" {
                     // 这是用户点击数据路径输入框时的原始消息，触发异步任务
-                    return iced::Task::perform(select_data_path_async(), |selected_path| {
+                    return iced::Task::perform(select_folder_async(), |selected_path| {
                         if !selected_path.is_empty() {
                             AppMessage::DataPathSelected(selected_path)
                         } else {
@@ -220,13 +311,7 @@ impl App {
                     _ => return iced::Task::none(),
                 };
 
-                // 获取绝对路径并打开
-                let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-                let full_path = if std::path::PathBuf::from(path_to_open).is_absolute() {
-                    path_to_open.clone()
-                } else {
-                    current_dir.join(path_to_open).to_string_lossy().to_string()
-                };
+                let full_path = self.get_absolute_path(path_to_open);
 
                 if let Err(e) = open::that(&full_path) {
                     eprintln!("Failed to open path {}: {}", full_path, e);
@@ -248,13 +333,8 @@ impl App {
                     _ => return iced::Task::none(),
                 };
 
-                // 获取绝对路径并清空内容
-                let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-                let full_path = if std::path::PathBuf::from(path_to_clear).is_absolute() {
-                    path_to_clear.clone()
-                } else {
-                    current_dir.join(path_to_clear).to_string_lossy().to_string()
-                };
+                // 获取绝对路径
+                let full_path = self.get_absolute_path(path_to_clear);
 
                 // 尝试清空目录内容
                 let result = if let Ok(entries) = std::fs::read_dir(&full_path) {
@@ -297,9 +377,7 @@ impl App {
                         } else {
                             format!("缓存路径清空成功，删除了{}个项目", count)
                         };
-                        return iced::Task::perform(async {}, |_| {
-                            AppMessage::ShowNotification(message, super::NotificationType::Success)
-                        });
+                        return self.show_notification(message, super::NotificationType::Success);
                     }
                     Err(error_count) => {
                         // 清空失败，显示错误通知
@@ -308,9 +386,7 @@ impl App {
                         } else {
                             format!("缓存路径清空失败，{}个项目未删除", error_count)
                         };
-                        return iced::Task::perform(async {}, |_| {
-                            AppMessage::ShowNotification(message, super::NotificationType::Error)
-                        });
+                        return self.show_notification(message, super::NotificationType::Error);
                     }
                 }
             }
@@ -339,12 +415,7 @@ impl App {
                 // 保存API KEY到配置文件
                 self.config.set_wallhaven_api_key(self.wallhaven_api_key.clone());
                 // 显示成功通知
-                return iced::Task::perform(async {}, |_| {
-                    AppMessage::ShowNotification(
-                        "WallHeven API KEY 保存成功".to_string(),
-                        super::NotificationType::Success,
-                    )
-                });
+                return self.show_notification("WallHeven API KEY 保存成功".to_string(), super::NotificationType::Success);
             }
             AppMessage::ScrollToTop(_scrollable_id) => {
                 // 返回无任务，目前滚动到顶部功能依赖于不同的ID来实现隔离
@@ -376,9 +447,7 @@ impl App {
                     let proxy_url = format!("{}://{}:{}", self.proxy_protocol, self.proxy_address, self.proxy_port);
                     self.config.set_proxy(proxy_url);
                     // 显示成功通知
-                    return iced::Task::perform(async {}, |_| {
-                        AppMessage::ShowNotification("代理设置保存成功".to_string(), super::NotificationType::Success)
-                    });
+                    return self.show_notification("代理设置保存成功".to_string(), super::NotificationType::Success);
                 } else {
                     // 地址或端口无效，保存为空字符串（相当于关闭代理）
                     self.config.set_proxy(String::new());
@@ -386,12 +455,7 @@ impl App {
                     self.proxy_address = String::new();
                     self.proxy_port = String::new();
                     // 显示错误通知
-                    return iced::Task::perform(async {}, |_| {
-                        AppMessage::ShowNotification(
-                            "格式错误，代理设置保存失败".to_string(),
-                            super::NotificationType::Error,
-                        )
-                    });
+                    return self.show_notification("格式错误，代理设置保存失败".to_string(), super::NotificationType::Error);
                 }
             }
             AppMessage::ShowCloseConfirmation => {
@@ -433,17 +497,7 @@ impl App {
                 return iced::Task::none();
             }
             AppMessage::ShowNotification(message, notification_type) => {
-                self.notification_message = message;
-                self.notification_type = notification_type;
-                self.show_notification = true;
-
-                // 设置3秒后自动隐藏通知的定时器
-                return iced::Task::perform(
-                    async {
-                        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                    },
-                    |_| AppMessage::HideNotification,
-                );
+                return self.show_notification(message, notification_type);
             }
             AppMessage::HideNotification => {
                 self.show_notification = false;
@@ -585,28 +639,8 @@ impl App {
                         self.local_state.current_image_index = index;
                         self.local_state.modal_visible = true;
 
-                        // 尝试初始化动态图解码器
-                        if let Some(path) = self.local_state.all_paths.get(index) {
-                            let path = std::path::PathBuf::from(path);
-                            println!("尝试解码图片: {:?}", path);
-                            match crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
-                                Ok(decoder) => {
-                                    println!("解码成功，帧数: {}", decoder.frame_count());
-                                    // 只有当图片是动态图时才设置解码器
-                                    if decoder.frame_count() > 1 {
-                                        self.local_state.animated_decoder = Some(decoder);
-                                        println!("设置动态图解码器");
-                                    } else {
-                                        self.local_state.animated_decoder = None;
-                                        println!("图片不是动态图，不设置解码器");
-                                    }
-                                }
-                                Err(e) => {
-                                    println!("解码失败: {}", e);
-                                    self.local_state.animated_decoder = None;
-                                }
-                            }
-                        }
+                        // 使用辅助方法初始化动态图解码器
+                        self.init_animated_decoder(index);
                     }
                     super::local::LocalMessage::CloseModal => {
                         // 关闭模态窗口
@@ -616,100 +650,16 @@ impl App {
                     }
                     super::local::LocalMessage::NextImage => {
                         // 显示下一张图片，跳过加载失败的图片
-                        if !self.local_state.all_paths.is_empty() {
-                            let mut next_index = self.local_state.current_image_index;
-
-                            // 循环查找下一张有效的图片
-                            loop {
-                                if next_index < self.local_state.all_paths.len() - 1 {
-                                    next_index += 1;
-                                } else {
-                                    // 如果已经是最后一张，则循环到第一张
-                                    next_index = 0;
-                                }
-
-                                // 检查是否回到起始位置（即没有找到有效图片）
-                                if next_index == self.local_state.current_image_index {
-                                    break;
-                                }
-
-                                // 检查当前索引对应的壁纸是否为失败状态
-                                if let Some(wallpaper_status) = self.local_state.wallpapers.get(next_index) {
-                                    if let super::local::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
-                                        if wallpaper.name != "加载失败" {
-                                            // 找到有效的图片，更新当前索引
-                                            self.local_state.current_image_index = next_index;
-
-                                            // 尝试初始化动态图解码器
-                                            if let Some(path) = self.local_state.all_paths.get(next_index) {
-                                                let path = std::path::PathBuf::from(path);
-                                                if let Ok(decoder) = crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
-                                                    if decoder.frame_count() > 1 {
-                                                        self.local_state.animated_decoder = Some(decoder);
-                                                    } else {
-                                                        self.local_state.animated_decoder = None;
-                                                    }
-                                                } else {
-                                                    self.local_state.animated_decoder = None;
-                                                }
-                                            }
-                                            break;
-                                        }
-                                    } else {
-                                        // 如果壁纸还在加载中，也跳过
-                                        continue;
-                                    }
-                                }
-                            }
+                        if let Some(next_index) = self.find_next_valid_image_index(self.local_state.current_image_index, 1) {
+                            self.local_state.current_image_index = next_index;
+                            self.init_animated_decoder(next_index);
                         }
                     }
                     super::local::LocalMessage::PreviousImage => {
                         // 显示上一张图片，跳过加载失败的图片
-                        if !self.local_state.all_paths.is_empty() {
-                            let mut prev_index = self.local_state.current_image_index;
-
-                            // 循环查找上一张有效的图片
-                            loop {
-                                if prev_index > 0 {
-                                    prev_index -= 1;
-                                } else {
-                                    // 如果是第一张，则循环到最后一张
-                                    prev_index = self.local_state.all_paths.len() - 1;
-                                }
-
-                                // 检查是否回到起始位置（即没有找到有效图片）
-                                if prev_index == self.local_state.current_image_index {
-                                    break;
-                                }
-
-                                // 检查当前索引对应的壁纸是否为失败状态
-                                if let Some(wallpaper_status) = self.local_state.wallpapers.get(prev_index) {
-                                    if let super::local::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
-                                        if wallpaper.name != "加载失败" {
-                                            // 找到有效的图片，更新当前索引
-                                            self.local_state.current_image_index = prev_index;
-
-                                            // 尝试初始化动态图解码器
-                                            if let Some(path) = self.local_state.all_paths.get(prev_index) {
-                                                let path = std::path::PathBuf::from(path);
-                                                if let Ok(decoder) = crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
-                                                    if decoder.frame_count() > 1 {
-                                                        self.local_state.animated_decoder = Some(decoder);
-                                                    } else {
-                                                        self.local_state.animated_decoder = None;
-                                                    }
-                                                } else {
-                                                    self.local_state.animated_decoder = None;
-                                                }
-                                            }
-                                            break;
-                                        }
-                                    } else {
-                                        // 如果壁纸还在加载中，也跳过
-                                        continue;
-                                    }
-                                }
-                            }
+                        if let Some(prev_index) = self.find_next_valid_image_index(self.local_state.current_image_index, -1) {
+                            self.local_state.current_image_index = prev_index;
+                            self.init_animated_decoder(prev_index);
                         }
                     }
                     super::local::LocalMessage::ScrollToBottom => {
@@ -781,15 +731,7 @@ async fn async_load_single_wallpaper(
 }
 
 // 异步函数用于打开目录选择对话框
-async fn select_data_path_async() -> String {
-    if let Some(path) = rfd::FileDialog::new().pick_folder() {
-        path.to_string_lossy().to_string()
-    } else {
-        "".to_string() // 用户取消选择
-    }
-}
-
-async fn select_cache_path_async() -> String {
+async fn select_folder_async() -> String {
     if let Some(path) = rfd::FileDialog::new().pick_folder() {
         path.to_string_lossy().to_string()
     } else {

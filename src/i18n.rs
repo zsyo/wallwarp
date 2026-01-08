@@ -3,74 +3,11 @@ use std::{collections::HashMap, fs, path::PathBuf};
 use sys_locale::get_locale;
 use unic_langid::LanguageIdentifier;
 
-// --- 内置语言配置常量 ---
-const DEFAULT_LANG: &str = r#"
-app-name = 幻变
-app-title = 幻变 - 壁纸管理器
+const DEFAULT_LANG_CODE: &str = "zh-cn";
+const LOCALES_DIR_NAME: &str = "locales";
+const FTL_EXTENSION: &str = "ftl";
 
-online-wallpapers = 在线壁纸
-    .title = 在线壁纸
-
-local-list = 本地列表
-    .title = 本地壁纸
-    .loading = 加载中...
-    .load-failed = 加载失败
-    .no-wallpapers = 没有找到本地壁纸
-    .load-more = 加载更多...
-    .all-loaded = 已加载全部壁纸
-    .loading-error = 加载失败
-    .image-loading = 加载中...
-
-download-tasks = 下载任务
-    .title = 下载管理
-
-settings = 设置
-    .system-config = 系统配置
-    .app-language = 程序语言:
-    .auto-startup = 随电脑启动:
-    .close-action = 关闭按钮行为:
-    .proxy = 代理设置:
-    .proxy-address-placeholder = 地址
-    .proxy-port-placeholder = 端口
-    .proxy-save = 保存
-    .api-config = API配置
-    .wallhaven-api-key = WallHeven APIKEY:
-    .wallhaven-api-key-placeholder = 输入API KEY
-    .data-config = 数据配置
-    .data-path = 数据路径:
-    .cache-path = 缓存路径:
-    .select-path = 选择
-    .open-path = 查看
-    .clear-path = 清空
-    .restore-default = 默认
-    .about-config = 关于信息
-    .about-name = 名称:
-    .about-version = 版本:
-    .about-author = 作者:
-    .about-repo = 开源地址:
-
-startup-state =
-    .on = 开
-    .off = 关
-
-close-action-options =
-    .ask = 每次询问
-    .minimize-to-tray = 最小化到托盘
-    .close-app = 关闭程序
-
-close-confirmation =
-    .title = 确认关闭
-    .message = 您想要如何关闭应用程序？
-    .minimize-to-tray = 最小化到托盘
-    .exit = 退出
-    .cancel = 取消
-    .remember-setting = 记住设置
-
-menu =
-    .tray-show = 显示窗口
-    .tray-settings = 设置
-    .tray-quit = 退出程序
-"#;
+const DEFAULT_LANG: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/locales/zh-cn.ftl"));
 
 pub struct I18n {
     bundles: HashMap<String, FluentBundle<FluentResource>>,
@@ -83,56 +20,44 @@ impl I18n {
         let mut bundles = HashMap::new();
         let mut available_langs = Vec::new();
 
-        // 获取程序运行目录
         let mut base_dir = std::env::current_exe().unwrap_or_default();
         base_dir.pop();
 
-        // 确定 locales 实际路径(优先寻找程序同级目录, 否则寻找 CWD 下的目录)
-        let locales_dir = if base_dir.join("locales").exists() {
-            base_dir.join("locales")
+        let locales_dir = if base_dir.join(LOCALES_DIR_NAME).exists() {
+            base_dir.join(LOCALES_DIR_NAME)
         } else {
-            PathBuf::from("locales")
+            PathBuf::from(LOCALES_DIR_NAME)
         };
 
-        // 尝试加载外部文件
         if let Ok(entries) = fs::read_dir(locales_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("ftl") {
+                if path.extension().and_then(|s| s.to_str()) == Some(FTL_EXTENSION) {
                     if let Some(lang_code) = path.file_stem().and_then(|s| s.to_str()) {
-                        let lang_code = lang_code.to_lowercase(); // 统一小写
+                        let lang_code = lang_code.to_lowercase();
                         if let Ok(content) = fs::read_to_string(&path) {
-                            Self::add_bundle(
-                                &mut bundles,
-                                &mut available_langs,
-                                &lang_code,
-                                &content,
-                            );
+                            Self::add_bundle(&mut bundles, &mut available_langs, &lang_code, &content);
                         }
                     }
                 }
             }
         }
 
-        // 内置兜底(放置 locales 文件夹缺失)
         if available_langs.is_empty() {
-            Self::add_bundle(&mut bundles, &mut available_langs, "zh-cn", DEFAULT_LANG);
+            Self::add_bundle(&mut bundles, &mut available_langs, DEFAULT_LANG_CODE, DEFAULT_LANG);
         }
 
-        // 根据系统语言选择使用的语言
-        // 优先级: 系统语言 -> zh-cn -> 列表第一个
         let sys_lang = get_locale().unwrap_or_default().to_lowercase();
-        // 简化系统语言, 例如把 zh-CN-u-h-12 改成 zh-cn
         let short_sys_lang = sys_lang.split('-').take(2).collect::<Vec<_>>().join("-");
         let current_lang = if available_langs.contains(&short_sys_lang) {
             short_sys_lang
-        } else if available_langs.contains(&"zh-cn".to_string()) {
-            "zh-cn".to_string()
+        } else if available_langs.contains(&DEFAULT_LANG_CODE.to_string()) {
+            DEFAULT_LANG_CODE.to_string()
         } else {
             available_langs
                 .first()
                 .cloned()
-                .unwrap_or_else(|| "zh-cn".to_string())
+                .unwrap_or_else(|| DEFAULT_LANG_CODE.to_string())
         };
 
         Self {
@@ -194,10 +119,8 @@ impl I18n {
         let mut errors = vec![];
 
         let pattern = if let Some(name) = attr_name {
-            // 查找对应的属性
             msg.get_attribute(name).map(|attr| attr.value())
         } else {
-            // 获取主值
             msg.value()
         };
 

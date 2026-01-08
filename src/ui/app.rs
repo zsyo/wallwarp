@@ -83,20 +83,20 @@ impl App {
         self.i18n.t("app-title")
     }
 
+    // 辅助方法：获取路径显示字符串
+    fn get_path_display(&self, path_type: &str) -> &str {
+        match path_type {
+            "data" => &self.config.data.data_path,
+            "cache" => &self.config.data.cache_path,
+            _ => "",
+        }
+    }
+
     // 渲染路径清空确认对话框
     fn path_clear_confirmation_view(&self) -> iced::Element<'_, AppMessage> {
-        use iced::{
-            Alignment, Length,
-            widget::{button, column, container, row, text},
-        };
+        use iced::{Alignment, Length, widget::{button, column, container, row, text}};
 
-        let path_display = if self.path_to_clear == "data" {
-            &self.config.data.data_path
-        } else if self.path_to_clear == "cache" {
-            &self.config.data.cache_path
-        } else {
-            ""
-        };
+        let path_display = self.get_path_display(&self.path_to_clear);
 
         let dialog_content = column![
             text(self.i18n.t("path-clear-confirmation.title"))
@@ -255,31 +255,29 @@ impl App {
 
         // 如果显示任何确认对话框，则将对话框叠加在底层内容上
         let main_content = if self.show_close_confirmation {
-            iced::widget::stack(vec![
-                base_content,
-                super::close_confirmation::close_confirmation_view(self),
-            ])
-            .width(iced::Length::Fill)
-            .height(iced::Length::Fill)
-            .into()
+            Self::create_stack(base_content, super::close_confirmation::close_confirmation_view(self))
         } else if self.show_path_clear_confirmation {
-            iced::widget::stack(vec![base_content, self.path_clear_confirmation_view()])
-                .width(iced::Length::Fill)
-                .height(iced::Length::Fill)
-                .into()
+            Self::create_stack(base_content, self.path_clear_confirmation_view())
         } else {
-            // 否则显示正常界面
             base_content
         };
 
         // 如果显示通知，则将通知叠加在主要内容之上
         if self.show_notification {
-            iced::widget::stack(vec![main_content, self.notification_view()])
-                .width(iced::Length::Fill)
-                .height(iced::Length::Fill)
-                .into()
+            Self::create_stack(main_content, self.notification_view())
         } else {
             main_content
         }
+    }
+
+    // 辅助方法：创建叠加层（底层内容 + 覆盖内容）
+    fn create_stack<'a>(
+        base: iced::Element<'a, AppMessage>,
+        overlay: iced::Element<'a, AppMessage>,
+    ) -> iced::Element<'a, AppMessage> {
+        iced::widget::stack(vec![base, overlay])
+            .width(iced::Length::Fill)
+            .height(iced::Length::Fill)
+            .into()
     }
 }
