@@ -556,14 +556,14 @@ impl App {
                             let absolute_idx = start_idx + i;
 
                             tasks.push(iced::Task::perform(
-                                async_load_single_wallpaper(path.clone(), cache_path),
+                                async_load_single_wallpaper_with_fallback(path.clone(), cache_path),
                                 move |result| match result {
                                     Ok(wallpaper) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(
                                         vec![(absolute_idx, wallpaper)],
                                     )),
                                     Err(_) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(
                                         absolute_idx,
-                                        crate::services::local::Wallpaper::new(path, "加载失败".to_string()),
+                                        crate::services::local::Wallpaper::new(path, "加载失败".to_string(), 0, 0, 0),
                                     )])), // 创建失败状态
                                 },
                             ));
@@ -683,6 +683,114 @@ impl App {
                             decoder.update();
                         }
                     }
+                    super::local::LocalMessage::ViewInFolder(index) => {
+                        // 查看文件夹并选中文件
+                        if let Some(path) = self.local_state.all_paths.get(index) {
+                            let full_path = self.get_absolute_path(path);
+
+                            // Windows: 使用 explorer /select,路径
+                            #[cfg(target_os = "windows")]
+                            {
+                                let _ = std::process::Command::new("explorer")
+                                    .args(["/select,", &full_path])
+                                    .spawn();
+                            }
+                            // macOS: 使用 open -R 路径
+                            #[cfg(target_os = "macos")]
+                            {
+                                let _ = std::process::Command::new("open")
+                                    .args(["-R", &full_path])
+                                    .spawn();
+                            }
+                            // Linux: 使用 dbus 调用文件管理器（需要支持）
+                            #[cfg(target_os = "linux")]
+                            {
+                                // 尝试使用 xdg-open 打开文件所在目录
+                                if let Some(parent) = std::path::Path::new(&full_path).parent() {
+                                    let _ = std::process::Command::new("xdg-open")
+                                        .arg(parent)
+                                        .spawn();
+                                }
+                            }
+                        }
+                    }
+                    super::local::LocalMessage::ShowDeleteConfirm(index) => {
+                        // 显示删除确认对话框
+                        self.local_state.delete_confirm_visible = true;
+                        self.local_state.delete_target_index = Some(index);
+                    }
+                    super::local::LocalMessage::CloseDeleteConfirm => {
+                        // 关闭删除确认对话框
+                        self.local_state.delete_confirm_visible = false;
+                        self.local_state.delete_target_index = None;
+                    }
+                    super::local::LocalMessage::ConfirmDelete(index) => {
+                        // 确认删除壁纸
+                        self.local_state.delete_confirm_visible = false;
+                        self.local_state.delete_target_index = None;
+
+                        // 删除壁纸
+                        if let Some(path) = self.local_state.all_paths.get(index) {
+                            let full_path = self.get_absolute_path(path);
+
+                            // 尝试删除文件
+                            match std::fs::remove_file(&full_path) {
+                                Ok(_) => {
+                                    // 删除成功，从列表中移除
+                                    self.local_state.all_paths.remove(index);
+                                    self.local_state.wallpapers.remove(index);
+                                    self.local_state.total_count -= 1;
+
+                                    // 如果删除的是当前显示的图片，关闭模态窗口
+                                    if self.local_state.modal_visible && self.local_state.current_image_index == index {
+                                        self.local_state.modal_visible = false;
+                                        self.local_state.animated_decoder = None;
+                                    } else if self.local_state.modal_visible && self.local_state.current_image_index > index {
+                                        // 如果删除的图片在当前显示图片之前，调整索引
+                                        self.local_state.current_image_index -= 1;
+                                    }
+
+                                    // 显示成功通知
+                                    return self.show_notification(
+                                        self.i18n.t("local-list.delete-success"),
+                                        super::NotificationType::Success
+                                    );
+                                }
+                                Err(e) => {
+                                    // 删除失败，显示错误通知
+                                    return self.show_notification(
+                                        format!("{}: {}", self.i18n.t("local-list.delete-failed"), e),
+                                        super::NotificationType::Error
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    super::local::LocalMessage::SetWallpaper(index) => {
+                        // 设置壁纸
+                        if let Some(path) = self.local_state.all_paths.get(index).cloned() {
+                            let full_path = self.get_absolute_path(&path);
+
+                            // 提前获取翻译文本，避免线程安全问题
+                            let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
+                            let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+
+                            // 异步设置壁纸
+                            return iced::Task::perform(
+                                async_set_wallpaper(full_path),
+                                move |result| match result {
+                                    Ok(_) => AppMessage::ShowNotification(
+                                        success_message,
+                                        super::NotificationType::Success
+                                    ),
+                                    Err(e) => AppMessage::ShowNotification(
+                                        format!("{}: {}", failed_message, e),
+                                        super::NotificationType::Error
+                                    ),
+                                }
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -700,8 +808,8 @@ async fn async_load_wallpaper_paths(
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
 }
 
-// 异步加载单个壁纸函数
-async fn async_load_single_wallpaper(
+// 异步加载单个壁纸函数（带降级处理，即使图片加载失败也能获取文件大小）
+async fn async_load_single_wallpaper_with_fallback(
     wallpaper_path: String,
     cache_path: String,
 ) -> Result<crate::services::local::Wallpaper, Box<dyn std::error::Error + Send + Sync>> {
@@ -711,20 +819,60 @@ async fn async_load_single_wallpaper(
 
     // 使用spawn_blocking在阻塞线程池中运行
     tokio::task::spawn_blocking(move || {
-        let thumbnail_path = crate::services::local::LocalWallpaperService::generate_thumbnail_for_path(
-            &wallpaper_path,
-            &full_cache_path.to_string_lossy(),
-        )?;
+        // 先获取文件大小（这个操作通常不会失败）
+        let file_size = std::fs::metadata(&wallpaper_path)
+            .map(|metadata| metadata.len())
+            .unwrap_or(0);
 
-        Ok(crate::services::local::Wallpaper::with_thumbnail(
-            wallpaper_path.clone(),
-            std::path::Path::new(&wallpaper_path)
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string(),
-            thumbnail_path,
-        ))
+        // 尝试加载图片
+        let result = (|| -> Result<crate::services::local::Wallpaper, Box<dyn std::error::Error + Send + Sync>> {
+            let thumbnail_path = crate::services::local::LocalWallpaperService::generate_thumbnail_for_path(
+                &wallpaper_path,
+                &full_cache_path.to_string_lossy(),
+            )?;
+
+            // 获取图片尺寸
+            let (width, height) = image::image_dimensions(&wallpaper_path)
+                .unwrap_or((0, 0));
+
+            Ok(crate::services::local::Wallpaper::with_thumbnail(
+                wallpaper_path.clone(),
+                std::path::Path::new(&wallpaper_path)
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string(),
+                thumbnail_path,
+                file_size,
+                width,
+                height,
+            ))
+        })();
+
+        match result {
+            Ok(wallpaper) => Ok(wallpaper),
+            Err(_) => {
+                // 如果加载失败，返回一个带有文件大小的失败状态
+                Ok(crate::services::local::Wallpaper::new(
+                    wallpaper_path.clone(),
+                    "加载失败".to_string(),
+                    file_size,
+                    0,
+                    0,
+                ))
+            }
+        }
+    })
+    .await
+    .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+}
+
+// 异步设置壁纸函数
+async fn async_set_wallpaper(
+    wallpaper_path: String,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    tokio::task::spawn_blocking(move || {
+        crate::services::local::LocalWallpaperService::set_wallpaper(&wallpaper_path)
     })
     .await
     .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?

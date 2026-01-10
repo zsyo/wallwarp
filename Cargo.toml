@@ -9,7 +9,7 @@ tokio = { version = "1.49.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 image = { version = "0.25", features = ["webp"] }
 gif = "0.14.1"
-toml = "0.9.10"
+toml = "0.9.11"
 open = "5.3"
 rfd = "0.17.1"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
@@ -20,6 +20,7 @@ rayon = "1.11.0"
 fluent-bundle = "0.16.0"
 unic-langid = "0.9.6"
 sys-locale = "0.3.2"
+wallpaper = "3.2.0"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"

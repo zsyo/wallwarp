@@ -18,27 +18,68 @@ pub struct Wallpaper {
     pub path: String,
     pub name: String,
     pub thumbnail_path: String,
+    pub file_size: u64,
+    pub width: u32,
+    pub height: u32,
 }
 
 impl Wallpaper {
-    pub fn new(path: String, name: String) -> Self {
+    pub fn new(path: String, name: String, file_size: u64, width: u32, height: u32) -> Self {
         Self {
             path: path.clone(),
             name,
             thumbnail_path: path,
+            file_size,
+            width,
+            height,
         }
     }
 
-    pub fn with_thumbnail(path: String, name: String, thumbnail_path: String) -> Self {
+    pub fn with_thumbnail(path: String, name: String, thumbnail_path: String, file_size: u64, width: u32, height: u32) -> Self {
         Self {
             path,
             name,
             thumbnail_path,
+            file_size,
+            width,
+            height,
         }
     }
 }
 
 pub struct LocalWallpaperService;
+
+impl LocalWallpaperService {
+    /// 设置壁纸
+    pub fn set_wallpaper(image_path: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        use std::path::Path;
+
+        let path = Path::new(image_path);
+        let absolute_path = if path.is_absolute() {
+            image_path.to_string()
+        } else {
+            std::env::current_dir()?
+                .join(path)
+                .canonicalize()?
+                .to_string_lossy()
+                .to_string()
+        };
+
+        println!("[DEBUG] 设置壁纸路径: {}", absolute_path);
+
+        // 使用 wallpaper 库设置壁纸
+        match wallpaper::set_from_path(&absolute_path) {
+            Ok(_) => {
+                println!("[DEBUG] 壁纸设置成功");
+                Ok(())
+            }
+            Err(e) => {
+                println!("[DEBUG] 壁纸设置失败: {}", e);
+                Err(format!("设置壁纸失败: {}", e).into())
+            }
+        }
+    }
+}
 
 impl LocalWallpaperService {
     pub fn load_wallpapers_from_path(
@@ -76,6 +117,9 @@ impl LocalWallpaperService {
                             wallpaper.path,
                             wallpaper.name,
                             thumbnail_path,
+                            wallpaper.file_size,
+                            wallpaper.width,
+                            wallpaper.height,
                         ))
                     })()
                 })
@@ -218,9 +262,19 @@ impl LocalWallpaperService {
             if file_path.is_file() && Self::is_supported_image(&file_path) {
                 if let Some(file_name) = file_path.file_name() {
                     if let Some(name) = file_name.to_str() {
+                        let file_size = fs::metadata(&file_path)
+                            .map_err(to_boxed_error)?
+                            .len();
+
+                        let (width, height) = image::image_dimensions(&file_path)
+                            .unwrap_or((0, 0));
+
                         wallpapers.push(Wallpaper::new(
                             file_path.to_string_lossy().to_string(),
                             name.to_string(),
+                            file_size,
+                            width,
+                            height,
                         ));
                     }
                 }

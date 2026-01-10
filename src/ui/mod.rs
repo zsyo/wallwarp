@@ -1,5 +1,6 @@
 pub mod app;
 pub mod close_confirmation;
+pub mod common;
 pub mod local;
 pub mod main;
 pub mod settings;

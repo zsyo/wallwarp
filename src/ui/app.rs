@@ -94,7 +94,10 @@ impl App {
 
     // 渲染路径清空确认对话框
     fn path_clear_confirmation_view(&self) -> iced::Element<'_, AppMessage> {
-        use iced::{Alignment, Length, widget::{button, column, container, row, text}};
+        use iced::{
+            Alignment, Length,
+            widget::{button, column, container, row, text},
+        };
 
         let path_display = self.get_path_display(&self.path_to_clear);
 
@@ -194,7 +197,6 @@ impl App {
     }
 
     // 渲染通知组件
-
     fn notification_view(&self) -> iced::Element<'_, AppMessage> {
         use iced::{
             Length,
@@ -202,7 +204,6 @@ impl App {
         };
 
         // 根据通知类型设置颜色
-
         let (bg_color, text_color) = match self.notification_type {
             super::NotificationType::Success => (
                 iced::Color::from_rgb8(40, 167, 69), // 绿色背景
