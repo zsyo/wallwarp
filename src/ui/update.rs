@@ -126,7 +126,26 @@ impl App {
     }
 
     pub fn update(&mut self, msg: AppMessage) -> iced::Task<AppMessage> {
+        // 检查是否需要加载初始任务（只在第一次运行时）
+        if !self.initial_loaded {
+            self.initial_loaded = true;
+            // 如果默认页面是在线壁纸，则加载初始数据
+            if self.active_page == super::ActivePage::OnlineWallpapers {
+                return iced::Task::batch(vec![
+                    iced::Task::perform(async {}, |_| {
+                        AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)
+                    }),
+                    iced::Task::perform(async {}, |_| {
+                        AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
+                    }),
+                ]);
+            }
+        }
+
         match msg {
+            AppMessage::None => {
+                // 空消息，不做任何操作
+            }
             AppMessage::LanguageSelected(lang) => {
                 self.i18n.set_language(lang.clone());
                 // 同时更新配置
@@ -162,6 +181,20 @@ impl App {
                         }),
                         iced::Task::perform(async {}, |_| {
                             AppMessage::ScrollToTop("local_wallpapers_scroll".to_string())
+                        }),
+                    ]);
+                }
+
+                // 每次切换到在线壁纸页面时，都重新加载壁纸
+                if page == super::ActivePage::OnlineWallpapers {
+                    // 从配置文件加载在线状态，以便恢复筛选条件
+                    self.online_state = super::online::OnlineState::load_from_config(&self.config);
+                    return iced::Task::batch(vec![
+                        iced::Task::perform(async {}, |_| {
+                            AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)
+                        }),
+                        iced::Task::perform(async {}, |_| {
+                            AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
                         }),
                     ]);
                 }
@@ -848,6 +881,368 @@ impl App {
                     }
                 }
             }
+            AppMessage::Online(online_message) => {
+                match online_message {
+                    super::online::OnlineMessage::LoadWallpapers => {
+                        // 异步加载在线壁纸
+                        let categories = self.online_state.categories;
+                        let sorting = self.online_state.sorting;
+                        let sort_direction = self.online_state.sort_direction;
+                        let purities = self.online_state.purities;
+                        let query = self.online_state.search_text.clone();
+                        let page = self.online_state.current_page;
+                        let api_key = if self.config.api.wallhaven_api_key.is_empty() {
+                            None
+                        } else {
+                            Some(self.config.api.wallhaven_api_key.clone())
+                        };
+
+                        let proxy = if self.config.global.proxy.is_empty() {
+                            None
+                        } else {
+                            Some(self.config.global.proxy.clone())
+                        };
+
+                        return iced::Task::perform(
+                            async_load_online_wallpapers(categories, sorting, sort_direction, purities, query, page, api_key, proxy),
+                            |result| match result {
+                                Ok((wallpapers, last_page, total_pages)) => {
+                                    AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages))
+                                }
+                                Err(e) => {
+                                    AppMessage::Online(super::online::OnlineMessage::LoadWallpapersFailed(e.to_string()))
+                                }
+                            },
+                        );
+                    }
+                    super::online::OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages) => {
+                        // 更新在线壁纸状态，并开始加载缩略图
+                        self.online_state.total_pages = total_pages;
+                        self.online_state.last_page = last_page;
+                        self.online_state.has_loaded = true; // 标记已加载过数据
+
+                        let proxy = if self.config.global.proxy.is_empty() {
+                            None
+                        } else {
+                            Some(self.config.global.proxy.clone())
+                        };
+
+                        let cache_path = self.config.data.cache_path.clone();
+
+                        let mut tasks = Vec::new();
+                        for (idx, wallpaper) in wallpapers.iter().enumerate() {
+                            let url = wallpaper.thumb_large.clone();
+                            let file_size = wallpaper.file_size;
+                            let proxy = proxy.clone();
+                            let cache_path = cache_path.clone();
+                            tasks.push(iced::Task::perform(
+                                async_load_online_wallpaper_thumb_with_cache(url, file_size, cache_path, proxy),
+                                move |result| match result {
+                                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
+                                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, iced::widget::image::Handle::from_bytes(vec![]))),
+                                }
+                            ));
+                        }
+
+                        self.online_state.wallpapers_data = wallpapers.clone();
+                        self.online_state.wallpapers = wallpapers
+                            .into_iter()
+                            .map(|_w| super::online::WallpaperLoadStatus::Loading)
+                            .collect();
+                        self.online_state.total_count = self.online_state.wallpapers.len();
+                        self.online_state.loading_page = false;
+
+                        return iced::Task::batch(tasks);
+                    }
+                    super::online::OnlineMessage::LoadWallpapersFailed(error) => {
+                        // 加载失败
+                        self.online_state.loading_page = false;
+                        self.online_state.has_loaded = true; // 标记已加载过数据（虽然失败了）
+                        println!("加载在线壁纸失败: {}", error);
+                    }
+                    super::online::OnlineMessage::WallpaperSelected(wallpaper) => {
+                        // 处理壁纸选择
+                        println!("选择了壁纸: {}", wallpaper.path);
+                    }
+                    super::online::OnlineMessage::LoadPage => {
+                        // 加载下一页
+                        self.online_state.loading_page = true;
+
+                        let categories = self.online_state.categories;
+                        let sorting = self.online_state.sorting;
+                        let sort_direction = self.online_state.sort_direction;
+                        let purities = self.online_state.purities;
+                        let query = self.online_state.search_text.clone();
+                        let page = self.online_state.current_page;
+                        let api_key = if self.config.api.wallhaven_api_key.is_empty() {
+                            None
+                        } else {
+                            Some(self.config.api.wallhaven_api_key.clone())
+                        };
+
+                        let proxy = if self.config.global.proxy.is_empty() {
+                            None
+                        } else {
+                            Some(self.config.global.proxy.clone())
+                        };
+
+                        return iced::Task::perform(
+                            async_load_online_wallpapers(categories, sorting, sort_direction, purities, query, page, api_key, proxy),
+                            |result| match result {
+                                Ok((wallpapers, last_page, total_pages)) => {
+                                    AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages))
+                                }
+                                Err(e) => {
+                                    AppMessage::Online(super::online::OnlineMessage::LoadPageFailed(e.to_string()))
+                                }
+                            },
+                        );
+                    }
+                    super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages) => {
+                        // 添加新壁纸到列表，并开始加载缩略图
+                        self.online_state.total_pages = total_pages;
+                        self.online_state.last_page = last_page;
+                        self.online_state.has_loaded = true; // 标记已加载过数据
+
+                        let proxy = if self.config.global.proxy.is_empty() {
+                            None
+                        } else {
+                            Some(self.config.global.proxy.clone())
+                        };
+
+                        let cache_path = self.config.data.cache_path.clone();
+
+                        let start_idx = self.online_state.wallpapers.len();
+                        let mut tasks = Vec::new();
+                        for (offset, wallpaper) in wallpapers.iter().enumerate() {
+                            let idx = start_idx + offset;
+                            let url = wallpaper.thumb_large.clone();
+                            let file_size = wallpaper.file_size;
+                            let proxy = proxy.clone();
+                            let cache_path = cache_path.clone();
+                            tasks.push(iced::Task::perform(
+                                async_load_online_wallpaper_thumb_with_cache(url, file_size, cache_path, proxy),
+                                move |result| match result {
+                                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
+                                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, iced::widget::image::Handle::from_bytes(vec![]))),
+                                }
+                            ));
+                        }
+
+                        // 保存原始数据
+                        for wallpaper in &wallpapers {
+                            self.online_state.wallpapers_data.push(wallpaper.clone());
+                            self.online_state.wallpapers.push(super::online::WallpaperLoadStatus::Loading);
+                        }
+
+                        // 在添加完当前页数据后记录分页边界
+                        // 这样分页标识就可以在当前页数据的下面显示
+                        let boundary_index = self.online_state.wallpapers.len();
+                        self.online_state.page_boundaries.push(boundary_index);
+
+                        self.online_state.loading_page = false;
+
+                        return iced::Task::batch(tasks);
+                    }
+                    super::online::OnlineMessage::LoadPageFailed(error) => {
+                        // 加载失败
+                        self.online_state.loading_page = false;
+                        self.online_state.has_loaded = true; // 标记已加载过数据（虽然失败了）
+                        println!("加载在线壁纸页面失败: {}", error);
+                    }
+                    super::online::OnlineMessage::ShowModal(index) => {
+                        // 显示模态窗口
+                        self.online_state.current_image_index = index;
+                        self.online_state.modal_visible = true;
+                        self.online_state.modal_image_handle = None;
+
+                        // 异步加载图片数据
+                        if let Some(wallpaper_status) = self.online_state.wallpapers.get(index) {
+                            if let super::online::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                                let url = wallpaper.path.clone();
+                                let proxy = if self.config.global.proxy.is_empty() {
+                                    None
+                                } else {
+                                    Some(self.config.global.proxy.clone())
+                                };
+                                return iced::Task::perform(
+                                    async_load_online_wallpaper_image(url, proxy),
+                                    |result| match result {
+                                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
+                                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
+                                }
+                                );
+                            }
+                        }
+                    }
+                    super::online::OnlineMessage::ModalImageLoaded(handle) => {
+                        // 模态窗口图片加载完成
+                        self.online_state.modal_image_handle = Some(handle);
+                    }
+                    super::online::OnlineMessage::ThumbLoaded(index, handle) => {
+                        // 缩略图加载完成
+                        if index < self.online_state.wallpapers.len() && index < self.online_state.wallpapers_data.len() {
+                            let wallpaper = self.online_state.wallpapers_data[index].clone();
+                            self.online_state.wallpapers[index] = super::online::WallpaperLoadStatus::ThumbLoaded(wallpaper, handle);
+                        }
+                    }
+                    super::online::OnlineMessage::CloseModal => {
+                        // 关闭模态窗口
+                        self.online_state.modal_visible = false;
+                        self.online_state.modal_image_handle = None;
+                    }
+                    super::online::OnlineMessage::NextImage => {
+                        // 显示下一张图片
+                        if self.online_state.current_image_index < self.online_state.wallpapers.len() - 1 {
+                            self.online_state.current_image_index += 1;
+                            self.online_state.modal_image_handle = None;
+
+                            if let Some(wallpaper_status) = self.online_state.wallpapers.get(self.online_state.current_image_index) {
+                                if let super::online::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                                    let url = wallpaper.path.clone();
+                                    let proxy = if self.config.global.proxy.is_empty() {
+                                        None
+                                    } else {
+                                        Some(self.config.global.proxy.clone())
+                                    };
+                                    return iced::Task::perform(
+                                        async_load_online_wallpaper_image(url, proxy),
+                                        |result| match result {
+                                            Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
+                                            Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
+                                        }
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    super::online::OnlineMessage::PreviousImage => {
+                        // 显示上一张图片
+                        if self.online_state.current_image_index > 0 {
+                            self.online_state.current_image_index -= 1;
+                            self.online_state.modal_image_handle = None;
+
+                            if let Some(wallpaper_status) = self.online_state.wallpapers.get(self.online_state.current_image_index) {
+                                if let super::online::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                                    let url = wallpaper.path.clone();
+                                    let proxy = if self.config.global.proxy.is_empty() {
+                                        None
+                                    } else {
+                                        Some(self.config.global.proxy.clone())
+                                    };
+                                    return iced::Task::perform(
+                                        async_load_online_wallpaper_image(url, proxy),
+                                        |result| match result {
+                                            Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
+                                            Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
+                                        }
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    super::online::OnlineMessage::ScrollToBottom => {
+                        // 滚动到底部，检查是否需要加载下一页
+                        if self.online_state.should_load_next_page() {
+                            self.online_state.current_page += 1;
+                            return iced::Task::perform(async {}, |_| {
+                                AppMessage::Online(super::online::OnlineMessage::LoadPage)
+                            });
+                        }
+                    }
+                    super::online::OnlineMessage::DownloadWallpaper(index) => {
+                        // 下载壁纸
+                        if let Some(wallpaper_status) = self.online_state.wallpapers.get(index) {
+                            if let super::online::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                                let url = wallpaper.path.clone();
+                                let file_name = format!("wallhaven-{}.{}", wallpaper.id, wallpaper.file_type.split('/').last().unwrap_or("jpg"));
+                                let cache_path = self.config.data.cache_path.clone();
+                                let proxy = if self.config.global.proxy.is_empty() {
+                                    None
+                                } else {
+                                    Some(self.config.global.proxy.clone())
+                                };
+
+                                return iced::Task::perform(
+                                    async_download_wallpaper(url, file_name, cache_path, proxy),
+                                    |result| match result {
+                                        Ok(path) => AppMessage::ShowNotification(
+                                            format!("下载成功: {}", path),
+                                            super::NotificationType::Success
+                                        ),
+                                        Err(e) => AppMessage::ShowNotification(
+                                            format!("下载失败: {}", e),
+                                            super::NotificationType::Error
+                                        ),
+                                    },
+                                );
+                            }
+                        }
+                    }
+                    super::online::OnlineMessage::CategoryToggled(category) => {
+                        // 切换分类选择状态
+                        self.online_state.categories ^= category.bit_value();
+                        // 保存筛选配置
+                        self.online_state.save_to_config(&mut self.config);
+                    }
+                    super::online::OnlineMessage::SortingChanged(sorting) => {
+                        // 排序改变
+                        self.online_state.sorting = sorting;
+                        // 保存筛选配置
+                        self.online_state.save_to_config(&mut self.config);
+                    }
+                    super::online::OnlineMessage::ToggleSortDirection => {
+                        // 切换排序方向
+                        self.online_state.sort_direction = self.online_state.sort_direction.toggle();
+                        // 保存筛选配置
+                        self.online_state.save_to_config(&mut self.config);
+                    }
+                    super::online::OnlineMessage::PurityToggled(purity) => {
+                        // 切换纯净度选择状态
+                        self.online_state.purities ^= purity.bit_value();
+                        // 保存筛选配置
+                        self.online_state.save_to_config(&mut self.config);
+                    }
+                    super::online::OnlineMessage::ResolutionChanged(resolution) => {
+                        // 分辨率改变
+                        self.online_state.resolution = resolution;
+                    }
+                    super::online::OnlineMessage::RatioChanged(ratio) => {
+                        // 比例改变
+                        self.online_state.ratio = ratio;
+                    }
+                    super::online::OnlineMessage::ColorChanged(color) => {
+                        // 颜色改变
+                        self.online_state.color = color;
+                    }
+                    super::online::OnlineMessage::TimeRangeChanged(time_range) => {
+                        // 时间范围改变
+                        self.online_state.time_range = time_range;
+                    }
+                    super::online::OnlineMessage::SearchTextChanged(text) => {
+                        // 搜索文本改变
+                        self.online_state.search_text = text;
+                    }
+                    super::online::OnlineMessage::Search => {
+                        // 搜索，重新加载壁纸
+                        self.online_state.current_page = 1;
+                        self.online_state.wallpapers.clear();
+                        self.online_state.last_page = false;
+                        return iced::Task::perform(async {}, |_| {
+                            AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)
+                        });
+                    }
+                    super::online::OnlineMessage::Refresh => {
+                        // 刷新，重新加载壁纸
+                        self.online_state.current_page = 1;
+                        self.online_state.wallpapers.clear();
+                        self.online_state.last_page = false;
+                        return iced::Task::perform(async {}, |_| {
+                            AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)
+                        });
+                    }
+                }
+            }
         }
         iced::Task::none()
     }
@@ -940,4 +1335,176 @@ async fn select_folder_async() -> String {
     } else {
         "".to_string() // 用户取消选择
     }
+}
+
+// 异步加载在线壁纸函数
+async fn async_load_online_wallpapers(
+    categories: u32,
+    sorting: super::online::Sorting,
+    sort_direction: super::online::SortDirection,
+    purities: u32,
+    query: String,
+    page: usize,
+    api_key: Option<String>,
+    proxy: Option<String>,
+) -> Result<(Vec<super::online::OnlineWallpaper>, bool, usize), Box<dyn std::error::Error + Send + Sync>> {
+    let service = crate::services::online_wallhaven::WallhavenService::new(api_key, proxy);
+    match service.search_wallpapers(page, categories, sorting, sort_direction, purities, &query).await {
+        Ok(result) => Ok(result),
+        Err(e) => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>),
+    }
+}
+
+// 异步加载在线壁纸图片函数
+async fn async_load_online_wallpaper_image(
+    url: String,
+    proxy: Option<String>,
+) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
+    // 打印请求参数
+    println!("[图片加载] 请求URL: {}", url);
+    if let Some(ref proxy_url) = proxy {
+        println!("[图片加载] 使用代理: {}", proxy_url);
+    } else {
+        println!("[图片加载] 不使用代理");
+    }
+
+    let client = if let Some(proxy_url) = proxy {
+        if !proxy_url.is_empty() {
+            if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
+                reqwest::Client::builder()
+                    .proxy(proxy)
+                    .build()
+                    .unwrap_or_else(|_| reqwest::Client::new())
+            } else {
+                reqwest::Client::new()
+            }
+        } else {
+            reqwest::Client::new()
+        }
+    } else {
+        reqwest::Client::new()
+    };
+
+    let response = client.get(&url).send().await
+        .map_err(|e| {
+            println!("[图片加载] 请求失败: {}", e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+
+    // 打印响应状态
+    println!("[图片加载] 响应状态: {}", response.status());
+
+    if !response.status().is_success() {
+        let error_msg = format!("下载失败: {}", response.status());
+        println!("[图片加载] {}", error_msg);
+        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send + Sync>);
+    }
+
+    let bytes = response.bytes().await
+        .map_err(|e| {
+            println!("[图片加载] 读取响应体失败: {}", e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+
+    // 打印数据大小
+    println!("[图片加载] 下载成功，数据大小: {} bytes", bytes.len());
+
+    Ok(iced::widget::image::Handle::from_bytes(bytes.to_vec()))
+}
+
+// 异步下载壁纸函数
+async fn async_download_wallpaper(
+    url: String,
+    file_name: String,
+    cache_path: String,
+    proxy: Option<String>,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    // 打印请求参数
+    println!("[壁纸下载] 请求URL: {}", url);
+    println!("[壁纸下载] 文件名: {}", file_name);
+    println!("[壁纸下载] 缓存路径: {}", cache_path);
+    if let Some(ref proxy_url) = proxy {
+        println!("[壁纸下载] 使用代理: {}", proxy_url);
+    } else {
+        println!("[壁纸下载] 不使用代理");
+    }
+
+    let client = if let Some(proxy_url) = proxy {
+        if !proxy_url.is_empty() {
+            if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
+                reqwest::Client::builder()
+                    .proxy(proxy)
+                    .build()
+                    .unwrap_or_else(|_| reqwest::Client::new())
+            } else {
+                reqwest::Client::new()
+            }
+        } else {
+            reqwest::Client::new()
+        }
+    } else {
+        reqwest::Client::new()
+    };
+
+    let response = client.get(&url).send().await
+        .map_err(|e| {
+            println!("[壁纸下载] 请求失败: {}", e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+
+    // 打印响应状态
+    println!("[壁纸下载] 响应状态: {}", response.status());
+
+    if !response.status().is_success() {
+        let error_msg = format!("下载失败: {}", response.status());
+        println!("[壁纸下载] {}", error_msg);
+        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send + Sync>);
+    }
+
+    let bytes = response.bytes().await
+        .map_err(|e| {
+            println!("[壁纸下载] 读取响应体失败: {}", e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+
+    // 打印数据大小
+    println!("[壁纸下载] 下载成功，数据大小: {} bytes", bytes.len());
+
+    // 创建缓存目录
+    let full_cache_path = std::env::current_dir()
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+        .join(&cache_path);
+
+    println!("[壁纸下载] 创建缓存目录: {}", full_cache_path.display());
+
+    std::fs::create_dir_all(&full_cache_path)
+        .map_err(|e| {
+            println!("[壁纸下载] 创建缓存目录失败: {}", e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+
+    // 保存文件
+    let file_path = full_cache_path.join(&file_name);
+    println!("[壁纸下载] 保存文件: {}", file_path.display());
+
+    std::fs::write(&file_path, bytes)
+        .map_err(|e| {
+            println!("[壁纸下载] 保存文件失败: {}", e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+
+    println!("[壁纸下载] 文件保存成功");
+
+    Ok(file_path.to_string_lossy().to_string())
+}
+
+// 异步加载在线壁纸缩略图函数（带缓存）
+async fn async_load_online_wallpaper_thumb_with_cache(
+    url: String,
+    file_size: u64,
+    cache_base_path: String,
+    proxy: Option<String>,
+) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
+    // 使用DownloadService的智能缓存加载功能
+    crate::services::download::DownloadService::load_thumb_with_cache(url, file_size, cache_base_path, proxy).await
 }

@@ -16,6 +16,7 @@ pub struct Config {
     pub data: DataConfig,
     pub api: ApiConfig,
     pub display: DisplayConfig,
+    pub wallhaven: WallhavenConfig,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -41,6 +42,13 @@ pub struct ApiConfig {
 pub struct DisplayConfig {
     pub width: u32,
     pub height: u32,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct WallhavenConfig {
+    pub category: String,
+    pub sorting: String,
+    pub purity: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
@@ -85,6 +93,11 @@ impl Config {
             display: DisplayConfig {
                 width: DEFAULT_WINDOW_WIDTH,
                 height: DEFAULT_WINDOW_HEIGHT,
+            },
+            wallhaven: WallhavenConfig {
+                category: "general".to_string(),
+                sorting: "date_added".to_string(),
+                purity: "sfw".to_string(),
             },
         };
 

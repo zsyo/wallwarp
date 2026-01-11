@@ -47,7 +47,21 @@ impl App {
             notification_type: super::NotificationType::Success,
             current_window_width: config.display.width,
             local_state: super::local::LocalState::default(),
+            online_state: super::online::OnlineState::load_from_config(&config),
+            initial_loaded: false, // 标记是否已加载初始数据
         }
+    }
+
+    // 获取初始任务（用于启动时加载在线壁纸）
+    pub fn get_initial_tasks(&self) -> iced::Task<AppMessage> {
+        iced::Task::batch(vec![
+            iced::Task::perform(async {}, |_| {
+                AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)
+            }),
+            iced::Task::perform(async {}, |_| {
+                AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
+            }),
+        ])
     }
 
     // 解析代理字符串为协议、地址和端口

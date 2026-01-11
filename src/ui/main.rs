@@ -35,7 +35,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
 
     let content: Element<'_, AppMessage> = match app.active_page {
         ActivePage::OnlineWallpapers => {
-            column![text(app.i18n.t("online-wallpapers.title")).size(PLACEHOLDER_TEXT_SIZE)].into()
+            super::online::online_view(&app.i18n, functional_area_width as u32, &app.online_state)
         }
         ActivePage::LocalList => {
             super::local::local_view(&app.i18n, &app.config, functional_area_width as u32, &app.local_state)

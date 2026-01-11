@@ -3,6 +3,7 @@ pub mod close_confirmation;
 pub mod common;
 pub mod local;
 pub mod main;
+pub mod online;
 pub mod settings;
 pub mod tray;
 pub mod update;
@@ -19,6 +20,7 @@ pub enum CloseConfirmationAction {
 
 #[derive(Debug, Clone)]
 pub enum AppMessage {
+    None, // 空消息，用于某些不需要实际操作的情况
     LanguageSelected(String),
     WindowResized(u32, u32), // 窗口大小改变事件
     DebounceTimer,
@@ -53,6 +55,7 @@ pub enum AppMessage {
     CloseConfirmationCancelled,
     ToggleRememberSetting(bool),
     Local(crate::ui::local::LocalMessage),
+    Online(crate::ui::online::OnlineMessage),
 }
 
 #[derive(Debug, Clone)]
@@ -96,6 +99,10 @@ pub struct App {
     pub current_window_width: u32,
     // 本地壁纸页面状态
     pub local_state: crate::ui::local::LocalState,
+    // 在线壁纸页面状态
+    pub online_state: crate::ui::online::OnlineState,
+    // 标记是否已加载初始数据
+    pub initial_loaded: bool,
 }
 
 impl Default for App {
