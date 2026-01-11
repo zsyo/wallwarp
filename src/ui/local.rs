@@ -12,11 +12,8 @@ const IMAGE_SPACING: f32 = 20.0;
 const EMPTY_STATE_PADDING: u16 = 360;
 const EMPTY_STATE_TEXT_SIZE: f32 = 24.0;
 
-// 加载动画常量
-const LOADING_DOT_SIZE: f32 = 24.0;
-const LOADING_DOT_SPACING: f32 = 3.0;
+// 加载文本常量
 const LOADING_TEXT_SIZE: f32 = 24.0;
-const LOADING_INNER_SPACING: f32 = 5.0;
 
 // 错误占位图常量
 const ERROR_ICON_SIZE: f32 = 56.0;
@@ -38,11 +35,13 @@ const BORDER_RADIUS: f32 = 4.0;
 
 // 颜色常量
 const COLOR_BG_LIGHT: Color = Color::from_rgb(0.9, 0.9, 0.9);
-const COLOR_DOT_INACTIVE: Color = Color::from_rgb(0.7, 0.7, 0.7);
 const COLOR_TEXT_DARK: Color = Color::from_rgb(0.3, 0.3, 0.3);
 const COLOR_MODAL_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.85);
 const COLOR_OVERLAY_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.6);
 const COLOR_OVERLAY_TEXT: Color = Color::from_rgb(1.0, 1.0, 1.0);
+
+// 模态窗口加载占位符常量
+const MODAL_LOADING_TEXT_SIZE: f32 = 20.0;
 
 #[derive(Debug, Clone)]
 pub enum LocalMessage {
@@ -65,6 +64,7 @@ pub enum LocalMessage {
     ShowDeleteConfirm(usize),
     CloseDeleteConfirm,
     ConfirmDelete(usize),
+    ModalImageLoaded(iced::widget::image::Handle),
 }
 
 #[derive(Debug, Clone)]
@@ -81,12 +81,12 @@ pub struct LocalState {
     pub current_page: usize,
     pub page_size: usize,
     pub total_count: usize,
-    pub rotation_angle: f32,
     pub modal_visible: bool,
     pub current_image_index: usize,
     pub animated_decoder: Option<crate::utils::animated_image::AnimatedDecoder>,
     pub delete_confirm_visible: bool,
     pub delete_target_index: Option<usize>,
+    pub modal_image_handle: Option<iced::widget::image::Handle>,
 }
 
 impl Default for LocalState {
@@ -98,12 +98,12 @@ impl Default for LocalState {
             current_page: 0,
             page_size: 20,
             total_count: 0,
-            rotation_angle: 0.0,
             modal_visible: false,
             current_image_index: 0,
             animated_decoder: None,
             delete_confirm_visible: false,
             delete_target_index: None,
+            modal_image_handle: None,
         }
     }
 }
@@ -135,7 +135,7 @@ pub fn local_view<'a>(
 
             for wallpaper_status in chunk {
                 let image_element = match wallpaper_status {
-                    WallpaperLoadStatus::Loading => create_loading_placeholder(i18n, local_state.rotation_angle),
+                    WallpaperLoadStatus::Loading => create_loading_placeholder(i18n),
                     WallpaperLoadStatus::Loaded(wallpaper) => {
                         let wallpaper_index = local_state
                             .all_paths
@@ -184,20 +184,40 @@ pub fn local_view<'a>(
 
     // 图片预览模态窗口
     if local_state.modal_visible && !local_state.all_paths.is_empty() {
-        let current_path = &local_state.all_paths[local_state.current_image_index];
         let wallpaper_index = local_state.current_image_index;
-        let modal_image = if let Some(ref decoder) = local_state.animated_decoder {
+
+        // 创建背景加载文字
+        let loading_text = create_modal_loading_placeholder(i18n);
+
+        // 创建图片层（加载完成后显示）
+        let image_layer: Element<_> = if let Some(ref handle) = local_state.modal_image_handle {
+            // 使用预加载的图片数据
+            let modal_image = iced::widget::image(handle.clone())
+                .content_fit(iced::ContentFit::Contain)
+                .width(Length::Fill)
+                .height(Length::Fill);
+            modal_image.into()
+        } else if let Some(ref decoder) = local_state.animated_decoder {
+            // 动态图
             let current_frame = decoder.current_frame();
-            iced::widget::image(current_frame.handle.clone())
+            let modal_image = iced::widget::image(current_frame.handle.clone())
+                .content_fit(iced::ContentFit::Contain)
+                .width(Length::Fill)
+                .height(Length::Fill);
+            modal_image.into()
         } else {
-            let image_handle = iced::widget::image::Handle::from_path(current_path);
-            iced::widget::image(image_handle)
+            // 图片未加载完成，显示透明占位符（让背景文字可见）
+            container(iced::widget::Space::new())
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
         };
 
-        let modal_image = modal_image
-            .content_fit(iced::ContentFit::Contain)
-            .width(Length::Fill)
-            .height(Length::Fill);
+        // 使用 stack 将图片层叠加在加载文字之上
+        let modal_image_content = iced::widget::stack(vec![
+            loading_text,
+            image_layer,
+        ]);
 
         // 创建底部工具栏按钮
         let prev_button = common::create_button_with_tooltip(
@@ -265,7 +285,7 @@ pub fn local_view<'a>(
 
         let modal_content = container(
             column![
-                container(modal_image)
+                container(modal_image_content)
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .padding(20),
@@ -303,24 +323,7 @@ pub fn local_view<'a>(
         .into()
 }
 
-fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n, rotation_angle: f32) -> button::Button<'a, AppMessage> {
-    let dots = (0..3)
-        .map(|i| {
-            if i as f32 == (rotation_angle / 120.0).floor() % 3.0 {
-                text("●").size(LOADING_DOT_SIZE).into()
-            } else {
-                text("●")
-                    .size(LOADING_DOT_SIZE)
-                    .style(|_theme: &iced::Theme| text::Style {
-                        color: Some(COLOR_DOT_INACTIVE),
-                    })
-                    .into()
-            }
-        })
-        .collect::<Vec<_>>();
-
-    let loading_image = row(dots).spacing(LOADING_DOT_SPACING);
-
+fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> button::Button<'a, AppMessage> {
     let loading_text =
         text(i18n.t("local-list.image-loading"))
             .size(LOADING_TEXT_SIZE)
@@ -328,21 +331,11 @@ fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n, rotation_angle: f
                 color: Some(COLOR_TEXT_DARK),
             });
 
-    let inner_content = container(
-        column![loading_image, loading_text]
-            .width(Length::Shrink)
-            .height(Length::Shrink)
-            .align_x(Alignment::Center)
-            .spacing(LOADING_INNER_SPACING),
-    )
-    .width(Length::Fixed(IMAGE_WIDTH))
-    .height(Length::Fixed(IMAGE_HEIGHT))
-    .align_x(Alignment::Center)
-    .align_y(Alignment::Center);
-
-    let placeholder_content = container(inner_content)
+    let placeholder_content = container(loading_text)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Center)
         .style(create_bordered_container_style);
 
     button(placeholder_content)
@@ -584,6 +577,25 @@ fn create_bordered_container_style(theme: &iced::Theme) -> container::Style {
         },
         ..Default::default()
     }
+}
+
+// 创建模态窗口加载占位符，静态文字显示
+fn create_modal_loading_placeholder<'a>(
+    i18n: &'a crate::i18n::I18n,
+) -> Element<'a, AppMessage> {
+    let loading_text =
+        text(i18n.t("local-list.image-loading"))
+            .size(MODAL_LOADING_TEXT_SIZE)
+            .style(|_theme: &iced::Theme| text::Style {
+                color: Some(COLOR_OVERLAY_TEXT),
+            });
+
+    container(loading_text)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x(Length::Fill)
+        .center_y(Length::Fill)
+        .into()
 }
 
 impl From<LocalMessage> for AppMessage {

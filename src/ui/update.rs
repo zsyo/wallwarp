@@ -639,8 +639,29 @@ impl App {
                         self.local_state.current_image_index = index;
                         self.local_state.modal_visible = true;
 
+                        // 清除之前的图片数据
+                        self.local_state.modal_image_handle = None;
+
                         // 使用辅助方法初始化动态图解码器
                         self.init_animated_decoder(index);
+
+                        // 异步加载图片数据
+                        if let Some(path) = self.local_state.all_paths.get(index).cloned() {
+                            return iced::Task::perform(
+                                async move {
+                                    // 异步加载图片数据
+                                    let image_handle = iced::widget::image::Handle::from_path(&path);
+                                    // 等待一小段时间确保图片数据已加载
+                                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                    image_handle
+                                },
+                                |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
+                            );
+                        }
+                    }
+                    super::local::LocalMessage::ModalImageLoaded(handle) => {
+                        // 模态窗口图片加载完成，保存图片数据
+                        self.local_state.modal_image_handle = Some(handle);
                     }
                     super::local::LocalMessage::CloseModal => {
                         // 关闭模态窗口
@@ -652,14 +673,50 @@ impl App {
                         // 显示下一张图片，跳过加载失败的图片
                         if let Some(next_index) = self.find_next_valid_image_index(self.local_state.current_image_index, 1) {
                             self.local_state.current_image_index = next_index;
+
+                            // 清除之前的图片数据
+                            self.local_state.modal_image_handle = None;
+
                             self.init_animated_decoder(next_index);
+
+                            // 异步加载图片数据
+                            if let Some(path) = self.local_state.all_paths.get(next_index).cloned() {
+                                return iced::Task::perform(
+                                    async move {
+                                        // 异步加载图片数据
+                                        let image_handle = iced::widget::image::Handle::from_path(&path);
+                                        // 等待一小段时间确保图片数据已加载
+                                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                        image_handle
+                                    },
+                                    |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
+                                );
+                            }
                         }
                     }
                     super::local::LocalMessage::PreviousImage => {
                         // 显示上一张图片，跳过加载失败的图片
                         if let Some(prev_index) = self.find_next_valid_image_index(self.local_state.current_image_index, -1) {
                             self.local_state.current_image_index = prev_index;
+
+                            // 清除之前的图片数据
+                            self.local_state.modal_image_handle = None;
+
                             self.init_animated_decoder(prev_index);
+
+                            // 异步加载图片数据
+                            if let Some(path) = self.local_state.all_paths.get(prev_index).cloned() {
+                                return iced::Task::perform(
+                                    async move {
+                                        // 异步加载图片数据
+                                        let image_handle = iced::widget::image::Handle::from_path(&path);
+                                        // 等待一小段时间确保图片数据已加载
+                                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                                        image_handle
+                                    },
+                                    |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
+                                );
+                            }
                         }
                     }
                     super::local::LocalMessage::ScrollToBottom => {
@@ -673,9 +730,7 @@ impl App {
                         }
                     }
                     super::local::LocalMessage::AnimationTick => {
-                        // 更新旋转角度以创建动画效果
-                        // 每次增加15度，如果超过360度则重置
-                        self.local_state.rotation_angle = (self.local_state.rotation_angle + 15.0) % 360.0;
+                        // 动画刻度消息（已不再使用，保留以避免编译错误）
                     }
                     super::local::LocalMessage::AnimatedFrameUpdate => {
                         // 更新动态图帧
