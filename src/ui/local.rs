@@ -20,9 +20,7 @@ const ERROR_ICON_SIZE: f32 = 56.0;
 const ERROR_TEXT_SIZE: f32 = 18.0;
 const ERROR_PATH_SIZE: f32 = 10.0;
 
-// 按钮常量
-const LOAD_MORE_TEXT_SIZE: f32 = 16.0;
-const LOAD_MORE_PADDING: u16 = 10;
+// 文本常量
 const ALL_LOADED_TEXT_SIZE: f32 = 14.0;
 
 // 透明遮罩常量
@@ -158,12 +156,8 @@ pub fn local_view<'a>(
             content = content.push(centered_row);
         }
 
-        if local_state.current_page * local_state.page_size < local_state.total_count && !local_state.loading_page {
-            let load_more_button = button(text(i18n.t("local-list.load-more")).size(LOAD_MORE_TEXT_SIZE))
-                .padding(LOAD_MORE_PADDING)
-                .on_press(super::AppMessage::Local(LocalMessage::ScrollToBottom));
-            content = content.push(load_more_button)
-        } else if local_state.current_page * local_state.page_size >= local_state.total_count {
+        // 如果已加载全部，显示提示文本
+        if local_state.current_page * local_state.page_size >= local_state.total_count {
             let all_loaded_text = text(i18n.t("local-list.all-loaded")).size(ALL_LOADED_TEXT_SIZE);
             content = content.push(all_loaded_text)
         }
@@ -178,7 +172,34 @@ pub fn local_view<'a>(
     let base_layer = scrollable(content)
         .width(Length::Fill)
         .height(Length::Fill)
-        .id(iced::widget::Id::new("local_wallpapers_scroll"));
+        .id(iced::widget::Id::new("local_wallpapers_scroll"))
+        .on_scroll(|viewport| {
+            // 检查是否滚动到底部
+            // 使用 offset 和 content_size 来判断滚动位置
+            let content_height = viewport.content_bounds().height;
+            let view_height = viewport.bounds().height;
+            let scroll_position = viewport.absolute_offset().y;
+
+            // 计算可滚动的总距离
+            let scrollable_height = content_height - view_height;
+
+            // 只有当有足够的可滚动内容时才检测（避免内容不足时误触发）
+            if scrollable_height > 0.0 {
+                // 计算当前滚动百分比（0.0 到 1.0）
+                let scroll_percentage = scroll_position / scrollable_height;
+
+                // 当滚动到 95% 以上时触发加载
+                let is_near_bottom = scroll_percentage >= 0.95;
+
+                if is_near_bottom {
+                    super::AppMessage::Local(LocalMessage::ScrollToBottom)
+                } else {
+                    super::AppMessage::None
+                }
+            } else {
+                super::AppMessage::None
+            }
+        });
 
     let mut layers = vec![base_layer.into()];
 
