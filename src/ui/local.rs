@@ -1,45 +1,16 @@
 use super::AppMessage;
 use super::common;
 use crate::services::local::Wallpaper;
+use crate::ui::style::{
+    ALL_LOADED_TEXT_SIZE, BORDER_WIDTH, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED,
+    BUTTON_COLOR_YELLOW, COLOR_BG_LIGHT, COLOR_MODAL_BG, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT,
+    COLOR_TEXT_DARK, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, ERROR_ICON_SIZE, ERROR_PATH_SIZE,
+    ERROR_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, MODAL_LOADING_TEXT_SIZE,
+    OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
+};
 use crate::utils::config::Config;
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Color, Element, Font, Length};
-
-// 布局常量
-const IMAGE_WIDTH: f32 = 300.0;
-const IMAGE_HEIGHT: f32 = 200.0;
-const IMAGE_SPACING: f32 = 20.0;
-const EMPTY_STATE_PADDING: u16 = 360;
-const EMPTY_STATE_TEXT_SIZE: f32 = 24.0;
-
-// 加载文本常量
-const LOADING_TEXT_SIZE: f32 = 24.0;
-
-// 错误占位图常量
-const ERROR_ICON_SIZE: f32 = 56.0;
-const ERROR_TEXT_SIZE: f32 = 18.0;
-const ERROR_PATH_SIZE: f32 = 10.0;
-
-// 文本常量
-const ALL_LOADED_TEXT_SIZE: f32 = 14.0;
-
-// 透明遮罩常量
-const OVERLAY_HEIGHT: f32 = 22.0;
-const OVERLAY_TEXT_SIZE: f32 = 12.0;
-
-// 容器样式常量
-const BORDER_WIDTH: f32 = 1.0;
-const BORDER_RADIUS: f32 = 4.0;
-
-// 颜色常量
-const COLOR_BG_LIGHT: Color = Color::from_rgb(0.9, 0.9, 0.9);
-const COLOR_TEXT_DARK: Color = Color::from_rgb(0.3, 0.3, 0.3);
-const COLOR_MODAL_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.85);
-const COLOR_OVERLAY_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.6);
-const COLOR_OVERLAY_TEXT: Color = Color::from_rgb(1.0, 1.0, 1.0);
-
-// 模态窗口加载占位符常量
-const MODAL_LOADING_TEXT_SIZE: f32 = 20.0;
 
 #[derive(Debug, Clone)]
 pub enum LocalMessage {
@@ -244,7 +215,7 @@ pub fn local_view<'a>(
         let prev_button = common::create_button_with_tooltip(
             common::create_icon_button(
                 "\u{F12E}",
-                common::BUTTON_COLOR_BLUE,
+                BUTTON_COLOR_BLUE,
                 AppMessage::Local(LocalMessage::PreviousImage),
             ),
             i18n.t("local-list.tooltip-prev"),
@@ -253,7 +224,7 @@ pub fn local_view<'a>(
         let next_button = common::create_button_with_tooltip(
             common::create_icon_button(
                 "\u{F137}",
-                common::BUTTON_COLOR_BLUE,
+                BUTTON_COLOR_BLUE,
                 AppMessage::Local(LocalMessage::NextImage),
             ),
             i18n.t("local-list.tooltip-next"),
@@ -262,7 +233,7 @@ pub fn local_view<'a>(
         let set_wallpaper_button = common::create_button_with_tooltip(
             common::create_icon_button(
                 "\u{F196}",
-                common::BUTTON_COLOR_GREEN,
+                BUTTON_COLOR_GREEN,
                 AppMessage::Local(LocalMessage::SetWallpaper(wallpaper_index)),
             ),
             i18n.t("local-list.tooltip-set-wallpaper"),
@@ -271,7 +242,7 @@ pub fn local_view<'a>(
         let close_button = common::create_button_with_tooltip(
             common::create_icon_button(
                 "\u{F659}",
-                common::BUTTON_COLOR_RED,
+                BUTTON_COLOR_RED,
                 AppMessage::Local(LocalMessage::CloseModal),
             ),
             i18n.t("local-list.tooltip-close"),
@@ -412,7 +383,7 @@ fn create_error_placeholder<'a>(
     let view_button = common::create_button_with_tooltip(
         common::create_icon_button(
             "\u{F341}",
-            common::BUTTON_COLOR_YELLOW,
+            BUTTON_COLOR_YELLOW,
             super::AppMessage::Local(LocalMessage::ViewInFolder(index)),
         ),
         i18n.t("local-list.tooltip-locate"),
@@ -421,7 +392,7 @@ fn create_error_placeholder<'a>(
     let delete_button = common::create_button_with_tooltip(
         common::create_icon_button(
             "\u{F78B}",
-            common::BUTTON_COLOR_RED,
+            BUTTON_COLOR_RED,
             super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
         ),
         i18n.t("local-list.tooltip-delete"),
@@ -503,7 +474,7 @@ fn create_loaded_wallpaper<'a>(
     let view_button = common::create_button_with_tooltip(
         common::create_icon_button(
             "\u{F341}",
-            common::BUTTON_COLOR_YELLOW,
+            BUTTON_COLOR_YELLOW,
             super::AppMessage::Local(LocalMessage::ViewInFolder(index)),
         ),
         i18n.t("local-list.tooltip-locate"),
@@ -512,7 +483,7 @@ fn create_loaded_wallpaper<'a>(
     let set_wallpaper_button = common::create_button_with_tooltip(
         common::create_icon_button(
             "\u{F196}",
-            common::BUTTON_COLOR_GREEN,
+            BUTTON_COLOR_GREEN,
             super::AppMessage::Local(LocalMessage::SetWallpaper(index)),
         ),
         i18n.t("local-list.tooltip-set-wallpaper"),
@@ -521,7 +492,7 @@ fn create_loaded_wallpaper<'a>(
     let delete_button = common::create_button_with_tooltip(
         common::create_icon_button(
             "\u{F78B}",
-            common::BUTTON_COLOR_RED,
+            BUTTON_COLOR_RED,
             super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
         ),
         i18n.t("local-list.tooltip-delete"),
@@ -594,7 +565,7 @@ fn create_bordered_container_style(theme: &iced::Theme) -> container::Style {
         border: iced::border::Border {
             color: theme.extended_palette().primary.weak.color,
             width: BORDER_WIDTH,
-            radius: iced::border::Radius::from(BORDER_RADIUS),
+            radius: iced::border::Radius::from(4.0),
         },
         ..Default::default()
     }

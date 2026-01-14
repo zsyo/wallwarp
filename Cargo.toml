@@ -15,7 +15,7 @@ toml = "0.9.11"
 open = "5.3"
 rfd = "0.17.2"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
-fast_image_resize = { version = "5.6.0", features = ["image"] }
+fast_image_resize = { version = "6.0.0", features = ["image"] }
 rayon = "1.11.0"
 reqwest = { version = "0.13.1", default-features = false, features = [
     "native-tls",

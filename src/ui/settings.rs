@@ -1,6 +1,12 @@
 use super::App;
 use super::AppMessage;
 use super::common;
+use crate::ui::style::{
+    ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, ABOUT_ROW_HEIGHT, BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY,
+    BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING, INPUT_HEIGHT, INPUT_PADDING, LOGO_DISPLAY_SIZE,
+    LOGO_SIZE, PICK_LIST_WIDTH, PORT_INPUT_WIDTH, ROW_SPACING, SCROLL_PADDING, SECTION_PADDING,
+    SECTION_SPACING, SECTION_TITLE_SIZE, TEXT_INPUT_SIZE,
+};
 use crate::utils::assets;
 use crate::utils::config::CloseAction;
 use iced::{Alignment, Length};
@@ -8,18 +14,6 @@ use iced::widget::{
     button, column, container, pick_list, row, scrollable, text, text_input, toggler,
 };
 use std::str::FromStr;
-
-// 布局常量
-const SCROLL_PADDING: f32 = 20.0;
-
-// 尺寸常量
-const PICK_LIST_WIDTH: f32 = 80.0;
-const PORT_INPUT_WIDTH: f32 = 80.0;
-const ABOUT_INFO_WIDTH: f32 = 350.0;
-const LOGO_SIZE: u32 = 128;
-const LOGO_DISPLAY_SIZE: f32 = 128.0;
-const ABOUT_LOGO_SPACING: f32 = 40.0;
-const ABOUT_ROW_HEIGHT: f32 = 16.0;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProxyProtocol {
@@ -96,7 +90,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                         AppMessage::CloseActionSelected
                     )
                 ]
-                .spacing(common::ROW_SPACING),
+                .spacing(ROW_SPACING),
             ),
             common::create_setting_row(
                 app.i18n.t("settings.proxy"),
@@ -107,28 +101,28 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                         |protocol| AppMessage::ProxyProtocolChanged(protocol.as_str().to_string())
                     )
                     .width(Length::Fixed(PICK_LIST_WIDTH)),
-                    container(iced::widget::Space::new()).width(Length::Fixed(common::ROW_SPACING)),
+                    container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
                     text_input(
                         &app.i18n.t("settings.proxy-address-placeholder"),
                         &app.proxy_address
                     )
                     .width(Length::FillPortion(2))
                     .align_x(Alignment::Center)
-                    .padding(common::INPUT_PADDING)
+                    .padding(INPUT_PADDING)
                     .on_input(AppMessage::ProxyAddressChanged),
-                    container(iced::widget::Space::new()).width(Length::Fixed(common::ROW_SPACING)),
+                    container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
                     text_input(
                         &app.i18n.t("settings.proxy-port-placeholder"),
                         &app.proxy_port
                     )
                     .width(Length::Fixed(PORT_INPUT_WIDTH))
                     .align_x(Alignment::Center)
-                    .padding(common::INPUT_PADDING)
+                    .padding(INPUT_PADDING)
                     .on_input(AppMessage::ProxyPortChanged),
-                    container(iced::widget::Space::new()).width(Length::Fixed(common::ROW_SPACING)),
+                    container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
                     common::create_colored_button(
                         app.i18n.t("settings.proxy-save"),
-                        common::BUTTON_COLOR_BLUE,
+                        BUTTON_COLOR_BLUE,
                         AppMessage::SaveProxy
                     )
                 ]
@@ -172,14 +166,14 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                     &app.wallhaven_api_key
                 )
                 .width(Length::Fill)
-                .size(common::TEXT_INPUT_SIZE)
+                .size(TEXT_INPUT_SIZE)
                 .align_x(Alignment::Center)
                 .on_input(AppMessage::WallhavenApiKeyChanged)
-                .padding(common::INPUT_PADDING),
-                container(iced::widget::Space::new()).width(Length::Fixed(common::BUTTON_SPACING)),
+                .padding(INPUT_PADDING),
+                container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
                 common::create_colored_button(
                     app.i18n.t("settings.save"),
-                    common::BUTTON_COLOR_BLUE,
+                    BUTTON_COLOR_BLUE,
                     AppMessage::SaveWallhavenApiKey
                 )
             ]
@@ -192,7 +186,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
     let about_config_section = container(
         column!(
             text(app.i18n.t("settings.about-config"))
-                .size(common::SECTION_TITLE_SIZE)
+                .size(SECTION_TITLE_SIZE)
                 .width(Length::Fill)
                 .align_x(Alignment::Center),
             row![
@@ -217,7 +211,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                             "https://github.com/zsyo/wallwarp"
                         ),
                     ]
-                    .spacing(common::ROW_SPACING)
+                    .spacing(ROW_SPACING)
                 )
                 .width(Length::Fixed(ABOUT_INFO_WIDTH)),
                 container(iced::widget::Space::new()).width(Length::Fill),
@@ -227,10 +221,10 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                 container(iced::widget::Space::new()).width(Length::Fixed(ABOUT_LOGO_SPACING)),
             ]
             .width(Length::Fill)
-            .spacing(common::ROW_SPACING)
+            .spacing(ROW_SPACING)
         )
-        .padding(common::SECTION_PADDING)
-        .spacing(common::SECTION_SPACING),
+        .padding(SECTION_PADDING)
+        .spacing(SECTION_SPACING),
     )
     .width(Length::Fill)
     .style(common::create_bordered_container_style);
@@ -245,7 +239,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         .width(Length::Fill)
         .align_x(Alignment::Center)
         .padding(SCROLL_PADDING)
-        .spacing(common::ROW_SPACING),
+        .spacing(ROW_SPACING),
     )
     .height(Length::Fill)
     .id(iced::widget::Id::new("settings_scroll"))
@@ -266,41 +260,41 @@ fn create_path_config_row<'a>(
         row![
             iced::widget::text_input("", path)
                 .width(Length::Fill)
-                .size(common::TEXT_INPUT_SIZE)
+                .size(TEXT_INPUT_SIZE)
                 .align_x(Alignment::Center)
                 .on_input(|_| AppMessage::DataPathSelected("".to_string()))
-                .padding(common::INPUT_PADDING),
-            container(iced::widget::Space::new()).width(Length::Fixed(common::BUTTON_SPACING)),
+                .padding(INPUT_PADDING),
+            container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
             common::create_colored_button(
                 i18n.t("settings.select-path"),
-                common::BUTTON_COLOR_BLUE,
+                BUTTON_COLOR_BLUE,
                 select_msg
             ),
-            container(iced::widget::Space::new()).width(Length::Fixed(common::BUTTON_SPACING)),
+            container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
             common::create_colored_button(
                 i18n.t("settings.open-path"),
-                common::BUTTON_COLOR_GREEN,
+                BUTTON_COLOR_GREEN,
                 open_msg
             ),
-            container(iced::widget::Space::new()).width(Length::Fixed(common::BUTTON_SPACING)),
+            container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
             common::create_colored_button(
                 i18n.t("settings.clear-path"),
-                common::BUTTON_COLOR_RED,
+                BUTTON_COLOR_RED,
                 clear_msg
             ),
-            container(iced::widget::Space::new()).width(Length::Fixed(common::BUTTON_SPACING)),
+            container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
             common::create_colored_button(
                 i18n.t("settings.restore-default"),
-                common::BUTTON_COLOR_GRAY,
+                BUTTON_COLOR_GRAY,
                 restore_msg
             ),
         ]
         .width(Length::FillPortion(4))
         .spacing(0),
     ]
-    .height(Length::Fixed(common::INPUT_HEIGHT))
+    .height(Length::Fixed(INPUT_HEIGHT))
     .width(Length::Fill)
-    .spacing(common::ROW_SPACING)
+    .spacing(ROW_SPACING)
     .into()
 }
 
@@ -328,6 +322,6 @@ fn create_about_link_row<'a>(
     .height(Length::Fixed(ABOUT_ROW_HEIGHT))
     .width(Length::Fill)
     .align_y(Alignment::Center)
-    .spacing(common::ROW_SPACING)
+    .spacing(ROW_SPACING)
     .into()
 }

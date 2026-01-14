@@ -1,68 +1,17 @@
 use super::AppMessage;
 use super::common;
+use crate::ui::style::{
+    ALL_LOADED_TEXT_SIZE, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN,
+    BUTTON_COLOR_RED, COLOR_BG_LIGHT, COLOR_LIGHT_BG, COLOR_LIGHT_BUTTON,
+    COLOR_LIGHT_TEXT, COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG, COLOR_NSFW, COLOR_OVERLAY_BG,
+    COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK,
+    EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH,
+    LOADING_TEXT_SIZE, MODAL_LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT,
+    PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE,
+};
 use iced::widget::{button, column, container, pick_list, row, scrollable, text};
 use iced::{Alignment, Color, Element, Length};
 use serde::{Deserialize, Serialize};
-
-// 布局常量
-const IMAGE_WIDTH: f32 = 300.0;
-const IMAGE_HEIGHT: f32 = 200.0;
-const IMAGE_SPACING: f32 = 20.0;
-const EMPTY_STATE_PADDING: u16 = 360;
-const EMPTY_STATE_TEXT_SIZE: f32 = 24.0;
-
-// 加载文本常量
-const LOADING_TEXT_SIZE: f32 = 24.0;
-
-// 按钮常量
-const ALL_LOADED_TEXT_SIZE: f32 = 14.0;
-
-// 透明遮罩常量
-const OVERLAY_HEIGHT: f32 = 22.0;
-const OVERLAY_TEXT_SIZE: f32 = 12.0;
-
-// 容器样式常量
-const BORDER_WIDTH: f32 = 1.0;
-const BORDER_RADIUS: f32 = 4.0;
-
-// 颜色常量
-const COLOR_BG_LIGHT: Color = Color::from_rgb(0.9, 0.9, 0.9);
-const COLOR_TEXT_DARK: Color = Color::from_rgb(0.3, 0.3, 0.3);
-const COLOR_MODAL_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.85);
-const COLOR_OVERLAY_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.6);
-const COLOR_OVERLAY_TEXT: Color = Color::from_rgb(1.0, 1.0, 1.0);
-
-// 浅色主题颜色
-const COLOR_LIGHT_BG: Color = Color::from_rgb(0.969, 0.969, 0.969); // #F8F8F8
-const COLOR_LIGHT_BUTTON: Color = Color::from_rgb(0.933, 0.933, 0.933); // #EEEEEE
-#[allow(dead_code)]
-const COLOR_LIGHT_BUTTON_HOVER: Color = Color::from_rgb(0.878, 0.878, 0.878); // #E0E0E0
-const COLOR_LIGHT_TEXT: Color = Color::from_rgb(0.2, 0.2, 0.2); // #333333
-const COLOR_LIGHT_TEXT_SUB: Color = Color::from_rgb(0.533, 0.533, 0.533); // #888888
-const COLOR_SELECTED_BLUE: Color = Color::from_rgb(0.098, 0.463, 0.824); // #1976D2 (蓝色)
-
-// 纯净度颜色
-const COLOR_SFW: Color = Color::from_rgb(0.298, 0.686, 0.314); // #4CAF50
-const COLOR_SKETCHY: Color = Color::from_rgb(1.0, 0.757, 0.027); // #FFC107
-const COLOR_NSFW: Color = Color::from_rgb(0.965, 0.263, 0.212); // #F44336
-
-// 筛选栏常量
-#[allow(dead_code)]
-const FILTER_BAR_HEIGHT: f32 = 60.0;
-#[allow(dead_code)]
-const FILTER_BAR_PADDING: f32 = 10.0;
-#[allow(dead_code)]
-const FILTER_SPACING: f32 = 10.0;
-#[allow(dead_code)]
-const FILTER_LABEL_SIZE: f32 = 14.0;
-
-// 分页分隔线常量
-const PAGE_SEPARATOR_HEIGHT: f32 = 40.0;
-const PAGE_SEPARATOR_TEXT_SIZE: f32 = 18.0;
-const PAGE_SEPARATOR_TEXT_COLOR: Color = Color::from_rgb(0.5, 0.5, 0.5);
-
-// 模态窗口加载占位符常量
-const MODAL_LOADING_TEXT_SIZE: f32 = 20.0;
 
 // 分类选项（位掩码表示）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -911,7 +860,7 @@ pub fn online_view<'a>(
         let prev_button = common::create_button_with_tooltip(
             common::create_icon_button(
                 "\u{F12E}",
-                common::BUTTON_COLOR_BLUE,
+                BUTTON_COLOR_BLUE,
                 AppMessage::Online(OnlineMessage::PreviousImage),
             ),
             i18n.t("online-wallpapers.tooltip-prev"),
@@ -920,7 +869,7 @@ pub fn online_view<'a>(
         let next_button = common::create_button_with_tooltip(
             common::create_icon_button(
                 "\u{F137}",
-                common::BUTTON_COLOR_BLUE,
+                BUTTON_COLOR_BLUE,
                 AppMessage::Online(OnlineMessage::NextImage),
             ),
             i18n.t("online-wallpapers.tooltip-next"),
@@ -929,7 +878,7 @@ pub fn online_view<'a>(
         let download_button = common::create_button_with_tooltip(
             common::create_icon_button(
                 "\u{F1E5}",
-                common::BUTTON_COLOR_GREEN,
+                BUTTON_COLOR_GREEN,
                 AppMessage::Online(OnlineMessage::DownloadWallpaper(wallpaper_index)),
             ),
             i18n.t("online-wallpapers.tooltip-download"),
@@ -938,7 +887,7 @@ pub fn online_view<'a>(
         let close_button = common::create_button_with_tooltip(
             common::create_icon_button(
                 "\u{F659}",
-                common::BUTTON_COLOR_RED,
+                BUTTON_COLOR_RED,
                 AppMessage::Online(OnlineMessage::CloseModal),
             ),
             i18n.t("online-wallpapers.tooltip-close"),
@@ -1453,7 +1402,7 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     let download_button = common::create_button_with_tooltip(
         common::create_icon_button(
             "\u{F1E5}",
-            common::BUTTON_COLOR_GREEN,
+            BUTTON_COLOR_GREEN,
             super::AppMessage::Online(OnlineMessage::DownloadWallpaper(index)),
         ),
         i18n.t("online-wallpapers.tooltip-download"),

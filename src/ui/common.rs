@@ -1,54 +1,13 @@
+use crate::ui::style::{
+    BORDER_COLOR_GRAY, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED,
+    BUTTON_TEXT_SIZE, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING,
+    DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING,
+    DIALOG_TITLE_SIZE, ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE, INPUT_HEIGHT, MASK_ALPHA,
+    ROW_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
+    TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
+};
 use iced::widget::{button, column, container, row, text, tooltip};
 use iced::{Alignment, Color, Element, Font, Length};
-
-// 模态对话框常量
-pub const DIALOG_TITLE_SIZE: f32 = 16.0;
-pub const DIALOG_MESSAGE_SIZE: f32 = 14.0;
-pub const DIALOG_BUTTON_TEXT_SIZE: f32 = 14.0;
-
-pub const DIALOG_MAX_WIDTH: f32 = 500.0;
-pub const DIALOG_BORDER_RADIUS: f32 = 8.0;
-pub const DIALOG_BORDER_WIDTH: f32 = 1.0;
-
-pub const DIALOG_PADDING: f32 = 20.0;
-pub const DIALOG_SPACING: f32 = 15.0;
-pub const DIALOG_BUTTON_SPACING: f32 = 10.0;
-pub const DIALOG_INNER_PADDING: f32 = 10.0;
-
-pub const MASK_ALPHA: f32 = 0.5;
-pub const BORDER_COLOR_GRAY: f32 = 0.8;
-
-// 设置页面常量
-pub const SECTION_TITLE_SIZE: f32 = 16.0;
-pub const BUTTON_TEXT_SIZE: f32 = 14.0;
-pub const TEXT_INPUT_SIZE: f32 = 14.0;
-pub const INPUT_HEIGHT: f32 = 30.0;
-pub const ROW_SPACING: f32 = 10.0;
-pub const SECTION_PADDING: f32 = 15.0;
-pub const SECTION_SPACING: f32 = 10.0;
-pub const INPUT_PADDING: u16 = 5;
-pub const BUTTON_SPACING: f32 = 2.0;
-
-// 图标按钮常量
-pub const ICON_BUTTON_TEXT_SIZE: f32 = 14.0;
-pub const ICON_BUTTON_PADDING: [u16; 2] = [4, 4];
-pub const TOOLTIP_BORDER_RADIUS: f32 = 4.0;
-pub const TOOLTIP_BORDER_WIDTH: f32 = 1.0;
-
-// 容器样式常量
-pub const BORDER_WIDTH: f32 = 1.0;
-pub const BORDER_RADIUS: f32 = 5.0;
-
-// 按钮颜色
-pub const BUTTON_COLOR_BLUE: Color = Color::from_rgb8(0, 123, 255);
-pub const BUTTON_COLOR_GREEN: Color = Color::from_rgb8(40, 167, 69);
-pub const BUTTON_COLOR_RED: Color = Color::from_rgb8(220, 53, 69);
-pub const BUTTON_COLOR_GRAY: Color = Color::from_rgb8(108, 117, 125);
-pub const BUTTON_COLOR_YELLOW: Color = Color::from_rgb8(255, 204, 0);
-
-// Tooltip 颜色
-pub const TOOLTIP_BG_COLOR: Color = Color::WHITE;
-pub const TOOLTIP_BORDER_COLOR: Color = Color::BLACK;
 
 /// 创建带颜色的按钮（接收文本字符串）
 pub fn create_colored_button<'a, Message>(label: String, color: Color, message: Message) -> button::Button<'a, Message>

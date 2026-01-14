@@ -5,6 +5,7 @@ pub mod local;
 pub mod main;
 pub mod online;
 pub mod settings;
+pub mod style;
 pub mod tray;
 pub mod update;
 
