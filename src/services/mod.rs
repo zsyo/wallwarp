@@ -1,6 +1,7 @@
 pub mod download;
 pub mod local;
 pub mod online_wallhaven;
+pub mod request_context;
 
 use std::sync::Arc;
 use tokio::sync::Semaphore;

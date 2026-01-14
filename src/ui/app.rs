@@ -37,7 +37,7 @@ impl App {
             proxy_protocol,
             proxy_address,
             proxy_port,
-            wallhaven_api_key: config.api.wallhaven_api_key.clone(), // 初始化API KEY状态
+            wallhaven_api_key: config.wallhaven.api_key.clone(), // 初始化API KEY状态
             show_close_confirmation: false,
             remember_close_setting: false,
             show_path_clear_confirmation: false,

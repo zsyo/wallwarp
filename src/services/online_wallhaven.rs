@@ -1,7 +1,6 @@
+use crate::services::request_context::RequestContext;
 use crate::ui::online::{OnlineWallpaper, Sorting};
 use serde::Deserialize;
-
-use crate::ui::online::SortDirection;
 
 const BASE_URL: &str = "https://wallhaven.cc/api/v1";
 
@@ -154,12 +153,22 @@ impl WallhavenService {
         page: usize,
         categories: u32,  // 位掩码
         sorting: Sorting,
-        sort_direction: SortDirection,
         purities: u32,    // 位掩码
         query: &str,
-    ) -> Result<(Vec<OnlineWallpaper>, bool, usize), String> {
+        context: &RequestContext,
+    ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), String> {
+        // 检查是否已取消
+        if let Some(()) = context.check_cancelled() {
+            return Err("请求已取消".to_string());
+        }
+
         // 获取并发控制许可
         let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER.acquire().await;
+
+        // 再次检查是否已取消
+        if let Some(()) = context.check_cancelled() {
+            return Err("请求已取消".to_string());
+        }
 
         let mut url = format!("{}/search?page={}", BASE_URL, page);
 
@@ -174,8 +183,8 @@ impl WallhavenService {
         // 添加排序参数
         url.push_str(&format!("&sorting={}", sorting.value()));
 
-        // 添加排序方向参数
-        url.push_str(&format!("&order={}", sort_direction.value()));
+        // 默认使用倒序
+        url.push_str("&order=desc");
 
         // 添加搜索查询
         if !query.is_empty() {
@@ -201,7 +210,13 @@ impl WallhavenService {
                 let client = self.client.clone();
                 let url = url.clone();
                 let search_tag = search_tag.clone();
+                let context = context.clone();
                 async move {
+                    // 每次重试前检查取消状态
+                    if let Some(()) = context.check_cancelled() {
+                        return Err("请求已取消".to_string());
+                    }
+
                     let response = client.get(&url).send().await
                         .map_err(|e| {
                             println!("[Wallhaven API] [{}] 请求失败: {}", search_tag, e);
@@ -222,6 +237,11 @@ impl WallhavenService {
                 }
             },
         ).await?;
+
+        // 解析前检查取消状态
+        if let Some(()) = context.check_cancelled() {
+            return Err("请求已取消".to_string());
+        }
 
         let wallhaven_response: WallhavenResponse<Vec<WallhavenWallpaperData>> =
             serde_json::from_str(&text).map_err(|e| {
@@ -250,12 +270,28 @@ impl WallhavenService {
             .map(|m| m.last_page as usize)
             .unwrap_or(0);
 
-        Ok((wallpapers, last_page, total_pages))
+        let current_page = wallhaven_response
+            .meta
+            .as_ref()
+            .map(|m| m.current_page as usize)
+            .unwrap_or(page);
+
+        Ok((wallpapers, last_page, total_pages, current_page))
     }
 
-    pub async fn get_wallpaper(&self, id: &str) -> Result<OnlineWallpaper, String> {
+    pub async fn get_wallpaper(&self, id: &str, context: &RequestContext) -> Result<OnlineWallpaper, String> {
+        // 检查是否已取消
+        if let Some(()) = context.check_cancelled() {
+            return Err("请求已取消".to_string());
+        }
+
         // 获取并发控制许可
         let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER.acquire().await;
+
+        // 再次检查是否已取消
+        if let Some(()) = context.check_cancelled() {
+            return Err("请求已取消".to_string());
+        }
 
         let url = format!("{}/w/{}", BASE_URL, id);
 
@@ -270,7 +306,13 @@ impl WallhavenService {
                 let client = self.client.clone();
                 let url = url.clone();
                 let id = id.to_string();
+                let context = context.clone();
                 async move {
+                    // 每次重试前检查取消状态
+                    if let Some(()) = context.check_cancelled() {
+                        return Err("请求已取消".to_string());
+                    }
+
                     let response = client.get(&url).send().await
                         .map_err(|e| {
                             println!("[Wallhaven API] [ID:{}] 请求失败: {}", id, e);
@@ -291,6 +333,11 @@ impl WallhavenService {
                 }
             },
         ).await?;
+
+        // 解析前检查取消状态
+        if let Some(()) = context.check_cancelled() {
+            return Err("请求已取消".to_string());
+        }
 
         let wallhaven_response: WallhavenResponse<WallhavenWallpaperData> =
             serde_json::from_str(&text).map_err(|e| {

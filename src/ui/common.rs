@@ -1,9 +1,8 @@
 use crate::ui::style::{
-    BORDER_COLOR_GRAY, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED,
-    BUTTON_TEXT_SIZE, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING,
-    DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING,
-    DIALOG_TITLE_SIZE, ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE, INPUT_HEIGHT, MASK_ALPHA,
-    ROW_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
+    BORDER_COLOR_GRAY, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, BUTTON_TEXT_SIZE,
+    DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH,
+    DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE,
+    INPUT_HEIGHT, MASK_ALPHA, ROW_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
     TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
 };
 use iced::widget::{button, column, container, row, text, tooltip};
@@ -226,6 +225,42 @@ where
             .color(icon_color)
             .font(Font::with_name("bootstrap-icons"))
             .size(ICON_BUTTON_TEXT_SIZE),
+    )
+    .padding(ICON_BUTTON_PADDING)
+    .style(|_theme: &iced::Theme, _status| button::Style {
+        text_color: iced::Color::WHITE,
+        background: None,
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(0.0),
+        },
+        ..Default::default()
+    })
+    .on_press(message)
+}
+
+/// 创建带图标的操作按钮
+///
+/// # 参数
+/// - `icon_char`: 图标字符（如 "\u{F341}"）
+/// - `icon_color`: 图标颜色
+/// - `size`: 按钮大小
+/// - `message`: 按钮点击消息
+pub fn create_icon_button_with_size<'a, Message>(
+    icon_char: &'static str,
+    icon_color: Color,
+    size: impl Into<iced::Pixels>,
+    message: Message,
+) -> button::Button<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    button(
+        text(icon_char)
+            .color(icon_color)
+            .font(Font::with_name("bootstrap-icons"))
+            .size(size),
     )
     .padding(ICON_BUTTON_PADDING)
     .style(|_theme: &iced::Theme, _status| button::Style {

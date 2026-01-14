@@ -12,43 +12,54 @@ const DEFAULT_CACHE_PATH: &str = "cache";
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Config {
+    #[serde(default)]
     pub global: GlobalConfig,
+    #[serde(default)]
     pub data: DataConfig,
-    pub api: ApiConfig,
+    #[serde(default)]
     pub display: DisplayConfig,
+    #[serde(default)]
     pub wallhaven: WallhavenConfig,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct GlobalConfig {
+    #[serde(default)]
     pub language: String,
+    #[serde(default)]
     pub auto_startup: bool,
+    #[serde(default)]
     pub close_action: CloseAction,
+    #[serde(default)]
     pub proxy: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct DataConfig {
+    #[serde(default)]
     pub data_path: String,
+    #[serde(default)]
     pub cache_path: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ApiConfig {
-    pub wallhaven_api_key: String,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct DisplayConfig {
+    #[serde(default)]
     pub width: u32,
+    #[serde(default)]
     pub height: u32,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WallhavenConfig {
+    #[serde(default)]
     pub category: String,
+    #[serde(default)]
     pub sorting: String,
+    #[serde(default)]
     pub purity: String,
+    #[serde(default)]
+    pub api_key: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
@@ -59,24 +70,56 @@ pub enum CloseAction {
     CloseApp,
 }
 
+impl Default for CloseAction {
+    fn default() -> Self {
+        CloseAction::Ask
+    }
+}
+
 impl Config {
     pub fn new(lang: &str) -> Self {
         let config_path = Path::new(CONFIG_FILE);
+        let default_config = Self::default_with_lang(lang);
 
         if let Ok(content) = fs::read_to_string(config_path) {
-            if let Ok(mut config) = toml::from_str::<Config>(&content) {
-                config.fix_config();
-                return config;
+            if let Ok(mut local_config) = toml::from_str::<Config>(&content) {
+                local_config.fix_config();
+                // 合并缺失的配置项
+                if local_config.global.language.is_empty() {
+                    local_config.global.language = default_config.global.language;
+                }
+                if local_config.global.proxy.is_empty() {
+                    local_config.global.proxy = default_config.global.proxy;
+                }
+                if local_config.data.data_path.is_empty() {
+                    local_config.data.data_path = default_config.data.data_path;
+                }
+                if local_config.data.cache_path.is_empty() {
+                    local_config.data.cache_path = default_config.data.cache_path;
+                }
+                if local_config.wallhaven.category.is_empty() {
+                    local_config.wallhaven.category = default_config.wallhaven.category;
+                }
+                if local_config.wallhaven.sorting.is_empty() {
+                    local_config.wallhaven.sorting = default_config.wallhaven.sorting;
+                }
+                if local_config.wallhaven.purity.is_empty() {
+                    local_config.wallhaven.purity = default_config.wallhaven.purity;
+                }
+                if local_config.wallhaven.api_key.is_empty() {
+                    local_config.wallhaven.api_key = default_config.wallhaven.api_key;
+                }
+                local_config.save_to_file();
+                return local_config;
             }
         }
 
-        let default_config = Self::default_with_lang(lang);
         default_config.save_to_file();
         default_config
     }
 
     fn default_with_lang(lang: &str) -> Self {
-        let default_config = Config {
+        Config {
             global: GlobalConfig {
                 language: lang.to_string(),
                 auto_startup: false,
@@ -87,9 +130,6 @@ impl Config {
                 data_path: DEFAULT_DATA_PATH.to_string(),
                 cache_path: DEFAULT_CACHE_PATH.to_string(),
             },
-            api: ApiConfig {
-                wallhaven_api_key: String::new(),
-            },
             display: DisplayConfig {
                 width: DEFAULT_WINDOW_WIDTH,
                 height: DEFAULT_WINDOW_HEIGHT,
@@ -98,12 +138,9 @@ impl Config {
                 category: "general".to_string(),
                 sorting: "date_added".to_string(),
                 purity: "sfw".to_string(),
+                api_key: String::new(),
             },
-        };
-
-        Self::create_default_directories(&default_config);
-
-        default_config
+        }
     }
 
     fn fix_config(&mut self) {
@@ -155,26 +192,12 @@ impl Config {
     }
 
     pub fn set_wallhaven_api_key(&mut self, key: String) {
-        self.api.wallhaven_api_key = key;
+        self.wallhaven.api_key = key;
         self.save_to_file();
     }
 
     pub fn set_proxy(&mut self, proxy: String) {
         self.global.proxy = proxy;
         self.save_to_file();
-    }
-
-    fn create_default_directories(config: &Config) {
-        let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-
-        let data_path = current_dir.join(&config.data.data_path);
-        if let Err(e) = std::fs::create_dir_all(&data_path) {
-            eprintln!("Failed to create data directory {:?}: {}", data_path, e);
-        }
-
-        let cache_path = current_dir.join(&config.data.cache_path);
-        if let Err(e) = std::fs::create_dir_all(&cache_path) {
-            eprintln!("Failed to create cache directory {:?}: {}", cache_path, e);
-        }
     }
 }

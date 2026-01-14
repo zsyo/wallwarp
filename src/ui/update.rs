@@ -153,6 +153,12 @@ impl App {
                 return iced::Task::none();
             }
             AppMessage::PageSelected(page) => {
+                // 当切换离开在线壁纸页面时，取消正在进行的请求
+                if self.active_page == super::ActivePage::OnlineWallpapers && page != super::ActivePage::OnlineWallpapers {
+                    self.online_state.cancel_and_new_context();
+                    println!("[页面切换] 已取消在线壁纸页面的网络请求");
+                }
+
                 self.active_page = page;
 
                 // 当切换到设置页面时，重置设置相关的临时状态
@@ -165,7 +171,7 @@ impl App {
                     self.proxy_port = proxy_port;
 
                     // 重置API KEY设置状态
-                    self.wallhaven_api_key = self.config.api.wallhaven_api_key.clone();
+                    self.wallhaven_api_key = self.config.wallhaven.api_key.clone();
 
                     // 滚动到顶部
                     return iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("settings_scroll".to_string()));
@@ -884,17 +890,28 @@ impl App {
             AppMessage::Online(online_message) => {
                 match online_message {
                     super::online::OnlineMessage::LoadWallpapers => {
+                        // 设置加载状态
+                        self.online_state.loading_page = true;
+                        // 清空当前数据，准备加载新数据
+                        self.online_state.wallpapers.clear();
+                        self.online_state.wallpapers_data.clear();
+                        self.online_state.page_boundaries.clear();
+                        self.online_state.has_loaded = false;
+
+                        // 创建新的请求上下文并取消之前的请求
+                        self.online_state.cancel_and_new_context();
+                        let context = self.online_state.request_context.clone();
+
                         // 异步加载在线壁纸
                         let categories = self.online_state.categories;
                         let sorting = self.online_state.sorting;
-                        let sort_direction = self.online_state.sort_direction;
                         let purities = self.online_state.purities;
                         let query = self.online_state.search_text.clone();
                         let page = self.online_state.current_page;
-                        let api_key = if self.config.api.wallhaven_api_key.is_empty() {
+                        let api_key = if self.config.wallhaven.api_key.is_empty() {
                             None
                         } else {
-                            Some(self.config.api.wallhaven_api_key.clone())
+                            Some(self.config.wallhaven.api_key.clone())
                         };
 
                         let proxy = if self.config.global.proxy.is_empty() {
@@ -904,10 +921,10 @@ impl App {
                         };
 
                         return iced::Task::perform(
-                            async_load_online_wallpapers(categories, sorting, sort_direction, purities, query, page, api_key, proxy),
+                            async_load_online_wallpapers(categories, sorting, purities, query, page, api_key, proxy, context),
                             |result| match result {
-                                Ok((wallpapers, last_page, total_pages)) => {
-                                    AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages))
+                                Ok((wallpapers, last_page, total_pages, current_page)) => {
+                                    AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages, current_page))
                                 }
                                 Err(e) => {
                                     AppMessage::Online(super::online::OnlineMessage::LoadWallpapersFailed(e.to_string()))
@@ -915,10 +932,22 @@ impl App {
                             },
                         );
                     }
-                    super::online::OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages) => {
+                    super::online::OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages, current_page) => {
                         // 更新在线壁纸状态，并开始加载缩略图
+                        self.online_state.current_page = current_page;
                         self.online_state.total_pages = total_pages;
-                        self.online_state.last_page = last_page;
+
+                        // 判断是否是最后一页：
+                        // 如果 current_page == total_pages && current_page == 1 && data 为空，说明无数据
+                        // 否则 last_page（布尔值）表示已加载到最后一页
+                        let is_empty_data = wallpapers.is_empty();
+                        let is_first_and_last_page = current_page == 1 && total_pages == 1;
+                        self.online_state.last_page = if is_empty_data && is_first_and_last_page {
+                            // 无数据情况：last_page 为 false（允许后续尝试不同筛选条件时重新加载）
+                            false
+                        } else {
+                            last_page
+                        };
                         self.online_state.has_loaded = true; // 标记已加载过数据
 
                         let proxy = if self.config.global.proxy.is_empty() {
@@ -950,6 +979,15 @@ impl App {
                             .map(|_w| super::online::WallpaperLoadStatus::Loading)
                             .collect();
                         self.online_state.total_count = self.online_state.wallpapers.len();
+
+                        // 初始化 page_boundaries，记录第一页的起始索引和结束后的边界
+                        self.online_state.page_boundaries.clear();
+                        self.online_state.page_boundaries.push(0);
+                        // 如果有数据，添加第一页结束后的边界（用于在第一页数据后显示分页标识）
+                        if !self.online_state.wallpapers.is_empty() {
+                            self.online_state.page_boundaries.push(self.online_state.wallpapers.len());
+                        }
+
                         self.online_state.loading_page = false;
 
                         return iced::Task::batch(tasks);
@@ -968,16 +1006,19 @@ impl App {
                         // 加载下一页
                         self.online_state.loading_page = true;
 
+                        // 创建新的请求上下文并取消之前的请求
+                        self.online_state.cancel_and_new_context();
+                        let context = self.online_state.request_context.clone();
+
                         let categories = self.online_state.categories;
                         let sorting = self.online_state.sorting;
-                        let sort_direction = self.online_state.sort_direction;
                         let purities = self.online_state.purities;
                         let query = self.online_state.search_text.clone();
                         let page = self.online_state.current_page;
-                        let api_key = if self.config.api.wallhaven_api_key.is_empty() {
+                        let api_key = if self.config.wallhaven.api_key.is_empty() {
                             None
                         } else {
-                            Some(self.config.api.wallhaven_api_key.clone())
+                            Some(self.config.wallhaven.api_key.clone())
                         };
 
                         let proxy = if self.config.global.proxy.is_empty() {
@@ -987,10 +1028,10 @@ impl App {
                         };
 
                         return iced::Task::perform(
-                            async_load_online_wallpapers(categories, sorting, sort_direction, purities, query, page, api_key, proxy),
+                            async_load_online_wallpapers(categories, sorting, purities, query, page, api_key, proxy, context),
                             |result| match result {
-                                Ok((wallpapers, last_page, total_pages)) => {
-                                    AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages))
+                                Ok((wallpapers, last_page, total_pages, current_page)) => {
+                                    AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page))
                                 }
                                 Err(e) => {
                                     AppMessage::Online(super::online::OnlineMessage::LoadPageFailed(e.to_string()))
@@ -998,10 +1039,22 @@ impl App {
                             },
                         );
                     }
-                    super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages) => {
+                    super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page) => {
                         // 添加新壁纸到列表，并开始加载缩略图
+                        self.online_state.current_page = current_page;
                         self.online_state.total_pages = total_pages;
-                        self.online_state.last_page = last_page;
+
+                        // 判断是否是最后一页：
+                        // 如果 current_page == total_pages && current_page == 1 && data 为空，说明无数据
+                        // 否则 last_page（布尔值）表示已加载到最后一页
+                        let is_empty_data = wallpapers.is_empty();
+                        let is_first_and_last_page = current_page == 1 && total_pages == 1;
+                        self.online_state.last_page = if is_empty_data && is_first_and_last_page {
+                            // 无数据情况：last_page 为 false
+                            false
+                        } else {
+                            last_page
+                        };
                         self.online_state.has_loaded = true; // 标记已加载过数据
 
                         let proxy = if self.config.global.proxy.is_empty() {
@@ -1179,6 +1232,10 @@ impl App {
                             }
                         }
                     }
+                    super::online::OnlineMessage::SetAsWallpaper(index) => {
+                        // 设为壁纸（待实现）
+                        println!("设为壁纸: index={}", index);
+                    }
                     super::online::OnlineMessage::CategoryToggled(category) => {
                         // 切换分类选择状态
                         self.online_state.categories ^= category.bit_value();
@@ -1188,12 +1245,6 @@ impl App {
                     super::online::OnlineMessage::SortingChanged(sorting) => {
                         // 排序改变
                         self.online_state.sorting = sorting;
-                        // 保存筛选配置
-                        self.online_state.save_to_config(&mut self.config);
-                    }
-                    super::online::OnlineMessage::ToggleSortDirection => {
-                        // 切换排序方向
-                        self.online_state.sort_direction = self.online_state.sort_direction.toggle();
                         // 保存筛选配置
                         self.online_state.save_to_config(&mut self.config);
                     }
@@ -1341,15 +1392,15 @@ async fn select_folder_async() -> String {
 async fn async_load_online_wallpapers(
     categories: u32,
     sorting: super::online::Sorting,
-    sort_direction: super::online::SortDirection,
     purities: u32,
     query: String,
     page: usize,
     api_key: Option<String>,
     proxy: Option<String>,
-) -> Result<(Vec<super::online::OnlineWallpaper>, bool, usize), Box<dyn std::error::Error + Send + Sync>> {
+    context: crate::services::request_context::RequestContext,
+) -> Result<(Vec<super::online::OnlineWallpaper>, bool, usize, usize), Box<dyn std::error::Error + Send + Sync>> {
     let service = crate::services::online_wallhaven::WallhavenService::new(api_key, proxy);
-    match service.search_wallpapers(page, categories, sorting, sort_direction, purities, &query).await {
+    match service.search_wallpapers(page, categories, sorting, purities, &query, &context).await {
         Ok(result) => Ok(result),
         Err(e) => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>),
     }

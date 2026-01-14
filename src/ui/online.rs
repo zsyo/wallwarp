@@ -1,13 +1,12 @@
 use super::AppMessage;
 use super::common;
 use crate::ui::style::{
-    ALL_LOADED_TEXT_SIZE, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN,
-    BUTTON_COLOR_RED, COLOR_BG_LIGHT, COLOR_LIGHT_BG, COLOR_LIGHT_BUTTON,
-    COLOR_LIGHT_TEXT, COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG, COLOR_NSFW, COLOR_OVERLAY_BG,
-    COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK,
-    EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH,
-    LOADING_TEXT_SIZE, MODAL_LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT,
-    PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE,
+    ALL_LOADED_TEXT_SIZE, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED,
+    COLOR_BG_LIGHT, COLOR_LIGHT_BG, COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT, COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG,
+    COLOR_NSFW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK,
+    EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE,
+    MODAL_LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR,
+    PAGE_SEPARATOR_TEXT_SIZE,
 };
 use iced::widget::{button, column, container, pick_list, row, scrollable, text};
 use iced::{Alignment, Color, Element, Length};
@@ -119,39 +118,6 @@ impl Sorting {
 }
 
 impl std::fmt::Display for Sorting {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value())
-    }
-}
-
-// 排序方向
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SortDirection {
-    Ascending,  // 正序
-    Descending, // 倒序
-}
-
-impl SortDirection {
-    pub fn all() -> [SortDirection; 2] {
-        [SortDirection::Ascending, SortDirection::Descending]
-    }
-
-    pub fn value(&self) -> &str {
-        match self {
-            SortDirection::Ascending => "asc",
-            SortDirection::Descending => "desc",
-        }
-    }
-
-    pub fn toggle(&self) -> SortDirection {
-        match self {
-            SortDirection::Ascending => SortDirection::Descending,
-            SortDirection::Descending => SortDirection::Ascending,
-        }
-    }
-}
-
-impl std::fmt::Display for SortDirection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value())
     }
@@ -502,10 +468,10 @@ impl std::fmt::Display for DisplayableSorting {
 #[derive(Debug, Clone)]
 pub enum OnlineMessage {
     LoadWallpapers,
-    LoadWallpapersSuccess(Vec<OnlineWallpaper>, bool, usize),
+    LoadWallpapersSuccess(Vec<OnlineWallpaper>, bool, usize, usize), // wallpapers, last_page, total_pages, current_page
     LoadWallpapersFailed(String),
     LoadPage,
-    LoadPageSuccess(Vec<OnlineWallpaper>, bool, usize),
+    LoadPageSuccess(Vec<OnlineWallpaper>, bool, usize, usize), // wallpapers, last_page, total_pages, current_page
     LoadPageFailed(String),
     WallpaperSelected(OnlineWallpaper),
     ScrollToBottom,
@@ -514,12 +480,12 @@ pub enum OnlineMessage {
     NextImage,
     PreviousImage,
     DownloadWallpaper(usize),
+    SetAsWallpaper(usize),
     ModalImageLoaded(iced::widget::image::Handle),
     ThumbLoaded(usize, iced::widget::image::Handle),
     // 筛选条件
     CategoryToggled(Category), // 切换分类选择状态
     SortingChanged(Sorting),
-    ToggleSortDirection,   // 切换排序方向
     PurityToggled(Purity), // 切换纯净度选择状态
     ResolutionChanged(Resolution),
     RatioChanged(Ratio),
@@ -574,8 +540,7 @@ pub struct OnlineState {
     // 筛选条件
     pub categories: u32, // 位掩码：100(4)表示通用，010(2)表示动漫，001(1)表示人物
     pub sorting: Sorting,
-    pub sort_direction: SortDirection, // 排序方向
-    pub purities: u32,                 // 位掩码：100(4)表示安全，010(2)表示轻微，001(1)表示成人
+    pub purities: u32, // 位掩码：100(4)表示安全，010(2)表示轻微，001(1)表示成人
     pub resolution: Resolution,
     pub ratio: Ratio,
     pub color: ColorOption,
@@ -584,6 +549,8 @@ pub struct OnlineState {
     pub last_page: bool,
     pub has_loaded: bool,            // 标记是否已加载过数据
     pub page_boundaries: Vec<usize>, // 记录每页的起始索引，用于显示分页分隔线
+    // 请求上下文，用于取消正在进行的请求
+    pub request_context: crate::services::request_context::RequestContext,
 }
 
 impl Default for OnlineState {
@@ -601,8 +568,7 @@ impl Default for OnlineState {
             modal_image_handle: None,
             categories: 0b100, // 默认只选择通用
             sorting: Sorting::DateAdded,
-            sort_direction: SortDirection::Descending, // 默认倒序
-            purities: 0b100,                           // 默认只选择安全
+            purities: 0b100, // 默认只选择安全
             resolution: Resolution::Any,
             ratio: Ratio::Any,
             color: ColorOption::Any,
@@ -611,6 +577,7 @@ impl Default for OnlineState {
             last_page: false,
             has_loaded: false,           // 初始状态为未加载
             page_boundaries: Vec::new(), // 初始化为空
+            request_context: crate::services::request_context::RequestContext::new(),
         }
     }
 }
@@ -684,6 +651,15 @@ impl OnlineState {
     pub fn should_load_next_page(&self) -> bool {
         !self.last_page && !self.loading_page && self.has_loaded
     }
+
+    /// 取消当前正在进行的请求，并创建一个新的请求上下文
+    /// 当切换页面时调用此方法可以取消正在进行的网络请求
+    pub fn cancel_and_new_context(&mut self) {
+        // 取消当前请求
+        self.request_context.cancel();
+        // 创建新的请求上下文
+        self.request_context = crate::services::request_context::RequestContext::new();
+    }
 }
 
 pub fn online_view<'a>(
@@ -732,9 +708,7 @@ pub fn online_view<'a>(
             .align_x(Alignment::Center);
 
         // 遍历所有壁纸，按行渲染，在每页数据的下面添加分页分隔线
-        let mut current_page_num = 1;
-        let mut boundary_iter = online_state.page_boundaries.iter().peekable();
-
+        // 直接使用 page_boundaries 中的起始索引和 API 返回的 current_page
         for (row_index, chunk) in online_state.wallpapers.chunks(items_per_row).enumerate() {
             // 创建当前行的壁纸
             let mut row_container = row![].spacing(IMAGE_SPACING).align_y(Alignment::Center);
@@ -766,19 +740,19 @@ pub fn online_view<'a>(
             let centered_row = container(row_container).width(Length::Fill).center_x(Length::Fill);
             content = content.push(centered_row);
 
-            // 检查是否需要添加分页分隔线（在当前行之后）
             // 计算当前行最后一个壁纸的索引
             let current_end_index = (row_index + 1) * items_per_row.min(chunk.len());
 
-            // 如果当前行的结束索引等于某个分页边界，则添加分页标识
-            if boundary_iter
-                .peek()
-                .map_or(false, |&boundary| current_end_index == *boundary)
-            {
-                // 添加分页分隔线
-                content = content.push(create_page_separator(i18n, current_page_num, online_state.total_pages));
-                boundary_iter.next();
-                current_page_num += 1;
+            // 检查是否需要添加分页分隔线（在当前行之后）
+            // page_boundaries 存储的是每一页的起始索引，第一个值是 0（第一页起始）
+            // 如果当前行的结束索引等于某个边界，说明这一页的内容已经渲染完成
+            for (page_idx, &boundary) in online_state.page_boundaries.iter().enumerate() {
+                if current_end_index == boundary {
+                    // page_idx 就是当前页的页码（page_boundaries[0] = 0 是第一页）
+                    let page_num = page_idx;
+                    content = content.push(create_page_separator(i18n, page_num, online_state.total_pages));
+                    break;
+                }
             }
         }
 
@@ -877,7 +851,7 @@ pub fn online_view<'a>(
 
         let download_button = common::create_button_with_tooltip(
             common::create_icon_button(
-                "\u{F1E5}",
+                "\u{F30A}",
                 BUTTON_COLOR_GREEN,
                 AppMessage::Online(OnlineMessage::DownloadWallpaper(wallpaper_index)),
             ),
@@ -952,7 +926,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
         .on_submit(AppMessage::Online(OnlineMessage::Search))
         .padding(6)
         .size(14)
-        .width(Length::Fixed(200.0))
+        .width(Length::Fixed(120.0))
         .style(|_theme: &iced::Theme, _status| iced::widget::text_input::Style {
             background: iced::Background::Color(COLOR_LIGHT_BUTTON),
             border: iced::border::Border {
@@ -966,21 +940,24 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
             selection: Color::from_rgba(0.098, 0.463, 0.824, 0.3),
         });
 
-    let search_button = button(text("🔍").size(16))
-        .on_press(AppMessage::Online(OnlineMessage::Search))
-        .padding(6)
-        .style(|_theme: &iced::Theme, _status| iced::widget::button::Style {
-            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-            text_color: COLOR_LIGHT_TEXT,
-            border: iced::border::Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: iced::border::Radius::from(4.0),
-            },
-            ..iced::widget::button::text(_theme, _status)
-        });
+    let search_button = common::create_icon_button_with_size(
+        "\u{F52A}",
+        BUTTON_COLOR_BLUE,
+        16,
+        AppMessage::Online(OnlineMessage::Search),
+    )
+    .style(|_theme: &iced::Theme, _status| iced::widget::button::Style {
+        background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+        // text_color: COLOR_LIGHT_TEXT,
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(4.0),
+        },
+        ..iced::widget::button::text(_theme, _status)
+    });
 
-    let search_container = row![search_input, search_button].spacing(4).align_y(Alignment::Center);
+    let search_container = row![search_input, search_button].spacing(2).align_y(Alignment::Center);
 
     // 下拉筛选器 - 使用包装类型以支持 i18n
     let resolution_options: Vec<DisplayableResolution> = Resolution::all()
@@ -1129,42 +1106,27 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
     });
 
     // 功能按钮
-    let sort_direction_icon = match state.sort_direction {
-        SortDirection::Ascending => "▲",
-        SortDirection::Descending => "▼",
-    };
-    let sort_direction_button = button(text(sort_direction_icon).size(12))
-        .on_press(AppMessage::Online(OnlineMessage::ToggleSortDirection))
-        .padding(6)
-        .style(|_theme, _status| iced::widget::button::Style {
-            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-            text_color: COLOR_LIGHT_TEXT,
-            border: iced::border::Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: iced::border::Radius::from(4.0),
-            },
-            ..iced::widget::button::text(_theme, _status)
-        });
-
-    let refresh_button = button(text("🔄").size(14))
-        .on_press(AppMessage::Online(OnlineMessage::Refresh))
-        .padding(6)
-        .style(|_theme, _status| iced::widget::button::Style {
-            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-            text_color: COLOR_LIGHT_TEXT,
-            border: iced::border::Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: iced::border::Radius::from(4.0),
-            },
-            ..iced::widget::button::text(_theme, _status)
-        });
+    let refresh_button = common::create_icon_button_with_size(
+        "\u{F130}",
+        BUTTON_COLOR_GREEN,
+        16,
+        AppMessage::Online(OnlineMessage::Refresh),
+    )
+    .style(|_theme, _status| iced::widget::button::Style {
+        background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+        // text_color: COLOR_LIGHT_TEXT,
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(4.0),
+        },
+        ..iced::widget::button::text(_theme, _status)
+    });
 
     // 组合所有元素
     let filter_row = row![
         search_container,
-        iced::widget::Space::new().width(8),
+        iced::widget::Space::new().width(2),
         // 分类按钮（选中状态为蓝色）
         button(text(i18n.t("online-wallpapers.category-general")).size(14))
             .on_press(AppMessage::Online(OnlineMessage::CategoryToggled(Category::General)))
@@ -1232,7 +1194,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
                     ..iced::widget::button::text(_theme, _status)
                 }
             }),
-        iced::widget::Space::new().width(8),
+        iced::widget::Space::new().width(2),
         // 纯净度按钮（带颜色）
         button(text(i18n.t("online-wallpapers.purity-sfw")).size(14))
             .on_press(AppMessage::Online(OnlineMessage::PurityToggled(Purity::SFW)))
@@ -1297,19 +1259,12 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
                     ..iced::widget::button::text(_theme, _status)
                 }
             }),
-        iced::widget::Space::new().width(8),
+        iced::widget::Space::new().width(2),
         resolution_picker,
-        iced::widget::Space::new().width(4),
         ratio_picker,
-        iced::widget::Space::new().width(4),
         color_picker,
-        iced::widget::Space::new().width(4),
         time_range_picker,
-        iced::widget::Space::new().width(8),
         sorting_picker,
-        iced::widget::Space::new().width(4),
-        sort_direction_button,
-        iced::widget::Space::new().width(4),
         refresh_button,
     ]
     .spacing(4)
@@ -1399,9 +1354,18 @@ fn create_loaded_wallpaper_with_thumb<'a>(
             color: Some(COLOR_OVERLAY_TEXT),
         });
 
+    let set_wallpaper_button = common::create_button_with_tooltip(
+        common::create_icon_button(
+            "\u{F196}",
+            BUTTON_COLOR_BLUE,
+            super::AppMessage::Online(OnlineMessage::SetAsWallpaper(index)),
+        ),
+        i18n.t("online-wallpapers.tooltip-set-wallpaper"),
+    );
+
     let download_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F1E5}",
+            "\u{F30A}",
             BUTTON_COLOR_GREEN,
             super::AppMessage::Online(OnlineMessage::DownloadWallpaper(index)),
         ),
@@ -1411,8 +1375,10 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     // 左侧区域：文件大小
     let left_area = container(file_size_text).align_y(Alignment::Center);
 
-    // 右侧区域：下载按钮
-    let right_area = download_button;
+    // 右侧区域：设为壁纸按钮 + 下载按钮
+    let right_area = row![set_wallpaper_button, download_button]
+        .spacing(4)
+        .align_y(Alignment::Center);
 
     // 使用 stack 确保分辨率永远居中，不受两侧内容影响
     let overlay_content = iced::widget::stack(vec![
