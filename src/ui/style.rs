@@ -345,3 +345,9 @@ pub const DOWNLOAD_SIZE_INFO_WIDTH: f32 = 120.0;
 
 /// 下载操作按钮间距
 pub const DOWNLOAD_BUTTON_SPACING: f32 = 4.0;
+
+/// 表格分隔线颜色
+pub const TABLE_SEPARATOR_COLOR: Color = Color::from_rgb(0.9, 0.9, 0.9);
+
+/// 表格分隔线宽度
+pub const TABLE_SEPARATOR_WIDTH: f32 = 1.0;

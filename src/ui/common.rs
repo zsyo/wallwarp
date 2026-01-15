@@ -276,6 +276,54 @@ where
     .on_press(message)
 }
 
+/// 创建带 tooltip 的图标按钮
+///
+/// # 参数
+/// - `icon_char`: 图标字符（如 "\u{F341}"）
+/// - `icon_color`: 图标颜色
+/// - `message`: 按钮点击消息
+/// - `tooltip_text`: tooltip 文本
+pub fn create_icon_button_with_tooltip<'a, Message>(
+    icon_char: &'static str,
+    icon_color: Color,
+    message: Message,
+    tooltip_text: String,
+) -> Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    let btn = button(
+        text(icon_char)
+            .color(icon_color)
+            .font(Font::with_name("bootstrap-icons"))
+            .size(ICON_BUTTON_TEXT_SIZE),
+    )
+    .padding(ICON_BUTTON_PADDING)
+    .style(|_theme: &iced::Theme, _status| button::Style {
+        text_color: iced::Color::WHITE,
+        background: None,
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(0.0),
+        },
+        ..Default::default()
+    })
+    .on_press(message);
+
+    tooltip(btn, text(tooltip_text), tooltip::Position::Top)
+        .style(|_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(TOOLTIP_BG_COLOR)),
+            border: iced::border::Border {
+                color: TOOLTIP_BORDER_COLOR,
+                width: TOOLTIP_BORDER_WIDTH,
+                radius: iced::border::Radius::from(TOOLTIP_BORDER_RADIUS),
+            },
+            ..Default::default()
+        })
+        .into()
+}
+
 /// 创建带 tooltip 的按钮
 ///
 /// # 参数

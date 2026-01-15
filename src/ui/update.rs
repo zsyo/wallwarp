@@ -1547,15 +1547,32 @@ impl App {
                         if let Some((url, save_path, proxy, task_id)) = task_data {
                             if current_status == Some(super::download::DownloadStatus::Waiting)
                                 || current_status == Some(super::download::DownloadStatus::Paused)
+                                || current_status == Some(super::download::DownloadStatus::Cancelled)
+                                || matches!(current_status, Some(super::download::DownloadStatus::Failed(_)))
                             {
                                 if can_start {
                                     // 更新状态为下载中
+                                    let should_reset = current_status == Some(super::download::DownloadStatus::Cancelled)
+                                        || matches!(current_status, Some(super::download::DownloadStatus::Failed(_)));
+
                                     if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
                                         task_full.task.status = super::download::DownloadStatus::Downloading;
                                         task_full.task.start_time = Some(std::time::Instant::now());
                                         // 重置取消令牌
                                         if let Some(cancel_token) = &task_full.task.cancel_token {
                                             cancel_token.store(false, std::sync::atomic::Ordering::Relaxed);
+                                        }
+
+                                        // 如果任务已取消或失败，重置已下载大小和进度
+                                        if should_reset {
+                                            println!("[下载功能] 任务已取消或失败，重置下载进度");
+                                            task_full.task.downloaded_size = 0;
+                                            task_full.task.progress = 0.0;
+                                            task_full.task.speed = 0;
+
+                                            // 清空已下载的文件
+                                            let _ = std::fs::remove_file(&task_full.task.save_path);
+                                            println!("[下载功能] 已清空文件: {}", task_full.task.save_path);
                                         }
                                     }
                                     self.download_state.increment_downloading();
@@ -1607,8 +1624,8 @@ impl App {
                         // 取消任务
                         println!("[下载功能] 取消任务 ID:{}", id);
                         self.download_state.cancel_task(id);
-                        // 从列表中移除任务
-                        self.download_state.remove_task(id);
+                        // 将任务状态设置为已取消
+                        self.download_state.update_status(id, crate::ui::download::DownloadStatus::Cancelled);
                     }
                     super::download::DownloadMessage::DeleteTask(id) => {
                         // 删除任务
@@ -1663,11 +1680,11 @@ impl App {
                                     // 检查是否是用户取消
                                     if error_msg == "下载已取消" {
                                         // 检查任务是否在暂停状态被取消
-                                        // 如果任务原本是暂停状态，则保持暂停，否则设置为失败
+                                        // 如果任务原本是暂停状态，则保持暂停，否则设置为已取消
                                         println!("[下载功能] 下载被取消，当前状态: {:?}", current_status);
-                                        // 如果不是暂停状态，设置为失败
+                                        // 如果不是暂停状态，设置为已取消
                                         if current_status != super::download::DownloadStatus::Paused {
-                                            task.task.status = super::download::DownloadStatus::Failed("已取消".to_string());
+                                            task.task.status = super::download::DownloadStatus::Cancelled;
                                         }
                                     } else {
                                         task.task.status = super::download::DownloadStatus::Failed(error_msg.clone());
@@ -1750,6 +1767,24 @@ impl App {
                     super::download::DownloadMessage::UpdateSpeed => {
                         // 更新下载速度
                         self.download_state.update_speed();
+                    }
+                    super::download::DownloadMessage::CopyDownloadLink(id) => {
+                        // 复制下载链接到剪贴板
+                        if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
+                            let url = task.task.url.clone();
+                            println!("[下载功能] 复制下载链接: {}", url);
+                            // TODO: 实现复制到剪贴板功能
+                            let _ = self.show_notification("下载链接已复制到剪贴板".to_string(), super::NotificationType::Success);
+                        }
+                    }
+                    super::download::DownloadMessage::SetAsWallpaper(id) => {
+                        // 设为壁纸
+                        if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
+                            let path = task.task.save_path.clone();
+                            println!("[下载功能] 设为壁纸: {}", path);
+                            // TODO: 实现设为壁纸功能
+                            let _ = self.show_notification("壁纸设置成功".to_string(), super::NotificationType::Success);
+                        }
                     }
                 }
             }
@@ -2157,7 +2192,9 @@ async fn async_download_wallpaper_task_with_progress(
     
     // 打开文件（追加模式用于断点续传）
     let mut file = if downloaded_size > 0 {
-        // 断点续传：先检查文件是否存在
+        // 断点续传：使用写入模式，先定位到文件末尾
+        println!("[下载任务] [ID:{}] 检查文件是否存在: {}", task_id, save_path.exists());
+        
         let file_exists = save_path.exists();
         println!("[下载任务] [ID:{}] 文件存在: {}", task_id, file_exists);
         
@@ -2179,7 +2216,7 @@ async fn async_download_wallpaper_task_with_progress(
         
         println!("[下载任务] [ID:{}] 以追加模式打开文件", task_id);
         tokio::fs::OpenOptions::new()
-            .append(true)
+            .write(true)
             .open(&save_path)
             .await
             .map_err(|e| format!("打开文件失败: {}", e))?

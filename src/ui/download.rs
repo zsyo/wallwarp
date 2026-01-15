@@ -6,11 +6,12 @@ use super::AppMessage;
 use super::common;
 use crate::i18n::I18n;
 use crate::ui::style::{
-    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, COLOR_LIGHT_TEXT, COLOR_LIGHT_TEXT_SUB,
-    EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE,
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW,
+    COLOR_LIGHT_TEXT_SUB, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, TABLE_SEPARATOR_COLOR,
+    TABLE_SEPARATOR_WIDTH,
 };
 use iced::widget::{column, container, progress_bar, row, scrollable, text};
-use iced::{Alignment, Color, Element, Font, Length};
+use iced::{Alignment, Element, Font, Length};
 
 /// 下载状态枚举
 #[derive(Debug, Clone, PartialEq)]
@@ -25,6 +26,8 @@ pub enum DownloadStatus {
     Completed,
     /// 失败
     Failed(String),
+    /// 已取消
+    Cancelled,
 }
 
 /// 下载任务结构体
@@ -176,37 +179,11 @@ impl DownloadStateFull {
         }
     }
 
-    /// 更新任务速度（基于已下载量和时间）
-    pub fn update_speed(&mut self) {
-        for task_full in self.tasks.iter_mut() {
-            if task_full.task.status == DownloadStatus::Downloading {
-                if let Some(start_time) = task_full.task.start_time {
-                    let elapsed = start_time.elapsed().as_secs_f64();
-                    if elapsed > 0.0 && task_full.task.downloaded_size > 0 {
-                        task_full.task.speed = (task_full.task.downloaded_size as f64 / elapsed) as u64;
-                    }
-                }
-            }
-        }
-    }
-
     /// 更新任务状态
     pub fn update_status(&mut self, id: usize, status: DownloadStatus) {
         if let Some(task_full) = self.tasks.iter_mut().find(|t| t.task.id == id) {
             println!("[下载状态] ID:{}, 状态变化: {:?} -> {:?}", id, task_full.task.status, status);
             task_full.task.status = status;
-        }
-    }
-
-    /// 取消任务
-    pub fn cancel_task(&mut self, id: usize) {
-        if let Some(task_full) = self.tasks.iter_mut().find(|t| t.task.id == id) {
-            println!("[下载状态] ID:{}, 设置取消标志", id);
-            // 设置取消标志
-            if let Some(cancel_token) = &task_full.task.cancel_token {
-                cancel_token.store(true, std::sync::atomic::Ordering::Relaxed);
-            }
-            // 注意：不在这里更新状态，让调用者决定最终状态
         }
     }
 
@@ -239,6 +216,32 @@ impl DownloadStateFull {
         let count_before = self.tasks.len();
         self.tasks.retain(|t| t.task.status != DownloadStatus::Completed);
         println!("[下载状态] 清空已完成任务: {} -> {}", count_before, self.tasks.len());
+    }
+
+    /// 取消任务
+    pub fn cancel_task(&mut self, id: usize) {
+        if let Some(task_full) = self.tasks.iter_mut().find(|t| t.task.id == id) {
+            println!("[下载状态] ID:{}, 设置取消标志", id);
+            // 设置取消标志
+            if let Some(cancel_token) = &task_full.task.cancel_token {
+                cancel_token.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+            // 注意：不在这里更新状态，让调用者决定最终状态
+        }
+    }
+
+    /// 更新下载速度（基于时间计算）
+    pub fn update_speed(&mut self) {
+        for task_full in self.tasks.iter_mut() {
+            if task_full.task.status == DownloadStatus::Downloading {
+                if let Some(start_time) = task_full.task.start_time {
+                    let elapsed = start_time.elapsed().as_secs_f64();
+                    if elapsed > 0.0 && task_full.task.downloaded_size > 0 {
+                        task_full.task.speed = (task_full.task.downloaded_size as f64 / elapsed) as u64;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -284,10 +287,14 @@ pub enum DownloadMessage {
     SimulateProgress,
     /// 下载完成 (任务ID, 文件大小, 错误信息)
     DownloadCompleted(usize, u64, Option<String>),
-    /// 下载进度更新 (任务ID, 已下载大小, 总大小, 速度)
+    /// 下载进度更新
     DownloadProgress(usize, u64, u64, u64),
     /// 更新下载速度（定时触发）
     UpdateSpeed,
+    /// 复制下载链接
+    CopyDownloadLink(usize),
+    /// 设为壁纸
+    SetAsWallpaper(usize),
 }
 
 /// 生成下载文件名
@@ -300,16 +307,12 @@ pub fn download_view<'a>(
     _window_width: u32,
     download_state: &'a DownloadStateFull,
 ) -> Element<'a, AppMessage> {
-    // println!("[下载页面] 渲染视图，任务数量: {}", download_state.tasks.len());
-
     let content = if download_state.tasks.is_empty() {
         // 空状态显示
-        // println!("[下载页面] 任务列表为空");
         create_empty_state(i18n)
     } else {
-        // 任务列表
-        // println!("[下载页面] 渲染 {} 个任务", download_state.tasks.len());
-        create_task_list(i18n, download_state)
+        // 表格布局
+        create_table_view(i18n, download_state)
     };
 
     let scrollable_content = scrollable(content).width(Length::Fill).height(Length::Fill);
@@ -319,6 +322,340 @@ pub fn download_view<'a>(
         .height(Length::Fill)
         .padding(20)
         .into()
+}
+
+/// 创建表格视图
+fn create_table_view<'a>(i18n: &'a I18n, download_state: &'a DownloadStateFull) -> Element<'a, AppMessage> {
+    // 表头
+    let header = create_table_header(i18n);
+    
+    // 表格内容
+    let mut table = column![header]
+        .spacing(0)
+        .width(Length::Fill);
+    
+    // 添加表头下方的水平分隔线
+    table = table.push(create_horizontal_separator());
+    
+    for task_full in &download_state.tasks {
+        // 添加表格行
+        table = table.push(create_table_row(i18n, &task_full.task));
+        // 添加行下方的水平分隔线
+        table = table.push(create_horizontal_separator());
+    }
+    
+    table.into()
+}
+
+/// 创建水平分隔线
+fn create_horizontal_separator() -> Element<'static, AppMessage> {
+    container(
+        iced::widget::Space::new()
+    )
+    .width(Length::Fill)
+    .height(TABLE_SEPARATOR_WIDTH)
+    .style(|_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(TABLE_SEPARATOR_COLOR)),
+        ..Default::default()
+    })
+    .into()
+}
+
+/// 创建表头
+fn create_table_header<'a>(i18n: &'a I18n) -> Element<'a, AppMessage> {
+    row![
+        // 文件名列
+        container(text(i18n.t("download-tasks.header-filename")).size(14))
+            .width(Length::FillPortion(3))
+            .padding(5),
+        // 分隔线
+        create_separator(),
+        // 大小列
+        container(text(i18n.t("download-tasks.header-size")).size(14))
+            .width(Length::Fixed(100.0))
+            .padding(5),
+        // 分隔线
+        create_separator(),
+        // 状态列
+        container(text(i18n.t("download-tasks.header-status")).size(14))
+            .width(Length::Fixed(140.0))
+            .padding(5),
+        // 分隔线
+        create_separator(),
+        // 下载列
+        container(text(i18n.t("download-tasks.header-download")).size(14))
+            .width(Length::Fixed(100.0))
+            .padding(5),
+        // 分隔线
+        create_separator(),
+        // 操作列（最后一列，不添加分隔线）
+        container(text(i18n.t("download-tasks.header-operations")).size(14))
+            .width(Length::Fill)
+            .padding(5),
+    ]
+    .width(Length::Fill)
+    .padding(5)
+    .align_y(Alignment::Center)
+    .into()
+}
+
+/// 创建表格行
+fn create_table_row<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
+    row![
+        // 文件名列
+        container(text(&task.file_name).size(13))
+            .width(Length::FillPortion(3))
+            .padding(5),
+        // 分隔线
+        create_separator(),
+        // 大小列
+        container(text(format_file_size(task.total_size)).size(12))
+            .width(Length::Fixed(100.0))
+            .padding(5),
+        // 分隔线
+        create_separator(),
+        // 状态列
+        container(create_status_display(i18n, task))
+            .width(Length::Fixed(140.0))
+            .padding(5),
+        // 分隔线
+        create_separator(),
+        // 下载列
+        container(create_download_display(i18n, task))
+            .width(Length::Fixed(100.0))
+            .padding(5),
+        // 分隔线
+        create_separator(),
+        // 操作列（最后一列，不添加分隔线）
+        container(create_operation_buttons(i18n, task))
+            .width(Length::Fill)
+            .padding(5),
+    ]
+    .width(Length::Fill)
+    .padding(5)
+    .align_y(Alignment::Center)
+    .into()
+}
+/// 创建状态显示
+fn create_status_display<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
+    match &task.status {
+        DownloadStatus::Downloading => {
+            // 下载中：显示进度条和百分比
+            let progress_bar = container(progress_bar(0.0..=1.0, task.progress))
+                .width(Length::Fixed(70.0))
+                .height(Length::Fixed(12.0));
+            let progress_text = text(format!("{:.0}%", task.progress * 100.0))
+                .size(11)
+                .style(|_| text::Style {
+                    color: Some(BUTTON_COLOR_BLUE),
+                });
+            row![progress_bar, progress_text]
+                .spacing(6)
+                .align_y(Alignment::Center)
+                .into()
+        }
+        DownloadStatus::Waiting => {
+            text(i18n.t("download-tasks.status-waiting"))
+                .size(12)
+                .style(|_| text::Style {
+                    color: Some(COLOR_LIGHT_TEXT_SUB),
+                })
+                .into()
+        }
+        DownloadStatus::Paused => {
+            text(i18n.t("download-tasks.status-paused"))
+                .size(12)
+                .style(|_| text::Style {
+                    color: Some(BUTTON_COLOR_GRAY),
+                })
+                .into()
+        }
+        DownloadStatus::Completed => {
+            text(i18n.t("download-tasks.status-completed"))
+                .size(12)
+                .style(|_| text::Style {
+                    color: Some(BUTTON_COLOR_GREEN),
+                })
+                .into()
+        }
+        DownloadStatus::Failed(_msg) => {
+            text(i18n.t("download-tasks.status-failed-error"))
+                .size(12)
+                .style(|_| text::Style {
+                    color: Some(BUTTON_COLOR_RED),
+                })
+                .into()
+        }
+        DownloadStatus::Cancelled => {
+            text(i18n.t("download-tasks.status-cancelled"))
+                .size(12)
+                .style(|_| text::Style {
+                    color: Some(BUTTON_COLOR_YELLOW),
+                })
+                .into()
+        }
+    }
+}
+
+/// 创建下载显示
+fn create_download_display<'a>(_i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
+    let speed_text = match &task.status {
+        DownloadStatus::Downloading => {
+            format_speed(task.speed)
+        }
+        _ => "0 B/s".to_string(),
+    };
+    
+    text(speed_text)
+        .size(12)
+        .style(|_| text::Style {
+            color: Some(COLOR_LIGHT_TEXT_SUB),
+        })
+        .into()
+}
+
+/// 创建操作按钮
+fn create_operation_buttons<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
+    match &task.status {
+        DownloadStatus::Downloading => {
+            // 下载中：暂停/复制下载链接/取消
+            let pause_button = common::create_icon_button_with_tooltip(
+                "\u{F8C9}", // pause-fill
+                BUTTON_COLOR_GRAY,
+                AppMessage::Download(DownloadMessage::PauseTask(task.id)),
+                i18n.t("download-tasks.tooltip-pause"),
+            );
+            let copy_button = common::create_icon_button_with_tooltip(
+                "\u{F4E4}", // link-45deg
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::CopyDownloadLink(task.id)),
+                i18n.t("local-list.tooltip-locate"),
+            );
+            let cancel_button = common::create_icon_button_with_tooltip(
+                "\u{F8FB}", // x-circle-fill
+                BUTTON_COLOR_RED,
+                AppMessage::Download(DownloadMessage::CancelTask(task.id)),
+                i18n.t("download-tasks.tooltip-cancel"),
+            );
+            row![pause_button, copy_button, cancel_button].spacing(6).into()
+        }
+        DownloadStatus::Paused => {
+            // 暂停中：继续/复制下载链接/取消
+            let resume_button = common::create_icon_button_with_tooltip(
+                "\u{F144}", // play-fill
+                BUTTON_COLOR_GREEN,
+                AppMessage::Download(DownloadMessage::ResumeTask(task.id)),
+                i18n.t("download-tasks.tooltip-resume"),
+            );
+            let copy_button = common::create_icon_button_with_tooltip(
+                "\u{F4E4}", // link-45deg
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::CopyDownloadLink(task.id)),
+                i18n.t("local-list.tooltip-locate"),
+            );
+            let cancel_button = common::create_icon_button_with_tooltip(
+                "\u{F8FB}", // x-circle-fill
+                BUTTON_COLOR_RED,
+                AppMessage::Download(DownloadMessage::CancelTask(task.id)),
+                i18n.t("download-tasks.tooltip-cancel"),
+            );
+            row![resume_button, copy_button, cancel_button].spacing(6).into()
+        }
+        DownloadStatus::Failed(_) => {
+            // 下载失败：重新下载/复制下载链接/删除
+            let retry_button = common::create_icon_button_with_tooltip(
+                "\u{F144}", // play-fill (重新下载)
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::ResumeTask(task.id)),
+                i18n.t("download-tasks.tooltip-retry"),
+            );
+            let copy_button = common::create_icon_button_with_tooltip(
+                "\u{F4E4}", // link-45deg
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::CopyDownloadLink(task.id)),
+                i18n.t("local-list.tooltip-locate"),
+            );
+            let cancel_button = common::create_icon_button_with_tooltip(
+                "\u{F78B}", // trash-fill (删除任务)
+                BUTTON_COLOR_RED,
+                AppMessage::Download(DownloadMessage::DeleteTask(task.id)),
+                i18n.t("download-tasks.tooltip-delete"),
+            );
+            row![retry_button, copy_button, cancel_button].spacing(6).into()
+        }
+        DownloadStatus::Cancelled => {
+            // 已取消：重新下载/复制下载链接/删除
+            let retry_button = common::create_icon_button_with_tooltip(
+                "\u{F144}", // play-fill (重新下载)
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::ResumeTask(task.id)),
+                i18n.t("download-tasks.tooltip-retry"),
+            );
+            let copy_button = common::create_icon_button_with_tooltip(
+                "\u{F4E4}", // link-45deg
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::CopyDownloadLink(task.id)),
+                i18n.t("local-list.tooltip-locate"),
+            );
+            let delete_button = common::create_icon_button_with_tooltip(
+                "\u{F78B}", // trash-fill (删除任务)
+                BUTTON_COLOR_RED,
+                AppMessage::Download(DownloadMessage::DeleteTask(task.id)),
+                i18n.t("download-tasks.tooltip-delete"),
+            );
+            row![retry_button, copy_button, delete_button].spacing(6).into()
+        }
+        DownloadStatus::Completed => {
+            // 下载完成：查看文件/设为壁纸/复制下载链接/删除(仅删除任务)
+            let view_button = common::create_icon_button_with_tooltip(
+                "\u{F341}", // folder-fill (查看文件)
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::OpenFileLocation(task.id)),
+                i18n.t("download-tasks.tooltip-open"),
+            );
+            let set_wallpaper_button = common::create_icon_button_with_tooltip(
+                "\u{F4A5}", // image-fill (设为壁纸)
+                BUTTON_COLOR_GREEN,
+                AppMessage::Download(DownloadMessage::SetAsWallpaper(task.id)),
+                i18n.t("online-wallpapers.tooltip-set-wallpaper"),
+            );
+            let copy_button = common::create_icon_button_with_tooltip(
+                "\u{F4E4}", // link-45deg
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::CopyDownloadLink(task.id)),
+                i18n.t("local-list.tooltip-locate"),
+            );
+            let delete_button = common::create_icon_button_with_tooltip(
+                "\u{F78B}", // trash-fill (删除任务)
+                BUTTON_COLOR_RED,
+                AppMessage::Download(DownloadMessage::DeleteTask(task.id)),
+                i18n.t("download-tasks.tooltip-delete"),
+            );
+            row![view_button, set_wallpaper_button, copy_button, delete_button].spacing(6).into()
+        }
+        DownloadStatus::Waiting => {
+            // 等待中：继续/复制下载链接/取消
+            let resume_button = common::create_icon_button_with_tooltip(
+                "\u{F144}", // play-fill
+                BUTTON_COLOR_GREEN,
+                AppMessage::Download(DownloadMessage::ResumeTask(task.id)),
+                i18n.t("download-tasks.tooltip-resume"),
+            );
+            let copy_button = common::create_icon_button_with_tooltip(
+                "\u{F4E4}", // link-45deg
+                BUTTON_COLOR_BLUE,
+                AppMessage::Download(DownloadMessage::CopyDownloadLink(task.id)),
+                i18n.t("local-list.tooltip-locate"),
+            );
+            let cancel_button = common::create_icon_button_with_tooltip(
+                "\u{F78B}", // trash-fill
+                BUTTON_COLOR_RED,
+                AppMessage::Download(DownloadMessage::DeleteTask(task.id)),
+                i18n.t("download-tasks.tooltip-delete"),
+            );
+            row![resume_button, copy_button, cancel_button].spacing(6).into()
+        }
+    }
 }
 
 /// 创建空状态界面
@@ -344,251 +681,6 @@ fn create_empty_state<'a>(i18n: &'a I18n) -> Element<'a, AppMessage> {
         .padding(EMPTY_STATE_PADDING)
         .spacing(10)
         .into()
-}
-
-/// 创建任务列表界面
-fn create_task_list<'a>(i18n: &'a I18n, download_state: &'a DownloadStateFull) -> Element<'a, AppMessage> {
-    let mut content = column![].spacing(10).width(Length::Fill);
-
-    for task_full in &download_state.tasks {
-        content = content.push(create_task_item(i18n, &task_full.task));
-    }
-
-    content.into()
-}
-
-/// 创建单个任务项
-fn create_task_item<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
-    // 文件名和状态图标
-    let status_icon = match &task.status {
-        DownloadStatus::Waiting => text("\u{F252}")
-            .font(Font::with_name("bootstrap-icons"))
-            .size(16)
-            .style(|_theme: &iced::Theme| text::Style {
-                color: Some(COLOR_LIGHT_TEXT_SUB),
-            }),
-        DownloadStatus::Downloading => text("\u{F252}")
-            .font(Font::with_name("bootstrap-icons"))
-            .size(16)
-            .style(|_theme: &iced::Theme| text::Style {
-                color: Some(BUTTON_COLOR_BLUE),
-            }),
-        DownloadStatus::Paused => text("\u{F8C9}")
-            .font(Font::with_name("bootstrap-icons"))
-            .size(16)
-            .style(|_theme: &iced::Theme| text::Style {
-                color: Some(BUTTON_COLOR_GRAY),
-            }),
-        DownloadStatus::Completed => text("\u{F26C}")
-            .font(Font::with_name("bootstrap-icons"))
-            .size(16)
-            .style(|_theme: &iced::Theme| text::Style {
-                color: Some(BUTTON_COLOR_GREEN),
-            }),
-        DownloadStatus::Failed(_) => text("\u{F659}")
-            .font(Font::with_name("bootstrap-icons"))
-            .size(16)
-            .style(|_theme: &iced::Theme| text::Style {
-                color: Some(BUTTON_COLOR_RED),
-            }),
-    };
-
-    let file_info = column![
-        text(&task.file_name)
-            .size(14)
-            .style(|_theme: &iced::Theme| text::Style {
-                color: Some(COLOR_LIGHT_TEXT),
-            }),
-        create_status_text(i18n, task),
-    ]
-    .spacing(2);
-
-    let left_content = row![status_icon, container(file_info).padding(8)].align_y(Alignment::Center);
-
-    // 进度条
-    let progress = container(progress_bar(0.0..=1.0, task.progress))
-        .width(Length::Fixed(150.0))
-        .height(Length::Fixed(6.0));
-
-    let progress_text = text(format!("{:.0}%", task.progress * 100.0))
-        .size(12)
-        .style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_LIGHT_TEXT_SUB),
-        });
-
-    let progress_section = column![progress, progress_text].width(Length::Fixed(180.0)).spacing(2);
-
-    // 大小信息
-    let size_info = text(format!(
-        "{} / {}",
-        format_file_size(task.downloaded_size),
-        format_file_size(task.total_size)
-    ))
-    .size(12)
-    .style(|_theme: &iced::Theme| text::Style {
-        color: Some(COLOR_LIGHT_TEXT_SUB),
-    });
-
-    // 操作按钮
-    let action_buttons = create_action_buttons(i18n, task);
-
-    // 整体布局
-    let item_content = row![
-        left_content,
-        container(iced::widget::Space::new()).width(Length::Fill),
-        progress_section,
-        container(size_info).width(Length::Fixed(120.0)),
-        action_buttons,
-    ]
-    .align_y(Alignment::Center)
-    .padding(10);
-
-    container(item_content)
-        .width(Length::Fill)
-        .style(create_task_item_style)
-        .into()
-}
-
-/// 创建状态文本
-fn create_status_text<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
-    match &task.status {
-        DownloadStatus::Waiting => container(text(i18n.t("download-tasks.status-waiting")).size(12).style(
-            |_theme: &iced::Theme| text::Style {
-                color: Some(COLOR_LIGHT_TEXT_SUB),
-            },
-        ))
-        .into(),
-        DownloadStatus::Downloading => {
-            let speed_text = format_speed(task.speed);
-            container(
-                text(format!(
-                    "{} - {}",
-                    i18n.t("download-tasks.status-downloading"),
-                    speed_text
-                ))
-                .size(12)
-                .style(|_theme: &iced::Theme| text::Style {
-                    color: Some(BUTTON_COLOR_BLUE),
-                }),
-            )
-            .into()
-        }
-        DownloadStatus::Paused => container(text(i18n.t("download-tasks.status-paused")).size(12).style(
-            |_theme: &iced::Theme| text::Style {
-                color: Some(BUTTON_COLOR_GRAY),
-            },
-        ))
-        .into(),
-        DownloadStatus::Completed => container(text(i18n.t("download-tasks.status-completed")).size(12).style(
-            |_theme: &iced::Theme| text::Style {
-                color: Some(BUTTON_COLOR_GREEN),
-            },
-        ))
-        .into(),
-        DownloadStatus::Failed(msg) => container(
-            text(format!("{}: {}", i18n.t("download-tasks.status-failed"), msg))
-                .size(12)
-                .style(|_theme: &iced::Theme| text::Style {
-                    color: Some(BUTTON_COLOR_RED),
-                }),
-        )
-        .into(),
-    }
-}
-
-/// 创建操作按钮组
-fn create_action_buttons<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
-    match &task.status {
-        DownloadStatus::Waiting | DownloadStatus::Paused => {
-            let resume_button = common::create_button_with_tooltip(
-                common::create_icon_button(
-                    "\u{F144}",
-                    BUTTON_COLOR_GREEN,
-                    AppMessage::Download(DownloadMessage::ResumeTask(task.id)),
-                ),
-                i18n.t("download-tasks.tooltip-resume"),
-            );
-            let cancel_button = common::create_button_with_tooltip(
-                common::create_icon_button(
-                    "\u{F8FB}",
-                    BUTTON_COLOR_RED,
-                    AppMessage::Download(DownloadMessage::CancelTask(task.id)),
-                ),
-                i18n.t("download-tasks.tooltip-cancel"),
-            );
-            row![resume_button, cancel_button].spacing(4).into()
-        }
-        DownloadStatus::Downloading => {
-            let pause_button = common::create_button_with_tooltip(
-                common::create_icon_button(
-                    "\u{F8C9}",
-                    BUTTON_COLOR_GRAY,
-                    AppMessage::Download(DownloadMessage::PauseTask(task.id)),
-                ),
-                i18n.t("download-tasks.tooltip-pause"),
-            );
-            let cancel_button = common::create_button_with_tooltip(
-                common::create_icon_button(
-                    "\u{F8FB}",
-                    BUTTON_COLOR_RED,
-                    AppMessage::Download(DownloadMessage::CancelTask(task.id)),
-                ),
-                i18n.t("download-tasks.tooltip-cancel"),
-            );
-            row![pause_button, cancel_button].spacing(4).into()
-        }
-        DownloadStatus::Completed => {
-            let open_button = common::create_button_with_tooltip(
-                common::create_icon_button(
-                    "\u{F341}",
-                    BUTTON_COLOR_BLUE,
-                    AppMessage::Download(DownloadMessage::OpenFileLocation(task.id)),
-                ),
-                i18n.t("download-tasks.tooltip-open"),
-            );
-            let delete_button = common::create_button_with_tooltip(
-                common::create_icon_button(
-                    "\u{F78B}",
-                    BUTTON_COLOR_RED,
-                    AppMessage::Download(DownloadMessage::DeleteTask(task.id)),
-                ),
-                i18n.t("download-tasks.tooltip-delete"),
-            );
-            row![open_button, delete_button].spacing(4).into()
-        }
-        DownloadStatus::Failed(_) => {
-            let retry_button = common::create_button_with_tooltip(
-                common::create_icon_button(
-                    "\u{F4E4}",
-                    BUTTON_COLOR_BLUE,
-                    AppMessage::Download(DownloadMessage::ResumeTask(task.id)),
-                ),
-                i18n.t("download-tasks.tooltip-retry"),
-            );
-            let delete_button = common::create_button_with_tooltip(
-                common::create_icon_button(
-                    "\u{F78B}",
-                    BUTTON_COLOR_RED,
-                    AppMessage::Download(DownloadMessage::DeleteTask(task.id)),
-                ),
-                i18n.t("download-tasks.tooltip-delete"),
-            );
-            row![retry_button, delete_button].spacing(4).into()
-        }
-    }
-}
-
-/// 任务项样式
-fn create_task_item_style(theme: &iced::Theme) -> container::Style {
-    container::Style {
-        background: Some(iced::Background::Color(Color::from_rgb(0.98, 0.98, 0.98))),
-        border: iced::border::Border {
-            color: theme.extended_palette().primary.weak.color,
-            width: 1.0,
-            radius: iced::border::Radius::from(6.0),
-        },
-        ..Default::default()
-    }
 }
 
 /// 格式化文件大小
@@ -617,4 +709,18 @@ impl From<DownloadMessage> for AppMessage {
     fn from(download_message: DownloadMessage) -> AppMessage {
         AppMessage::Download(download_message)
     }
+}
+
+/// 创建表格列分隔线
+fn create_separator() -> Element<'static, AppMessage> {
+    container(
+        iced::widget::Space::new()
+    )
+    .width(TABLE_SEPARATOR_WIDTH)
+    .height(Length::Fill)
+    .style(|_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(TABLE_SEPARATOR_COLOR)),
+        ..Default::default()
+    })
+    .into()
 }
