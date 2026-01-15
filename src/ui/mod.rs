@@ -1,6 +1,7 @@
 pub mod app;
 pub mod close_confirmation;
 pub mod common;
+pub mod download;
 pub mod local;
 pub mod main;
 pub mod online;
@@ -57,6 +58,7 @@ pub enum AppMessage {
     ToggleRememberSetting(bool),
     Local(crate::ui::local::LocalMessage),
     Online(crate::ui::online::OnlineMessage),
+    Download(crate::ui::download::DownloadMessage),
 }
 
 #[derive(Debug, Clone)]
@@ -102,6 +104,8 @@ pub struct App {
     pub local_state: crate::ui::local::LocalState,
     // 在线壁纸页面状态
     pub online_state: crate::ui::online::OnlineState,
+    // 下载管理页面状态
+    pub download_state: crate::ui::download::DownloadStateFull,
     // 标记是否已加载初始数据
     pub initial_loaded: bool,
 }

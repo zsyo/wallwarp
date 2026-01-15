@@ -43,3 +43,37 @@ impl Default for ConcurrencyController {
 /// 使用LazyLock实现线程安全的延迟初始化
 pub static GLOBAL_CONCURRENCY_CONTROLLER: std::sync::LazyLock<ConcurrencyController> =
     std::sync::LazyLock::new(|| ConcurrencyController::new(5));
+
+/// 下载进度更新消息
+#[derive(Debug, Clone)]
+pub struct DownloadProgressUpdate {
+    pub task_id: usize,
+    pub downloaded: u64,
+    pub total: u64,
+    pub speed: u64,
+}
+
+/// 全局下载进度channel发送器
+pub static DOWNLOAD_PROGRESS_TX: std::sync::OnceLock<tokio::sync::broadcast::Sender<DownloadProgressUpdate>> =
+    std::sync::OnceLock::new();
+
+/// 初始化全局下载进度channel
+pub fn init_download_progress_channel() {
+    DOWNLOAD_PROGRESS_TX.get_or_init(|| {
+        let (tx, _rx) = tokio::sync::broadcast::channel(100);
+        tx
+    });
+}
+
+/// 发送下载进度更新
+pub fn send_download_progress(task_id: usize, downloaded: u64, total: u64, speed: u64) {
+    if let Some(tx) = DOWNLOAD_PROGRESS_TX.get() {
+        let update = DownloadProgressUpdate {
+            task_id,
+            downloaded,
+            total,
+            speed,
+        };
+        let _ = tx.send(update);
+    }
+}

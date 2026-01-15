@@ -82,6 +82,19 @@ local-list = 本地列表
 
 download-tasks = 下载任务
     .title = 下载管理
+    .no-tasks = 暂无下载任务
+    .no-tasks-hint = 从在线壁纸页面下载壁纸后将显示在此处
+    .status-waiting = 等待中
+    .status-downloading = 下载中
+    .status-paused = 已暂停
+    .status-completed = 已完成
+    .status-failed = 失败
+    .tooltip-pause = 暂停
+    .tooltip-resume = 继续
+    .tooltip-cancel = 取消
+    .tooltip-delete = 删除
+    .tooltip-open = 打开文件位置
+    .tooltip-retry = 重试
 
 settings = 设置
     .system-config = 系统配置

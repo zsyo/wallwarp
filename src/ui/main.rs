@@ -2,7 +2,7 @@ use super::{ActivePage, App, AppMessage};
 use crate::utils::assets;
 use crate::ui::style::{
     APP_NAME_SIZE, BORDER_RADIUS, BORDER_WIDTH, BUTTON_PADDING, BUTTON_SPACING, LAYOUT_PADDING,
-    LOGO_DISPLAY_SIZE, LOGO_SIZE, LOGO_SPACING, OUTER_PADDING, PLACEHOLDER_TEXT_SIZE, ROW_SPACING_LARGE,
+    LOGO_DISPLAY_SIZE, LOGO_SIZE, LOGO_SPACING, OUTER_PADDING, ROW_SPACING_LARGE,
     SIDEBAR_PADDING, SIDEBAR_WIDTH,
 };
 use iced::widget::{button, column, container, row, text};
@@ -20,7 +20,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
             super::local::local_view(&app.i18n, &app.config, functional_area_width as u32, &app.local_state)
         }
         ActivePage::DownloadProgress => {
-            column![text(app.i18n.t("download-tasks.title")).size(PLACEHOLDER_TEXT_SIZE)].into()
+            super::download::download_view(&app.i18n, functional_area_width as u32, &app.download_state)
         }
         ActivePage::Settings => super::settings::settings_view(app),
     };

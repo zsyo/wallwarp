@@ -320,3 +320,28 @@ pub const ABOUT_LOGO_SPACING: f32 = 40.0;
 
 /// 关于区域行高度
 pub const ABOUT_ROW_HEIGHT: f32 = 16.0;
+
+// ============================================================================
+// 下载页面样式常量
+// ============================================================================
+
+/// 下载任务项高度
+pub const DOWNLOAD_TASK_HEIGHT: f32 = 60.0;
+
+/// 下载任务项间距
+pub const DOWNLOAD_TASK_SPACING: f32 = 10.0;
+
+/// 下载任务项内边距
+pub const DOWNLOAD_TASK_PADDING: f32 = 10.0;
+
+/// 下载进度条高度
+pub const DOWNLOAD_PROGRESS_HEIGHT: f32 = 6.0;
+
+/// 下载进度条宽度
+pub const DOWNLOAD_PROGRESS_WIDTH: f32 = 150.0;
+
+/// 下载大小信息宽度
+pub const DOWNLOAD_SIZE_INFO_WIDTH: f32 = 120.0;
+
+/// 下载操作按钮间距
+pub const DOWNLOAD_BUTTON_SPACING: f32 = 4.0;

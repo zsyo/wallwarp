@@ -21,8 +21,12 @@ reqwest = { version = "0.13.1", default-features = false, features = [
     "native-tls",
     "http2",
     "json",
+    "stream",
+    "brotli",
+    "gzip",
 ] }
 urlencoding = "2.1"
+async-stream = "0.3"
 
 # i18n
 fluent-bundle = "0.16.0"

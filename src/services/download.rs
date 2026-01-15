@@ -97,22 +97,66 @@ impl DownloadService {
             })?;
         }
 
-        // 创建HTTP客户端
+        // 创建优化的HTTP客户端
+        let create_optimized_client = || -> reqwest::Client {
+            reqwest::Client::builder()
+                // 连接池配置：最大100个连接，每个主机最多10个连接
+                .pool_max_idle_per_host(10)
+                .pool_idle_timeout(std::time::Duration::from_secs(90))
+                // 超时配置
+                .connect_timeout(std::time::Duration::from_secs(30))
+                .timeout(std::time::Duration::from_secs(300))
+                // TCP配置：启用TCP_NODELAY减少延迟
+                .tcp_nodelay(true)
+                // 启用HTTP/2
+                .http2_prior_knowledge()
+                // 启用gzip压缩（reqwest默认支持）
+                .gzip(true)
+                // 启用brotli压缩（需要features支持）
+                .brotli(true)
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new())
+        };
+
         let client = if let Some(proxy_url) = proxy {
             if !proxy_url.is_empty() {
-                if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
-                    reqwest::Client::builder()
-                        .proxy(proxy)
-                        .build()
-                        .unwrap_or_else(|_| reqwest::Client::new())
-                } else {
-                    reqwest::Client::new()
+                println!("[缩略图缓存] [URL:{}] 尝试创建代理客户端，代理URL: {}", url, proxy_url);
+                match reqwest::Proxy::all(&proxy_url) {
+                    Ok(p) => {
+                        println!("[缩略图缓存] [URL:{}] Proxy::all 成功", url);
+                        match reqwest::Client::builder()
+                            .proxy(p)
+                            .pool_max_idle_per_host(10)
+                            .pool_idle_timeout(std::time::Duration::from_secs(90))
+                            .connect_timeout(std::time::Duration::from_secs(30))
+                            .timeout(std::time::Duration::from_secs(300))
+                            .tcp_nodelay(true)
+                            .http2_prior_knowledge()
+                            .gzip(true)
+                            .brotli(true)
+                            .build() {
+                            Ok(http_client) => {
+                                println!("[缩略图缓存] [URL:{}] HTTP客户端创建成功（已优化）", url);
+                                http_client
+                            }
+                            Err(e) => {
+                                println!("[缩略图缓存] [URL:{}] HTTP客户端创建失败: {}，回退到无代理", url, e);
+                                create_optimized_client()
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("[缩略图缓存] [URL:{}] Proxy::all 失败: {}，回退到无代理", url, e);
+                        create_optimized_client()
+                    }
                 }
             } else {
-                reqwest::Client::new()
+                println!("[缩略图缓存] [URL:{}] 代理URL为空，使用无代理客户端", url);
+                create_optimized_client()
             }
         } else {
-            reqwest::Client::new()
+            println!("[缩略图缓存] [URL:{}] 无代理配置，使用无代理客户端", url);
+            create_optimized_client()
         };
 
         // 使用重试机制下载图片
@@ -183,21 +227,65 @@ impl DownloadService {
 
         println!("[图片下载] [URL:{}] 开始下载", url);
 
+        let create_optimized_client = || -> reqwest::Client {
+            reqwest::Client::builder()
+                // 连接池配置：最大100个连接，每个主机最多10个连接
+                .pool_max_idle_per_host(10)
+                .pool_idle_timeout(std::time::Duration::from_secs(90))
+                // 超时配置
+                .connect_timeout(std::time::Duration::from_secs(30))
+                .timeout(std::time::Duration::from_secs(300))
+                // TCP配置：启用TCP_NODELAY减少延迟
+                .tcp_nodelay(true)
+                // 启用HTTP/2
+                .http2_prior_knowledge()
+                // 启用gzip压缩（reqwest默认支持）
+                .gzip(true)
+                // 启用brotli压缩（需要features支持）
+                .brotli(true)
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new())
+        };
+
         let client = if let Some(proxy_url) = proxy {
             if !proxy_url.is_empty() {
-                if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
-                    reqwest::Client::builder()
-                        .proxy(proxy)
-                        .build()
-                        .unwrap_or_else(|_| reqwest::Client::new())
-                } else {
-                    reqwest::Client::new()
+                println!("[图片下载] [URL:{}] 尝试创建代理客户端，代理URL: {}", url, proxy_url);
+                match reqwest::Proxy::all(&proxy_url) {
+                    Ok(p) => {
+                        println!("[图片下载] [URL:{}] Proxy::all 成功", url);
+                        match reqwest::Client::builder()
+                            .proxy(p)
+                            .pool_max_idle_per_host(10)
+                            .pool_idle_timeout(std::time::Duration::from_secs(90))
+                            .connect_timeout(std::time::Duration::from_secs(30))
+                            .timeout(std::time::Duration::from_secs(300))
+                            .tcp_nodelay(true)
+                            .http2_prior_knowledge()
+                            .gzip(true)
+                            .brotli(true)
+                            .build() {
+                            Ok(http_client) => {
+                                println!("[图片下载] [URL:{}] HTTP客户端创建成功（已优化）", url);
+                                http_client
+                            }
+                            Err(e) => {
+                                println!("[图片下载] [URL:{}] HTTP客户端创建失败: {}，回退到无代理", url, e);
+                                create_optimized_client()
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("[图片下载] [URL:{}] Proxy::all 失败: {}，回退到无代理", url, e);
+                        create_optimized_client()
+                    }
                 }
             } else {
-                reqwest::Client::new()
+                println!("[图片下载] [URL:{}] 代理URL为空，使用无代理客户端", url);
+                create_optimized_client()
             }
         } else {
-            reqwest::Client::new()
+            println!("[图片下载] [URL:{}] 无代理配置，使用无代理客户端", url);
+            create_optimized_client()
         };
 
         // 使用重试机制下载图片

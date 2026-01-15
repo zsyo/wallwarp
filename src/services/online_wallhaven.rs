@@ -87,18 +87,34 @@ impl WallhavenService {
     pub fn new(api_key: Option<String>, proxy: Option<String>) -> Self {
         let client = if let Some(proxy_url) = proxy {
             if !proxy_url.is_empty() {
-                if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
-                    reqwest::Client::builder()
-                        .proxy(proxy)
-                        .build()
-                        .unwrap_or_else(|_| reqwest::Client::new())
-                } else {
-                    reqwest::Client::new()
+                println!("[WallhavenService] 尝试创建代理客户端，代理URL: {}", proxy_url);
+                match reqwest::Proxy::all(&proxy_url) {
+                    Ok(p) => {
+                        println!("[WallhavenService] Proxy::all 成功");
+                        match reqwest::Client::builder()
+                            .proxy(p)
+                            .build() {
+                            Ok(http_client) => {
+                                println!("[WallhavenService] HTTP客户端创建成功");
+                                http_client
+                            }
+                            Err(e) => {
+                                println!("[WallhavenService] HTTP客户端创建失败: {}，回退到无代理", e);
+                                reqwest::Client::new()
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        println!("[WallhavenService] Proxy::all 失败: {}，回退到无代理", e);
+                        reqwest::Client::new()
+                    }
                 }
             } else {
+                println!("[WallhavenService] 代理URL为空，使用无代理客户端");
                 reqwest::Client::new()
             }
         } else {
+            println!("[WallhavenService] 无代理配置，使用无代理客户端");
             reqwest::Client::new()
         };
 

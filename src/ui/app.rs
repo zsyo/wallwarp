@@ -48,6 +48,7 @@ impl App {
             current_window_width: config.display.width,
             local_state: super::local::LocalState::default(),
             online_state: super::online::OnlineState::load_from_config(&config),
+            download_state: super::download::DownloadStateFull::new(),
             initial_loaded: false, // 标记是否已加载初始数据
         }
     }

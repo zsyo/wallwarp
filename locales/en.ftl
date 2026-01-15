@@ -82,6 +82,19 @@ local-list = Local List
 
 download-tasks = Download Tasks
     .title = Download Tasks
+    .no-tasks = No download tasks
+    .no-tasks-hint = Downloaded wallpapers from the online page will appear here
+    .status-waiting = Waiting
+    .status-downloading = Downloading
+    .status-paused = Paused
+    .status-completed = Completed
+    .status-failed = Failed
+    .tooltip-pause = Pause
+    .tooltip-resume = Resume
+    .tooltip-cancel = Cancel
+    .tooltip-delete = Delete
+    .tooltip-open = Open file location
+    .tooltip-retry = Retry
 
 settings = Settings
     .system-config = System Configuration
