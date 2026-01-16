@@ -2,17 +2,14 @@ use super::App;
 use super::AppMessage;
 use super::common;
 use crate::ui::style::{
-    ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, ABOUT_ROW_HEIGHT, BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY,
-    BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING, INPUT_HEIGHT, INPUT_PADDING, LOGO_DISPLAY_SIZE,
-    LOGO_SIZE, PICK_LIST_WIDTH, PORT_INPUT_WIDTH, ROW_SPACING, SCROLL_PADDING, SECTION_PADDING,
+    ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, ABOUT_ROW_HEIGHT, BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING,
+    INPUT_HEIGHT, INPUT_PADDING, LOGO_DISPLAY_SIZE, LOGO_SIZE, PICK_LIST_WIDTH, PORT_INPUT_WIDTH, ROW_SPACING, SCROLL_PADDING, SECTION_PADDING,
     SECTION_SPACING, SECTION_TITLE_SIZE, TEXT_INPUT_SIZE,
 };
 use crate::utils::assets;
 use crate::utils::config::CloseAction;
+use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input, toggler};
 use iced::{Alignment, Length};
-use iced::widget::{
-    button, column, container, pick_list, row, scrollable, text, text_input, toggler,
-};
 use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,17 +53,12 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         vec![
             common::create_setting_row(
                 app.i18n.t("settings.app-language"),
-                pick_list(
-                    &app.i18n.available_langs[..],
-                    Some(app.i18n.current_lang.clone()),
-                    AppMessage::LanguageSelected
-                )
-                .width(Length::Fixed(PICK_LIST_WIDTH)),
+                pick_list(&app.i18n.available_langs[..], Some(app.i18n.current_lang.clone()), AppMessage::LanguageSelected)
+                    .width(Length::Fixed(PICK_LIST_WIDTH)),
             ),
             common::create_setting_row(
                 app.i18n.t("settings.auto-startup"),
-                toggler(app.config.global.auto_startup)
-                    .on_toggle(AppMessage::AutoStartupToggled),
+                toggler(app.config.global.auto_startup).on_toggle(AppMessage::AutoStartupToggled),
             ),
             common::create_setting_row(
                 app.i18n.t("settings.close-action"),
@@ -102,29 +94,19 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                     )
                     .width(Length::Fixed(PICK_LIST_WIDTH)),
                     container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
-                    text_input(
-                        &app.i18n.t("settings.proxy-address-placeholder"),
-                        &app.proxy_address
-                    )
-                    .width(Length::FillPortion(2))
-                    .align_x(Alignment::Center)
-                    .padding(INPUT_PADDING)
-                    .on_input(AppMessage::ProxyAddressChanged),
+                    text_input(&app.i18n.t("settings.proxy-address-placeholder"), &app.proxy_address)
+                        .width(Length::FillPortion(2))
+                        .align_x(Alignment::Center)
+                        .padding(INPUT_PADDING)
+                        .on_input(AppMessage::ProxyAddressChanged),
                     container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
-                    text_input(
-                        &app.i18n.t("settings.proxy-port-placeholder"),
-                        &app.proxy_port
-                    )
-                    .width(Length::Fixed(PORT_INPUT_WIDTH))
-                    .align_x(Alignment::Center)
-                    .padding(INPUT_PADDING)
-                    .on_input(AppMessage::ProxyPortChanged),
+                    text_input(&app.i18n.t("settings.proxy-port-placeholder"), &app.proxy_port)
+                        .width(Length::Fixed(PORT_INPUT_WIDTH))
+                        .align_x(Alignment::Center)
+                        .padding(INPUT_PADDING)
+                        .on_input(AppMessage::ProxyPortChanged),
                     container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
-                    common::create_colored_button(
-                        app.i18n.t("settings.proxy-save"),
-                        BUTTON_COLOR_BLUE,
-                        AppMessage::SaveProxy
-                    )
+                    common::create_colored_button(app.i18n.t("settings.proxy-save"), BUTTON_COLOR_BLUE, AppMessage::SaveProxy)
                 ]
                 .width(Length::FillPortion(2))
                 .spacing(0),
@@ -161,21 +143,14 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         vec![common::create_setting_row(
             app.i18n.t("settings.wallhaven-api-key"),
             row![
-                text_input(
-                    &app.i18n.t("settings.wallhaven-api-key-placeholder"),
-                    &app.wallhaven_api_key
-                )
-                .width(Length::Fill)
-                .size(TEXT_INPUT_SIZE)
-                .align_x(Alignment::Center)
-                .on_input(AppMessage::WallhavenApiKeyChanged)
-                .padding(INPUT_PADDING),
+                text_input(&app.i18n.t("settings.wallhaven-api-key-placeholder"), &app.wallhaven_api_key)
+                    .width(Length::Fill)
+                    .size(TEXT_INPUT_SIZE)
+                    .align_x(Alignment::Center)
+                    .on_input(AppMessage::WallhavenApiKeyChanged)
+                    .padding(INPUT_PADDING),
                 container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-                common::create_colored_button(
-                    app.i18n.t("settings.save"),
-                    BUTTON_COLOR_BLUE,
-                    AppMessage::SaveWallhavenApiKey
-                )
+                common::create_colored_button(app.i18n.t("settings.save"), BUTTON_COLOR_BLUE, AppMessage::SaveWallhavenApiKey)
             ]
             .width(Length::FillPortion(3))
             .spacing(0),
@@ -192,19 +167,9 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
             row![
                 container(
                     column![
-                        common::create_info_row(
-                            app.i18n.t("settings.about-name"),
-                            app.i18n.t("app-title")
-                        ),
-                        common::create_info_row(
-                            app.i18n.t("settings.about-version"),
-                            env!("CARGO_PKG_VERSION").to_string()
-                        ),
-                        create_about_link_row(
-                            app.i18n.t("settings.about-author"),
-                            "zsyo",
-                            "https://github.com/zsyo"
-                        ),
+                        common::create_info_row(app.i18n.t("settings.about-name"), app.i18n.t("app-title")),
+                        common::create_info_row(app.i18n.t("settings.about-version"), env!("CARGO_PKG_VERSION").to_string()),
+                        create_about_link_row(app.i18n.t("settings.about-author"), "zsyo", "https://github.com/zsyo"),
                         create_about_link_row(
                             app.i18n.t("settings.about-repo"),
                             "https://github.com/zsyo/wallwarp",
@@ -230,16 +195,11 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
     .style(common::create_bordered_container_style);
 
     scrollable(
-        column![
-            system_config_section,
-            data_config_section,
-            api_config_section,
-            about_config_section,
-        ]
-        .width(Length::Fill)
-        .align_x(Alignment::Center)
-        .padding(SCROLL_PADDING)
-        .spacing(ROW_SPACING),
+        column![system_config_section, data_config_section, api_config_section, about_config_section,]
+            .width(Length::Fill)
+            .align_x(Alignment::Center)
+            .padding(SCROLL_PADDING)
+            .spacing(ROW_SPACING),
     )
     .height(Length::Fill)
     .id(iced::widget::Id::new("settings_scroll"))
@@ -265,29 +225,13 @@ fn create_path_config_row<'a>(
                 .on_input(|_| AppMessage::DataPathSelected("".to_string()))
                 .padding(INPUT_PADDING),
             container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.select-path"),
-                BUTTON_COLOR_BLUE,
-                select_msg
-            ),
+            common::create_colored_button(i18n.t("settings.select-path"), BUTTON_COLOR_BLUE, select_msg),
             container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.open-path"),
-                BUTTON_COLOR_GREEN,
-                open_msg
-            ),
+            common::create_colored_button(i18n.t("settings.open-path"), BUTTON_COLOR_GREEN, open_msg),
             container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.clear-path"),
-                BUTTON_COLOR_RED,
-                clear_msg
-            ),
+            common::create_colored_button(i18n.t("settings.clear-path"), BUTTON_COLOR_RED, clear_msg),
             container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.restore-default"),
-                BUTTON_COLOR_GRAY,
-                restore_msg
-            ),
+            common::create_colored_button(i18n.t("settings.restore-default"), BUTTON_COLOR_GRAY, restore_msg),
         ]
         .width(Length::FillPortion(4))
         .spacing(0),
@@ -298,11 +242,7 @@ fn create_path_config_row<'a>(
     .into()
 }
 
-fn create_about_link_row<'a>(
-    label: String,
-    text_value: &'a str,
-    url: &'a str,
-) -> iced::Element<'a, AppMessage> {
+fn create_about_link_row<'a>(label: String, text_value: &'a str, url: &'a str) -> iced::Element<'a, AppMessage> {
     row![
         text(label),
         button(text(text_value).width(Length::Fill).align_x(Alignment::Center))
@@ -311,10 +251,7 @@ fn create_about_link_row<'a>(
                 let palette = theme.extended_palette();
                 iced::widget::button::Style {
                     text_color: palette.primary.base.color,
-                    ..iced::widget::button::text(
-                        theme,
-                        iced::widget::button::Status::Active,
-                    )
+                    ..iced::widget::button::text(theme, iced::widget::button::Status::Active)
                 }
             })
             .on_press(AppMessage::OpenUrl(url.to_string())),

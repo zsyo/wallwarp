@@ -1,8 +1,7 @@
 use crate::ui::style::{
-    BORDER_COLOR_GRAY, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, BUTTON_TEXT_SIZE,
-    DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH,
-    DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE,
-    INPUT_HEIGHT, MASK_ALPHA, ROW_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
+    BORDER_COLOR_GRAY, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, BUTTON_TEXT_SIZE, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH,
+    DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, ICON_BUTTON_PADDING,
+    ICON_BUTTON_TEXT_SIZE, INPUT_HEIGHT, MASK_ALPHA, ROW_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
     TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
 };
 use iced::widget::{button, column, container, row, text, tooltip};
@@ -26,24 +25,18 @@ where
 }
 
 /// 创建带颜色的按钮（接收 text 控件，可自定义字体和颜色）
-pub fn create_colored_button_with_text<'a, Message>(
-    text_element: Element<'a, Message>,
-    color: Color,
-    message: Message,
-) -> button::Button<'a, Message>
+pub fn create_colored_button_with_text<'a, Message>(text_element: Element<'a, Message>, color: Color, message: Message) -> button::Button<'a, Message>
 where
     Message: Clone + 'a,
 {
-    button(text_element)
-        .on_press(message)
-        .style(move |_theme: &iced::Theme, _status| {
-            let base = iced::widget::button::text(_theme, _status);
-            iced::widget::button::Style {
-                background: Some(iced::Background::Color(color)),
-                text_color: iced::Color::WHITE,
-                ..base
-            }
-        })
+    button(text_element).on_press(message).style(move |_theme: &iced::Theme, _status| {
+        let base = iced::widget::button::text(_theme, _status);
+        iced::widget::button::Style {
+            background: Some(iced::Background::Color(color)),
+            text_color: iced::Color::WHITE,
+            ..base
+        }
+    })
 }
 
 /// 创建模态确认对话框
@@ -67,14 +60,8 @@ where
     Message: Clone + 'a,
 {
     let dialog_content = column![
-        text(title)
-            .size(DIALOG_TITLE_SIZE)
-            .width(Length::Fill)
-            .align_x(Alignment::Center),
-        text(message)
-            .size(DIALOG_MESSAGE_SIZE)
-            .width(Length::Fill)
-            .align_x(Alignment::Center),
+        text(title).size(DIALOG_TITLE_SIZE).width(Length::Fill).align_x(Alignment::Center),
+        text(message).size(DIALOG_MESSAGE_SIZE).width(Length::Fill).align_x(Alignment::Center),
         row![
             create_colored_button(confirm_label, BUTTON_COLOR_RED, confirm_msg),
             create_colored_button(cancel_label, BUTTON_COLOR_GRAY, cancel_msg),
@@ -147,12 +134,7 @@ pub fn create_bordered_container_style(theme: &iced::Theme) -> iced::widget::con
 /// - `title`: 区块标题
 /// - `rows`: 区块内容行
 pub fn create_config_section<'a, Message: 'a>(title: String, rows: Vec<Element<'a, Message>>) -> Element<'a, Message> {
-    let mut column_content = column!(
-        text(title)
-            .size(SECTION_TITLE_SIZE)
-            .width(Length::Fill)
-            .align_x(Alignment::Center),
-    );
+    let mut column_content = column!(text(title).size(SECTION_TITLE_SIZE).width(Length::Fill).align_x(Alignment::Center),);
 
     for row in rows {
         column_content = column_content.push(row);
@@ -170,10 +152,7 @@ pub fn create_config_section<'a, Message: 'a>(title: String, rows: Vec<Element<'
 /// # 参数
 /// - `label`: 标签文本
 /// - `widget`: 控件
-pub fn create_setting_row<'a, Message: 'a>(
-    label: String,
-    widget: impl Into<Element<'a, Message>>,
-) -> Element<'a, Message> {
+pub fn create_setting_row<'a, Message: 'a>(label: String, widget: impl Into<Element<'a, Message>>) -> Element<'a, Message> {
     row![text(label).width(Length::FillPortion(1)), widget.into(),]
         .align_y(Alignment::Center)
         .height(Length::Fixed(INPUT_HEIGHT))
@@ -212,11 +191,7 @@ pub fn get_absolute_path(path: &str) -> String {
 /// - `icon_char`: 图标字符（如 "\u{F341}"）
 /// - `icon_color`: 图标颜色
 /// - `message`: 按钮点击消息
-pub fn create_icon_button<'a, Message>(
-    icon_char: &'static str,
-    icon_color: Color,
-    message: Message,
-) -> button::Button<'a, Message>
+pub fn create_icon_button<'a, Message>(icon_char: &'static str, icon_color: Color, message: Message) -> button::Button<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -256,24 +231,19 @@ pub fn create_icon_button_with_size<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    button(
-        text(icon_char)
-            .color(icon_color)
-            .font(Font::with_name("bootstrap-icons"))
-            .size(size),
-    )
-    .padding(ICON_BUTTON_PADDING)
-    .style(|_theme: &iced::Theme, _status| button::Style {
-        text_color: iced::Color::WHITE,
-        background: None,
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(0.0),
-        },
-        ..Default::default()
-    })
-    .on_press(message)
+    button(text(icon_char).color(icon_color).font(Font::with_name("bootstrap-icons")).size(size))
+        .padding(ICON_BUTTON_PADDING)
+        .style(|_theme: &iced::Theme, _status| button::Style {
+            text_color: iced::Color::WHITE,
+            background: None,
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(0.0),
+            },
+            ..Default::default()
+        })
+        .on_press(message)
 }
 
 /// 创建带 tooltip 的图标按钮
@@ -283,12 +253,7 @@ where
 /// - `icon_color`: 图标颜色
 /// - `message`: 按钮点击消息
 /// - `tooltip_text`: tooltip 文本
-pub fn create_icon_button_with_tooltip<'a, Message>(
-    icon_char: &'static str,
-    icon_color: Color,
-    message: Message,
-    tooltip_text: String,
-) -> Element<'a, Message>
+pub fn create_icon_button_with_tooltip<'a, Message>(icon_char: &'static str, icon_color: Color, message: Message, tooltip_text: String) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -329,10 +294,7 @@ where
 /// # 参数
 /// - `button`: 按钮组件
 /// - `tooltip_text`: tooltip 文本
-pub fn create_button_with_tooltip<'a, Message>(
-    button: button::Button<'a, Message>,
-    tooltip_text: String,
-) -> Element<'a, Message>
+pub fn create_button_with_tooltip<'a, Message>(button: button::Button<'a, Message>, tooltip_text: String) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
@@ -354,10 +316,7 @@ where
 /// # 参数
 /// - `theme`: 主题
 /// - `bg_color`: 背景颜色
-pub fn create_bordered_container_style_with_bg(
-    theme: &iced::Theme,
-    bg_color: Color,
-) -> iced::widget::container::Style {
+pub fn create_bordered_container_style_with_bg(theme: &iced::Theme, bg_color: Color) -> iced::widget::container::Style {
     iced::widget::container::Style {
         background: Some(iced::Background::Color(bg_color)),
         border: iced::border::Border {
@@ -368,5 +327,3 @@ pub fn create_bordered_container_style_with_bg(
         ..Default::default()
     }
 }
-
-

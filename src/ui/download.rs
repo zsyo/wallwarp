@@ -6,8 +6,8 @@ use super::AppMessage;
 use super::common;
 use crate::i18n::I18n;
 use crate::ui::style::{
-    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW,
-    COLOR_LIGHT_TEXT_SUB, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, TABLE_SEPARATOR_COLOR, TABLE_SEPARATOR_WIDTH,
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_LIGHT_TEXT_SUB, EMPTY_STATE_PADDING,
+    EMPTY_STATE_TEXT_SIZE, TABLE_SEPARATOR_COLOR, TABLE_SEPARATOR_WIDTH,
 };
 use crate::utils::helpers::format_file_size;
 use iced::widget::{column, container, progress_bar, row, scrollable, text};
@@ -132,14 +132,7 @@ impl DownloadStateFull {
     }
 
     /// 添加新下载任务（倒序插入到列表开头）
-    pub fn add_task(
-        &mut self,
-        url: String,
-        save_path: String,
-        file_name: String,
-        proxy: Option<String>,
-        file_type: String,
-    ) {
+    pub fn add_task(&mut self, url: String, save_path: String, file_name: String, proxy: Option<String>, file_type: String) {
         let task = DownloadTask {
             id: self.next_id,
             file_name: file_name.clone(),
@@ -291,11 +284,7 @@ pub fn generate_file_name(id: &str, file_type: &str) -> String {
     format!("wallhaven-{}.{}", id, file_type)
 }
 
-pub fn download_view<'a>(
-    i18n: &'a I18n,
-    _window_width: u32,
-    download_state: &'a DownloadStateFull,
-) -> Element<'a, AppMessage> {
+pub fn download_view<'a>(i18n: &'a I18n, _window_width: u32, download_state: &'a DownloadStateFull) -> Element<'a, AppMessage> {
     let content = if download_state.tasks.is_empty() {
         // 空状态显示
         create_empty_state(i18n)
@@ -306,11 +295,7 @@ pub fn download_view<'a>(
 
     let scrollable_content = scrollable(content).width(Length::Fill).height(Length::Fill);
 
-    container(scrollable_content)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .padding(20)
-        .into()
+    container(scrollable_content).width(Length::Fill).height(Length::Fill).padding(20).into()
 }
 
 /// 创建表格视图
@@ -388,9 +373,7 @@ fn create_table_header<'a>(i18n: &'a I18n) -> Element<'a, AppMessage> {
 fn create_table_row<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
     row![
         // 文件名列
-        container(text(&task.file_name).size(13))
-            .width(Length::FillPortion(3))
-            .padding(5),
+        container(text(&task.file_name).size(13)).width(Length::FillPortion(3)).padding(5),
         // 分隔线
         create_separator(),
         // 大小列
@@ -400,21 +383,15 @@ fn create_table_row<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, A
         // 分隔线
         create_separator(),
         // 状态列
-        container(create_status_display(i18n, task))
-            .width(Length::Fixed(220.0))
-            .padding(5),
+        container(create_status_display(i18n, task)).width(Length::Fixed(220.0)).padding(5),
         // 分隔线
         create_separator(),
         // 下载列
-        container(create_download_display(i18n, task))
-            .width(Length::Fixed(100.0))
-            .padding(5),
+        container(create_download_display(i18n, task)).width(Length::Fixed(100.0)).padding(5),
         // 分隔线
         create_separator(),
         // 操作列（最后一列，不添加分隔线）
-        container(create_operation_buttons(i18n, task))
-            .width(Length::Fill)
-            .padding(5),
+        container(create_operation_buttons(i18n, task)).width(Length::Fill).padding(5),
     ]
     .width(Length::Fill)
     .padding(5)
@@ -429,15 +406,10 @@ fn create_status_display<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<
             let progress_bar = container(progress_bar(0.0..=1.0, task.progress))
                 .width(Length::Fixed(160.0))
                 .height(Length::Fixed(12.0));
-            let progress_text = text(format!("{:.0}%", task.progress * 100.0))
-                .size(11)
-                .style(|_| text::Style {
-                    color: Some(BUTTON_COLOR_BLUE),
-                });
-            row![progress_bar, progress_text]
-                .spacing(6)
-                .align_y(Alignment::Center)
-                .into()
+            let progress_text = text(format!("{:.0}%", task.progress * 100.0)).size(11).style(|_| text::Style {
+                color: Some(BUTTON_COLOR_BLUE),
+            });
+            row![progress_bar, progress_text].spacing(6).align_y(Alignment::Center).into()
         }
         DownloadStatus::Waiting => text(i18n.t("download-tasks.status-waiting"))
             .size(12)
@@ -459,9 +431,7 @@ fn create_status_display<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<
             .into(),
         DownloadStatus::Failed(_msg) => text(i18n.t("download-tasks.status-failed-error"))
             .size(12)
-            .style(|_| text::Style {
-                color: Some(BUTTON_COLOR_RED),
-            })
+            .style(|_| text::Style { color: Some(BUTTON_COLOR_RED) })
             .into(),
         DownloadStatus::Cancelled => text(i18n.t("download-tasks.status-cancelled"))
             .size(12)
@@ -604,9 +574,7 @@ fn create_operation_buttons<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Eleme
                 AppMessage::Download(DownloadMessage::DeleteTask(task.id)),
                 i18n.t("download-tasks.tooltip-delete"),
             );
-            row![view_button, set_wallpaper_button, copy_button, delete_button]
-                .spacing(6)
-                .into()
+            row![view_button, set_wallpaper_button, copy_button, delete_button].spacing(6).into()
         }
         DownloadStatus::Waiting => {
             // 等待中：继续/复制下载链接/取消
@@ -644,11 +612,9 @@ fn create_empty_state<'a>(i18n: &'a I18n) -> Element<'a, AppMessage> {
 
     let empty_text = text(i18n.t("download-tasks.no-tasks")).size(EMPTY_STATE_TEXT_SIZE);
 
-    let hint_text = text(i18n.t("download-tasks.no-tasks-hint"))
-        .size(14)
-        .style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_LIGHT_TEXT_SUB),
-        });
+    let hint_text = text(i18n.t("download-tasks.no-tasks-hint")).size(14).style(|_theme: &iced::Theme| text::Style {
+        color: Some(COLOR_LIGHT_TEXT_SUB),
+    });
 
     column![icon, empty_text, hint_text]
         .width(Length::Fill)

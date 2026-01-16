@@ -1,11 +1,10 @@
 use super::AppMessage;
 use super::common;
 use crate::ui::style::{
-    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, COLOR_BG_LIGHT, COLOR_LIGHT_BG,
-    COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT, COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG, COLOR_NSFW, COLOR_OVERLAY_BG,
-    COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK, EMPTY_STATE_PADDING,
-    EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT,
-    OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE,
+    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, COLOR_BG_LIGHT, COLOR_LIGHT_BG, COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT,
+    COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG, COLOR_NSFW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK,
+    EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
+    PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE,
 };
 use iced::widget::{button, column, container, pick_list, row, scrollable, text};
 use iced::{Alignment, Color, Element, Length};
@@ -187,12 +186,7 @@ pub enum Resolution {
 
 impl Resolution {
     pub fn all() -> [Resolution; 4] {
-        [
-            Resolution::Any,
-            Resolution::Standard,
-            Resolution::Wide,
-            Resolution::Ultrawide,
-        ]
+        [Resolution::Any, Resolution::Standard, Resolution::Wide, Resolution::Ultrawide]
     }
 
     pub fn value(&self) -> &str {
@@ -343,13 +337,7 @@ pub enum TimeRange {
 
 impl TimeRange {
     pub fn all() -> [TimeRange; 5] {
-        [
-            TimeRange::Any,
-            TimeRange::Day,
-            TimeRange::Week,
-            TimeRange::Month,
-            TimeRange::Year,
-        ]
+        [TimeRange::Any, TimeRange::Day, TimeRange::Week, TimeRange::Month, TimeRange::Year]
     }
 
     pub fn value(&self) -> &str {
@@ -645,11 +633,7 @@ impl OnlineState {
     }
 }
 
-pub fn online_view<'a>(
-    i18n: &'a crate::i18n::I18n,
-    window_width: u32,
-    online_state: &'a OnlineState,
-) -> Element<'a, AppMessage> {
+pub fn online_view<'a>(i18n: &'a crate::i18n::I18n, window_width: u32, online_state: &'a OnlineState) -> Element<'a, AppMessage> {
     // 创建筛选栏
     let filter_bar = create_filter_bar(i18n, online_state);
 
@@ -685,10 +669,7 @@ pub fn online_view<'a>(
         let items_per_row = (available_width / unit_width).floor() as usize;
         let items_per_row = items_per_row.max(1);
 
-        let mut content = column![]
-            .spacing(IMAGE_SPACING)
-            .width(Length::Fill)
-            .align_x(Alignment::Center);
+        let mut content = column![].spacing(IMAGE_SPACING).width(Length::Fill).align_x(Alignment::Center);
 
         // 按页渲染数据，实现类似PDF的分页效果
         // 每页数据独立显示，不会跨页
@@ -711,9 +692,7 @@ pub fn online_view<'a>(
                             let wallpaper_index = online_state
                                 .wallpapers
                                 .iter()
-                                .position(
-                                    |w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id),
-                                )
+                                .position(|w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id))
                                 .unwrap_or(0);
                             create_loaded_wallpaper_with_thumb(i18n, wallpaper, Some(handle.clone()), wallpaper_index)
                         }
@@ -735,11 +714,7 @@ pub fn online_view<'a>(
             }
 
             // 在当前页数据后添加分页分隔线
-            content = content.push(create_page_separator(
-                i18n,
-                page_info.page_num,
-                online_state.total_pages,
-            ));
+            content = content.push(create_page_separator(i18n, page_info.page_num, online_state.total_pages));
 
             // 更新下一页的起始索引
             start_index = end_index;
@@ -799,9 +774,7 @@ pub fn online_view<'a>(
             }
         });
 
-    let main_content = column![filter_bar, scrollable_content]
-        .width(Length::Fill)
-        .height(Length::Fill);
+    let main_content = column![filter_bar, scrollable_content].width(Length::Fill).height(Length::Fill);
 
     let mut layers = vec![main_content.into()];
 
@@ -820,30 +793,19 @@ pub fn online_view<'a>(
                 .height(Length::Fill);
             modal_image.into()
         } else {
-            container(iced::widget::Space::new())
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into()
+            container(iced::widget::Space::new()).width(Length::Fill).height(Length::Fill).into()
         };
 
         let modal_image_content = iced::widget::stack(vec![loading_text, image_layer]);
 
         // 创建底部工具栏按钮
         let prev_button = common::create_button_with_tooltip(
-            common::create_icon_button(
-                "\u{F12E}",
-                BUTTON_COLOR_BLUE,
-                AppMessage::Online(OnlineMessage::PreviousImage),
-            ),
+            common::create_icon_button("\u{F12E}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::PreviousImage)),
             i18n.t("online-wallpapers.tooltip-prev"),
         );
 
         let next_button = common::create_button_with_tooltip(
-            common::create_icon_button(
-                "\u{F137}",
-                BUTTON_COLOR_BLUE,
-                AppMessage::Online(OnlineMessage::NextImage),
-            ),
+            common::create_icon_button("\u{F137}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::NextImage)),
             i18n.t("online-wallpapers.tooltip-next"),
         );
 
@@ -857,11 +819,7 @@ pub fn online_view<'a>(
         );
 
         let close_button = common::create_button_with_tooltip(
-            common::create_icon_button(
-                "\u{F659}",
-                BUTTON_COLOR_RED,
-                AppMessage::Online(OnlineMessage::CloseModal),
-            ),
+            common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, AppMessage::Online(OnlineMessage::CloseModal)),
             i18n.t("online-wallpapers.tooltip-close"),
         );
 
@@ -893,15 +851,9 @@ pub fn online_view<'a>(
         });
 
         let modal_content = container(
-            column![
-                container(modal_image_content)
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .padding(20),
-                toolbar,
-            ]
-            .width(Length::Fill)
-            .height(Length::Fill),
+            column![container(modal_image_content).width(Length::Fill).height(Length::Fill).padding(20), toolbar,]
+                .width(Length::Fill)
+                .height(Length::Fill),
         )
         .style(|_theme: &iced::Theme| container::Style {
             background: Some(iced::Background::Color(COLOR_MODAL_BG)),
@@ -911,10 +863,7 @@ pub fn online_view<'a>(
         layers.push(container(iced::widget::opaque(modal_content)).into());
     }
 
-    iced::widget::stack(layers)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
+    iced::widget::stack(layers).width(Length::Fill).height(Length::Fill).into()
 }
 
 fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
@@ -938,22 +887,18 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
             selection: Color::from_rgba(0.098, 0.463, 0.824, 0.3),
         });
 
-    let search_button = common::create_icon_button_with_size(
-        "\u{F52A}",
-        BUTTON_COLOR_BLUE,
-        16,
-        AppMessage::Online(OnlineMessage::Search),
-    )
-    .style(|_theme: &iced::Theme, _status| iced::widget::button::Style {
-        background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-        // text_color: COLOR_LIGHT_TEXT,
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(4.0),
+    let search_button = common::create_icon_button_with_size("\u{F52A}", BUTTON_COLOR_BLUE, 16, AppMessage::Online(OnlineMessage::Search)).style(
+        |_theme: &iced::Theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+            // text_color: COLOR_LIGHT_TEXT,
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(4.0),
+            },
+            ..iced::widget::button::text(_theme, _status)
         },
-        ..iced::widget::button::text(_theme, _status)
-    });
+    );
 
     let search_container = row![search_input, search_button].spacing(2).align_y(Alignment::Center);
 
@@ -1104,22 +1049,19 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
     });
 
     // 功能按钮
-    let refresh_button = common::create_icon_button_with_size(
-        "\u{F130}",
-        BUTTON_COLOR_GREEN,
-        16,
-        AppMessage::Online(OnlineMessage::Refresh),
-    )
-    .style(|_theme, _status| iced::widget::button::Style {
-        background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-        // text_color: COLOR_LIGHT_TEXT,
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(4.0),
-        },
-        ..iced::widget::button::text(_theme, _status)
-    });
+    let refresh_button =
+        common::create_icon_button_with_size("\u{F130}", BUTTON_COLOR_GREEN, 16, AppMessage::Online(OnlineMessage::Refresh)).style(|_theme, _status| {
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+                // text_color: COLOR_LIGHT_TEXT,
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            }
+        });
 
     // 组合所有元素
     let filter_row = row![
@@ -1131,11 +1073,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::General.bit_value()) != 0;
-                let bg_color = if is_checked {
-                    COLOR_SELECTED_BLUE
-                } else {
-                    COLOR_LIGHT_BUTTON
-                };
+                let bg_color = if is_checked { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
                 let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
@@ -1153,11 +1091,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::Anime.bit_value()) != 0;
-                let bg_color = if is_checked {
-                    COLOR_SELECTED_BLUE
-                } else {
-                    COLOR_LIGHT_BUTTON
-                };
+                let bg_color = if is_checked { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
                 let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
@@ -1175,11 +1109,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::People.bit_value()) != 0;
-                let bg_color = if is_checked {
-                    COLOR_SELECTED_BLUE
-                } else {
-                    COLOR_LIGHT_BUTTON
-                };
+                let bg_color = if is_checked { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
                 let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
@@ -1287,9 +1217,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
 fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> Element<'a, AppMessage> {
     let loading_text = text(i18n.t("online-wallpapers.image-loading"))
         .size(LOADING_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_TEXT_DARK),
-        });
+        .style(|_theme: &iced::Theme| text::Style { color: Some(COLOR_TEXT_DARK) });
 
     let placeholder_content = container(loading_text)
         .width(Length::Fixed(IMAGE_WIDTH))
@@ -1321,9 +1249,7 @@ fn create_loaded_wallpaper_with_thumb<'a>(
         // 如果没有缩略图，使用占位符
         let placeholder = text(i18n.t("online-wallpapers.loading-placeholder"))
             .size(LOADING_TEXT_SIZE)
-            .style(|_theme: &iced::Theme| text::Style {
-                color: Some(COLOR_TEXT_DARK),
-            });
+            .style(|_theme: &iced::Theme| text::Style { color: Some(COLOR_TEXT_DARK) });
 
         return container(placeholder)
             .width(Length::Fixed(IMAGE_WIDTH))
@@ -1346,18 +1272,12 @@ fn create_loaded_wallpaper_with_thumb<'a>(
             color: Some(COLOR_OVERLAY_TEXT),
         });
 
-    let resolution_text = text(&wallpaper.resolution)
-        .size(OVERLAY_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_OVERLAY_TEXT),
-        });
+    let resolution_text = text(&wallpaper.resolution).size(OVERLAY_TEXT_SIZE).style(|_theme: &iced::Theme| text::Style {
+        color: Some(COLOR_OVERLAY_TEXT),
+    });
 
     let set_wallpaper_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F196}",
-            BUTTON_COLOR_BLUE,
-            super::AppMessage::Online(OnlineMessage::SetAsWallpaper(index)),
-        ),
+        common::create_icon_button("\u{F196}", BUTTON_COLOR_BLUE, super::AppMessage::Online(OnlineMessage::SetAsWallpaper(index))),
         i18n.t("online-wallpapers.tooltip-set-wallpaper"),
     );
 
@@ -1374,9 +1294,7 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     let left_area = container(file_size_text).align_y(Alignment::Center);
 
     // 右侧区域：设为壁纸按钮 + 下载按钮
-    let right_area = row![set_wallpaper_button, download_button]
-        .spacing(4)
-        .align_y(Alignment::Center);
+    let right_area = row![set_wallpaper_button, download_button].spacing(4).align_y(Alignment::Center);
 
     // 使用 stack 确保分辨率永远居中，不受两侧内容影响
     let overlay_content = iced::widget::stack(vec![
@@ -1432,23 +1350,15 @@ fn create_loaded_wallpaper_with_thumb<'a>(
         .into()
 }
 
-fn create_page_separator<'a>(
-    i18n: &'a crate::i18n::I18n,
-    current_page: usize,
-    total_pages: usize,
-) -> Element<'a, AppMessage> {
+fn create_page_separator<'a>(i18n: &'a crate::i18n::I18n, current_page: usize, total_pages: usize) -> Element<'a, AppMessage> {
     let page_text = i18n
         .t("online-wallpapers.page-separator")
         .replace("{current}", &current_page.to_string())
         .replace("{total}", &total_pages.to_string());
 
-    let separator = container(
-        text(page_text)
-            .size(PAGE_SEPARATOR_TEXT_SIZE)
-            .style(|_theme: &iced::Theme| text::Style {
-                color: Some(PAGE_SEPARATOR_TEXT_COLOR),
-            }),
-    )
+    let separator = container(text(page_text).size(PAGE_SEPARATOR_TEXT_SIZE).style(|_theme: &iced::Theme| text::Style {
+        color: Some(PAGE_SEPARATOR_TEXT_COLOR),
+    }))
     .width(Length::Fill)
     .height(Length::Fixed(PAGE_SEPARATOR_HEIGHT))
     .align_x(Alignment::Center)

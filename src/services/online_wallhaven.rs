@@ -1,6 +1,10 @@
 use crate::services::request_context::RequestContext;
 use crate::ui::online::{OnlineWallpaper, Sorting};
 use serde::Deserialize;
+use tracing::debug;
+use tracing::error;
+use tracing::info;
+use tracing::warn;
 
 const BASE_URL: &str = "https://wallhaven.cc/api/v1";
 
@@ -87,52 +91,42 @@ impl WallhavenService {
     pub fn new(api_key: Option<String>, proxy: Option<String>) -> Self {
         let client = if let Some(proxy_url) = proxy {
             if !proxy_url.is_empty() {
-                println!("[WallhavenService] 尝试创建代理客户端，代理URL: {}", proxy_url);
+                debug!("[WallhavenService] 尝试创建代理客户端，代理URL: {}", proxy_url);
                 match reqwest::Proxy::all(&proxy_url) {
                     Ok(p) => {
-                        println!("[WallhavenService] Proxy::all 成功");
-                        match reqwest::Client::builder()
-                            .proxy(p)
-                            .build() {
+                        debug!("[WallhavenService] Proxy::all 成功");
+                        match reqwest::Client::builder().proxy(p).build() {
                             Ok(http_client) => {
-                                println!("[WallhavenService] HTTP客户端创建成功");
+                                debug!("[WallhavenService] HTTP客户端创建成功");
                                 http_client
                             }
                             Err(e) => {
-                                println!("[WallhavenService] HTTP客户端创建失败: {}，回退到无代理", e);
+                                warn!("[WallhavenService] HTTP客户端创建失败: {}，回退到无代理", e);
                                 reqwest::Client::new()
                             }
                         }
                     }
                     Err(e) => {
-                        println!("[WallhavenService] Proxy::all 失败: {}，回退到无代理", e);
+                        warn!("[WallhavenService] Proxy::all 失败: {}，回退到无代理", e);
                         reqwest::Client::new()
                     }
                 }
             } else {
-                println!("[WallhavenService] 代理URL为空，使用无代理客户端");
+                debug!("[WallhavenService] 代理URL为空，使用无代理客户端");
                 reqwest::Client::new()
             }
         } else {
-            println!("[WallhavenService] 无代理配置，使用无代理客户端");
+            debug!("[WallhavenService] 无代理配置，使用无代理客户端");
             reqwest::Client::new()
         };
 
-        Self {
-            api_key,
-            client,
-        }
+        Self { api_key, client }
     }
 
     /// 执行带重试的HTTP请求
     /// max_retries: 最大重试次数
     /// operation: 要执行的异步操作，返回Result
-    async fn retry_with_backoff<F, T, Fut>(
-        identifier: &str,
-        _operation_name: &str,
-        max_retries: usize,
-        mut operation: F,
-    ) -> Result<T, String>
+    async fn retry_with_backoff<F, T, Fut>(identifier: &str, _operation_name: &str, max_retries: usize, mut operation: F) -> Result<T, String>
     where
         F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<T, String>>,
@@ -143,19 +137,17 @@ impl WallhavenService {
             match operation().await {
                 Ok(result) => {
                     if attempt > 0 {
-                        println!("[Wallhaven API] [{}] 重试第 {} 次成功", identifier, attempt);
+                        info!("[Wallhaven API] [{}] 重试第 {} 次成功", identifier, attempt);
                     }
                     return Ok(result);
                 }
                 Err(e) => {
                     last_error = e;
                     if attempt < max_retries {
-                        println!("[Wallhaven API] [{}] 第 {} 次尝试失败，将在1秒后重试: {}",
-                            identifier, attempt + 1, last_error);
+                        warn!("[Wallhaven API] [{}] 第 {} 次尝试失败，将在1秒后重试: {}", identifier, attempt + 1, last_error);
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                     } else {
-                        println!("[Wallhaven API] [{}] 所有重试失败，共尝试 {} 次",
-                            identifier, max_retries + 1);
+                        error!("[Wallhaven API] [{}] 所有重试失败，共尝试 {} 次", identifier, max_retries + 1);
                     }
                 }
             }
@@ -167,9 +159,9 @@ impl WallhavenService {
     pub async fn search_wallpapers(
         &self,
         page: usize,
-        categories: u32,  // 位掩码
+        categories: u32, // 位掩码
         sorting: Sorting,
-        purities: u32,    // 位掩码
+        purities: u32, // 位掩码
         query: &str,
         context: &RequestContext,
     ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), String> {
@@ -213,9 +205,15 @@ impl WallhavenService {
         }
 
         // 打印请求参数
-        let search_tag = format!("page{}_cat{:03b}_sort{:?}_purity{:03b}_q{}",
-            page, categories, sorting, purities, if query.is_empty() { "empty" } else { &query[..query.len().min(10)] });
-        println!("[Wallhaven API] [{}] 请求URL: {}", search_tag, url);
+        let search_tag = format!(
+            "page{}_cat{:03b}_sort{:?}_purity{:03b}_q{}",
+            page,
+            categories,
+            sorting,
+            purities,
+            if query.is_empty() { "empty" } else { &query[..query.len().min(10)] }
+        );
+        info!("[Wallhaven API] [{}] 请求URL: {}", search_tag, url);
 
         // 使用重试机制执行请求
         let text = Self::retry_with_backoff(
@@ -233,64 +231,46 @@ impl WallhavenService {
                         return Err("请求已取消".to_string());
                     }
 
-                    let response = client.get(&url).send().await
-                        .map_err(|e| {
-                            println!("[Wallhaven API] [{}] 请求失败: {}", search_tag, e);
-                            format!("请求失败: {}", e)
-                        })?;
+                    let response = client.get(&url).send().await.map_err(|e| {
+                        error!("[Wallhaven API] [{}] 请求失败: {}", search_tag, e);
+                        format!("请求失败: {}", e)
+                    })?;
 
-                    println!("[Wallhaven API] [{}] 响应状态: {}", search_tag, response.status());
+                    debug!("[Wallhaven API] [{}] 响应状态: {}", search_tag, response.status());
 
                     if !response.status().is_success() {
                         return Err(format!("API返回错误: {}", response.status()));
                     }
 
-                    response.text().await
-                        .map_err(|e| {
-                            println!("[Wallhaven API] [{}] 读取响应失败: {}", search_tag, e);
-                            format!("读取响应失败: {}", e)
-                        })
+                    response.text().await.map_err(|e| {
+                        error!("[Wallhaven API] [{}] 读取响应失败: {}", search_tag, e);
+                        format!("读取响应失败: {}", e)
+                    })
                 }
             },
-        ).await?;
+        )
+        .await?;
 
         // 解析前检查取消状态
         if let Some(()) = context.check_cancelled() {
             return Err("请求已取消".to_string());
         }
 
-        let wallhaven_response: WallhavenResponse<Vec<WallhavenWallpaperData>> =
-            serde_json::from_str(&text).map_err(|e| {
-                println!("[Wallhaven API] [{}] JSON解析失败: {}", search_tag, e);
-                format!("解析JSON失败: {}", e)
-            })?;
+        let wallhaven_response: WallhavenResponse<Vec<WallhavenWallpaperData>> = serde_json::from_str(&text).map_err(|e| {
+            error!("[Wallhaven API] [{}] JSON解析失败: {}", search_tag, e);
+            format!("解析JSON失败: {}", e)
+        })?;
 
         // 打印解析结果
-        println!("[Wallhaven API] [{}] 解析成功，获取到 {} 张壁纸", search_tag, wallhaven_response.data.len());
+        info!("[Wallhaven API] [{}] 解析成功，获取到 {} 张壁纸", search_tag, wallhaven_response.data.len());
 
-        let wallpapers: Vec<OnlineWallpaper> = wallhaven_response
-            .data
-            .into_iter()
-            .map(OnlineWallpaper::from)
-            .collect();
+        let wallpapers: Vec<OnlineWallpaper> = wallhaven_response.data.into_iter().map(OnlineWallpaper::from).collect();
 
-        let last_page = wallhaven_response
-            .meta
-            .as_ref()
-            .map(|m| page as u64 >= m.last_page)
-            .unwrap_or(false);
+        let last_page = wallhaven_response.meta.as_ref().map(|m| page as u64 >= m.last_page).unwrap_or(false);
 
-        let total_pages = wallhaven_response
-            .meta
-            .as_ref()
-            .map(|m| m.last_page as usize)
-            .unwrap_or(0);
+        let total_pages = wallhaven_response.meta.as_ref().map(|m| m.last_page as usize).unwrap_or(0);
 
-        let current_page = wallhaven_response
-            .meta
-            .as_ref()
-            .map(|m| m.current_page as usize)
-            .unwrap_or(page);
+        let current_page = wallhaven_response.meta.as_ref().map(|m| m.current_page as usize).unwrap_or(page);
 
         Ok((wallpapers, last_page, total_pages, current_page))
     }
@@ -311,7 +291,7 @@ impl WallhavenService {
 
         let url = format!("{}/w/{}", BASE_URL, id);
 
-        println!("[Wallhaven API] [ID:{}] 获取壁纸详情 - URL: {}", id, url);
+        debug!("[Wallhaven API] [ID:{}] 获取壁纸详情 - URL: {}", id, url);
 
         // 使用重试机制执行请求
         let text = Self::retry_with_backoff(
@@ -329,40 +309,37 @@ impl WallhavenService {
                         return Err("请求已取消".to_string());
                     }
 
-                    let response = client.get(&url).send().await
-                        .map_err(|e| {
-                            println!("[Wallhaven API] [ID:{}] 请求失败: {}", id, e);
-                            format!("请求失败: {}", e)
-                        })?;
+                    let response = client.get(&url).send().await.map_err(|e| {
+                        error!("[Wallhaven API] [ID:{}] 请求失败: {}", id, e);
+                        format!("请求失败: {}", e)
+                    })?;
 
-                    println!("[Wallhaven API] [ID:{}] 响应状态: {}", id, response.status());
+                    debug!("[Wallhaven API] [ID:{}] 响应状态: {}", id, response.status());
 
                     if !response.status().is_success() {
                         return Err(format!("API返回错误: {}", response.status()));
                     }
 
-                    response.text().await
-                        .map_err(|e| {
-                            println!("[Wallhaven API] [ID:{}] 读取响应失败: {}", id, e);
-                            format!("读取响应失败: {}", e)
-                        })
+                    response.text().await.map_err(|e| {
+                        error!("[Wallhaven API] [ID:{}] 读取响应失败: {}", id, e);
+                        format!("读取响应失败: {}", e)
+                    })
                 }
             },
-        ).await?;
+        )
+        .await?;
 
         // 解析前检查取消状态
         if let Some(()) = context.check_cancelled() {
             return Err("请求已取消".to_string());
         }
 
-        let wallhaven_response: WallhavenResponse<WallhavenWallpaperData> =
-            serde_json::from_str(&text).map_err(|e| {
-                println!("[Wallhaven API] [ID:{}] JSON解析失败: {}", id, e);
-                format!("解析JSON失败: {}", e)
-            })?;
+        let wallhaven_response: WallhavenResponse<WallhavenWallpaperData> = serde_json::from_str(&text).map_err(|e| {
+            error!("[Wallhaven API] [ID:{}] JSON解析失败: {}", id, e);
+            format!("解析JSON失败: {}", e)
+        })?;
 
-        println!("[Wallhaven API] [ID:{}] 解析成功，获取壁纸: {}",
-            id, wallhaven_response.data.path);
+        info!("[Wallhaven API] [ID:{}] 解析成功，获取壁纸: {}", id, wallhaven_response.data.path);
 
         Ok(OnlineWallpaper::from(wallhaven_response.data))
     }

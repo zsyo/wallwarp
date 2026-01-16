@@ -1,92 +1,43 @@
 use super::App;
 use super::AppMessage;
 use super::online::OnlineMessage;
+use tracing::error;
 
 impl App {
     /// 处理在线壁纸相关消息
     pub fn handle_online_message(&mut self, msg: OnlineMessage) -> iced::Task<AppMessage> {
         match msg {
-            OnlineMessage::LoadWallpapers => {
-                self.handle_load_online_wallpapers()
-            }
+            OnlineMessage::LoadWallpapers => self.handle_load_online_wallpapers(),
             OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages, current_page) => {
                 self.handle_load_online_wallpapers_success(wallpapers, last_page, total_pages, current_page)
             }
-            OnlineMessage::LoadWallpapersFailed(error) => {
-                self.handle_load_online_wallpapers_failed(error)
-            }
-            OnlineMessage::WallpaperSelected(wallpaper) => {
-                self.handle_online_wallpaper_selected(wallpaper)
-            }
-            OnlineMessage::LoadPage => {
-                self.handle_load_online_page()
-            }
+            OnlineMessage::LoadWallpapersFailed(error) => self.handle_load_online_wallpapers_failed(error),
+            OnlineMessage::WallpaperSelected(wallpaper) => self.handle_online_wallpaper_selected(wallpaper),
+            OnlineMessage::LoadPage => self.handle_load_online_page(),
             OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page) => {
                 self.handle_load_online_page_success(wallpapers, last_page, total_pages, current_page)
             }
-            OnlineMessage::LoadPageFailed(error) => {
-                self.handle_load_online_page_failed(error)
-            }
-            OnlineMessage::ShowModal(index) => {
-                self.handle_show_online_modal(index)
-            }
-            OnlineMessage::ModalImageLoaded(handle) => {
-                self.handle_online_modal_image_loaded(handle)
-            }
-            OnlineMessage::CloseModal => {
-                self.handle_close_online_modal()
-            }
-            OnlineMessage::NextImage => {
-                self.handle_next_online_image()
-            }
-            OnlineMessage::PreviousImage => {
-                self.handle_previous_online_image()
-            }
-            OnlineMessage::ThumbLoaded(idx, handle) => {
-                self.handle_thumb_loaded(idx, handle)
-            }
-            OnlineMessage::DownloadWallpaper(index) => {
-                self.handle_download_online_wallpaper(index)
-            }
-            OnlineMessage::SetAsWallpaper(index) => {
-                self.handle_set_online_wallpaper(index)
-            }
-            OnlineMessage::CategoryToggled(category) => {
-                self.handle_category_toggled(category)
-            }
-            OnlineMessage::SortingChanged(sorting) => {
-                self.handle_sorting_changed(sorting)
-            }
-            OnlineMessage::PurityToggled(purity) => {
-                self.handle_purity_toggled(purity)
-            }
-            OnlineMessage::SearchTextChanged(text) => {
-                self.handle_search_text_changed(text)
-            }
-            OnlineMessage::Search => {
-                self.handle_search()
-            }
-            OnlineMessage::Refresh => {
-                self.handle_refresh()
-            }
-            OnlineMessage::ScrollToBottom => {
-                self.handle_online_scroll_to_bottom()
-            }
-            OnlineMessage::CheckAndLoadNextPage => {
-                self.handle_online_check_and_load_next_page()
-            }
-            OnlineMessage::ResolutionChanged(resolution) => {
-                self.handle_resolution_changed(resolution)
-            }
-            OnlineMessage::RatioChanged(ratio) => {
-                self.handle_ratio_changed(ratio)
-            }
-            OnlineMessage::ColorChanged(color) => {
-                self.handle_color_changed(color)
-            }
-            OnlineMessage::TimeRangeChanged(time_range) => {
-                self.handle_time_range_changed(time_range)
-            }
+            OnlineMessage::LoadPageFailed(error) => self.handle_load_online_page_failed(error),
+            OnlineMessage::ShowModal(index) => self.handle_show_online_modal(index),
+            OnlineMessage::ModalImageLoaded(handle) => self.handle_online_modal_image_loaded(handle),
+            OnlineMessage::CloseModal => self.handle_close_online_modal(),
+            OnlineMessage::NextImage => self.handle_next_online_image(),
+            OnlineMessage::PreviousImage => self.handle_previous_online_image(),
+            OnlineMessage::ThumbLoaded(idx, handle) => self.handle_thumb_loaded(idx, handle),
+            OnlineMessage::DownloadWallpaper(index) => self.handle_download_online_wallpaper(index),
+            OnlineMessage::SetAsWallpaper(index) => self.handle_set_online_wallpaper(index),
+            OnlineMessage::CategoryToggled(category) => self.handle_category_toggled(category),
+            OnlineMessage::SortingChanged(sorting) => self.handle_sorting_changed(sorting),
+            OnlineMessage::PurityToggled(purity) => self.handle_purity_toggled(purity),
+            OnlineMessage::SearchTextChanged(text) => self.handle_search_text_changed(text),
+            OnlineMessage::Search => self.handle_search(),
+            OnlineMessage::Refresh => self.handle_refresh(),
+            OnlineMessage::ScrollToBottom => self.handle_online_scroll_to_bottom(),
+            OnlineMessage::CheckAndLoadNextPage => self.handle_online_check_and_load_next_page(),
+            OnlineMessage::ResolutionChanged(resolution) => self.handle_resolution_changed(resolution),
+            OnlineMessage::RatioChanged(ratio) => self.handle_ratio_changed(ratio),
+            OnlineMessage::ColorChanged(color) => self.handle_color_changed(color),
+            OnlineMessage::TimeRangeChanged(time_range) => self.handle_time_range_changed(time_range),
         }
     }
 
@@ -124,17 +75,24 @@ impl App {
         iced::Task::perform(
             super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, query, page, api_key, proxy, context),
             |result| match result {
-                Ok((wallpapers, last_page, total_pages, current_page)) => {
-                    AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages, current_page))
-                }
-                Err(e) => {
-                    AppMessage::Online(super::online::OnlineMessage::LoadWallpapersFailed(e.to_string()))
-                }
+                Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(
+                    wallpapers,
+                    last_page,
+                    total_pages,
+                    current_page,
+                )),
+                Err(e) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersFailed(e.to_string())),
             },
         )
     }
 
-    fn handle_load_online_wallpapers_success(&mut self, wallpapers: Vec<super::online::OnlineWallpaper>, last_page: bool, total_pages: usize, current_page: usize) -> iced::Task<AppMessage> {
+    fn handle_load_online_wallpapers_success(
+        &mut self,
+        wallpapers: Vec<super::online::OnlineWallpaper>,
+        last_page: bool,
+        total_pages: usize,
+        current_page: usize,
+    ) -> iced::Task<AppMessage> {
         // 更新在线壁纸状态，并开始加载缩略图
         self.online_state.current_page = current_page;
         self.online_state.total_pages = total_pages;
@@ -171,15 +129,12 @@ impl App {
                 move |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
                     Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, iced::widget::image::Handle::from_bytes(vec![]))),
-                }
+                },
             ));
         }
 
         self.online_state.wallpapers_data = wallpapers.clone();
-        self.online_state.wallpapers = wallpapers
-            .into_iter()
-            .map(|_w| super::online::WallpaperLoadStatus::Loading)
-            .collect();
+        self.online_state.wallpapers = wallpapers.into_iter().map(|_w| super::online::WallpaperLoadStatus::Loading).collect();
         self.online_state.total_count = self.online_state.wallpapers.len();
 
         // 初始化 page_info，记录第一页的结束索引和页码
@@ -201,7 +156,7 @@ impl App {
         // 加载失败
         self.online_state.loading_page = false;
         self.online_state.has_loaded = true; // 标记已加载过数据（虽然失败了）
-        println!("[在线壁纸] 加载失败: {}", error);
+        error!("[在线壁纸] 加载失败: {}", error);
         iced::Task::none()
     }
 
@@ -242,14 +197,18 @@ impl App {
                 Ok((wallpapers, last_page, total_pages, current_page)) => {
                     AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page))
                 }
-                Err(e) => {
-                    AppMessage::Online(super::online::OnlineMessage::LoadPageFailed(e.to_string()))
-                }
+                Err(e) => AppMessage::Online(super::online::OnlineMessage::LoadPageFailed(e.to_string())),
             },
         )
     }
 
-    fn handle_load_online_page_success(&mut self, wallpapers: Vec<super::online::OnlineWallpaper>, last_page: bool, total_pages: usize, current_page: usize) -> iced::Task<AppMessage> {
+    fn handle_load_online_page_success(
+        &mut self,
+        wallpapers: Vec<super::online::OnlineWallpaper>,
+        last_page: bool,
+        total_pages: usize,
+        current_page: usize,
+    ) -> iced::Task<AppMessage> {
         // 添加新壁纸到列表，并开始加载缩略图
         self.online_state.current_page = current_page;
         self.online_state.total_pages = total_pages;
@@ -288,7 +247,7 @@ impl App {
                 move |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
                     Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, iced::widget::image::Handle::from_bytes(vec![]))),
-                }
+                },
             ));
         }
 
@@ -316,7 +275,7 @@ impl App {
         // 加载失败
         self.online_state.loading_page = false;
         self.online_state.has_loaded = true; // 标记已加载过数据（虽然失败了）
-        println!("[在线壁纸] 加载页面失败: {}", error);
+        error!("[在线壁纸] 加载页面失败: {}", error);
         iced::Task::none()
     }
 
@@ -335,13 +294,10 @@ impl App {
                 Some(self.config.global.proxy.clone())
             };
 
-            return iced::Task::perform(
-                super::async_tasks::async_load_online_wallpaper_image(url, proxy),
-                |result| match result {
-                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
-                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
-                }
-            );
+            return iced::Task::perform(super::async_tasks::async_load_online_wallpaper_image(url, proxy), |result| match result {
+                Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
+                Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
+            });
         }
 
         iced::Task::none()
@@ -374,13 +330,10 @@ impl App {
                     Some(self.config.global.proxy.clone())
                 };
 
-                return iced::Task::perform(
-                    super::async_tasks::async_load_online_wallpaper_image(url, proxy),
-                    |result| match result {
-                        Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
-                        Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
-                    }
-                );
+                return iced::Task::perform(super::async_tasks::async_load_online_wallpaper_image(url, proxy), |result| match result {
+                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
+                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
+                });
             }
         }
 
@@ -402,13 +355,10 @@ impl App {
                     Some(self.config.global.proxy.clone())
                 };
 
-                return iced::Task::perform(
-                    super::async_tasks::async_load_online_wallpaper_image(url, proxy),
-                    |result| match result {
-                        Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
-                        Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
-                    }
-                );
+                return iced::Task::perform(super::async_tasks::async_load_online_wallpaper_image(url, proxy), |result| match result {
+                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
+                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
+                });
             }
         }
 
@@ -456,10 +406,10 @@ impl App {
                 async move {
                     // 下载图片到临时文件
                     let temp_dir = std::env::temp_dir();
-                    let temp_file = temp_dir.join(format!("wallhaven_{}.jpg", std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs()));
+                    let temp_file = temp_dir.join(format!(
+                        "wallhaven_{}.jpg",
+                        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
+                    ));
 
                     // 创建HTTP客户端
                     let client = if let Some(proxy_url) = proxy {
@@ -477,19 +427,16 @@ impl App {
                     };
 
                     // 下载图片
-                    let response = client.get(&url).send().await
-                        .map_err(|e| format!("下载失败: {}", e))?;
+                    let response = client.get(&url).send().await.map_err(|e| format!("下载失败: {}", e))?;
 
                     if !response.status().is_success() {
                         return Err(format!("HTTP错误: {}", response.status()));
                     }
 
-                    let bytes = response.bytes().await
-                        .map_err(|e| format!("读取数据失败: {}", e))?;
+                    let bytes = response.bytes().await.map_err(|e| format!("读取数据失败: {}", e))?;
 
                     // 保存到临时文件
-                    tokio::fs::write(&temp_file, &bytes).await
-                        .map_err(|e| format!("写入文件失败: {}", e))?;
+                    tokio::fs::write(&temp_file, &bytes).await.map_err(|e| format!("写入文件失败: {}", e))?;
 
                     Ok(temp_file.to_string_lossy().to_string())
                 },
@@ -500,13 +447,13 @@ impl App {
                         // 直接返回成功通知，实际的壁纸设置在后台进行
                         tokio::spawn(async move {
                             if let Err(e) = super::async_tasks::async_set_wallpaper(temp_path).await {
-                                eprintln!("设置壁纸失败: {}", e);
+                                error!("设置壁纸失败: {}", e);
                             }
                         });
                         AppMessage::ShowNotification(success_message, super::NotificationType::Success)
                     }
                     Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-                }
+                },
             );
         }
 

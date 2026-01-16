@@ -5,12 +5,16 @@ use wallwarp::i18n::I18n;
 use wallwarp::ui::App;
 use wallwarp::utils::assets;
 use wallwarp::utils::config::Config;
+use wallwarp::utils::logger;
 
 const LOGO_SIZE: u32 = 128;
 const MIN_WINDOW_WIDTH: f32 = 1280.0;
 const MIN_WINDOW_HEIGHT: f32 = 800.0;
 
 fn main() -> iced::Result {
+    // 初始化日志系统
+    logger::init_logger();
+
     let i18n = I18n::new();
     let config = Config::new(&i18n.current_lang);
 

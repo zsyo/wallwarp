@@ -5,6 +5,8 @@ use std::fs;
 use std::io::Read;
 use std::num::NonZeroU32;
 use std::path::Path;
+use tracing::debug;
+use tracing::error;
 use xxhash_rust::xxh3::xxh3_128;
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "bmp", "gif", "webp"];
@@ -58,23 +60,19 @@ impl LocalWallpaperService {
         let absolute_path = if path.is_absolute() {
             image_path.to_string()
         } else {
-            std::env::current_dir()?
-                .join(path)
-                .canonicalize()?
-                .to_string_lossy()
-                .to_string()
+            std::env::current_dir()?.join(path).canonicalize()?.to_string_lossy().to_string()
         };
 
-        println!("[DEBUG] 设置壁纸路径: {}", absolute_path);
+        debug!("设置壁纸路径: {}", absolute_path);
 
         // 使用 wallpaper 库设置壁纸
         match wallpaper::set_from_path(&absolute_path) {
             Ok(_) => {
-                println!("[DEBUG] 壁纸设置成功");
+                debug!("壁纸设置成功");
                 Ok(())
             }
             Err(e) => {
-                println!("[DEBUG] 壁纸设置失败: {}", e);
+                error!("壁纸设置失败: {}", e);
                 Err(format!("设置壁纸失败: {}", e).into())
             }
         }
@@ -82,10 +80,7 @@ impl LocalWallpaperService {
 }
 
 impl LocalWallpaperService {
-    pub fn load_wallpapers_from_path(
-        data_path: &str,
-        cache_path: &str,
-    ) -> Result<Vec<Wallpaper>, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn load_wallpapers_from_path(data_path: &str, cache_path: &str) -> Result<Vec<Wallpaper>, Box<dyn std::error::Error + Send + Sync>> {
         let path = Path::new(data_path);
         let cache_dir = Path::new(cache_path);
 
@@ -97,10 +92,7 @@ impl LocalWallpaperService {
 
         let wallpapers = Self::collect_wallpapers(path)?;
 
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(THREAD_POOL_SIZE)
-            .build()
-            .map_err(to_boxed_error)?;
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(THREAD_POOL_SIZE).build().map_err(to_boxed_error)?;
 
         pool.install(|| {
             wallpapers
@@ -108,10 +100,7 @@ impl LocalWallpaperService {
                 .map(|wallpaper| {
                     (|| -> Result<Wallpaper, Box<dyn std::error::Error + Send + Sync>> {
                         let cache_dir_clone = cache_dir.to_path_buf();
-                        let thumbnail_path = Self::generate_thumbnail(
-                            &Path::new(&wallpaper.path),
-                            &cache_dir_clone,
-                        )?;
+                        let thumbnail_path = Self::generate_thumbnail(&Path::new(&wallpaper.path), &cache_dir_clone)?;
 
                         Ok(Wallpaper::with_thumbnail(
                             wallpaper.path,
@@ -127,9 +116,7 @@ impl LocalWallpaperService {
         })
     }
 
-    pub fn get_wallpaper_paths(
-        data_path: &str,
-    ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn get_wallpaper_paths(data_path: &str) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
         let path = Path::new(data_path);
 
         if !path.exists() {
@@ -151,10 +138,7 @@ impl LocalWallpaperService {
         Ok(wallpaper_paths)
     }
 
-    pub fn generate_thumbnail_for_path(
-        wallpaper_path: &str,
-        cache_path: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn generate_thumbnail_for_path(wallpaper_path: &str, cache_path: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let cache_dir = Path::new(cache_path);
         let thumbnail_dir = cache_dir.join("thumbnail");
         fs::create_dir_all(&thumbnail_dir).map_err(to_boxed_error)?;
@@ -162,17 +146,12 @@ impl LocalWallpaperService {
         Self::generate_thumbnail(&Path::new(wallpaper_path), cache_dir)
     }
 
-    fn calculate_file_hash(
-        file_path: &Path,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    fn calculate_file_hash(file_path: &Path) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         use std::io::Seek;
 
         let mut file = fs::File::open(file_path).map_err(to_boxed_error)?;
 
-        let file_size = file
-            .metadata()
-            .map_err(to_boxed_error)?
-            .len();
+        let file_size = file.metadata().map_err(to_boxed_error)?.len();
 
         if file_size <= HASH_CHUNK_SIZE * 2 {
             let mut buffer = Vec::new();
@@ -187,8 +166,7 @@ impl LocalWallpaperService {
             file.read_exact(&mut head_chunk).map_err(to_boxed_error)?;
             buffer.extend_from_slice(&head_chunk);
 
-            file.seek(std::io::SeekFrom::End(-(HASH_CHUNK_SIZE as i64)))
-                .map_err(to_boxed_error)?;
+            file.seek(std::io::SeekFrom::End(-(HASH_CHUNK_SIZE as i64))).map_err(to_boxed_error)?;
             let mut tail_chunk = vec![0u8; HASH_CHUNK_SIZE as usize];
             file.read_exact(&mut tail_chunk).map_err(to_boxed_error)?;
             buffer.extend_from_slice(&tail_chunk);
@@ -200,10 +178,7 @@ impl LocalWallpaperService {
         }
     }
 
-    fn generate_thumbnail(
-        file_path: &Path,
-        cache_dir: &Path,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    fn generate_thumbnail(file_path: &Path, cache_dir: &Path) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let thumbnail_dir = cache_dir.join("thumbnail");
         fs::create_dir_all(&thumbnail_dir).map_err(to_boxed_error)?;
 
@@ -216,7 +191,7 @@ impl LocalWallpaperService {
 
         let start = std::time::Instant::now();
         let img = image::open(file_path)?.into_rgba8();
-        println!("{thumbnail_path:?}Load image: {:?}", start.elapsed());
+        debug!("{thumbnail_path:?}Load image: {:?}", start.elapsed());
         let (src_w, src_h) = img.dimensions();
 
         let ratio = (THUMBNAIL_MAX_WIDTH as f64 / src_w as f64)
@@ -225,20 +200,14 @@ impl LocalWallpaperService {
         let dst_w = NonZeroU32::new((src_w as f64 * ratio) as u32).unwrap();
         let dst_h = NonZeroU32::new((src_h as f64 * ratio) as u32).unwrap();
 
-        let src_image = fr::images::Image::from_vec_u8(
-            src_w,
-            src_h,
-            img.into_raw(),
-            fr::PixelType::U8x4,
-        )?;
+        let src_image = fr::images::Image::from_vec_u8(src_w, src_h, img.into_raw(), fr::PixelType::U8x4)?;
 
-        let mut dst_image =
-            fr::images::Image::new(dst_w.get(), dst_h.get(), src_image.pixel_type());
+        let mut dst_image = fr::images::Image::new(dst_w.get(), dst_h.get(), src_image.pixel_type());
 
         let mut resizer = fr::Resizer::new();
-        println!("{thumbnail_path:?}Create resizer: {:?}", start.elapsed());
+        debug!("{thumbnail_path:?}Create resizer: {:?}", start.elapsed());
         resizer.resize(&src_image, &mut dst_image, None)?;
-        println!("{thumbnail_path:?}Resize image: {:?}", start.elapsed());
+        debug!("{thumbnail_path:?}Resize image: {:?}", start.elapsed());
 
         let raw_parts = dst_image.into_vec();
         image::save_buffer_with_format(
@@ -253,9 +222,7 @@ impl LocalWallpaperService {
         Ok(thumbnail_path.to_string_lossy().to_string())
     }
 
-    fn collect_wallpapers(
-        path: &Path,
-    ) -> Result<Vec<Wallpaper>, Box<dyn std::error::Error + Send + Sync>> {
+    fn collect_wallpapers(path: &Path) -> Result<Vec<Wallpaper>, Box<dyn std::error::Error + Send + Sync>> {
         let entries = fs::read_dir(path).map_err(to_boxed_error)?;
         let mut wallpapers = Vec::new();
 
@@ -266,12 +233,9 @@ impl LocalWallpaperService {
             if file_path.is_file() && Self::is_supported_image(&file_path) {
                 if let Some(file_name) = file_path.file_name() {
                     if let Some(name) = file_name.to_str() {
-                        let file_size = fs::metadata(&file_path)
-                            .map_err(to_boxed_error)?
-                            .len();
+                        let file_size = fs::metadata(&file_path).map_err(to_boxed_error)?.len();
 
-                        let (width, height) = image::image_dimensions(&file_path)
-                            .unwrap_or((0, 0));
+                        let (width, height) = image::image_dimensions(&file_path).unwrap_or((0, 0));
 
                         wallpapers.push(Wallpaper::new(
                             file_path.to_string_lossy().to_string(),
@@ -297,8 +261,6 @@ impl LocalWallpaperService {
     }
 }
 
-fn to_boxed_error<E: std::error::Error + Send + Sync + 'static>(
-    err: E,
-) -> Box<dyn std::error::Error + Send + Sync> {
+fn to_boxed_error<E: std::error::Error + Send + Sync + 'static>(err: E) -> Box<dyn std::error::Error + Send + Sync> {
     Box::new(err)
 }

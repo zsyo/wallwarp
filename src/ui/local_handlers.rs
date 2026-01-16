@@ -2,74 +2,33 @@ use super::App;
 use super::AppMessage;
 use super::common;
 use super::local::LocalMessage;
+use tracing::error;
 
 impl App {
     /// 处理本地壁纸相关消息
     pub fn handle_local_message(&mut self, msg: LocalMessage) -> iced::Task<AppMessage> {
         match msg {
-            LocalMessage::LoadWallpapers => {
-                self.handle_load_local_wallpapers()
-            }
-            LocalMessage::LoadWallpapersSuccess(paths) => {
-                self.handle_load_local_wallpapers_success(paths)
-            }
-            LocalMessage::LoadWallpapersFailed(error) => {
-                self.handle_load_local_wallpapers_failed(error)
-            }
-            LocalMessage::LoadPage => {
-                self.handle_load_local_page()
-            }
-            LocalMessage::LoadPageSuccess(wallpapers_with_idx) => {
-                self.handle_load_local_page_success(wallpapers_with_idx)
-            }
-            LocalMessage::LoadPageFailed(error) => {
-                self.handle_load_local_page_failed(error)
-            }
-            LocalMessage::WallpaperSelected(wallpaper) => {
-                self.handle_local_wallpaper_selected(wallpaper)
-            }
-            LocalMessage::ShowModal(index) => {
-                self.handle_show_local_modal(index)
-            }
-            LocalMessage::ModalImageLoaded(handle) => {
-                self.handle_local_modal_image_loaded(handle)
-            }
-            LocalMessage::CloseModal => {
-                self.handle_close_local_modal()
-            }
-            LocalMessage::NextImage => {
-                self.handle_next_local_image()
-            }
-            LocalMessage::PreviousImage => {
-                self.handle_previous_local_image()
-            }
-            LocalMessage::ScrollToBottom => {
-                self.handle_scroll_to_bottom()
-            }
-            LocalMessage::CheckAndLoadNextPage => {
-                self.handle_check_and_load_next_page()
-            }
-            LocalMessage::AnimationTick => {
-                self.handle_local_animation_tick()
-            }
-            LocalMessage::AnimatedFrameUpdate => {
-                self.handle_local_animated_frame_update()
-            }
-            LocalMessage::ViewInFolder(index) => {
-                self.handle_view_in_folder(index)
-            }
-            LocalMessage::ShowDeleteConfirm(index) => {
-                self.handle_show_delete_confirm(index)
-            }
-            LocalMessage::CloseDeleteConfirm => {
-                self.handle_close_delete_confirm()
-            }
-            LocalMessage::ConfirmDelete(index) => {
-                self.handle_confirm_delete(index)
-            }
-            LocalMessage::SetWallpaper(index) => {
-                self.handle_set_wallpaper(index)
-            }
+            LocalMessage::LoadWallpapers => self.handle_load_local_wallpapers(),
+            LocalMessage::LoadWallpapersSuccess(paths) => self.handle_load_local_wallpapers_success(paths),
+            LocalMessage::LoadWallpapersFailed(error) => self.handle_load_local_wallpapers_failed(error),
+            LocalMessage::LoadPage => self.handle_load_local_page(),
+            LocalMessage::LoadPageSuccess(wallpapers_with_idx) => self.handle_load_local_page_success(wallpapers_with_idx),
+            LocalMessage::LoadPageFailed(error) => self.handle_load_local_page_failed(error),
+            LocalMessage::WallpaperSelected(wallpaper) => self.handle_local_wallpaper_selected(wallpaper),
+            LocalMessage::ShowModal(index) => self.handle_show_local_modal(index),
+            LocalMessage::ModalImageLoaded(handle) => self.handle_local_modal_image_loaded(handle),
+            LocalMessage::CloseModal => self.handle_close_local_modal(),
+            LocalMessage::NextImage => self.handle_next_local_image(),
+            LocalMessage::PreviousImage => self.handle_previous_local_image(),
+            LocalMessage::ScrollToBottom => self.handle_scroll_to_bottom(),
+            LocalMessage::CheckAndLoadNextPage => self.handle_check_and_load_next_page(),
+            LocalMessage::AnimationTick => self.handle_local_animation_tick(),
+            LocalMessage::AnimatedFrameUpdate => self.handle_local_animated_frame_update(),
+            LocalMessage::ViewInFolder(index) => self.handle_view_in_folder(index),
+            LocalMessage::ShowDeleteConfirm(index) => self.handle_show_delete_confirm(index),
+            LocalMessage::CloseDeleteConfirm => self.handle_close_delete_confirm(),
+            LocalMessage::ConfirmDelete(index) => self.handle_confirm_delete(index),
+            LocalMessage::SetWallpaper(index) => self.handle_set_wallpaper(index),
         }
     }
 
@@ -77,9 +36,7 @@ impl App {
         let data_path = self.config.data.data_path.clone();
         iced::Task::perform(super::async_tasks::async_load_wallpaper_paths(data_path), |result| match result {
             Ok(paths) => AppMessage::Local(super::local::LocalMessage::LoadWallpapersSuccess(paths)),
-            Err(e) => {
-                AppMessage::Local(super::local::LocalMessage::LoadWallpapersFailed(e.to_string()))
-            }
+            Err(e) => AppMessage::Local(super::local::LocalMessage::LoadWallpapersFailed(e.to_string())),
         })
     }
 
@@ -93,15 +50,13 @@ impl App {
         self.local_state.wallpapers = vec![super::local::WallpaperLoadStatus::Loading; page_end];
 
         // 触发第一页加载
-        iced::Task::perform(async {}, |_| {
-            AppMessage::Local(super::local::LocalMessage::LoadPage)
-        })
+        iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadPage))
     }
 
     fn handle_load_local_wallpapers_failed(&mut self, error: String) -> iced::Task<AppMessage> {
         // 由于现在使用WallpaperLoadStatus处理单个壁纸的错误，整体错误处理已不再需要
         // 可以考虑显示一个通知或者在UI的其他地方显示错误
-        println!("[本地壁纸] 加载列表失败: {}", error);
+        error!("[本地壁纸] 加载列表失败: {}", error);
         iced::Task::none()
     }
 
@@ -129,9 +84,7 @@ impl App {
             tasks.push(iced::Task::perform(
                 super::async_tasks::async_load_single_wallpaper_with_fallback(path.clone(), cache_path),
                 move |result| match result {
-                    Ok(wallpaper) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(
-                        vec![(absolute_idx, wallpaper)],
-                    )),
+                    Ok(wallpaper) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(absolute_idx, wallpaper)])),
                     Err(_) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(
                         absolute_idx,
                         crate::services::local::Wallpaper::new(path, "加载失败".to_string(), 0, 0, 0),
@@ -170,21 +123,14 @@ impl App {
         let page_start = (self.local_state.current_page - 1) * self.local_state.page_size; // 上一页的起始位置
         let page_end = std::cmp::min(page_start + self.local_state.page_size, self.local_state.total_count);
 
-        let all_loaded = (page_start..page_end).all(|i| {
-            i < self.local_state.wallpapers.len()
-                && matches!(
-                    self.local_state.wallpapers[i],
-                    super::local::WallpaperLoadStatus::Loaded(_)
-                )
-        });
+        let all_loaded = (page_start..page_end)
+            .all(|i| i < self.local_state.wallpapers.len() && matches!(self.local_state.wallpapers[i], super::local::WallpaperLoadStatus::Loaded(_)));
 
         if all_loaded {
             self.local_state.loading_page = false;
 
             // 添加检查是否需要自动加载下一页的任务
-            let check_task = iced::Task::perform(async {}, |_| {
-                AppMessage::Local(super::local::LocalMessage::CheckAndLoadNextPage)
-            });
+            let check_task = iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::CheckAndLoadNextPage));
             return check_task;
         }
 
@@ -195,7 +141,7 @@ impl App {
         // 更新加载状态
         self.local_state.loading_page = false;
         // 由于现在使用WallpaperLoadStatus处理单个壁纸的错误，整体错误处理已不再需要
-        println!("[本地壁纸] 加载页面失败: {}", error);
+        error!("[本地壁纸] 加载页面失败: {}", error);
         iced::Task::none()
     }
 
@@ -314,12 +260,8 @@ impl App {
 
     fn handle_scroll_to_bottom(&mut self) -> iced::Task<AppMessage> {
         // 滚动到底部，如果还有更多壁纸则加载下一页
-        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count
-            && !self.local_state.loading_page
-        {
-            return iced::Task::perform(async {}, |_| {
-                AppMessage::Local(super::local::LocalMessage::LoadPage)
-            });
+        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count && !self.local_state.loading_page {
+            return iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadPage));
         }
 
         iced::Task::none()
@@ -328,9 +270,7 @@ impl App {
     fn handle_check_and_load_next_page(&mut self) -> iced::Task<AppMessage> {
         // 检查是否需要自动加载下一页
         // 条件：还有更多壁纸，且当前没有正在加载
-        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count
-            && !self.local_state.loading_page
-        {
+        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count && !self.local_state.loading_page {
             // 计算每行可以显示多少张图
             let available_width = (self.current_window_width as f32 - crate::ui::style::IMAGE_SPACING).max(crate::ui::style::IMAGE_WIDTH);
             let unit_width = crate::ui::style::IMAGE_WIDTH + crate::ui::style::IMAGE_SPACING;
@@ -342,14 +282,11 @@ impl App {
             let num_rows = (num_wallpapers + items_per_row - 1) / items_per_row; // 向上取整
 
             // 估算内容高度：行数 * (每张图高度 + 间距)
-            let estimated_content_height = num_rows as f32
-                * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING);
+            let estimated_content_height = num_rows as f32 * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING);
 
             // 如果估算的内容高度小于窗口高度，说明没有滚动条，需要加载下一页
             if estimated_content_height < self.current_window_height as f32 {
-                return iced::Task::perform(async {}, |_| {
-                    AppMessage::Local(super::local::LocalMessage::LoadPage)
-                });
+                return iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadPage));
             }
         }
 
@@ -377,25 +314,19 @@ impl App {
             // Windows: 使用 explorer /select,路径
             #[cfg(target_os = "windows")]
             {
-                let _ = std::process::Command::new("explorer")
-                    .args(["/select,", &full_path])
-                    .spawn();
+                let _ = std::process::Command::new("explorer").args(["/select,", &full_path]).spawn();
             }
             // macOS: 使用 open -R 路径
             #[cfg(target_os = "macos")]
             {
-                let _ = std::process::Command::new("open")
-                    .args(["-R", &full_path])
-                    .spawn();
+                let _ = std::process::Command::new("open").args(["-R", &full_path]).spawn();
             }
             // Linux: 使用 dbus 调用文件管理器（需要支持）
             #[cfg(target_os = "linux")]
             {
                 // 尝试使用 xdg-open 打开文件所在目录
                 if let Some(parent) = std::path::Path::new(&full_path).parent() {
-                    let _ = std::process::Command::new("xdg-open")
-                        .arg(parent)
-                        .spawn();
+                    let _ = std::process::Command::new("xdg-open").arg(parent).spawn();
                 }
             }
         }
@@ -444,17 +375,11 @@ impl App {
                     }
 
                     // 显示成功通知
-                    return self.show_notification(
-                        self.i18n.t("local-list.delete-success"),
-                        super::NotificationType::Success
-                    );
+                    return self.show_notification(self.i18n.t("local-list.delete-success"), super::NotificationType::Success);
                 }
                 Err(e) => {
                     // 删除失败，显示错误通知
-                    return self.show_notification(
-                        format!("{}: {}", self.i18n.t("local-list.delete-failed"), e),
-                        super::NotificationType::Error
-                    );
+                    return self.show_notification(format!("{}: {}", self.i18n.t("local-list.delete-failed"), e), super::NotificationType::Error);
                 }
             }
         }
@@ -472,19 +397,10 @@ impl App {
             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
             // 异步设置壁纸
-            return iced::Task::perform(
-                super::async_tasks::async_set_wallpaper(full_path),
-                move |result| match result {
-                    Ok(_) => AppMessage::ShowNotification(
-                        success_message,
-                        super::NotificationType::Success
-                    ),
-                    Err(e) => AppMessage::ShowNotification(
-                        format!("{}: {}", failed_message, e),
-                        super::NotificationType::Error
-                    ),
-                }
-            );
+            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
+                Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+            });
         }
 
         iced::Task::none()

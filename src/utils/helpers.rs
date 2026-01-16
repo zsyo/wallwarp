@@ -5,12 +5,9 @@ pub fn is_valid_image_path(path: &str) -> bool {
     if !path.exists() {
         return false;
     }
-    
-    let extension = path.extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| ext.to_lowercase())
-        .unwrap_or_default();
-        
+
+    let extension = path.extension().and_then(|ext| ext.to_str()).map(|ext| ext.to_lowercase()).unwrap_or_default();
+
     matches!(extension.as_str(), "jpg" | "jpeg" | "png" | "bmp" | "gif" | "webp")
 }
 

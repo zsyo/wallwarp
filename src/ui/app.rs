@@ -17,9 +17,7 @@ impl App {
 
         // 检查代理配置格式，如果不正确则还原为空字符串
         let (proxy_protocol, proxy_address, proxy_port) = Self::parse_proxy_string(&config.global.proxy);
-        if config.global.proxy != format!("{}://{}:{}", proxy_protocol, proxy_address, proxy_port)
-            && !config.global.proxy.is_empty()
-        {
+        if config.global.proxy != format!("{}://{}:{}", proxy_protocol, proxy_address, proxy_port) && !config.global.proxy.is_empty() {
             // 代理格式不正确，还原为空字符串
             config.global.proxy = String::new();
             config.save_to_file();
@@ -58,12 +56,8 @@ impl App {
     // 获取初始任务（用于启动时加载在线壁纸）
     pub fn get_initial_tasks(&self) -> iced::Task<AppMessage> {
         iced::Task::batch(vec![
-            iced::Task::perform(async {}, |_| {
-                AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)
-            }),
-            iced::Task::perform(async {}, |_| {
-                AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
-            }),
+            iced::Task::perform(async {}, |_| AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)),
+            iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())),
         ])
     }
 
@@ -246,39 +240,31 @@ impl App {
             ),
         };
 
-        let notification_content =
-            container(
-                text(&self.notification_message)
-                    .size(14)
-                    .style(move |_theme| iced::widget::text::Style {
-                        color: Some(text_color),
-                    }),
-            )
-            .padding(10)
-            .width(Length::Shrink)
-            .height(Length::Shrink)
-            .style(move |_theme| iced::widget::container::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                border: iced::border::Border {
-                    radius: iced::border::Radius::from(8.0),
-                    width: 1.0,
-                    color: iced::Color::TRANSPARENT,
-                },
-                ..Default::default()
-            });
+        let notification_content = container(
+            text(&self.notification_message)
+                .size(14)
+                .style(move |_theme| iced::widget::text::Style { color: Some(text_color) }),
+        )
+        .padding(10)
+        .width(Length::Shrink)
+        .height(Length::Shrink)
+        .style(move |_theme| iced::widget::container::Style {
+            background: Some(iced::Background::Color(bg_color)),
+            border: iced::border::Border {
+                radius: iced::border::Radius::from(8.0),
+                width: 1.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            ..Default::default()
+        });
 
         // 将通知放在窗口底部中央
-        container(
-            container(notification_content)
-                .width(Length::Shrink)
-                .height(Length::Shrink)
-                .padding(10),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .align_x(iced::alignment::Horizontal::Center)
-        .align_y(iced::alignment::Vertical::Bottom)
-        .into()
+        container(container(notification_content).width(Length::Shrink).height(Length::Shrink).padding(10))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_x(iced::alignment::Horizontal::Center)
+            .align_y(iced::alignment::Vertical::Bottom)
+            .into()
     }
 
     pub fn view(&self) -> iced::Element<'_, AppMessage> {
@@ -303,10 +289,7 @@ impl App {
     }
 
     // 辅助方法：创建叠加层（底层内容 + 覆盖内容）
-    fn create_stack<'a>(
-        base: iced::Element<'a, AppMessage>,
-        overlay: iced::Element<'a, AppMessage>,
-    ) -> iced::Element<'a, AppMessage> {
+    fn create_stack<'a>(base: iced::Element<'a, AppMessage>, overlay: iced::Element<'a, AppMessage>) -> iced::Element<'a, AppMessage> {
         iced::widget::stack(vec![base, overlay])
             .width(iced::Length::Fill)
             .height(iced::Length::Fill)

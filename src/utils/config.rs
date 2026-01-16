@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+use tracing::error;
 
 const CONFIG_FILE: &str = "config.toml";
 const DEFAULT_WINDOW_WIDTH: u32 = 1200;
@@ -156,7 +157,7 @@ impl Config {
             Ok(content) => {
                 let _ = fs::write(CONFIG_FILE, content);
             }
-            Err(e) => eprintln!("TOML 序化失败: {}", e),
+            Err(e) => error!("TOML 序化失败: {}", e),
         }
     }
 

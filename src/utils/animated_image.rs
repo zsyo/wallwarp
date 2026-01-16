@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 use std::time::Duration;
+use tracing::info;
 
 const DEFAULT_FRAME_DELAY_MS: u64 = 100;
 const GIF_DELAY_MULTIPLIER: u64 = 10;
@@ -14,11 +15,7 @@ pub enum AnimatedImageType {
 }
 
 pub fn detect_animated_image(path: &Path) -> AnimatedImageType {
-    let extension = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(|e| e.to_lowercase())
-        .unwrap_or_default();
+    let extension = path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()).unwrap_or_default();
 
     match extension.as_str() {
         "gif" => AnimatedImageType::Gif,
@@ -55,9 +52,7 @@ impl AnimatedDecoder {
         let mut decoder = gif::DecodeOptions::new();
         decoder.set_color_output(gif::ColorOutput::RGBA);
 
-        let decoder = decoder
-            .read_info(BufReader::new(file))
-            .map_err(|e| format!("Failed to decode GIF: {}", e))?;
+        let decoder = decoder.read_info(BufReader::new(file)).map_err(|e| format!("Failed to decode GIF: {}", e))?;
 
         let mut frames = Vec::new();
         let mut canvas: Option<Vec<u8>> = None;
@@ -138,7 +133,7 @@ impl AnimatedDecoder {
             return Err("GIF has no frames".to_string());
         }
 
-        println!("GIF 解码成功，{path:?} 共 {} 帧", frames.len());
+        info!("GIF 解码成功，{path:?} 共 {} 帧", frames.len());
 
         Ok(Self {
             frames,

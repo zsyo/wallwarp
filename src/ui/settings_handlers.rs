@@ -4,104 +4,43 @@ use super::common;
 use crate::utils::config::CloseAction;
 use crate::utils::startup;
 use iced::window;
+use tracing::error;
 
 impl App {
     /// 处理设置相关消息
     pub fn handle_settings_message(&mut self, msg: AppMessage) -> iced::Task<AppMessage> {
         match msg {
-            AppMessage::LanguageSelected(lang) => {
-                self.handle_language_selected(lang)
-            }
-            AppMessage::PageSelected(page) => {
-                self.handle_page_selected(page)
-            }
-            AppMessage::WindowResized(width, height) => {
-                self.handle_window_resized(width, height)
-            }
-            AppMessage::DebounceTimer => {
-                self.handle_debounce_timer()
-            }
-            AppMessage::AutoStartupToggled(enabled) => {
-                self.handle_auto_startup_toggled(enabled)
-            }
-            AppMessage::CloseActionSelected(action) => {
-                self.handle_close_action_selected(action)
-            }
-            AppMessage::WindowCloseRequested => {
-                self.handle_window_close_requested()
-            }
-            AppMessage::MinimizeToTray => {
-                self.handle_minimize_to_tray()
-            }
-            AppMessage::TrayIconClicked => {
-                self.handle_tray_icon_clicked()
-            }
-            AppMessage::TrayMenuEvent(id) => {
-                self.handle_tray_menu_event(id)
-            }
-            AppMessage::OpenUrl(url) => {
-                self.handle_open_url(url)
-            }
-            AppMessage::DataPathSelected(path) => {
-                self.handle_data_path_selected(path)
-            }
-            AppMessage::CachePathSelected(path) => {
-                self.handle_cache_path_selected(path)
-            }
-            AppMessage::OpenPath(path_type) => {
-                self.handle_open_path(path_type)
-            }
-            AppMessage::ShowPathClearConfirmation(path_type) => {
-                self.handle_show_path_clear_confirmation(path_type)
-            }
-            AppMessage::ConfirmPathClear(path_type) => {
-                self.handle_confirm_path_clear(path_type)
-            }
-            AppMessage::CancelPathClear => {
-                self.handle_cancel_path_clear()
-            }
-            AppMessage::RestoreDefaultPath(path_type) => {
-                self.handle_restore_default_path(path_type)
-            }
-            AppMessage::WallhavenApiKeyChanged(api_key) => {
-                self.handle_wallhaven_api_key_changed(api_key)
-            }
-            AppMessage::SaveWallhavenApiKey => {
-                self.handle_save_wallhaven_api_key()
-            }
-            AppMessage::ScrollToTop(scrollable_id) => {
-                self.handle_scroll_to_top(scrollable_id)
-            }
-            AppMessage::ProxyProtocolChanged(protocol) => {
-                self.handle_proxy_protocol_changed(protocol)
-            }
-            AppMessage::ProxyAddressChanged(address) => {
-                self.handle_proxy_address_changed(address)
-            }
-            AppMessage::ProxyPortChanged(port) => {
-                self.handle_proxy_port_changed(port)
-            }
-            AppMessage::SaveProxy => {
-                self.handle_save_proxy()
-            }
-            AppMessage::ShowCloseConfirmation => {
-                self.handle_show_close_confirmation()
-            }
-            AppMessage::CloseConfirmationResponse(action, remember_setting) => {
-                self.handle_close_confirmation_response(action, remember_setting)
-            }
-            AppMessage::CloseConfirmationCancelled => {
-                self.handle_close_confirmation_cancelled()
-            }
-            AppMessage::ToggleRememberSetting(checked) => {
-                self.handle_toggle_remember_setting(checked)
-            }
-            AppMessage::ShowNotification(message, notification_type) => {
-                self.handle_show_notification(message, notification_type)
-            }
-            AppMessage::HideNotification => {
-                self.handle_hide_notification()
-            }
+            AppMessage::LanguageSelected(lang) => self.handle_language_selected(lang),
+            AppMessage::PageSelected(page) => self.handle_page_selected(page),
+            AppMessage::WindowResized(width, height) => self.handle_window_resized(width, height),
+            AppMessage::DebounceTimer => self.handle_debounce_timer(),
+            AppMessage::AutoStartupToggled(enabled) => self.handle_auto_startup_toggled(enabled),
+            AppMessage::CloseActionSelected(action) => self.handle_close_action_selected(action),
+            AppMessage::WindowCloseRequested => self.handle_window_close_requested(),
+            AppMessage::MinimizeToTray => self.handle_minimize_to_tray(),
+            AppMessage::TrayIconClicked => self.handle_tray_icon_clicked(),
+            AppMessage::TrayMenuEvent(id) => self.handle_tray_menu_event(id),
+            AppMessage::OpenUrl(url) => self.handle_open_url(url),
+            AppMessage::DataPathSelected(path) => self.handle_data_path_selected(path),
+            AppMessage::CachePathSelected(path) => self.handle_cache_path_selected(path),
+            AppMessage::OpenPath(path_type) => self.handle_open_path(path_type),
+            AppMessage::ShowPathClearConfirmation(path_type) => self.handle_show_path_clear_confirmation(path_type),
+            AppMessage::ConfirmPathClear(path_type) => self.handle_confirm_path_clear(path_type),
+            AppMessage::CancelPathClear => self.handle_cancel_path_clear(),
+            AppMessage::RestoreDefaultPath(path_type) => self.handle_restore_default_path(path_type),
+            AppMessage::WallhavenApiKeyChanged(api_key) => self.handle_wallhaven_api_key_changed(api_key),
+            AppMessage::SaveWallhavenApiKey => self.handle_save_wallhaven_api_key(),
+            AppMessage::ScrollToTop(scrollable_id) => self.handle_scroll_to_top(scrollable_id),
+            AppMessage::ProxyProtocolChanged(protocol) => self.handle_proxy_protocol_changed(protocol),
+            AppMessage::ProxyAddressChanged(address) => self.handle_proxy_address_changed(address),
+            AppMessage::ProxyPortChanged(port) => self.handle_proxy_port_changed(port),
+            AppMessage::SaveProxy => self.handle_save_proxy(),
+            AppMessage::ShowCloseConfirmation => self.handle_show_close_confirmation(),
+            AppMessage::CloseConfirmationResponse(action, remember_setting) => self.handle_close_confirmation_response(action, remember_setting),
+            AppMessage::CloseConfirmationCancelled => self.handle_close_confirmation_cancelled(),
+            AppMessage::ToggleRememberSetting(checked) => self.handle_toggle_remember_setting(checked),
+            AppMessage::ShowNotification(message, notification_type) => self.handle_show_notification(message, notification_type),
+            AppMessage::HideNotification => self.handle_hide_notification(),
             _ => iced::Task::none(),
         }
     }
@@ -124,8 +63,7 @@ impl App {
         // 当切换到设置页面时，重置设置相关的临时状态
         if page == super::ActivePage::Settings {
             // 重置代理设置相关状态
-            let (proxy_protocol, proxy_address, proxy_port) =
-                App::parse_proxy_string(&self.config.global.proxy);
+            let (proxy_protocol, proxy_address, proxy_port) = App::parse_proxy_string(&self.config.global.proxy);
             self.proxy_protocol = proxy_protocol;
             self.proxy_address = proxy_address;
             self.proxy_port = proxy_port;
@@ -142,12 +80,8 @@ impl App {
             // 重置本地状态，以便重新加载壁纸
             self.local_state = super::local::LocalState::default();
             return iced::Task::batch(vec![
-                iced::Task::perform(async {}, |_| {
-                    AppMessage::Local(super::local::LocalMessage::LoadWallpapers)
-                }),
-                iced::Task::perform(async {}, |_| {
-                    AppMessage::ScrollToTop("local_wallpapers_scroll".to_string())
-                }),
+                iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadWallpapers)),
+                iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("local_wallpapers_scroll".to_string())),
             ]);
         }
 
@@ -156,9 +90,7 @@ impl App {
         // 后续通过搜索按钮和刷新按钮手动重载
         if page == super::ActivePage::OnlineWallpapers {
             // 滚动到顶部
-            return iced::Task::perform(async {}, |_| {
-                AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
-            });
+            return iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers_scroll".to_string()));
         }
 
         // 对于其他页面切换，返回无任务
@@ -210,7 +142,7 @@ impl App {
     fn handle_auto_startup_toggled(&mut self, enabled: bool) -> iced::Task<AppMessage> {
         self.config.set_auto_startup(enabled);
         if let Err(e) = startup::set_auto_startup(enabled) {
-            eprintln!("设置开机启动失败: {}", e);
+            error!("设置开机启动失败: {}", e);
         }
         iced::Task::none()
     }
@@ -274,7 +206,7 @@ impl App {
 
     fn handle_open_url(&mut self, url: String) -> iced::Task<AppMessage> {
         if let Err(e) = open::that(&url) {
-            eprintln!("Failed to open URL {}: {}", url, e);
+            error!("Failed to open URL {}: {}", url, e);
         }
         iced::Task::none()
     }
@@ -334,7 +266,7 @@ impl App {
         let full_path = common::get_absolute_path(path_to_open);
 
         if let Err(e) = open::that(&full_path) {
-            eprintln!("Failed to open path {}: {}", full_path, e);
+            error!("Failed to open path {}: {}", full_path, e);
         }
 
         iced::Task::none()
@@ -385,11 +317,7 @@ impl App {
                 }
             }
 
-            if error_count == 0 {
-                Ok(success_count)
-            } else {
-                Err(error_count)
-            }
+            if error_count == 0 { Ok(success_count) } else { Err(error_count) }
         } else {
             Err(0) // 目录不存在或无法访问
         };

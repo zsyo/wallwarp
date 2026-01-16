@@ -1,7 +1,7 @@
 //! 请求上下文模块，提供类似 Golang 中 context 的取消机制
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// 请求上下文，用于控制异步请求的生命周期
 #[derive(Clone, Debug)]

@@ -2,6 +2,8 @@ use super::App;
 use super::AppMessage;
 use super::download::DownloadMessage;
 use std::path::PathBuf;
+use tracing::error;
+use tracing::info;
 
 impl App {
     /// 辅助方法：开始下载壁纸（支持并行限制和进度更新）
@@ -19,7 +21,13 @@ impl App {
         let full_save_path = std::path::PathBuf::from(&data_path).join(&file_name);
 
         // 添加任务（倒序排列）
-        self.download_state.add_task(url.clone(), full_save_path.to_string_lossy().to_string(), file_name.clone(), proxy.clone(), file_type.clone());
+        self.download_state.add_task(
+            url.clone(),
+            full_save_path.to_string_lossy().to_string(),
+            file_name.clone(),
+            proxy.clone(),
+            file_type.clone(),
+        );
 
         // 获取任务ID
         let task_id = self.download_state.next_id.saturating_sub(1);
@@ -46,16 +54,14 @@ impl App {
                     // 启动异步下载任务（带进度更新）
                     return iced::Task::perform(
                         super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size),
-                        move |result| {
-                            match result {
-                                Ok(size) => {
-                                    println!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                                    AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
-                                }
-                                Err(e) => {
-                                    println!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                    AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
-                                }
+                        move |result| match result {
+                            Ok(size) => {
+                                info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
+                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                            }
+                            Err(e) => {
+                                error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
+                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
                             }
                         },
                     );
@@ -66,7 +72,7 @@ impl App {
         // 显示通知
         iced::Task::done(AppMessage::ShowNotification(
             format!("已添加到下载队列 (等待中)"),
-            super::NotificationType::Success
+            super::NotificationType::Success,
         ))
     }
 
@@ -76,42 +82,18 @@ impl App {
             DownloadMessage::AddTask(url, save_path, file_name, _proxy, file_type) => {
                 self.handle_add_download_task_with_save_path(url, save_path, file_name, file_type)
             }
-            DownloadMessage::PauseTask(id) => {
-                self.handle_pause_download_task(id)
-            }
-            DownloadMessage::ResumeTask(id) => {
-                self.handle_resume_download_task(id)
-            }
-            DownloadMessage::CancelTask(id) => {
-                self.handle_cancel_download_task(id)
-            }
-            DownloadMessage::DeleteTask(id) => {
-                self.handle_delete_download_task(id)
-            }
-            DownloadMessage::OpenFileLocation(id) => {
-                self.handle_open_file_location(id)
-            }
-            DownloadMessage::ClearCompleted => {
-                self.handle_clear_completed_downloads()
-            }
-            DownloadMessage::DownloadCompleted(id, size, error) => {
-                self.handle_download_completed(id, size, error)
-            }
-            DownloadMessage::DownloadProgress(id, downloaded, total, speed) => {
-                self.handle_download_progress(id, downloaded, total, speed)
-            }
-            DownloadMessage::SimulateProgress => {
-                self.handle_simulate_progress()
-            }
-            DownloadMessage::UpdateSpeed => {
-                self.handle_update_speed()
-            }
-            DownloadMessage::CopyDownloadLink(id) => {
-                self.handle_copy_download_link(id)
-            }
-            DownloadMessage::SetAsWallpaper(id) => {
-                self.handle_set_as_wallpaper(id)
-            }
+            DownloadMessage::PauseTask(id) => self.handle_pause_download_task(id),
+            DownloadMessage::ResumeTask(id) => self.handle_resume_download_task(id),
+            DownloadMessage::CancelTask(id) => self.handle_cancel_download_task(id),
+            DownloadMessage::DeleteTask(id) => self.handle_delete_download_task(id),
+            DownloadMessage::OpenFileLocation(id) => self.handle_open_file_location(id),
+            DownloadMessage::ClearCompleted => self.handle_clear_completed_downloads(),
+            DownloadMessage::DownloadCompleted(id, size, error) => self.handle_download_completed(id, size, error),
+            DownloadMessage::DownloadProgress(id, downloaded, total, speed) => self.handle_download_progress(id, downloaded, total, speed),
+            DownloadMessage::SimulateProgress => self.handle_simulate_progress(),
+            DownloadMessage::UpdateSpeed => self.handle_update_speed(),
+            DownloadMessage::CopyDownloadLink(id) => self.handle_copy_download_link(id),
+            DownloadMessage::SetAsWallpaper(id) => self.handle_set_as_wallpaper(id),
         }
     }
 
@@ -127,7 +109,8 @@ impl App {
 
         // 添加任务（使用完整路径）
         let full_path_str = full_save_path.to_string_lossy().to_string();
-        self.download_state.add_task(url.clone(), full_path_str.clone(), file_name.clone(), proxy.clone(), file_type.clone());
+        self.download_state
+            .add_task(url.clone(), full_path_str.clone(), file_name.clone(), proxy.clone(), file_type.clone());
 
         // 获取新添加的任务ID
         let task_id = self.download_state.next_id.saturating_sub(1);
@@ -145,16 +128,14 @@ impl App {
 
                 return iced::Task::perform(
                     super::async_tasks::async_download_wallpaper_task(url, save_path, proxy, task_id),
-                    move |result| {
-                        match result {
-                            Ok(size) => {
-                                println!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
-                            }
-                            Err(e) => {
-                                println!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
-                            }
+                    move |result| match result {
+                        Ok(size) => {
+                            info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
+                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                        }
+                        Err(e) => {
+                            error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
+                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
                         }
                     },
                 );
@@ -189,7 +170,12 @@ impl App {
         // 先检查是否可以开始下载并保存所有需要的数据
         let can_start = self.download_state.can_start_download();
         let current_status = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| t.task.status.clone());
-        let task_data = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| (t.task.url.clone(), PathBuf::from(&t.task.save_path), t.proxy.clone(), t.task.id));
+        let task_data = self
+            .download_state
+            .tasks
+            .iter()
+            .find(|t| t.task.id == id)
+            .map(|t| (t.task.url.clone(), PathBuf::from(&t.task.save_path), t.proxy.clone(), t.task.id));
 
         if let Some((url, save_path, proxy, task_id)) = task_data {
             if current_status == Some(super::download::DownloadStatus::Waiting)
@@ -231,16 +217,14 @@ impl App {
 
                     return iced::Task::perform(
                         super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size),
-                        move |result| {
-                            match result {
-                                Ok(size) => {
-                                    println!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                                    AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
-                                }
-                                Err(e) => {
-                                    println!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                    AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
-                                }
+                        move |result| match result {
+                            Ok(size) => {
+                                info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
+                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                            }
+                            Err(e) => {
+                                error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
+                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
                             }
                         },
                     );
@@ -271,23 +255,17 @@ impl App {
             // Windows: 使用 explorer /select,路径
             #[cfg(target_os = "windows")]
             {
-                let _ = std::process::Command::new("explorer")
-                    .args(["/select,", &full_path])
-                    .spawn();
+                let _ = std::process::Command::new("explorer").args(["/select,", &full_path]).spawn();
             }
             // macOS: 使用 open -R 路径
             #[cfg(target_os = "macos")]
             {
-                let _ = std::process::Command::new("open")
-                    .args(["-R", &full_path])
-                    .spawn();
+                let _ = std::process::Command::new("open").args(["-R", &full_path]).spawn();
             }
             // Linux: 使用 xdg-open 路径
             #[cfg(target_os = "linux")]
             {
-                let _ = std::process::Command::new("xdg-open")
-                    .arg(&full_path)
-                    .spawn();
+                let _ = std::process::Command::new("xdg-open").arg(&full_path).spawn();
             }
         }
 
@@ -358,17 +336,22 @@ impl App {
 
             // 启动下一个下载任务
             return iced::Task::perform(
-                super::async_tasks::async_download_wallpaper_task_with_progress(next_url, next_save_path, next_proxy, next_task_id, next_cancel_token, next_downloaded_size),
-                move |result| {
-                    match result {
-                        Ok(s) => {
-                            println!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", next_task_id, s);
-                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(next_task_id, s, None))
-                        }
-                        Err(e) => {
-                            println!("[下载任务] [ID:{}] 下载失败: {}", next_task_id, e);
-                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(next_task_id, 0, Some(e)))
-                        }
+                super::async_tasks::async_download_wallpaper_task_with_progress(
+                    next_url,
+                    next_save_path,
+                    next_proxy,
+                    next_task_id,
+                    next_cancel_token,
+                    next_downloaded_size,
+                ),
+                move |result| match result {
+                    Ok(s) => {
+                        info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", next_task_id, s);
+                        AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(next_task_id, s, None))
+                    }
+                    Err(e) => {
+                        error!("[下载任务] [ID:{}] 下载失败: {}", next_task_id, e);
+                        AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(next_task_id, 0, Some(e)))
                     }
                 },
             );
