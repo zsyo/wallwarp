@@ -1,0 +1,424 @@
+use super::App;
+use super::AppMessage;
+use super::download::DownloadMessage;
+use std::path::PathBuf;
+
+impl App {
+    /// 辅助方法：开始下载壁纸（支持并行限制和进度更新）
+    pub fn start_download(&mut self, url: String, id: &str, file_type: &str) -> iced::Task<AppMessage> {
+        let file_name = super::download::generate_file_name(id, file_type.split('/').last().unwrap_or("jpg"));
+        let data_path = self.config.data.data_path.clone();
+        let proxy = if self.config.global.proxy.is_empty() {
+            None
+        } else {
+            Some(self.config.global.proxy.clone())
+        };
+        let file_type = file_type.split('/').last().unwrap_or("jpg").to_string();
+
+        // 生成完整保存路径
+        let full_save_path = std::path::PathBuf::from(&data_path).join(&file_name);
+
+        // 添加任务（倒序排列）
+        self.download_state.add_task(url.clone(), full_save_path.to_string_lossy().to_string(), file_name.clone(), proxy.clone(), file_type.clone());
+
+        // 获取任务ID
+        let task_id = self.download_state.next_id.saturating_sub(1);
+
+        if self.download_state.can_start_download() {
+            // 可以开始下载 - 使用索引查找任务
+            let task_index = self.download_state.find_task_index(task_id);
+            if let Some(index) = task_index {
+                let task_full = self.download_state.get_task_by_index(index);
+                if let Some(task_full) = task_full {
+                    // 先保存需要的数据，再修改状态
+                    let url = task_full.task.url.clone();
+                    let save_path = std::path::PathBuf::from(&task_full.task.save_path);
+                    let proxy = task_full.proxy.clone();
+                    let task_id = task_full.task.id;
+                    let cancel_token = task_full.task.cancel_token.clone().unwrap();
+                    let downloaded_size = task_full.task.downloaded_size;
+
+                    // 更新状态
+                    task_full.task.status = super::download::DownloadStatus::Downloading;
+                    task_full.task.start_time = Some(std::time::Instant::now());
+                    self.download_state.increment_downloading();
+
+                    // 启动异步下载任务（带进度更新）
+                    return iced::Task::perform(
+                        super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size),
+                        move |result| {
+                            match result {
+                                Ok(size) => {
+                                    println!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
+                                    AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                                }
+                                Err(e) => {
+                                    println!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
+                                    AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                                }
+                            }
+                        },
+                    );
+                }
+            }
+        }
+
+        // 显示通知
+        iced::Task::done(AppMessage::ShowNotification(
+            format!("已添加到下载队列 (等待中)"),
+            super::NotificationType::Success
+        ))
+    }
+
+    /// 处理下载相关消息
+    pub fn handle_download_message(&mut self, msg: DownloadMessage) -> iced::Task<AppMessage> {
+        match msg {
+            DownloadMessage::AddTask(url, save_path, file_name, _proxy, file_type) => {
+                self.handle_add_download_task_with_save_path(url, save_path, file_name, file_type)
+            }
+            DownloadMessage::PauseTask(id) => {
+                self.handle_pause_download_task(id)
+            }
+            DownloadMessage::ResumeTask(id) => {
+                self.handle_resume_download_task(id)
+            }
+            DownloadMessage::CancelTask(id) => {
+                self.handle_cancel_download_task(id)
+            }
+            DownloadMessage::DeleteTask(id) => {
+                self.handle_delete_download_task(id)
+            }
+            DownloadMessage::OpenFileLocation(id) => {
+                self.handle_open_file_location(id)
+            }
+            DownloadMessage::ClearCompleted => {
+                self.handle_clear_completed_downloads()
+            }
+            DownloadMessage::DownloadCompleted(id, size, error) => {
+                self.handle_download_completed(id, size, error)
+            }
+            DownloadMessage::DownloadProgress(id, downloaded, total, speed) => {
+                self.handle_download_progress(id, downloaded, total, speed)
+            }
+            DownloadMessage::SimulateProgress => {
+                self.handle_simulate_progress()
+            }
+            DownloadMessage::UpdateSpeed => {
+                self.handle_update_speed()
+            }
+            DownloadMessage::CopyDownloadLink(id) => {
+                self.handle_copy_download_link(id)
+            }
+            DownloadMessage::SetAsWallpaper(id) => {
+                self.handle_set_as_wallpaper(id)
+            }
+        }
+    }
+
+    fn handle_add_download_task_with_save_path(&mut self, url: String, save_path: String, file_name: String, file_type: String) -> iced::Task<AppMessage> {
+        let proxy = if self.config.global.proxy.is_empty() {
+            None
+        } else {
+            Some(self.config.global.proxy.clone())
+        };
+
+        // 合并目录和文件名生成完整路径
+        let full_save_path = PathBuf::from(&save_path).join(&file_name);
+
+        // 添加任务（使用完整路径）
+        let full_path_str = full_save_path.to_string_lossy().to_string();
+        self.download_state.add_task(url.clone(), full_path_str.clone(), file_name.clone(), proxy.clone(), file_type.clone());
+
+        // 获取新添加的任务ID
+        let task_id = self.download_state.next_id.saturating_sub(1);
+
+        // 更新状态为下载中并启动下载
+        match self.download_state.get_task(task_id) {
+            Some(task_full) => {
+                task_full.task.status = super::download::DownloadStatus::Downloading;
+                task_full.task.start_time = Some(std::time::Instant::now());
+
+                let url = task_full.task.url.clone();
+                let save_path = PathBuf::from(&task_full.task.save_path);
+                let proxy = task_full.proxy.clone();
+                let task_id = task_full.task.id;
+
+                return iced::Task::perform(
+                    super::async_tasks::async_download_wallpaper_task(url, save_path, proxy, task_id),
+                    move |result| {
+                        match result {
+                            Ok(size) => {
+                                println!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
+                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                            }
+                            Err(e) => {
+                                println!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
+                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                            }
+                        }
+                    },
+                );
+            }
+            None => {}
+        }
+
+        iced::Task::none()
+    }
+
+    fn handle_pause_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
+        // 先读取实际文件大小并更新任务
+        if let Some(index) = self.download_state.find_task_index(id) {
+            if let Some(task) = self.download_state.get_task_by_index(index) {
+                if let Ok(metadata) = std::fs::metadata(&task.task.save_path) {
+                    let actual_size = metadata.len();
+                    task.task.downloaded_size = actual_size;
+                }
+            }
+        }
+
+        // 然后设置状态为暂停
+        self.download_state.update_status(id, super::download::DownloadStatus::Paused);
+        // 最后设置取消标志，终止下载
+        self.download_state.cancel_task(id);
+
+        iced::Task::none()
+    }
+
+    fn handle_resume_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
+        // 使用索引查找任务
+        // 先检查是否可以开始下载并保存所有需要的数据
+        let can_start = self.download_state.can_start_download();
+        let current_status = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| t.task.status.clone());
+        let task_data = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| (t.task.url.clone(), PathBuf::from(&t.task.save_path), t.proxy.clone(), t.task.id));
+
+        if let Some((url, save_path, proxy, task_id)) = task_data {
+            if current_status == Some(super::download::DownloadStatus::Waiting)
+                || current_status == Some(super::download::DownloadStatus::Paused)
+                || current_status == Some(super::download::DownloadStatus::Cancelled)
+                || matches!(current_status, Some(super::download::DownloadStatus::Failed(_)))
+            {
+                if can_start {
+                    // 更新状态为下载中
+                    let should_reset = current_status == Some(super::download::DownloadStatus::Cancelled)
+                        || matches!(current_status, Some(super::download::DownloadStatus::Failed(_)));
+
+                    if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
+                        task_full.task.status = super::download::DownloadStatus::Downloading;
+                        task_full.task.start_time = Some(std::time::Instant::now());
+                        // 重置取消令牌
+                        if let Some(cancel_token) = &task_full.task.cancel_token {
+                            cancel_token.store(false, std::sync::atomic::Ordering::Relaxed);
+                        }
+
+                        // 如果任务已取消或失败，重置已下载大小和进度
+                        if should_reset {
+                            task_full.task.downloaded_size = 0;
+                            task_full.task.progress = 0.0;
+                            task_full.task.speed = 0;
+
+                            // 清空已下载的文件
+                            let _ = std::fs::remove_file(&task_full.task.save_path);
+                        }
+                    }
+                    self.download_state.increment_downloading();
+
+                    // 获取取消令牌和已下载大小
+                    let (cancel_token, downloaded_size) = if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == task_id) {
+                        (task.task.cancel_token.clone().unwrap(), task.task.downloaded_size)
+                    } else {
+                        (std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), 0)
+                    };
+
+                    return iced::Task::perform(
+                        super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size),
+                        move |result| {
+                            match result {
+                                Ok(size) => {
+                                    println!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
+                                    AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                                }
+                                Err(e) => {
+                                    println!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
+                                    AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                                }
+                            }
+                        },
+                    );
+                }
+            }
+        }
+
+        iced::Task::none()
+    }
+
+    fn handle_cancel_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
+        self.download_state.cancel_task(id);
+        // 将任务状态设置为已取消
+        self.download_state.update_status(id, crate::ui::download::DownloadStatus::Cancelled);
+
+        iced::Task::none()
+    }
+
+    fn handle_delete_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
+        self.download_state.remove_task(id);
+        iced::Task::none()
+    }
+
+    fn handle_open_file_location(&mut self, id: usize) -> iced::Task<AppMessage> {
+        if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
+            let full_path = super::common::get_absolute_path(&task.task.save_path);
+
+            // Windows: 使用 explorer /select,路径
+            #[cfg(target_os = "windows")]
+            {
+                let _ = std::process::Command::new("explorer")
+                    .args(["/select,", &full_path])
+                    .spawn();
+            }
+            // macOS: 使用 open -R 路径
+            #[cfg(target_os = "macos")]
+            {
+                let _ = std::process::Command::new("open")
+                    .args(["-R", &full_path])
+                    .spawn();
+            }
+            // Linux: 使用 xdg-open 路径
+            #[cfg(target_os = "linux")]
+            {
+                let _ = std::process::Command::new("xdg-open")
+                    .arg(&full_path)
+                    .spawn();
+            }
+        }
+
+        iced::Task::none()
+    }
+
+    fn handle_clear_completed_downloads(&mut self) -> iced::Task<AppMessage> {
+        self.download_state.clear_completed();
+        iced::Task::none()
+    }
+
+    fn handle_download_completed(&mut self, id: usize, size: u64, error: Option<String>) -> iced::Task<AppMessage> {
+        let task_index = self.download_state.find_task_index(id);
+        if let Some(index) = task_index {
+            if let Some(task) = self.download_state.get_task_by_index(index) {
+                // 检查当前状态
+                let current_status = task.task.status.clone();
+
+                if current_status == super::download::DownloadStatus::Paused {
+                    // 任务已暂停，保持暂停状态
+                } else if error.is_some() {
+                    // 下载失败
+                    let error_msg = error.unwrap();
+                    // 检查是否是用户取消
+                    if error_msg == "下载已取消" {
+                        // 检查任务是否在暂停状态被取消
+                        // 如果任务原本是暂停状态，则保持暂停，否则设置为已取消
+                        // 如果不是暂停状态，设置为已取消
+                        if current_status != super::download::DownloadStatus::Paused {
+                            task.task.status = super::download::DownloadStatus::Cancelled;
+                        }
+                    } else {
+                        task.task.status = super::download::DownloadStatus::Failed(error_msg.clone());
+                    }
+                } else {
+                    // 下载成功
+                    // 验证实际文件大小
+                    let actual_size = if let Ok(metadata) = std::fs::metadata(&task.task.save_path) {
+                        metadata.len()
+                    } else {
+                        size
+                    };
+
+                    task.task.status = super::download::DownloadStatus::Completed;
+                    task.task.progress = 1.0;
+                    task.task.total_size = actual_size;
+                    task.task.downloaded_size = actual_size;
+                }
+            }
+        }
+
+        // 减少正在下载的任务计数
+        self.download_state.decrement_downloading();
+
+        // 检查是否有等待中的任务需要开始
+        if let Some(next_task) = self.download_state.get_next_waiting_task() {
+            let _next_id = next_task.task.id;
+            let next_url = next_task.task.url.clone();
+            let next_save_path = PathBuf::from(&next_task.task.save_path);
+            let next_proxy = next_task.proxy.clone();
+            let next_task_id = next_task.task.id;
+            let next_cancel_token = next_task.task.cancel_token.clone().unwrap();
+            let next_downloaded_size = next_task.task.downloaded_size;
+
+            next_task.task.status = super::download::DownloadStatus::Downloading;
+            next_task.task.start_time = Some(std::time::Instant::now());
+            self.download_state.increment_downloading();
+
+            // 启动下一个下载任务
+            return iced::Task::perform(
+                super::async_tasks::async_download_wallpaper_task_with_progress(next_url, next_save_path, next_proxy, next_task_id, next_cancel_token, next_downloaded_size),
+                move |result| {
+                    match result {
+                        Ok(s) => {
+                            println!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", next_task_id, s);
+                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(next_task_id, s, None))
+                        }
+                        Err(e) => {
+                            println!("[下载任务] [ID:{}] 下载失败: {}", next_task_id, e);
+                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(next_task_id, 0, Some(e)))
+                        }
+                    }
+                },
+            );
+        }
+
+        iced::Task::none()
+    }
+
+    fn handle_download_progress(&mut self, id: usize, downloaded: u64, total: u64, speed: u64) -> iced::Task<AppMessage> {
+        self.download_state.update_progress(id, downloaded, total, speed);
+        iced::Task::none()
+    }
+
+    fn handle_simulate_progress(&mut self) -> iced::Task<AppMessage> {
+        // 模拟进度更新（测试用）
+        for task in self.download_state.tasks.iter_mut() {
+            if task.task.status == super::download::DownloadStatus::Downloading {
+                let increment = (task.task.total_size as f32 * 0.01).max(1024.0) as u64;
+                task.task.downloaded_size = (task.task.downloaded_size + increment).min(task.task.total_size);
+                if task.task.total_size > 0 {
+                    task.task.progress = task.task.downloaded_size as f32 / task.task.total_size as f32;
+                }
+                if task.task.downloaded_size >= task.task.total_size {
+                    task.task.status = super::download::DownloadStatus::Completed;
+                }
+            }
+        }
+        iced::Task::none()
+    }
+
+    fn handle_update_speed(&mut self) -> iced::Task<AppMessage> {
+        self.download_state.update_speed();
+        iced::Task::none()
+    }
+
+    fn handle_copy_download_link(&mut self, id: usize) -> iced::Task<AppMessage> {
+        if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
+            let _url = task.task.url.clone();
+            // TODO: 实现复制到剪贴板功能
+            let _ = self.show_notification("下载链接已复制到剪贴板".to_string(), super::NotificationType::Success);
+        }
+        iced::Task::none()
+    }
+
+    fn handle_set_as_wallpaper(&mut self, id: usize) -> iced::Task<AppMessage> {
+        if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
+            let _path = task.task.save_path.clone();
+            // TODO: 实现设为壁纸功能
+            let _ = self.show_notification("壁纸设置成功".to_string(), super::NotificationType::Success);
+        }
+        iced::Task::none()
+    }
+}

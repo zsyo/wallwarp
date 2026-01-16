@@ -9,6 +9,7 @@ use crate::ui::style::{
     BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW,
     COLOR_LIGHT_TEXT_SUB, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, TABLE_SEPARATOR_COLOR, TABLE_SEPARATOR_WIDTH,
 };
+use crate::utils::helpers::format_file_size;
 use iced::widget::{column, container, progress_bar, row, scrollable, text};
 use iced::{Alignment, Element, Font, Length};
 
@@ -155,12 +156,6 @@ impl DownloadStateFull {
         // 倒序插入：添加到列表开头
         self.tasks.insert(0, DownloadTaskFull { task, proxy, file_type });
         self.next_id += 1;
-        println!(
-            "[下载状态] 添加任务，列表长度: {}, 正在下载: {}/{}",
-            self.tasks.len(),
-            self.downloading_count,
-            self.max_concurrent_downloads
-        );
     }
 
     /// 获取下一个等待中的任务（按添加顺序，先添加的先开始）
@@ -178,24 +173,12 @@ impl DownloadStateFull {
             if total > 0 {
                 task_full.task.progress = downloaded as f32 / total as f32;
             }
-            println!(
-                "[下载进度] ID:{}, 已下载:{}, 总大小:{}, 进度:{:.1}%, 速度: {}/s",
-                id,
-                downloaded,
-                total,
-                task_full.task.progress * 100.0,
-                format_file_size(speed)
-            );
         }
     }
 
     /// 更新任务状态
     pub fn update_status(&mut self, id: usize, status: DownloadStatus) {
         if let Some(task_full) = self.tasks.iter_mut().find(|t| t.task.id == id) {
-            println!(
-                "[下载状态] ID:{}, 状态变化: {:?} -> {:?}",
-                id, task_full.task.status, status
-            );
             task_full.task.status = status;
         }
     }
@@ -217,24 +200,17 @@ impl DownloadStateFull {
 
     /// 移除任务
     pub fn remove_task(&mut self, id: usize) {
-        let count_before = self.tasks.len();
         self.tasks.retain(|t| t.task.id != id);
-        if self.tasks.len() < count_before {
-            println!("[下载状态] 移除任务 ID:{}", id);
-        }
     }
 
     /// 清空所有已完成的任务
     pub fn clear_completed(&mut self) {
-        let count_before = self.tasks.len();
         self.tasks.retain(|t| t.task.status != DownloadStatus::Completed);
-        println!("[下载状态] 清空已完成任务: {} -> {}", count_before, self.tasks.len());
     }
 
     /// 取消任务
     pub fn cancel_task(&mut self, id: usize) {
         if let Some(task_full) = self.tasks.iter_mut().find(|t| t.task.id == id) {
-            println!("[下载状态] ID:{}, 设置取消标志", id);
             // 设置取消标志
             if let Some(cancel_token) = &task_full.task.cancel_token {
                 cancel_token.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -680,23 +656,6 @@ fn create_empty_state<'a>(i18n: &'a I18n) -> Element<'a, AppMessage> {
         .padding(EMPTY_STATE_PADDING)
         .spacing(10)
         .into()
-}
-
-/// 格式化文件大小
-fn format_file_size(size: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = KB * 1024;
-    const GB: u64 = MB * 1024;
-
-    if size >= GB {
-        format!("{:.2} GB", size as f64 / GB as f64)
-    } else if size >= MB {
-        format!("{:.2} MB", size as f64 / MB as f64)
-    } else if size >= KB {
-        format!("{:.2} KB", size as f64 / KB as f64)
-    } else {
-        format!("{} B", size)
-    }
 }
 
 /// 格式化下载速度

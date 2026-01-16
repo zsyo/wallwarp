@@ -1,11 +1,16 @@
 pub mod app;
+pub mod async_tasks;
 pub mod close_confirmation;
 pub mod common;
 pub mod download;
+pub mod download_handlers;
 pub mod local;
+pub mod local_handlers;
 pub mod main;
 pub mod online;
+pub mod online_handlers;
 pub mod settings;
+pub mod settings_handlers;
 pub mod style;
 pub mod tray;
 pub mod update;
