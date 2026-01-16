@@ -1,6 +1,7 @@
 use super::App;
 use super::AppMessage;
 use crate::ui::ActivePage;
+use crate::ui::common;
 use crate::utils::startup;
 use iced::futures::StreamExt;
 use iced::window;
@@ -10,25 +11,6 @@ use tokio::io::AsyncWriteExt;
 use tray_icon::{TrayIconEvent, menu::MenuEvent};
 
 impl App {
-    // 辅助方法：初始化动态图解码器
-    fn init_animated_decoder(&mut self, index: usize) {
-        if let Some(path) = self.local_state.all_paths.get(index) {
-            let path = std::path::PathBuf::from(path);
-            match crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
-                Ok(decoder) => {
-                    if decoder.frame_count() > 1 {
-                        self.local_state.animated_decoder = Some(decoder);
-                    } else {
-                        self.local_state.animated_decoder = None;
-                    }
-                }
-                Err(_) => {
-                    self.local_state.animated_decoder = None;
-                }
-            }
-        }
-    }
-
     // 辅助方法：开始下载壁纸（支持并行限制和进度更新）
     fn start_download(&mut self, url: String, id: &str, file_type: &str) -> iced::Task<AppMessage> {
         let file_name = super::download::generate_file_name(id, file_type.split('/').last().unwrap_or("jpg"));
@@ -118,79 +100,6 @@ impl App {
         ))
     }
 
-    // 辅助方法：查找下一个有效的图片索引
-    fn find_next_valid_image_index(&self, start_index: usize, direction: i32) -> Option<usize> {
-        if self.local_state.all_paths.is_empty() {
-            return None;
-        }
-
-        let total = self.local_state.all_paths.len();
-        let mut current_index = start_index;
-        let loop_count = total; // 防止无限循环
-
-        for _ in 0..loop_count {
-            // 根据方向更新索引
-            if direction > 0 {
-                // 向前查找
-                current_index = if current_index < total - 1 {
-                    current_index + 1
-                } else {
-                    0
-                };
-            } else {
-                // 向后查找
-                current_index = if current_index > 0 {
-                    current_index - 1
-                } else {
-                    total - 1
-                };
-            }
-
-            // 检查是否回到起始位置
-            if current_index == start_index {
-                return None;
-            }
-
-            // 检查当前索引是否有效
-            if let Some(wallpaper_status) = self.local_state.wallpapers.get(current_index) {
-                if let super::local::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
-                    if wallpaper.name != "加载失败" {
-                        return Some(current_index);
-                    }
-                }
-            }
-        }
-
-        None
-    }
-
-    // 辅助方法：获取绝对路径
-    fn get_absolute_path(&self, relative_path: &str) -> String {
-        let path = std::path::PathBuf::from(relative_path);
-        if path.is_absolute() {
-            relative_path.to_string()
-        } else {
-            std::env::current_dir()
-                .unwrap_or_else(|_| std::path::PathBuf::from("."))
-                .join(relative_path)
-                .to_string_lossy()
-                .to_string()
-        }
-    }
-
-    // 辅助方法：显示通知
-    fn show_notification(&mut self, message: String, notification_type: super::NotificationType) -> iced::Task<AppMessage> {
-        self.notification_message = message;
-        self.notification_type = notification_type;
-        self.show_notification = true;
-
-        iced::Task::perform(
-            async {
-                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-            },
-            |_| AppMessage::HideNotification,
-        )
-    }
     pub fn subscription(&self) -> iced::Subscription<AppMessage> {
         use iced::event;
         use iced::time;
@@ -330,26 +239,23 @@ impl App {
                     ]);
                 }
 
-                // 每次切换到在线壁纸页面时，都重新加载壁纸
+                // 每次切换到在线壁纸页面时，不重新加载数据
+                // 仅在首次启动时通过 get_initial_tasks() 自动加载数据
+                // 后续通过搜索按钮和刷新按钮手动重载
                 if page == super::ActivePage::OnlineWallpapers {
-                    // 从配置文件加载在线状态，以便恢复筛选条件
-                    self.online_state = super::online::OnlineState::load_from_config(&self.config);
-                    return iced::Task::batch(vec![
-                        iced::Task::perform(async {}, |_| {
-                            AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)
-                        }),
-                        iced::Task::perform(async {}, |_| {
-                            AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
-                        }),
-                    ]);
+                    // 滚动到顶部
+                    return iced::Task::perform(async {}, |_| {
+                        AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
+                    });
                 }
 
                 // 对于其他页面切换，返回无任务
                 return iced::Task::none();
             }
             AppMessage::WindowResized(width, height) => {
-                // 更新当前窗口宽度，用于响应式布局
+                // 更新当前窗口宽度和高度，用于响应式布局和判断是否需要自动加载下一页
                 self.current_window_width = width;
+                self.current_window_height = height;
                 // 暂存窗口大小，等待防抖处理
                 self.pending_window_size = Some((width, height));
                 self.debounce_timer = std::time::Instant::now();
@@ -489,7 +395,7 @@ impl App {
                     _ => return iced::Task::none(),
                 };
 
-                let full_path = self.get_absolute_path(path_to_open);
+                let full_path = common::get_absolute_path(path_to_open);
 
                 if let Err(e) = open::that(&full_path) {
                     eprintln!("Failed to open path {}: {}", full_path, e);
@@ -512,7 +418,7 @@ impl App {
                 };
 
                 // 获取绝对路径
-                let full_path = self.get_absolute_path(path_to_clear);
+                let full_path = common::get_absolute_path(path_to_clear);
 
                 // 尝试清空目录内容
                 let result = if let Ok(entries) = std::fs::read_dir(&full_path) {
@@ -790,6 +696,12 @@ impl App {
 
                         if all_loaded {
                             self.local_state.loading_page = false;
+
+                            // 添加检查是否需要自动加载下一页的任务
+                            let check_task = iced::Task::perform(async {}, |_| {
+                                AppMessage::Local(super::local::LocalMessage::CheckAndLoadNextPage)
+                            });
+                            return check_task;
                         }
                     }
                     super::local::LocalMessage::LoadPageFailed(error) => {
@@ -821,7 +733,7 @@ impl App {
                         self.local_state.modal_image_handle = None;
 
                         // 使用辅助方法初始化动态图解码器
-                        self.init_animated_decoder(index);
+                        self.local_state.init_animated_decoder(index);
 
                         // 异步加载图片数据
                         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
@@ -849,13 +761,13 @@ impl App {
                     }
                     super::local::LocalMessage::NextImage => {
                         // 显示下一张图片，跳过加载失败的图片
-                        if let Some(next_index) = self.find_next_valid_image_index(self.local_state.current_image_index, 1) {
+                        if let Some(next_index) = self.local_state.find_next_valid_image_index(self.local_state.current_image_index, 1) {
                             self.local_state.current_image_index = next_index;
 
                             // 清除之前的图片数据
                             self.local_state.modal_image_handle = None;
 
-                            self.init_animated_decoder(next_index);
+                            self.local_state.init_animated_decoder(next_index);
 
                             // 异步加载图片数据
                             if let Some(path) = self.local_state.all_paths.get(next_index).cloned() {
@@ -874,13 +786,13 @@ impl App {
                     }
                     super::local::LocalMessage::PreviousImage => {
                         // 显示上一张图片，跳过加载失败的图片
-                        if let Some(prev_index) = self.find_next_valid_image_index(self.local_state.current_image_index, -1) {
+                        if let Some(prev_index) = self.local_state.find_next_valid_image_index(self.local_state.current_image_index, -1) {
                             self.local_state.current_image_index = prev_index;
 
                             // 清除之前的图片数据
                             self.local_state.modal_image_handle = None;
 
-                            self.init_animated_decoder(prev_index);
+                            self.local_state.init_animated_decoder(prev_index);
 
                             // 异步加载图片数据
                             if let Some(path) = self.local_state.all_paths.get(prev_index).cloned() {
@@ -907,6 +819,46 @@ impl App {
                             });
                         }
                     }
+                    super::local::LocalMessage::CheckAndLoadNextPage => {
+                        // 检查是否需要自动加载下一页
+                        // 条件：还有更多壁纸，且当前没有正在加载
+                        println!("[Local CheckAndLoadNextPage] 检查是否需要自动加载下一页: total_count={}, current_page={}, page_size={}, loading_page={}",
+                            self.local_state.total_count, self.local_state.current_page,
+                            self.local_state.page_size, self.local_state.loading_page);
+
+                        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count
+                            && !self.local_state.loading_page
+                        {
+                            // 计算每行可以显示多少张图
+                            let available_width = (self.current_window_width as f32 - crate::ui::style::IMAGE_SPACING).max(crate::ui::style::IMAGE_WIDTH);
+                            let unit_width = crate::ui::style::IMAGE_WIDTH + crate::ui::style::IMAGE_SPACING;
+                            let items_per_row = (available_width / unit_width).floor() as usize;
+                            let items_per_row = items_per_row.max(1);
+
+                            // 计算实际行数
+                            let num_wallpapers = self.local_state.wallpapers.len();
+                            let num_rows = (num_wallpapers + items_per_row - 1) / items_per_row; // 向上取整
+
+                            // 估算内容高度：行数 * (每张图高度 + 间距)
+                            let estimated_content_height = num_rows as f32
+                                * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING);
+
+                            println!("[Local CheckAndLoadNextPage] 每行{}张图，共{}行，估算内容高度: {}, 窗口高度: {}",
+                                items_per_row, num_rows, estimated_content_height, self.current_window_height);
+
+                            // 如果估算的内容高度小于窗口高度，说明没有滚动条，需要加载下一页
+                            if estimated_content_height < self.current_window_height as f32 {
+                                println!("[Local CheckAndLoadNextPage] 内容高度小于窗口高度，触发加载下一页");
+                                return iced::Task::perform(async {}, |_| {
+                                    AppMessage::Local(super::local::LocalMessage::LoadPage)
+                                });
+                            } else {
+                                println!("[Local CheckAndLoadNextPage] 内容高度大于等于窗口高度，不加载");
+                            }
+                        } else {
+                            println!("[Local CheckAndLoadNextPage] 不满足加载条件");
+                        }
+                    }
                     super::local::LocalMessage::AnimationTick => {
                         // 动画刻度消息（已不再使用，保留以避免编译错误）
                     }
@@ -919,7 +871,7 @@ impl App {
                     super::local::LocalMessage::ViewInFolder(index) => {
                         // 查看文件夹并选中文件
                         if let Some(path) = self.local_state.all_paths.get(index) {
-                            let full_path = self.get_absolute_path(path);
+                            let full_path = common::get_absolute_path(path);
 
                             // Windows: 使用 explorer /select,路径
                             #[cfg(target_os = "windows")]
@@ -964,7 +916,7 @@ impl App {
 
                         // 删除壁纸
                         if let Some(path) = self.local_state.all_paths.get(index) {
-                            let full_path = self.get_absolute_path(path);
+                            let full_path = common::get_absolute_path(path);
 
                             // 尝试删除文件
                             match std::fs::remove_file(&full_path) {
@@ -1002,7 +954,7 @@ impl App {
                     super::local::LocalMessage::SetWallpaper(index) => {
                         // 设置壁纸
                         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
-                            let full_path = self.get_absolute_path(&path);
+                            let full_path = common::get_absolute_path(&path);
 
                             // 提前获取翻译文本，避免线程安全问题
                             let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
@@ -1034,7 +986,7 @@ impl App {
                         // 清空当前数据，准备加载新数据
                         self.online_state.wallpapers.clear();
                         self.online_state.wallpapers_data.clear();
-                        self.online_state.page_boundaries.clear();
+                        self.online_state.page_info.clear();
                         self.online_state.has_loaded = false;
 
                         // 创建新的请求上下文并取消之前的请求
@@ -1119,12 +1071,14 @@ impl App {
                             .collect();
                         self.online_state.total_count = self.online_state.wallpapers.len();
 
-                        // 初始化 page_boundaries，记录第一页的起始索引和结束后的边界
-                        self.online_state.page_boundaries.clear();
-                        self.online_state.page_boundaries.push(0);
-                        // 如果有数据，添加第一页结束后的边界（用于在第一页数据后显示分页标识）
+                        // 初始化 page_info，记录第一页的结束索引和页码
+                        self.online_state.page_info.clear();
+                        // 如果有数据，添加第一页的分页信息（用于在第一页数据后显示分页标识）
                         if !self.online_state.wallpapers.is_empty() {
-                            self.online_state.page_boundaries.push(self.online_state.wallpapers.len());
+                            self.online_state.page_info.push(super::online::PageInfo {
+                                end_index: self.online_state.wallpapers.len(),
+                                page_num: current_page,
+                            });
                         }
 
                         self.online_state.loading_page = false;
@@ -1227,10 +1181,14 @@ impl App {
                             self.online_state.wallpapers.push(super::online::WallpaperLoadStatus::Loading);
                         }
 
-                        // 在添加完当前页数据后记录分页边界
+                        // 在添加完当前页数据后记录分页信息
                         // 这样分页标识就可以在当前页数据的下面显示
-                        let boundary_index = self.online_state.wallpapers.len();
-                        self.online_state.page_boundaries.push(boundary_index);
+                        if !wallpapers.is_empty() {
+                            self.online_state.page_info.push(super::online::PageInfo {
+                                end_index: self.online_state.wallpapers.len(),
+                                page_num: current_page,
+                            });
+                        }
 
                         self.online_state.loading_page = false;
 
@@ -1276,6 +1234,13 @@ impl App {
                         if index < self.online_state.wallpapers.len() && index < self.online_state.wallpapers_data.len() {
                             let wallpaper = self.online_state.wallpapers_data[index].clone();
                             self.online_state.wallpapers[index] = super::online::WallpaperLoadStatus::ThumbLoaded(wallpaper, handle);
+
+                            // 当第一个缩略图加载完成时，检查是否需要自动加载下一页
+                            if index == 0 {
+                                return iced::Task::perform(async {}, |_| {
+                                    AppMessage::Online(super::online::OnlineMessage::CheckAndLoadNextPage)
+                                });
+                            }
                         }
                     }
                     super::online::OnlineMessage::CloseModal => {
@@ -1340,6 +1305,48 @@ impl App {
                             return iced::Task::perform(async {}, |_| {
                                 AppMessage::Online(super::online::OnlineMessage::LoadPage)
                             });
+                        }
+                    }
+                    super::online::OnlineMessage::CheckAndLoadNextPage => {
+                        // 检查是否需要自动加载下一页
+                        // 条件：不是最后一页，且当前没有正在加载
+                        println!("[CheckAndLoadNextPage] 检查是否需要自动加载下一页: last_page={}, loading_page={}, current_page={}, total_pages={}",
+                            self.online_state.last_page, self.online_state.loading_page,
+                            self.online_state.current_page, self.online_state.total_pages);
+
+                        if !self.online_state.last_page && !self.online_state.loading_page {
+                            // 计算每行可以显示多少张图
+                            let available_width = (self.current_window_width as f32 - crate::ui::style::IMAGE_SPACING).max(crate::ui::style::IMAGE_WIDTH);
+                            let unit_width = crate::ui::style::IMAGE_WIDTH + crate::ui::style::IMAGE_SPACING;
+                            let items_per_row = (available_width / unit_width).floor() as usize;
+                            let items_per_row = items_per_row.max(1);
+
+                            // 计算实际行数（考虑分页分隔线）
+                            let num_wallpapers = self.online_state.wallpapers.len();
+                            let num_rows = (num_wallpapers + items_per_row - 1) / items_per_row; // 向上取整
+
+                            // 估算内容高度：行数 * (每张图高度 + 间距) + 分页分隔线高度
+                            let estimated_content_height = num_rows as f32
+                                * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING)
+                                + (self.online_state.page_info.len() as f32 * crate::ui::style::PAGE_SEPARATOR_HEIGHT);
+
+                            println!("[CheckAndLoadNextPage] 每行{}张图，共{}行，{}个分页分隔线，估算内容高度: {}, 窗口高度: {}",
+                                items_per_row, num_rows, self.online_state.page_info.len(),
+                                estimated_content_height, self.current_window_height);
+
+                            // 如果估算的内容高度小于窗口高度，说明没有滚动条，需要加载下一页
+                            if estimated_content_height < self.current_window_height as f32 {
+                                println!("[CheckAndLoadNextPage] 内容高度小于窗口高度，触发加载下一页");
+                                self.online_state.current_page += 1;
+                                return iced::Task::perform(async {}, |_| {
+                                    AppMessage::Online(super::online::OnlineMessage::LoadPage)
+                                });
+                            } else {
+                                println!("[CheckAndLoadNextPage] 内容高度大于等于窗口高度，不加载");
+                            }
+                        } else {
+                            println!("[CheckAndLoadNextPage] 不满足加载条件：last_page={}, loading_page={}",
+                                self.online_state.last_page, self.online_state.loading_page);
                         }
                     }
                     super::online::OnlineMessage::DownloadWallpaper(index) => {
@@ -1634,7 +1641,7 @@ impl App {
                     super::download::DownloadMessage::OpenFileLocation(id) => {
                         // 打开文件位置
                         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
-                            let full_path = self.get_absolute_path(&task.task.save_path);
+                            let full_path = common::get_absolute_path(&task.task.save_path);
 
                             // Windows: 使用 explorer /select,路径
                             #[cfg(target_os = "windows")]

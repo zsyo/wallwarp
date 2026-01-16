@@ -100,6 +100,10 @@ pub struct App {
     pub notification_type: NotificationType,
     // 当前窗口宽度，用于响应式布局
     pub current_window_width: u32,
+    // 当前窗口高度，用于判断是否需要自动加载下一页
+    pub current_window_height: u32,
+    // 当前每行可显示的壁纸数量（用于估算内容高度）
+    pub current_items_per_row: usize,
     // 本地壁纸页面状态
     pub local_state: crate::ui::local::LocalState,
     // 在线壁纸页面状态

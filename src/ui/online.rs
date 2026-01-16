@@ -1,11 +1,11 @@
 use super::AppMessage;
 use super::common;
 use crate::ui::style::{
-    ALL_LOADED_TEXT_SIZE, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED,
+    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED,
     COLOR_BG_LIGHT, COLOR_LIGHT_BG, COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT, COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG,
     COLOR_NSFW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK,
     EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE,
-    MODAL_LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR,
+    OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR,
     PAGE_SEPARATOR_TEXT_SIZE,
 };
 use iced::widget::{button, column, container, pick_list, row, scrollable, text};
@@ -52,9 +52,7 @@ impl Category {
             Category::People => 3,
         }
     }
-}
 
-impl Category {
     pub fn display_name(&self) -> &'static str {
         match self {
             Category::General => "online-wallpapers.category-general",
@@ -163,9 +161,7 @@ impl Purity {
             Purity::NSFW => 3,
         }
     }
-}
 
-impl Purity {
     pub fn display_name(&self) -> &'static str {
         match self {
             Purity::SFW => "online-wallpapers.purity-sfw",
@@ -208,9 +204,7 @@ impl Resolution {
             Resolution::Ultrawide => "ultrawide",
         }
     }
-}
 
-impl Resolution {
     pub fn display_name(&self) -> &'static str {
         match self {
             Resolution::Any => "online-wallpapers.resolution-any",
@@ -249,9 +243,7 @@ impl Ratio {
             Ratio::Square => "square",
         }
     }
-}
 
-impl Ratio {
     pub fn display_name(&self) -> &'static str {
         match self {
             Ratio::Any => "online-wallpapers.ratio-any",
@@ -316,9 +308,7 @@ impl ColorOption {
             ColorOption::White => "white",
         }
     }
-}
 
-impl ColorOption {
     pub fn display_name(&self) -> &'static str {
         match self {
             ColorOption::Any => "online-wallpapers.color-any",
@@ -372,9 +362,7 @@ impl TimeRange {
             TimeRange::Year => "1y",
         }
     }
-}
 
-impl TimeRange {
     pub fn display_name(&self) -> &'static str {
         match self {
             TimeRange::Any => "online-wallpapers.time-any",
@@ -393,18 +381,6 @@ impl std::fmt::Display for TimeRange {
 }
 
 // 包装类型，用于 pick_list 显示翻译后的文本
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DisplayableCategory {
-    pub value: Category,
-    pub display: &'static str,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DisplayablePurity {
-    pub value: Purity,
-    pub display: &'static str,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DisplayableResolution {
     pub value: Resolution,
@@ -475,6 +451,7 @@ pub enum OnlineMessage {
     LoadPageFailed(String),
     WallpaperSelected(OnlineWallpaper),
     ScrollToBottom,
+    CheckAndLoadNextPage, // 检查是否需要自动加载下一页
     ShowModal(usize),
     CloseModal,
     NextImage,
@@ -525,6 +502,13 @@ pub enum WallpaperLoadStatus {
     Loaded(OnlineWallpaper),
 }
 
+/// 分页信息，记录每页的结束索引和对应的页码
+#[derive(Debug, Clone)]
+pub struct PageInfo {
+    pub end_index: usize, // 该页最后一个壁纸的索引（不包含）
+    pub page_num: usize,  // 该页的页码（从1开始）
+}
+
 #[derive(Debug)]
 pub struct OnlineState {
     pub wallpapers: Vec<WallpaperLoadStatus>,
@@ -548,7 +532,7 @@ pub struct OnlineState {
     pub search_text: String,
     pub last_page: bool,
     pub has_loaded: bool,            // 标记是否已加载过数据
-    pub page_boundaries: Vec<usize>, // 记录每页的起始索引，用于显示分页分隔线
+    pub page_info: Vec<PageInfo>,    // 记录每页的结束索引和页码，用于显示分页分隔线
     // 请求上下文，用于取消正在进行的请求
     pub request_context: crate::services::request_context::RequestContext,
 }
@@ -575,8 +559,8 @@ impl Default for OnlineState {
             time_range: TimeRange::Any,
             search_text: String::new(),
             last_page: false,
-            has_loaded: false,           // 初始状态为未加载
-            page_boundaries: Vec::new(), // 初始化为空
+            has_loaded: false,        // 初始状态为未加载
+            page_info: Vec::new(),    // 初始化为空
             request_context: crate::services::request_context::RequestContext::new(),
         }
     }
@@ -707,53 +691,53 @@ pub fn online_view<'a>(
             .width(Length::Fill)
             .align_x(Alignment::Center);
 
-        // 遍历所有壁纸，按行渲染，在每页数据的下面添加分页分隔线
-        // 直接使用 page_boundaries 中的起始索引和 API 返回的 current_page
-        for (row_index, chunk) in online_state.wallpapers.chunks(items_per_row).enumerate() {
-            // 创建当前行的壁纸
-            let mut row_container = row![].spacing(IMAGE_SPACING).align_y(Alignment::Center);
+        // 按页渲染数据，实现类似PDF的分页效果
+        // 每页数据独立显示，不会跨页
+        let mut start_index = 0;
+        for (_page_idx, page_info) in online_state.page_info.iter().enumerate() {
+            // 获取当前页的数据范围
+            let end_index = page_info.end_index;
+            let page_wallpapers = &online_state.wallpapers[start_index..end_index];
 
-            for wallpaper_status in chunk {
-                let image_element = match wallpaper_status {
-                    WallpaperLoadStatus::Loading => create_loading_placeholder(i18n),
-                    WallpaperLoadStatus::ThumbLoaded(wallpaper, handle) => {
-                        let wallpaper_index = online_state
-                            .wallpapers
-                            .iter()
-                            .position(|w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id))
-                            .unwrap_or(0);
-                        create_loaded_wallpaper_with_thumb(i18n, wallpaper, Some(handle.clone()), wallpaper_index)
-                    }
-                    WallpaperLoadStatus::Loaded(wallpaper) => {
-                        let wallpaper_index = online_state
-                            .wallpapers
-                            .iter()
-                            .position(|w| matches!(w, WallpaperLoadStatus::Loaded(wp) if wp.id == wallpaper.id))
-                            .unwrap_or(0);
-                        create_loaded_wallpaper_with_thumb(i18n, wallpaper, None, wallpaper_index)
-                    }
-                };
+            // 渲染当前页的壁纸
+            // 按行切分当前页的数据
+            for chunk in page_wallpapers.chunks(items_per_row) {
+                // 创建当前行的壁纸
+                let mut row_container = row![].spacing(IMAGE_SPACING).align_y(Alignment::Center);
 
-                row_container = row_container.push(image_element);
-            }
+                for wallpaper_status in chunk {
+                    let image_element = match wallpaper_status {
+                        WallpaperLoadStatus::Loading => create_loading_placeholder(i18n),
+                        WallpaperLoadStatus::ThumbLoaded(wallpaper, handle) => {
+                            let wallpaper_index = online_state
+                                .wallpapers
+                                .iter()
+                                .position(|w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id))
+                                .unwrap_or(0);
+                            create_loaded_wallpaper_with_thumb(i18n, wallpaper, Some(handle.clone()), wallpaper_index)
+                        }
+                        WallpaperLoadStatus::Loaded(wallpaper) => {
+                            let wallpaper_index = online_state
+                                .wallpapers
+                                .iter()
+                                .position(|w| matches!(w, WallpaperLoadStatus::Loaded(wp) if wp.id == wallpaper.id))
+                                .unwrap_or(0);
+                            create_loaded_wallpaper_with_thumb(i18n, wallpaper, None, wallpaper_index)
+                        }
+                    };
 
-            let centered_row = container(row_container).width(Length::Fill).center_x(Length::Fill);
-            content = content.push(centered_row);
-
-            // 计算当前行最后一个壁纸的索引
-            let current_end_index = (row_index + 1) * items_per_row.min(chunk.len());
-
-            // 检查是否需要添加分页分隔线（在当前行之后）
-            // page_boundaries 存储的是每一页的起始索引，第一个值是 0（第一页起始）
-            // 如果当前行的结束索引等于某个边界，说明这一页的内容已经渲染完成
-            for (page_idx, &boundary) in online_state.page_boundaries.iter().enumerate() {
-                if current_end_index == boundary {
-                    // page_idx 就是当前页的页码（page_boundaries[0] = 0 是第一页）
-                    let page_num = page_idx;
-                    content = content.push(create_page_separator(i18n, page_num, online_state.total_pages));
-                    break;
+                    row_container = row_container.push(image_element);
                 }
+
+                let centered_row = container(row_container).width(Length::Fill).center_x(Length::Fill);
+                content = content.push(centered_row);
             }
+
+            // 在当前页数据后添加分页分隔线
+            content = content.push(create_page_separator(i18n, page_info.page_num, online_state.total_pages));
+
+            // 更新下一页的起始索引
+            start_index = end_index;
         }
 
         // 如果是最后一页，显示"已加载全部"
@@ -783,9 +767,8 @@ pub fn online_view<'a>(
             // 计算可滚动的总距离
             let scrollable_height = content_height - view_height;
 
-            // 只有当有足够的可滚动内容时才检测（避免内容不足时误触发）
             if scrollable_height > 0.0 {
-                // 计算当前滚动百分比（0.0 到 1.0）
+                // 有滚动条的情况：计算当前滚动百分比（0.0 到 1.0）
                 let scroll_percentage = scroll_position / scrollable_height;
 
                 // 当滚动到 95% 以上时触发加载
@@ -797,7 +780,17 @@ pub fn online_view<'a>(
                     super::AppMessage::None
                 }
             } else {
-                super::AppMessage::None
+                // 没有滚动条的情况：检测是否有滚轮事件
+                // 当内容高度小于等于视图高度时，通过 relative_offset().y 检测滚轮事件
+                // 如果 relative_offset().y > 0 表示向下滚动
+                let relative_offset = viewport.relative_offset().y;
+
+                // 只有当向下滚动（relative_offset > 0）且在底部时才触发加载
+                if relative_offset > 0.0 {
+                    super::AppMessage::Online(OnlineMessage::ScrollToBottom)
+                } else {
+                    super::AppMessage::None
+                }
             }
         });
 
@@ -1298,7 +1291,7 @@ fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> Element<'a, Ap
         .height(Length::Fixed(IMAGE_HEIGHT))
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
-        .style(create_bordered_container_style);
+        .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT));
 
     button(placeholder_content)
         .padding(0)
@@ -1332,14 +1325,14 @@ fn create_loaded_wallpaper_with_thumb<'a>(
             .height(Length::Fixed(IMAGE_HEIGHT))
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)
-            .style(create_bordered_container_style)
+            .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT))
             .into();
     };
 
     let styled_image = container(image)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(create_bordered_container_style);
+        .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT));
 
     // 创建透明遮罩内容
     let file_size_text = text(crate::utils::helpers::format_file_size(wallpaper.file_size))
@@ -1434,18 +1427,6 @@ fn create_loaded_wallpaper_with_thumb<'a>(
         .into()
 }
 
-fn create_bordered_container_style(theme: &iced::Theme) -> container::Style {
-    container::Style {
-        background: Some(iced::Background::Color(COLOR_BG_LIGHT)),
-        border: iced::border::Border {
-            color: theme.extended_palette().primary.weak.color,
-            width: BORDER_WIDTH,
-            radius: iced::border::Radius::from(BORDER_RADIUS),
-        },
-        ..Default::default()
-    }
-}
-
 fn create_page_separator<'a>(
     i18n: &'a crate::i18n::I18n,
     current_page: usize,
@@ -1473,7 +1454,7 @@ fn create_page_separator<'a>(
 
 fn create_modal_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> Element<'a, AppMessage> {
     let loading_text = text(i18n.t("online-wallpapers.image-loading"))
-        .size(MODAL_LOADING_TEXT_SIZE)
+        .size(24)
         .style(|_theme: &iced::Theme| text::Style {
             color: Some(COLOR_OVERLAY_TEXT),
         });

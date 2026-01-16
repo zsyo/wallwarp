@@ -46,6 +46,8 @@ impl App {
             notification_message: String::new(),
             notification_type: super::NotificationType::Success,
             current_window_width: config.display.width,
+            current_window_height: config.display.height,
+            current_items_per_row: 1, // 初始值为1
             local_state: super::local::LocalState::default(),
             online_state: super::online::OnlineState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
@@ -96,6 +98,20 @@ impl App {
 
     pub fn title(&self) -> String {
         self.i18n.t("app-title")
+    }
+
+    // 辅助方法：显示通知
+    pub fn show_notification(&mut self, message: String, notification_type: super::NotificationType) -> iced::Task<AppMessage> {
+        self.notification_message = message;
+        self.notification_type = notification_type;
+        self.show_notification = true;
+
+        iced::Task::perform(
+            async {
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            },
+            |_| AppMessage::HideNotification,
+        )
     }
 
     // 辅助方法：获取路径显示字符串

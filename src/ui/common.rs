@@ -348,3 +348,25 @@ where
         })
         .into()
 }
+
+/// 创建带边框的容器样式（带背景色）
+///
+/// # 参数
+/// - `theme`: 主题
+/// - `bg_color`: 背景颜色
+pub fn create_bordered_container_style_with_bg(
+    theme: &iced::Theme,
+    bg_color: Color,
+) -> iced::widget::container::Style {
+    iced::widget::container::Style {
+        background: Some(iced::Background::Color(bg_color)),
+        border: iced::border::Border {
+            color: theme.extended_palette().primary.weak.color,
+            width: BORDER_WIDTH,
+            radius: iced::border::Radius::from(BORDER_RADIUS),
+        },
+        ..Default::default()
+    }
+}
+
+

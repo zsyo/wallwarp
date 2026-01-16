@@ -2,10 +2,10 @@ use super::AppMessage;
 use super::common;
 use crate::services::local::Wallpaper;
 use crate::ui::style::{
-    ALL_LOADED_TEXT_SIZE, BORDER_WIDTH, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED,
+    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED,
     BUTTON_COLOR_YELLOW, COLOR_BG_LIGHT, COLOR_MODAL_BG, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT,
     COLOR_TEXT_DARK, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, ERROR_ICON_SIZE, ERROR_PATH_SIZE,
-    ERROR_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, MODAL_LOADING_TEXT_SIZE,
+    ERROR_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE,
     OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
 };
 use crate::utils::config::Config;
@@ -22,6 +22,7 @@ pub enum LocalMessage {
     LoadPageFailed(String),
     WallpaperSelected(Wallpaper),
     ScrollToBottom,
+    CheckAndLoadNextPage, // 检查是否需要自动加载下一页
     AnimationTick,
     ShowModal(usize),
     CloseModal,
@@ -154,9 +155,8 @@ pub fn local_view<'a>(
             // 计算可滚动的总距离
             let scrollable_height = content_height - view_height;
 
-            // 只有当有足够的可滚动内容时才检测（避免内容不足时误触发）
             if scrollable_height > 0.0 {
-                // 计算当前滚动百分比（0.0 到 1.0）
+                // 有滚动条的情况：计算当前滚动百分比（0.0 到 1.0）
                 let scroll_percentage = scroll_position / scrollable_height;
 
                 // 当滚动到 95% 以上时触发加载
@@ -168,7 +168,17 @@ pub fn local_view<'a>(
                     super::AppMessage::None
                 }
             } else {
-                super::AppMessage::None
+                // 没有滚动条的情况：检测是否有滚轮事件
+                // 当内容高度小于等于视图高度时，通过 relative_offset().y 检测滚轮事件
+                // 如果 relative_offset().y > 0 表示向下滚动
+                let relative_offset = viewport.relative_offset().y;
+
+                // 只有当向下滚动（relative_offset > 0）且在底部时才触发加载
+                if relative_offset > 0.0 {
+                    super::AppMessage::Local(LocalMessage::ScrollToBottom)
+                } else {
+                    super::AppMessage::None
+                }
             }
         });
 
@@ -328,7 +338,7 @@ fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> button::Button
         .height(Length::Fixed(IMAGE_HEIGHT))
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
-        .style(create_bordered_container_style);
+        .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT));
 
     button(placeholder_content)
         .padding(0)
@@ -371,7 +381,7 @@ fn create_error_placeholder<'a>(
     let error_content = container(inner_content)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(create_bordered_container_style);
+        .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT));
 
     // 创建遮罩层内容（不显示分辨率）
     let file_size_text = text(crate::utils::helpers::format_file_size(wallpaper.file_size))
@@ -453,7 +463,7 @@ fn create_loaded_wallpaper<'a>(
     let styled_image = container(image)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(create_bordered_container_style);
+        .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT));
 
     // 创建透明遮罩内容
     let file_size_text = text(crate::utils::helpers::format_file_size(wallpaper.file_size))
@@ -559,15 +569,70 @@ fn create_loaded_wallpaper<'a>(
         .on_press(super::AppMessage::Local(LocalMessage::ShowModal(index)))
 }
 
-fn create_bordered_container_style(theme: &iced::Theme) -> container::Style {
-    container::Style {
-        background: Some(iced::Background::Color(COLOR_BG_LIGHT)),
-        border: iced::border::Border {
-            color: theme.extended_palette().primary.weak.color,
-            width: BORDER_WIDTH,
-            radius: iced::border::Radius::from(4.0),
-        },
-        ..Default::default()
+impl LocalState {
+    /// 初始化动态图解码器
+    pub fn init_animated_decoder(&mut self, index: usize) {
+        if let Some(path) = self.all_paths.get(index) {
+            let path = std::path::PathBuf::from(path);
+            match crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
+                Ok(decoder) => {
+                    if decoder.frame_count() > 1 {
+                        self.animated_decoder = Some(decoder);
+                    } else {
+                        self.animated_decoder = None;
+                    }
+                }
+                Err(_) => {
+                    self.animated_decoder = None;
+                }
+            }
+        }
+    }
+
+    /// 查找下一个有效的图片索引
+    pub fn find_next_valid_image_index(&self, start_index: usize, direction: i32) -> Option<usize> {
+        if self.all_paths.is_empty() {
+            return None;
+        }
+
+        let total = self.all_paths.len();
+        let mut current_index = start_index;
+        let loop_count = total; // 防止无限循环
+
+        for _ in 0..loop_count {
+            // 根据方向更新索引
+            if direction > 0 {
+                // 向前查找
+                current_index = if current_index < total - 1 {
+                    current_index + 1
+                } else {
+                    0
+                };
+            } else {
+                // 向后查找
+                current_index = if current_index > 0 {
+                    current_index - 1
+                } else {
+                    total - 1
+                };
+            }
+
+            // 检查是否回到起始位置
+            if current_index == start_index {
+                return None;
+            }
+
+            // 检查当前索引是否有效
+            if let Some(wallpaper_status) = self.wallpapers.get(current_index) {
+                if let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+                    if wallpaper.name != "加载失败" {
+                        return Some(current_index);
+                    }
+                }
+            }
+        }
+
+        None
     }
 }
 
@@ -577,7 +642,7 @@ fn create_modal_loading_placeholder<'a>(
 ) -> Element<'a, AppMessage> {
     let loading_text =
         text(i18n.t("local-list.image-loading"))
-            .size(MODAL_LOADING_TEXT_SIZE)
+            .size(24)
             .style(|_theme: &iced::Theme| text::Style {
                 color: Some(COLOR_OVERLAY_TEXT),
             });
