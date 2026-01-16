@@ -211,7 +211,8 @@ impl App {
     }
 
     fn handle_load_online_page(&mut self) -> iced::Task<AppMessage> {
-        // 加载下一页
+        // 加载下一页：先递增页码
+        self.online_state.current_page += 1;
         self.online_state.loading_page = true;
 
         // 创建新的请求上下文并取消之前的请求
@@ -541,7 +542,9 @@ impl App {
     }
 
     fn handle_refresh(&mut self) -> iced::Task<AppMessage> {
-        // 刷新：重新加载当前页
+        // 刷新：清空搜索框内容，重置到第一页并重新加载
+        self.online_state.search_text.clear();
+        self.online_state.current_page = 1;
         self.handle_load_online_wallpapers()
     }
 

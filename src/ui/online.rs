@@ -1,12 +1,11 @@
 use super::AppMessage;
 use super::common;
 use crate::ui::style::{
-    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED,
-    COLOR_BG_LIGHT, COLOR_LIGHT_BG, COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT, COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG,
-    COLOR_NSFW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK,
-    EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE,
-    OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR,
-    PAGE_SEPARATOR_TEXT_SIZE,
+    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, COLOR_BG_LIGHT, COLOR_LIGHT_BG,
+    COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT, COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG, COLOR_NSFW, COLOR_OVERLAY_BG,
+    COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK, EMPTY_STATE_PADDING,
+    EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT,
+    OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE,
 };
 use iced::widget::{button, column, container, pick_list, row, scrollable, text};
 use iced::{Alignment, Color, Element, Length};
@@ -531,8 +530,8 @@ pub struct OnlineState {
     pub time_range: TimeRange,
     pub search_text: String,
     pub last_page: bool,
-    pub has_loaded: bool,            // 标记是否已加载过数据
-    pub page_info: Vec<PageInfo>,    // 记录每页的结束索引和页码，用于显示分页分隔线
+    pub has_loaded: bool,         // 标记是否已加载过数据
+    pub page_info: Vec<PageInfo>, // 记录每页的结束索引和页码，用于显示分页分隔线
     // 请求上下文，用于取消正在进行的请求
     pub request_context: crate::services::request_context::RequestContext,
 }
@@ -559,8 +558,8 @@ impl Default for OnlineState {
             time_range: TimeRange::Any,
             search_text: String::new(),
             last_page: false,
-            has_loaded: false,        // 初始状态为未加载
-            page_info: Vec::new(),    // 初始化为空
+            has_loaded: false,     // 初始状态为未加载
+            page_info: Vec::new(), // 初始化为空
             request_context: crate::services::request_context::RequestContext::new(),
         }
     }
@@ -712,7 +711,9 @@ pub fn online_view<'a>(
                             let wallpaper_index = online_state
                                 .wallpapers
                                 .iter()
-                                .position(|w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id))
+                                .position(
+                                    |w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id),
+                                )
                                 .unwrap_or(0);
                             create_loaded_wallpaper_with_thumb(i18n, wallpaper, Some(handle.clone()), wallpaper_index)
                         }
@@ -734,7 +735,11 @@ pub fn online_view<'a>(
             }
 
             // 在当前页数据后添加分页分隔线
-            content = content.push(create_page_separator(i18n, page_info.page_num, online_state.total_pages));
+            content = content.push(create_page_separator(
+                i18n,
+                page_info.page_num,
+                online_state.total_pages,
+            ));
 
             // 更新下一页的起始索引
             start_index = end_index;
@@ -919,7 +924,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
         .on_submit(AppMessage::Online(OnlineMessage::Search))
         .padding(6)
         .size(14)
-        .width(Length::Fixed(120.0))
+        .width(Length::Fixed(160.0))
         .style(|_theme: &iced::Theme, _status| iced::widget::text_input::Style {
             background: iced::Background::Color(COLOR_LIGHT_BUTTON),
             border: iced::border::Border {
