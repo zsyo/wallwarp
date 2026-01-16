@@ -156,7 +156,8 @@ impl LocalWallpaperService {
         cache_path: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let cache_dir = Path::new(cache_path);
-        fs::create_dir_all(cache_dir).map_err(to_boxed_error)?;
+        let thumbnail_dir = cache_dir.join("thumbnail");
+        fs::create_dir_all(&thumbnail_dir).map_err(to_boxed_error)?;
 
         Self::generate_thumbnail(&Path::new(wallpaper_path), cache_dir)
     }
@@ -203,8 +204,11 @@ impl LocalWallpaperService {
         file_path: &Path,
         cache_dir: &Path,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let thumbnail_dir = cache_dir.join("thumbnail");
+        fs::create_dir_all(&thumbnail_dir).map_err(to_boxed_error)?;
+
         let file_hash = Self::calculate_file_hash(file_path)?;
-        let thumbnail_path = cache_dir.join(format!("{}.webp", file_hash));
+        let thumbnail_path = thumbnail_dir.join(format!("{}.webp", file_hash));
 
         if thumbnail_path.exists() {
             return Ok(thumbnail_path.to_string_lossy().to_string());
