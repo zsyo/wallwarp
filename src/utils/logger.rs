@@ -15,7 +15,7 @@ use tracing_subscriber::{EnvFilter, fmt};
 /// - `RUST_LOG=wallwarp=info,reqwest=error` - 项目显示info，reqwest只显示error
 pub fn init_logger() {
     // 从环境变量读取日志级别，默认为 info
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = env_filter_extra(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")));
 
     // 配置日志输出格式
     fmt()
@@ -33,6 +33,14 @@ pub fn init_logger() {
 /// # 参数
 /// - `level`: 日志级别字符串 ("off", "error", "warn", "info", "debug", "trace")
 pub fn set_log_level(level: &str) {
-    let filter = EnvFilter::new(level);
+    let filter = env_filter_extra(EnvFilter::new(level));
     tracing::subscriber::set_global_default(fmt().with_env_filter(filter).compact().finish()).expect("Failed to set global default subscriber");
+}
+
+fn env_filter_extra(filter: EnvFilter) -> EnvFilter {
+    filter
+        .add_directive("iced_winit=warn".parse().unwrap())
+        .add_directive("iced_wgpu=warn".parse().unwrap())
+        .add_directive("wgpu_core=warn".parse().unwrap())
+        .add_directive("wgpu_hal=warn".parse().unwrap())
 }

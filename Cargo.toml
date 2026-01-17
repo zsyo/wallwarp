@@ -27,12 +27,12 @@ reqwest = { version = "0.13.1", default-features = false, features = [
 ] }
 urlencoding = "2.1"
 async-stream = "0.3"
+wallpaper = "3.2.0"
 
 # i18n
 fluent-bundle = "0.16.0"
 unic-langid = "0.9.6"
 sys-locale = "0.3.2"
-wallpaper = "3.2.0"
 
 # logging
 tracing = "0.1"
