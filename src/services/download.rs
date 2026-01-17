@@ -78,6 +78,43 @@ impl DownloadService {
         Path::new(cache_path).exists()
     }
 
+    /// 获取在线原图缓存路径
+    /// 根据URL和文件大小生成hash值，用于缓存文件命名
+    pub fn get_online_image_cache_path(cache_base_path: &str, url: &str, file_size: u64) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        // 计算hash值：使用URL + file_size
+        let hash_input = format!("{}{}", url, file_size);
+        let hash = xxh3_128(hash_input.as_bytes());
+
+        // 从 URL 中提取文件后缀
+        let extension = Path::new(url).extension().and_then(|ext| ext.to_str()).unwrap_or("jpg"); // 默认使用 jpg
+
+        // 创建缓存目录路径
+        let cache_dir = PathBuf::from(cache_base_path).join("online");
+
+        // 生成缓存文件路径（带.download后缀表示下载中）
+        let cache_file = cache_dir.join(format!("{:x}.{}.download", hash, extension));
+
+        Ok(cache_file.to_string_lossy().to_string())
+    }
+
+    /// 获取在线原图缓存路径（下载完成后的最终路径，不带.download后缀）
+    pub fn get_online_image_cache_final_path(cache_base_path: &str, url: &str, file_size: u64) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        // 计算hash值：使用URL + file_size
+        let hash_input = format!("{}{}", url, file_size);
+        let hash = xxh3_128(hash_input.as_bytes());
+
+        // 从 URL 中提取文件后缀
+        let extension = Path::new(url).extension().and_then(|ext| ext.to_str()).unwrap_or("jpg"); // 默认使用 jpg
+
+        // 创建缓存目录路径
+        let cache_dir = PathBuf::from(cache_base_path).join("online");
+
+        // 生成缓存文件路径（不带.download后缀）
+        let cache_file = cache_dir.join(format!("{:x}.{}", hash, extension));
+
+        Ok(cache_file.to_string_lossy().to_string())
+    }
+
     /// 下载缩略图到缓存目录（带重试机制，最多重试3次）
     pub async fn download_thumb_to_cache(url: &str, cache_path: &str, proxy: Option<String>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // 获取并发控制许可

@@ -10,6 +10,7 @@ impl App {
     pub fn start_download(&mut self, url: String, id: &str, file_type: &str) -> iced::Task<AppMessage> {
         let file_name = super::download::generate_file_name(id, file_type.split('/').last().unwrap_or("jpg"));
         let data_path = self.config.data.data_path.clone();
+        let cache_path = self.config.data.cache_path.clone();
         let proxy = if self.config.global.proxy.is_empty() {
             None
         } else {
@@ -45,6 +46,7 @@ impl App {
                     let task_id = task_full.task.id;
                     let cancel_token = task_full.task.cancel_token.clone().unwrap();
                     let downloaded_size = task_full.task.downloaded_size;
+                    let cache_path = cache_path.clone();
 
                     // 更新状态
                     task_full.task.status = super::download::DownloadStatus::Downloading;
@@ -53,7 +55,7 @@ impl App {
 
                     // 启动异步下载任务（带进度更新）
                     return iced::Task::perform(
-                        super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size),
+                        super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size, cache_path),
                         move |result| match result {
                             Ok(size) => {
                                 info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
@@ -162,6 +164,8 @@ impl App {
         // 最后设置取消标志，终止下载
         self.download_state.cancel_task(id);
 
+        // 注意：不删除已下载的文件，保留以便断点续传
+
         iced::Task::none()
     }
 
@@ -175,7 +179,12 @@ impl App {
             .tasks
             .iter()
             .find(|t| t.task.id == id)
-            .map(|t| (t.task.url.clone(), PathBuf::from(&t.task.save_path), t.proxy.clone(), t.task.id));
+            .map(|t| (
+                t.task.url.clone(),
+                PathBuf::from(&t.task.save_path),
+                t.proxy.clone(),
+                t.task.id,
+            ));
 
         if let Some((url, save_path, proxy, task_id)) = task_data {
             if current_status == Some(super::download::DownloadStatus::Waiting)
@@ -215,8 +224,10 @@ impl App {
                         (std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), 0)
                     };
 
+                    let cache_path = self.config.data.cache_path.clone();
+
                     return iced::Task::perform(
-                        super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size),
+                        super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size, cache_path),
                         move |result| match result {
                             Ok(size) => {
                                 info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
@@ -236,14 +247,62 @@ impl App {
     }
 
     fn handle_cancel_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
+        // 先保存任务信息，因为取消后可能无法访问
+        let task_info = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| {
+            (
+                t.task.url.clone(),
+                t.task.save_path.clone(),
+                t.task.file_name.clone(),
+                t.task.status.clone(),
+            )
+        });
+
+        // 取消任务
         self.download_state.cancel_task(id);
         // 将任务状态设置为已取消
         self.download_state.update_status(id, crate::ui::download::DownloadStatus::Cancelled);
+
+        // 清除未完成的下载文件
+        if let Some((url, save_path, _file_name, status)) = task_info {
+            // 只有在下载中、等待中或暂停时才清除文件
+            if status == crate::ui::download::DownloadStatus::Downloading
+                || status == crate::ui::download::DownloadStatus::Waiting
+                || status == crate::ui::download::DownloadStatus::Paused
+            {
+                // 1. 删除目标文件（data_path中的文件）
+                if let Ok(_metadata) = std::fs::metadata(&save_path) {
+                    // 只有文件未完全下载时才删除（通过检查文件大小是否与完整大小匹配）
+                    // 这里我们简单处理：只要状态不是Completed就删除
+                    let _ = std::fs::remove_file(&save_path);
+                    info!("[下载任务] [ID:{}] 已删除未完成的目标文件: {}", id, save_path);
+                }
+
+                // 2. 删除缓存文件（cache_path/online中的文件）
+                // 需要计算缓存文件路径
+                let cache_path = self.config.data.cache_path.clone();
+                if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
+                    if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
+                        let _ = std::fs::remove_file(&cache_file_path);
+                        info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", id, cache_file_path);
+                    }
+                }
+
+                // 3. 删除缓存文件（不带.download后缀的最终文件）
+                if let Ok(final_cache_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, 0) {
+                    if let Ok(_metadata) = std::fs::metadata(&final_cache_path) {
+                        let _ = std::fs::remove_file(&final_cache_path);
+                        info!("[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}", id, final_cache_path);
+                    }
+                }
+            }
+        }
 
         iced::Task::none()
     }
 
     fn handle_delete_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
+        // 仅删除任务记录，不删除文件
+        // 因为文件已经下载完成，用户可能需要保留文件
         self.download_state.remove_task(id);
         iced::Task::none()
     }
@@ -334,6 +393,8 @@ impl App {
             next_task.task.start_time = Some(std::time::Instant::now());
             self.download_state.increment_downloading();
 
+            let cache_path = self.config.data.cache_path.clone();
+
             // 启动下一个下载任务
             return iced::Task::perform(
                 super::async_tasks::async_download_wallpaper_task_with_progress(
@@ -343,6 +404,7 @@ impl App {
                     next_task_id,
                     next_cancel_token,
                     next_downloaded_size,
+                    cache_path,
                 ),
                 move |result| match result {
                     Ok(s) => {
