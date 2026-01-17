@@ -461,8 +461,8 @@ impl App {
     }
 
     fn handle_category_toggled(&mut self, category: super::online::Category) -> iced::Task<AppMessage> {
-        // 切换分类
-        self.online_state.categories ^= category as u32;
+        // 切换分类：使用位掩码而不是枚举索引值
+        self.online_state.categories ^= category.bit_value();
         iced::Task::none()
     }
 
@@ -472,8 +472,8 @@ impl App {
     }
 
     fn handle_purity_toggled(&mut self, purity: super::online::Purity) -> iced::Task<AppMessage> {
-        // 切换纯净度
-        self.online_state.purities ^= purity as u32;
+        // 切换纯净度：使用位掩码而不是枚举索引值
+        self.online_state.purities ^= purity.bit_value();
         iced::Task::none()
     }
 
