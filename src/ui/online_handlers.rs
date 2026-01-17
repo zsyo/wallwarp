@@ -463,17 +463,23 @@ impl App {
     fn handle_category_toggled(&mut self, category: super::online::Category) -> iced::Task<AppMessage> {
         // 切换分类：使用位掩码而不是枚举索引值
         self.online_state.categories ^= category.bit_value();
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
         iced::Task::none()
     }
 
     fn handle_sorting_changed(&mut self, sorting: super::online::Sorting) -> iced::Task<AppMessage> {
         self.online_state.sorting = sorting;
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
         iced::Task::none()
     }
 
     fn handle_purity_toggled(&mut self, purity: super::online::Purity) -> iced::Task<AppMessage> {
         // 切换纯净度：使用位掩码而不是枚举索引值
         self.online_state.purities ^= purity.bit_value();
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
         iced::Task::none()
     }
 
@@ -533,21 +539,29 @@ impl App {
 
     fn handle_resolution_changed(&mut self, resolution: super::online::Resolution) -> iced::Task<AppMessage> {
         self.online_state.resolution = resolution;
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
         iced::Task::none()
     }
 
     fn handle_ratio_changed(&mut self, ratio: super::online::Ratio) -> iced::Task<AppMessage> {
         self.online_state.ratio = ratio;
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
         iced::Task::none()
     }
 
     fn handle_color_changed(&mut self, color: super::online::ColorOption) -> iced::Task<AppMessage> {
         self.online_state.color = color;
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
         iced::Task::none()
     }
 
     fn handle_time_range_changed(&mut self, time_range: super::online::TimeRange) -> iced::Task<AppMessage> {
         self.online_state.time_range = time_range;
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
         iced::Task::none()
     }
 }

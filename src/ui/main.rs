@@ -11,7 +11,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
     let functional_area_width = (app.current_window_width as f32 - SIDEBAR_WIDTH - ROW_SPACING_LARGE - OUTER_PADDING).max(1.0);
 
     let content: Element<'_, AppMessage> = match app.active_page {
-        ActivePage::OnlineWallpapers => super::online::online_view(&app.i18n, functional_area_width as u32, &app.online_state),
+        ActivePage::OnlineWallpapers => super::online::online_view(&app.i18n, functional_area_width as u32, &app.online_state, &app.config),
         ActivePage::LocalList => super::local::local_view(&app.i18n, &app.config, functional_area_width as u32, &app.local_state),
         ActivePage::DownloadProgress => super::download::download_view(&app.i18n, functional_area_width as u32, &app.download_state),
         ActivePage::Settings => super::settings::settings_view(app),

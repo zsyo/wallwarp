@@ -373,6 +373,15 @@ impl App {
     fn handle_save_wallhaven_api_key(&mut self) -> iced::Task<AppMessage> {
         // 保存API KEY到配置文件
         self.config.set_wallhaven_api_key(self.wallhaven_api_key.clone());
+
+        // 如果 API Key 被清空，移除 NSFW 选项
+        if self.wallhaven_api_key.is_empty() {
+            // 移除 NSFW 位（第0位）
+            self.online_state.purities &= !super::online::Purity::NSFW.bit_value();
+            // 保存到配置文件
+            self.online_state.save_to_config(&mut self.config);
+        }
+
         // 显示成功通知
         self.show_notification("WallHeven API KEY 保存成功".to_string(), super::NotificationType::Success)
     }

@@ -570,17 +570,6 @@ impl OnlineState {
             _ => 0b100,
         };
 
-        // 加载排序
-        state.sorting = match config.wallhaven.sorting.as_str() {
-            "date_added" => Sorting::DateAdded,
-            "relevance" => Sorting::Relevance,
-            "random" => Sorting::Random,
-            "views" => Sorting::Views,
-            "favorites" => Sorting::Favorites,
-            "toplist" => Sorting::TopList,
-            _ => Sorting::DateAdded,
-        };
-
         // 加载纯净度（从字符串解析位掩码）
         state.purities = match config.wallhaven.purity.as_str() {
             "100" | "sfw" => 0b100,
@@ -593,6 +582,22 @@ impl OnlineState {
             _ => 0b100,
         };
 
+        // 如果 API Key 为空，移除 NSFW 选项
+        if config.wallhaven.api_key.is_empty() {
+            state.purities &= !Purity::NSFW.bit_value();
+        }
+
+        // 加载排序
+        state.sorting = match config.wallhaven.sorting.as_str() {
+            "date_added" => Sorting::DateAdded,
+            "relevance" => Sorting::Relevance,
+            "random" => Sorting::Random,
+            "views" => Sorting::Views,
+            "favorites" => Sorting::Favorites,
+            "toplist" => Sorting::TopList,
+            _ => Sorting::DateAdded,
+        };
+
         state.has_loaded = false; // 从配置加载时重置为未加载状态
 
         state
@@ -602,8 +607,8 @@ impl OnlineState {
     pub fn save_to_config(&self, config: &mut crate::utils::config::Config) {
         // 将位掩码转换为字符串
         config.wallhaven.category = format!("{:03b}", self.categories);
-        config.wallhaven.sorting = self.sorting.to_string();
         config.wallhaven.purity = format!("{:03b}", self.purities);
+        config.wallhaven.sorting = self.sorting.to_string();
         config.save_to_file();
     }
 
@@ -633,9 +638,9 @@ impl OnlineState {
     }
 }
 
-pub fn online_view<'a>(i18n: &'a crate::i18n::I18n, window_width: u32, online_state: &'a OnlineState) -> Element<'a, AppMessage> {
+pub fn online_view<'a>(i18n: &'a crate::i18n::I18n, window_width: u32, online_state: &'a OnlineState, config: &'a crate::utils::config::Config) -> Element<'a, AppMessage> {
     // 创建筛选栏
-    let filter_bar = create_filter_bar(i18n, online_state);
+    let filter_bar = create_filter_bar(i18n, online_state, config);
 
     let content = if !online_state.has_loaded && !online_state.loading_page {
         // 初始状态，还未开始加载
@@ -866,7 +871,7 @@ pub fn online_view<'a>(i18n: &'a crate::i18n::I18n, window_width: u32, online_st
     iced::widget::stack(layers).width(Length::Fill).height(Length::Fill).into()
 }
 
-fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState, config: &'a crate::utils::config::Config) -> Element<'a, AppMessage> {
     // 搜索框（放在最前面）
     let search_input = iced::widget::text_input(&i18n.t("online-wallpapers.search-placeholder"), &state.search_text)
         .on_input(|text| AppMessage::Online(OnlineMessage::SearchTextChanged(text)))
@@ -1166,27 +1171,32 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState) ->
                     ..iced::widget::button::text(_theme, _status)
                 }
             }),
-        button(text(i18n.t("online-wallpapers.purity-nsfw")).size(14))
-            .on_press(AppMessage::Online(OnlineMessage::PurityToggled(Purity::NSFW)))
-            .padding(6)
-            .style(move |_theme, _status| {
-                let is_checked = (state.purities & Purity::NSFW.bit_value()) != 0;
-                let (bg_color, text_color) = if is_checked {
-                    (COLOR_NSFW, Color::WHITE)
-                } else {
-                    (COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT)
-                };
-                iced::widget::button::Style {
-                    background: Some(iced::Background::Color(bg_color)),
-                    text_color: text_color,
-                    border: iced::border::Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: iced::border::Radius::from(4.0),
-                    },
-                    ..iced::widget::button::text(_theme, _status)
-                }
-            }),
+        // NSFW 按钮：只在 API Key 不为空时显示
+if !config.wallhaven.api_key.is_empty() {
+    Some(button(text(i18n.t("online-wallpapers.purity-nsfw")).size(14))
+        .on_press(AppMessage::Online(OnlineMessage::PurityToggled(Purity::NSFW)))
+        .padding(6)
+        .style(move |_theme, _status| {
+            let is_checked = (state.purities & Purity::NSFW.bit_value()) != 0;
+            let (bg_color, text_color) = if is_checked {
+                (COLOR_NSFW, Color::WHITE)
+            } else {
+                (COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT)
+            };
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                text_color: text_color,
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            }
+        }))
+} else {
+    None
+},
         iced::widget::Space::new().width(2),
         resolution_picker,
         ratio_picker,

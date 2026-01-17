@@ -56,9 +56,9 @@ pub struct WallhavenConfig {
     #[serde(default)]
     pub category: String,
     #[serde(default)]
-    pub sorting: String,
-    #[serde(default)]
     pub purity: String,
+    #[serde(default)]
+    pub sorting: String,
     #[serde(default)]
     pub api_key: String,
 }
@@ -101,11 +101,11 @@ impl Config {
                 if local_config.wallhaven.category.is_empty() {
                     local_config.wallhaven.category = default_config.wallhaven.category;
                 }
-                if local_config.wallhaven.sorting.is_empty() {
-                    local_config.wallhaven.sorting = default_config.wallhaven.sorting;
-                }
                 if local_config.wallhaven.purity.is_empty() {
                     local_config.wallhaven.purity = default_config.wallhaven.purity;
+                }
+                if local_config.wallhaven.sorting.is_empty() {
+                    local_config.wallhaven.sorting = default_config.wallhaven.sorting;
                 }
                 if local_config.wallhaven.api_key.is_empty() {
                     local_config.wallhaven.api_key = default_config.wallhaven.api_key;
@@ -137,8 +137,8 @@ impl Config {
             },
             wallhaven: WallhavenConfig {
                 category: "general".to_string(),
-                sorting: "date_added".to_string(),
                 purity: "sfw".to_string(),
+                sorting: "date_added".to_string(),
                 api_key: String::new(),
             },
         }
@@ -148,8 +148,7 @@ impl Config {
         if self.display.width < MIN_WINDOW_WIDTH || self.display.height < MIN_WINDOW_HEIGHT {
             self.display.width = MIN_WINDOW_WIDTH;
             self.display.height = MIN_WINDOW_HEIGHT;
-        }
-        self.save_to_file();
+        };
     }
 
     pub fn save_to_file(&self) {
