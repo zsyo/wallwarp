@@ -63,6 +63,106 @@ pub const COLOR_SKETCHY: Color = Color::from_rgb(1.0, 0.757, 0.027); // #FFC107
 pub const COLOR_NSFW: Color = Color::from_rgb(0.965, 0.263, 0.212); // #F44336
 
 // ============================================================================
+// 颜色网格选择器颜色常量（官方接口支持的29种颜色）
+// ============================================================================
+
+/// #660000 深红
+pub const COLOR_660000: Color = Color::from_rgb(0.4, 0.0, 0.0);
+
+/// #990000 正红
+pub const COLOR_990000: Color = Color::from_rgb(0.6, 0.0, 0.0);
+
+/// #CC0000 亮红
+pub const COLOR_CC0000: Color = Color::from_rgb(0.8, 0.0, 0.0);
+
+/// #CC3333 浅红
+pub const COLOR_CC3333: Color = Color::from_rgb(0.8, 0.2, 0.2);
+
+/// #EA4C88 粉红
+pub const COLOR_EA4C88: Color = Color::from_rgb(0.918, 0.298, 0.533);
+
+/// #993399 紫红
+pub const COLOR_993399: Color = Color::from_rgb(0.6, 0.2, 0.6);
+
+/// #663399 深紫
+pub const COLOR_663399: Color = Color::from_rgb(0.4, 0.2, 0.6);
+
+/// #333399 蓝紫
+pub const COLOR_333399: Color = Color::from_rgb(0.2, 0.2, 0.6);
+
+/// #0066CC 宝蓝
+pub const COLOR_0066CC: Color = Color::from_rgb(0.0, 0.4, 0.8);
+
+/// #0099CC 天蓝
+pub const COLOR_0099CC: Color = Color::from_rgb(0.0, 0.6, 0.8);
+
+/// #66CCCC 青绿
+pub const COLOR_66CCCC: Color = Color::from_rgb(0.4, 0.8, 0.8);
+
+/// #77CC33 草绿
+pub const COLOR_77CC33: Color = Color::from_rgb(0.467, 0.8, 0.2);
+
+/// #669900 翠绿
+pub const COLOR_669900: Color = Color::from_rgb(0.4, 0.6, 0.0);
+
+/// #336600 深绿
+pub const COLOR_336600: Color = Color::from_rgb(0.2, 0.4, 0.0);
+
+/// #666600 橄榄绿
+pub const COLOR_666600: Color = Color::from_rgb(0.4, 0.4, 0.0);
+
+/// #999900 黄绿
+pub const COLOR_999900: Color = Color::from_rgb(0.6, 0.6, 0.0);
+
+/// #CCCC33 柠檬黄
+pub const COLOR_CCCC33: Color = Color::from_rgb(0.8, 0.8, 0.2);
+
+/// #FFFF00 亮黄
+pub const COLOR_FFFF00: Color = Color::from_rgb(1.0, 1.0, 0.0);
+
+/// #FFCC33 金黄
+pub const COLOR_FFCC33: Color = Color::from_rgb(1.0, 0.8, 0.2);
+
+/// #FF9900 橙黄
+pub const COLOR_FF9900: Color = Color::from_rgb(1.0, 0.6, 0.0);
+
+/// #FF6600 橘红
+pub const COLOR_FF6600: Color = Color::from_rgb(1.0, 0.4, 0.0);
+
+/// #CC6633 砖红
+pub const COLOR_CC6633: Color = Color::from_rgb(0.8, 0.4, 0.2);
+
+/// #996633 棕褐
+pub const COLOR_996633: Color = Color::from_rgb(0.6, 0.4, 0.2);
+
+/// #663300 深棕
+pub const COLOR_663300: Color = Color::from_rgb(0.4, 0.2, 0.0);
+
+/// #000000 纯黑
+pub const COLOR_000000: Color = Color::from_rgb(0.0, 0.0, 0.0);
+
+/// #999999 深灰
+pub const COLOR_999999: Color = Color::from_rgb(0.6, 0.6, 0.6);
+
+/// #CCCCCC 中灰
+pub const COLOR_CCCCCC: Color = Color::from_rgb(0.8, 0.8, 0.8);
+
+/// #FFFFFF 纯白
+pub const COLOR_FFFFFF: Color = Color::from_rgb(1.0, 1.0, 1.0);
+
+/// #424153 深灰蓝
+pub const COLOR_424153: Color = Color::from_rgb(0.259, 0.255, 0.325);
+
+/// 颜色选择器背景色（浅色主题）
+pub const COLOR_PICKER_BG: Color = Color::from_rgb(0.969, 0.969, 0.969); // #F8F8F8
+
+/// 颜色选择器激活状态颜色
+pub const COLOR_PICKER_ACTIVE: Color = Color::from_rgb(0.0, 0.478, 1.0); // #007AFF
+
+/// 颜色选择器无色斜线颜色
+pub const COLOR_NO_COLOR_STROKE: Color = Color::from_rgb(1.0, 0.0, 0.0);
+
+// ============================================================================
 // 按钮颜色常量
 // ============================================================================
 

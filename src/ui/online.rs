@@ -1,13 +1,15 @@
 use super::AppMessage;
 use super::common;
+use super::widget::DiagonalLine;
 use crate::ui::style::{
     ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, COLOR_BG_LIGHT, COLOR_LIGHT_BG, COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT,
     COLOR_LIGHT_TEXT_SUB, COLOR_MODAL_BG, COLOR_NSFW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, COLOR_SELECTED_BLUE, COLOR_SFW, COLOR_SKETCHY, COLOR_TEXT_DARK,
     EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
     PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE,
 };
-use iced::widget::{button, column, container, pick_list, row, scrollable, text};
+use iced::widget::{button, canvas, column, container, pick_list, row, scrollable, text};
 use iced::{Alignment, Color, Element, Length};
+use iced_aw::{DropDown, drop_down};
 use serde::{Deserialize, Serialize};
 
 // 分类选项（位掩码表示）
@@ -253,75 +255,116 @@ impl std::fmt::Display for Ratio {
     }
 }
 
-// 颜色选项
+// 颜色选项（官方接口支持的29种颜色 + Any）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ColorOption {
     Any,
-    Red,
-    Orange,
-    Yellow,
-    Green,
-    Blue,
-    Purple,
-    Pink,
-    Gray,
-    Black,
-    White,
+    Color660000, // 深红
+    Color990000, // 正红
+    ColorCC0000, // 亮红
+    ColorCC3333, // 浅红
+    ColorEA4C88, // 粉红
+    Color993399, // 紫红
+    Color663399, // 深紫
+    Color333399, // 蓝紫
+    Color0066CC, // 宝蓝
+    Color0099CC, // 天蓝
+    Color66CCCC, // 青绿
+    Color77CC33, // 草绿
+    Color669900, // 翠绿
+    Color336600, // 深绿
+    Color666600, // 橄榄绿
+    Color999900, // 黄绿
+    ColorCCCC33, // 柠檬黄
+    ColorFFFF00, // 亮黄
+    ColorFFCC33, // 金黄
+    ColorFF9900, // 橙黄
+    ColorFF6600, // 橘红
+    ColorCC6633, // 砖红
+    Color996633, // 棕褐
+    Color663300, // 深棕
+    Color000000, // 纯黑
+    Color999999, // 深灰
+    ColorCCCCCC, // 中灰
+    ColorFFFFFF, // 纯白
+    Color424153, // 深灰蓝
 }
 
 impl ColorOption {
-    pub fn all() -> [ColorOption; 11] {
+    pub fn all() -> [ColorOption; 30] {
         [
             ColorOption::Any,
-            ColorOption::Red,
-            ColorOption::Orange,
-            ColorOption::Yellow,
-            ColorOption::Green,
-            ColorOption::Blue,
-            ColorOption::Purple,
-            ColorOption::Pink,
-            ColorOption::Gray,
-            ColorOption::Black,
-            ColorOption::White,
+            ColorOption::Color660000,
+            ColorOption::Color990000,
+            ColorOption::ColorCC0000,
+            ColorOption::ColorCC3333,
+            ColorOption::ColorEA4C88,
+            ColorOption::Color993399,
+            ColorOption::Color663399,
+            ColorOption::Color333399,
+            ColorOption::Color0066CC,
+            ColorOption::Color0099CC,
+            ColorOption::Color66CCCC,
+            ColorOption::Color77CC33,
+            ColorOption::Color669900,
+            ColorOption::Color336600,
+            ColorOption::Color666600,
+            ColorOption::Color999900,
+            ColorOption::ColorCCCC33,
+            ColorOption::ColorFFFF00,
+            ColorOption::ColorFFCC33,
+            ColorOption::ColorFF9900,
+            ColorOption::ColorFF6600,
+            ColorOption::ColorCC6633,
+            ColorOption::Color996633,
+            ColorOption::Color663300,
+            ColorOption::Color000000,
+            ColorOption::Color999999,
+            ColorOption::ColorCCCCCC,
+            ColorOption::ColorFFFFFF,
+            ColorOption::Color424153,
         ]
     }
 
     pub fn value(&self) -> &str {
         match self {
             ColorOption::Any => "any",
-            ColorOption::Red => "red",
-            ColorOption::Orange => "orange",
-            ColorOption::Yellow => "yellow",
-            ColorOption::Green => "green",
-            ColorOption::Blue => "blue",
-            ColorOption::Purple => "purple",
-            ColorOption::Pink => "pink",
-            ColorOption::Gray => "gray",
-            ColorOption::Black => "black",
-            ColorOption::White => "white",
-        }
-    }
-
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            ColorOption::Any => "online-wallpapers.color-any",
-            ColorOption::Red => "online-wallpapers.color-red",
-            ColorOption::Orange => "online-wallpapers.color-orange",
-            ColorOption::Yellow => "online-wallpapers.color-yellow",
-            ColorOption::Green => "online-wallpapers.color-green",
-            ColorOption::Blue => "online-wallpapers.color-blue",
-            ColorOption::Purple => "online-wallpapers.color-purple",
-            ColorOption::Pink => "online-wallpapers.color-pink",
-            ColorOption::Gray => "online-wallpapers.color-gray",
-            ColorOption::Black => "online-wallpapers.color-black",
-            ColorOption::White => "online-wallpapers.color-white",
+            ColorOption::Color660000 => "660000",
+            ColorOption::Color990000 => "990000",
+            ColorOption::ColorCC0000 => "cc0000",
+            ColorOption::ColorCC3333 => "cc3333",
+            ColorOption::ColorEA4C88 => "ea4c88",
+            ColorOption::Color993399 => "993399",
+            ColorOption::Color663399 => "663399",
+            ColorOption::Color333399 => "333399",
+            ColorOption::Color0066CC => "0066cc",
+            ColorOption::Color0099CC => "0099cc",
+            ColorOption::Color66CCCC => "66cccc",
+            ColorOption::Color77CC33 => "77cc33",
+            ColorOption::Color669900 => "669900",
+            ColorOption::Color336600 => "336600",
+            ColorOption::Color666600 => "666600",
+            ColorOption::Color999900 => "999900",
+            ColorOption::ColorCCCC33 => "cccc33",
+            ColorOption::ColorFFFF00 => "ffff00",
+            ColorOption::ColorFFCC33 => "ffcc33",
+            ColorOption::ColorFF9900 => "ff9900",
+            ColorOption::ColorFF6600 => "ff6600",
+            ColorOption::ColorCC6633 => "cc6633",
+            ColorOption::Color996633 => "996633",
+            ColorOption::Color663300 => "663300",
+            ColorOption::Color000000 => "000000",
+            ColorOption::Color999999 => "999999",
+            ColorOption::ColorCCCCCC => "cccccc",
+            ColorOption::ColorFFFFFF => "ffffff",
+            ColorOption::Color424153 => "424153",
         }
     }
 }
 
 impl std::fmt::Display for ColorOption {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.display_name())
+        write!(f, "{}", self.value())
     }
 }
 
@@ -454,6 +497,8 @@ pub enum OnlineMessage {
     ResolutionChanged(Resolution),
     RatioChanged(Ratio),
     ColorChanged(ColorOption),
+    ColorPickerExpanded, // 展开颜色选择器
+    ColorPickerDismiss,  // 关闭颜色选择器
     TimeRangeChanged(TimeRange),
     SearchTextChanged(String),
     Search,
@@ -518,8 +563,9 @@ pub struct OnlineState {
     pub time_range: TimeRange,
     pub search_text: String,
     pub last_page: bool,
-    pub has_loaded: bool,         // 标记是否已加载过数据
-    pub page_info: Vec<PageInfo>, // 记录每页的结束索引和页码，用于显示分页分隔线
+    pub has_loaded: bool,            // 标记是否已加载过数据
+    pub page_info: Vec<PageInfo>,    // 记录每页的结束索引和页码，用于显示分页分隔线
+    pub color_picker_expanded: bool, // 颜色选择器展开状态
     // 请求上下文，用于取消正在进行的请求
     pub request_context: crate::services::request_context::RequestContext,
 }
@@ -548,6 +594,7 @@ impl Default for OnlineState {
             last_page: false,
             has_loaded: false,     // 初始状态为未加载
             page_info: Vec::new(), // 初始化为空
+            color_picker_expanded: false,
             request_context: crate::services::request_context::RequestContext::new(),
         }
     }
@@ -598,6 +645,40 @@ impl OnlineState {
             _ => Sorting::DateAdded,
         };
 
+        // 加载颜色
+        state.color = match config.wallhaven.color.as_str() {
+            "660000" => ColorOption::Color660000,
+            "990000" => ColorOption::Color990000,
+            "cc0000" => ColorOption::ColorCC0000,
+            "cc3333" => ColorOption::ColorCC3333,
+            "ea4c88" => ColorOption::ColorEA4C88,
+            "993399" => ColorOption::Color993399,
+            "663399" => ColorOption::Color663399,
+            "333399" => ColorOption::Color333399,
+            "0066cc" => ColorOption::Color0066CC,
+            "0099cc" => ColorOption::Color0099CC,
+            "66cccc" => ColorOption::Color66CCCC,
+            "77cc33" => ColorOption::Color77CC33,
+            "669900" => ColorOption::Color669900,
+            "336600" => ColorOption::Color336600,
+            "666600" => ColorOption::Color666600,
+            "999900" => ColorOption::Color999900,
+            "cccc33" => ColorOption::ColorCCCC33,
+            "ffff00" => ColorOption::ColorFFFF00,
+            "ffcc33" => ColorOption::ColorFFCC33,
+            "ff9900" => ColorOption::ColorFF9900,
+            "ff6600" => ColorOption::ColorFF6600,
+            "cc6633" => ColorOption::ColorCC6633,
+            "996633" => ColorOption::Color996633,
+            "663300" => ColorOption::Color663300,
+            "000000" => ColorOption::Color000000,
+            "999999" => ColorOption::Color999999,
+            "cccccc" => ColorOption::ColorCCCCCC,
+            "ffffff" => ColorOption::ColorFFFFFF,
+            "424153" => ColorOption::Color424153,
+            _ => ColorOption::Any,
+        };
+
         state.has_loaded = false; // 从配置加载时重置为未加载状态
 
         state
@@ -609,6 +690,7 @@ impl OnlineState {
         config.wallhaven.category = format!("{:03b}", self.categories);
         config.wallhaven.purity = format!("{:03b}", self.purities);
         config.wallhaven.sorting = self.sorting.to_string();
+        config.wallhaven.color = self.color.value().to_string();
         config.save_to_file();
     }
 
@@ -929,7 +1011,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState, co
         AppMessage::Online(OnlineMessage::ResolutionChanged(res.value))
     })
     .padding(6)
-    .width(Length::Fixed(90.0))
+    .width(Length::Fixed(80.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
         text_color: COLOR_LIGHT_TEXT,
         placeholder_color: COLOR_LIGHT_TEXT_SUB,
@@ -958,7 +1040,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState, co
         AppMessage::Online(OnlineMessage::RatioChanged(rat.value))
     })
     .padding(6)
-    .width(Length::Fixed(90.0))
+    .width(Length::Fixed(80.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
         text_color: COLOR_LIGHT_TEXT,
         placeholder_color: COLOR_LIGHT_TEXT_SUB,
@@ -971,34 +1053,103 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState, co
         },
     });
 
-    let color_options: Vec<DisplayableColorOption> = ColorOption::all()
-        .iter()
-        .map(|c| DisplayableColorOption {
-            value: *c,
-            display: i18n.t(c.display_name()).leak(),
-        })
-        .collect();
-    let current_color = DisplayableColorOption {
-        value: state.color,
-        display: i18n.t(state.color.display_name()).leak(),
+    // 颜色选择器 - 使用 DropDown 组件
+    let color_button_text = i18n.t("online-wallpapers.color-label");
+
+    let color_button_bg = match state.color {
+        ColorOption::Any => COLOR_LIGHT_BUTTON,
+        ColorOption::Color660000 => crate::ui::style::COLOR_660000,
+        ColorOption::Color990000 => crate::ui::style::COLOR_990000,
+        ColorOption::ColorCC0000 => crate::ui::style::COLOR_CC0000,
+        ColorOption::ColorCC3333 => crate::ui::style::COLOR_CC3333,
+        ColorOption::ColorEA4C88 => crate::ui::style::COLOR_EA4C88,
+        ColorOption::Color993399 => crate::ui::style::COLOR_993399,
+        ColorOption::Color663399 => crate::ui::style::COLOR_663399,
+        ColorOption::Color333399 => crate::ui::style::COLOR_333399,
+        ColorOption::Color0066CC => crate::ui::style::COLOR_0066CC,
+        ColorOption::Color0099CC => crate::ui::style::COLOR_0099CC,
+        ColorOption::Color66CCCC => crate::ui::style::COLOR_66CCCC,
+        ColorOption::Color77CC33 => crate::ui::style::COLOR_77CC33,
+        ColorOption::Color669900 => crate::ui::style::COLOR_669900,
+        ColorOption::Color336600 => crate::ui::style::COLOR_336600,
+        ColorOption::Color666600 => crate::ui::style::COLOR_666600,
+        ColorOption::Color999900 => crate::ui::style::COLOR_999900,
+        ColorOption::ColorCCCC33 => crate::ui::style::COLOR_CCCC33,
+        ColorOption::ColorFFFF00 => crate::ui::style::COLOR_FFFF00,
+        ColorOption::ColorFFCC33 => crate::ui::style::COLOR_FFCC33,
+        ColorOption::ColorFF9900 => crate::ui::style::COLOR_FF9900,
+        ColorOption::ColorFF6600 => crate::ui::style::COLOR_FF6600,
+        ColorOption::ColorCC6633 => crate::ui::style::COLOR_CC6633,
+        ColorOption::Color996633 => crate::ui::style::COLOR_996633,
+        ColorOption::Color663300 => crate::ui::style::COLOR_663300,
+        ColorOption::Color000000 => crate::ui::style::COLOR_000000,
+        ColorOption::Color999999 => crate::ui::style::COLOR_999999,
+        ColorOption::ColorCCCCCC => crate::ui::style::COLOR_CCCCCC,
+        ColorOption::ColorFFFFFF => crate::ui::style::COLOR_FFFFFF,
+        ColorOption::Color424153 => crate::ui::style::COLOR_424153,
     };
 
-    let color_picker = pick_list(color_options.clone(), Some(current_color), |col| {
-        AppMessage::Online(OnlineMessage::ColorChanged(col.value))
-    })
-    .padding(6)
-    .width(Length::Fixed(90.0))
-    .style(|_theme, _status| iced::widget::pick_list::Style {
-        text_color: COLOR_LIGHT_TEXT,
-        placeholder_color: COLOR_LIGHT_TEXT_SUB,
-        handle_color: COLOR_LIGHT_TEXT_SUB,
-        background: iced::Background::Color(COLOR_LIGHT_BUTTON),
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(4.0),
-        },
+    // 对于浅色背景（白色、浅灰色等），使用深色文字
+    let color_button_text_color = match state.color {
+        ColorOption::Any => COLOR_LIGHT_TEXT,
+        ColorOption::ColorFFFFFF => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::ColorCCCCCC => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::ColorFFFF00 => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::ColorFFCC33 => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::ColorCCCC33 => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::Color999900 => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::ColorEA4C88 => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::ColorCC3333 => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::Color66CCCC => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::Color0099CC => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::Color77CC33 => Color::from_rgb(0.2, 0.2, 0.2),
+        ColorOption::Color999999 => Color::from_rgb(0.2, 0.2, 0.2),
+        _ => COLOR_LIGHT_TEXT,
+    };
+
+    // 创建颜色选择器的触发按钮（underlay）
+    let color_underlay = row![
+        text(color_button_text).color(color_button_text_color),
+        iced::widget::Space::new().width(Length::Fill),
+        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB)).height(Length::Fill).padding(iced::Padding {
+            top: -2.0,
+            bottom: 0.0,
+            left: 0.0,
+            right: 0.0,
+        }),
+    ]
+    .spacing(4)
+    .align_y(Alignment::Center)
+    .padding(iced::Padding {
+        top: 0.0,
+        bottom: 0.0,
+        left: 0.0,
+        right: -2.0,
     });
+
+    let color_trigger = button(color_underlay)
+        .padding(6)
+        .width(Length::Fixed(80.0))
+        .on_press(AppMessage::Online(OnlineMessage::ColorPickerExpanded))
+        .style(move |_theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(color_button_bg)),
+            text_color: color_button_text_color,
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(4.0),
+            },
+            ..iced::widget::button::text(_theme, _status)
+        });
+
+    // 创建颜色网格选项（overlay）
+    let color_options = create_color_grid_options(i18n, state);
+
+    // 使用 DropDown 组件
+    let color_picker = DropDown::new(color_trigger, color_options, state.color_picker_expanded)
+        .width(Length::Fill)
+        .on_dismiss(AppMessage::Online(OnlineMessage::ColorPickerDismiss))
+        .alignment(drop_down::Alignment::Bottom);
 
     let sorting_options: Vec<DisplayableSorting> = Sorting::all()
         .iter()
@@ -1016,7 +1167,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState, co
         AppMessage::Online(OnlineMessage::SortingChanged(sort.value))
     })
     .padding(6)
-    .width(Length::Fixed(90.0))
+    .width(Length::Fixed(80.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
         text_color: COLOR_LIGHT_TEXT,
         placeholder_color: COLOR_LIGHT_TEXT_SUB,
@@ -1045,7 +1196,7 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState, co
         AppMessage::Online(OnlineMessage::TimeRangeChanged(time.value))
     })
     .padding(6)
-    .width(Length::Fixed(90.0))
+    .width(Length::Fixed(80.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
         text_color: COLOR_LIGHT_TEXT,
         placeholder_color: COLOR_LIGHT_TEXT_SUB,
@@ -1403,4 +1554,119 @@ impl From<OnlineMessage> for AppMessage {
     fn from(online_message: OnlineMessage) -> AppMessage {
         AppMessage::Online(online_message)
     }
+}
+
+/// 创建颜色网格选择器内容（5*6 网格，包含29种颜色+1个Any）
+fn create_color_grid_options<'a>(_i18n: &'a crate::i18n::I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+    use crate::ui::style::*;
+
+    // 定义颜色网格（5行6列，共30个位置，前29个为官方颜色，第30个为Any）
+    static COLOR_GRID_DATA: [(Color, ColorOption); 30] = [
+        // 第1行
+        (COLOR_660000, ColorOption::Color660000),
+        (COLOR_990000, ColorOption::Color990000),
+        (COLOR_CC0000, ColorOption::ColorCC0000),
+        (COLOR_CC3333, ColorOption::ColorCC3333),
+        (COLOR_EA4C88, ColorOption::ColorEA4C88),
+        (COLOR_993399, ColorOption::Color993399),
+        // 第2行
+        (COLOR_663399, ColorOption::Color663399),
+        (COLOR_333399, ColorOption::Color333399),
+        (COLOR_0066CC, ColorOption::Color0066CC),
+        (COLOR_0099CC, ColorOption::Color0099CC),
+        (COLOR_66CCCC, ColorOption::Color66CCCC),
+        (COLOR_77CC33, ColorOption::Color77CC33),
+        // 第3行
+        (COLOR_669900, ColorOption::Color669900),
+        (COLOR_336600, ColorOption::Color336600),
+        (COLOR_666600, ColorOption::Color666600),
+        (COLOR_999900, ColorOption::Color999900),
+        (COLOR_CCCC33, ColorOption::ColorCCCC33),
+        (COLOR_FFFF00, ColorOption::ColorFFFF00),
+        // 第4行
+        (COLOR_FFCC33, ColorOption::ColorFFCC33),
+        (COLOR_FF9900, ColorOption::ColorFF9900),
+        (COLOR_FF6600, ColorOption::ColorFF6600),
+        (COLOR_CC6633, ColorOption::ColorCC6633),
+        (COLOR_996633, ColorOption::Color996633),
+        (COLOR_663300, ColorOption::Color663300),
+        // 第5行
+        (COLOR_000000, ColorOption::Color000000),
+        (COLOR_999999, ColorOption::Color999999),
+        (COLOR_CCCCCC, ColorOption::ColorCCCCCC),
+        (COLOR_FFFFFF, ColorOption::ColorFFFFFF),
+        (COLOR_424153, ColorOption::Color424153),
+        (COLOR_LIGHT_BUTTON, ColorOption::Any), // Any（浅灰色）
+    ];
+
+    // 创建颜色网格
+    let mut grid_rows = Vec::new();
+    for row in COLOR_GRID_DATA.chunks(6) {
+        let mut row_items: Vec<Element<'a, AppMessage>> = Vec::new();
+        for (color, color_option) in row {
+            let is_selected = state.color == *color_option;
+            let border_color = if is_selected { COLOR_PICKER_ACTIVE } else { Color::TRANSPARENT };
+
+            // 对于 Any 选项，显示白色底色
+            let color_button: Element<'a, AppMessage> = if *color_option == ColorOption::Any {
+                // 创建定制化的红线：稍微缩进 2 像素，线宽 2.0
+                let line_program = DiagonalLine {
+                    color: COLOR_NO_COLOR_STROKE, // 使用略深的红色，更有质感
+                    width: 2.5,
+                    padding: 3.0,
+                };
+
+                button(canvas(line_program).width(Length::Fixed(64.0)).height(Length::Fixed(28.0)))
+                    .padding(0)
+                    .style(move |_theme, _status| iced::widget::button::Style {
+                        background: Some(iced::Background::Color(*color)),
+                        border: iced::border::Border {
+                            color: border_color,
+                            width: if is_selected { 2.0 } else { 0.0 },
+                            radius: iced::border::Radius::from(2.0),
+                        },
+                        ..iced::widget::button::text(_theme, _status)
+                    })
+                    .on_press(AppMessage::Online(OnlineMessage::ColorChanged(*color_option)))
+                    .into()
+            } else {
+                button(iced::widget::Space::new().width(Length::Fixed(64.0)).height(Length::Fixed(28.0)))
+                    .padding(0)
+                    .style(move |_theme, _status| iced::widget::button::Style {
+                        background: Some(iced::Background::Color(*color)),
+                        border: iced::border::Border {
+                            color: border_color,
+                            width: if is_selected { 2.0 } else { 0.0 },
+                            radius: iced::border::Radius::from(2.0),
+                        },
+                        ..iced::widget::button::text(_theme, _status)
+                    })
+                    .on_press(AppMessage::Online(OnlineMessage::ColorChanged(*color_option)))
+                    .into()
+            };
+
+            row_items.push(color_button);
+        }
+        grid_rows.push(row_items);
+    }
+
+    // 将行组合成网格
+    let mut grid = column![].spacing(2);
+    for row_items in grid_rows {
+        let row = row(row_items).spacing(2);
+        grid = grid.push(row);
+    }
+
+    // 创建颜色选择器容器
+    let picker_content = container(grid).padding(12).style(|_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(COLOR_PICKER_BG)),
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(8.0),
+        },
+        ..Default::default()
+    });
+
+    picker_content.into()
 }

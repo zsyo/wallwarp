@@ -37,6 +37,8 @@ impl App {
             OnlineMessage::ResolutionChanged(resolution) => self.handle_resolution_changed(resolution),
             OnlineMessage::RatioChanged(ratio) => self.handle_ratio_changed(ratio),
             OnlineMessage::ColorChanged(color) => self.handle_color_changed(color),
+            OnlineMessage::ColorPickerExpanded => self.handle_color_picker_expanded(),
+            OnlineMessage::ColorPickerDismiss => self.handle_color_picker_dismiss(),
             OnlineMessage::TimeRangeChanged(time_range) => self.handle_time_range_changed(time_range),
         }
     }
@@ -58,6 +60,7 @@ impl App {
         let categories = self.online_state.categories;
         let sorting = self.online_state.sorting;
         let purities = self.online_state.purities;
+        let color = self.online_state.color;
         let query = self.online_state.search_text.clone();
         let page = self.online_state.current_page;
         let api_key = if self.config.wallhaven.api_key.is_empty() {
@@ -73,7 +76,7 @@ impl App {
         };
 
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, query, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, page, api_key, proxy, context),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(
                     wallpapers,
@@ -177,6 +180,7 @@ impl App {
         let categories = self.online_state.categories;
         let sorting = self.online_state.sorting;
         let purities = self.online_state.purities;
+        let color = self.online_state.color;
         let query = self.online_state.search_text.clone();
         let page = self.online_state.current_page;
         let api_key = if self.config.wallhaven.api_key.is_empty() {
@@ -192,7 +196,7 @@ impl App {
         };
 
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, query, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, page, api_key, proxy, context),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => {
                     AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page))
@@ -565,6 +569,20 @@ impl App {
         self.online_state.color = color;
         // 保存到配置文件
         self.online_state.save_to_config(&mut self.config);
+        // 选择颜色后自动关闭颜色选择器
+        self.online_state.color_picker_expanded = false;
+        iced::Task::none()
+    }
+
+    fn handle_color_picker_expanded(&mut self) -> iced::Task<AppMessage> {
+        // 切换颜色选择器的展开/收起状态
+        self.online_state.color_picker_expanded = !self.online_state.color_picker_expanded;
+        iced::Task::none()
+    }
+
+    fn handle_color_picker_dismiss(&mut self) -> iced::Task<AppMessage> {
+        // 关闭颜色选择器
+        self.online_state.color_picker_expanded = false;
         iced::Task::none()
     }
 

@@ -14,6 +14,7 @@ pub mod settings_handlers;
 pub mod style;
 pub mod tray;
 pub mod update;
+pub mod widget;
 
 use crate::i18n::I18n;
 use crate::utils::config::CloseAction;

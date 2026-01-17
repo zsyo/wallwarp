@@ -1,5 +1,5 @@
 use crate::services::request_context::RequestContext;
-use crate::ui::online::{OnlineWallpaper, Sorting};
+use crate::ui::online::{ColorOption, OnlineWallpaper, Sorting};
 use serde::Deserialize;
 use tracing::debug;
 use tracing::error;
@@ -162,6 +162,7 @@ impl WallhavenService {
         categories: u32, // 位掩码
         sorting: Sorting,
         purities: u32, // 位掩码
+        color: ColorOption,
         query: &str,
         context: &RequestContext,
     ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), String> {
@@ -194,6 +195,11 @@ impl WallhavenService {
         // 默认使用倒序
         url.push_str("&order=desc");
 
+        // 添加颜色参数
+        if color != ColorOption::Any {
+            url.push_str(&format!("&colors={}", color.value()));
+        }
+
         // 添加搜索查询
         if !query.is_empty() {
             url.push_str(&format!("&q={}", urlencoding::encode(query)));
@@ -206,11 +212,12 @@ impl WallhavenService {
 
         // 打印请求参数
         let search_tag = format!(
-            "page{}_cat{:03b}_sort{:?}_purity{:03b}_q{}",
+            "page{}_cat{:03b}_sort{:?}_purity{:03b}_color{}_q{}",
             page,
             categories,
             sorting,
             purities,
+            color.value(),
             if query.is_empty() { "empty" } else { &query[..query.len().min(10)] }
         );
         info!("[Wallhaven API] [{}] 请求URL: {}", search_tag, url);

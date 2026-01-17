@@ -85,6 +85,7 @@ pub async fn async_load_online_wallpapers(
     categories: u32,
     sorting: crate::ui::online::Sorting,
     purities: u32,
+    color: crate::ui::online::ColorOption,
     query: String,
     page: usize,
     api_key: Option<String>,
@@ -92,7 +93,7 @@ pub async fn async_load_online_wallpapers(
     context: crate::services::request_context::RequestContext,
 ) -> Result<(Vec<crate::ui::online::OnlineWallpaper>, bool, usize, usize), Box<dyn std::error::Error + Send + Sync>> {
     let service = crate::services::online_wallhaven::WallhavenService::new(api_key, proxy);
-    match service.search_wallpapers(page, categories, sorting, purities, &query, &context).await {
+    match service.search_wallpapers(page, categories, sorting, purities, color, &query, &context).await {
         Ok(result) => Ok(result),
         Err(e) => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>),
     }

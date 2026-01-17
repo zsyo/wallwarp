@@ -60,6 +60,8 @@ pub struct WallhavenConfig {
     #[serde(default)]
     pub sorting: String,
     #[serde(default)]
+    pub color: String,
+    #[serde(default)]
     pub api_key: String,
 }
 
@@ -107,6 +109,9 @@ impl Config {
                 if local_config.wallhaven.sorting.is_empty() {
                     local_config.wallhaven.sorting = default_config.wallhaven.sorting;
                 }
+                if local_config.wallhaven.color.is_empty() {
+                    local_config.wallhaven.color = default_config.wallhaven.color;
+                }
                 if local_config.wallhaven.api_key.is_empty() {
                     local_config.wallhaven.api_key = default_config.wallhaven.api_key;
                 }
@@ -139,6 +144,7 @@ impl Config {
                 category: "general".to_string(),
                 purity: "sfw".to_string(),
                 sorting: "date_added".to_string(),
+                color: "any".to_string(),
                 api_key: String::new(),
             },
         }
