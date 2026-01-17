@@ -638,7 +638,12 @@ impl OnlineState {
     }
 }
 
-pub fn online_view<'a>(i18n: &'a crate::i18n::I18n, window_width: u32, online_state: &'a OnlineState, config: &'a crate::utils::config::Config) -> Element<'a, AppMessage> {
+pub fn online_view<'a>(
+    i18n: &'a crate::i18n::I18n,
+    window_width: u32,
+    online_state: &'a OnlineState,
+    config: &'a crate::utils::config::Config,
+) -> Element<'a, AppMessage> {
     // 创建筛选栏
     let filter_bar = create_filter_bar(i18n, online_state, config);
 
@@ -1172,31 +1177,33 @@ fn create_filter_bar<'a>(i18n: &'a crate::i18n::I18n, state: &'a OnlineState, co
                 }
             }),
         // NSFW 按钮：只在 API Key 不为空时显示
-if !config.wallhaven.api_key.is_empty() {
-    Some(button(text(i18n.t("online-wallpapers.purity-nsfw")).size(14))
-        .on_press(AppMessage::Online(OnlineMessage::PurityToggled(Purity::NSFW)))
-        .padding(6)
-        .style(move |_theme, _status| {
-            let is_checked = (state.purities & Purity::NSFW.bit_value()) != 0;
-            let (bg_color, text_color) = if is_checked {
-                (COLOR_NSFW, Color::WHITE)
-            } else {
-                (COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT)
-            };
-            iced::widget::button::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                text_color: text_color,
-                border: iced::border::Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: iced::border::Radius::from(4.0),
-                },
-                ..iced::widget::button::text(_theme, _status)
-            }
-        }))
-} else {
-    None
-},
+        if !config.wallhaven.api_key.is_empty() {
+            Some(
+                button(text(i18n.t("online-wallpapers.purity-nsfw")).size(14))
+                    .on_press(AppMessage::Online(OnlineMessage::PurityToggled(Purity::NSFW)))
+                    .padding(6)
+                    .style(move |_theme, _status| {
+                        let is_checked = (state.purities & Purity::NSFW.bit_value()) != 0;
+                        let (bg_color, text_color) = if is_checked {
+                            (COLOR_NSFW, Color::WHITE)
+                        } else {
+                            (COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT)
+                        };
+                        iced::widget::button::Style {
+                            background: Some(iced::Background::Color(bg_color)),
+                            text_color: text_color,
+                            border: iced::border::Border {
+                                color: Color::TRANSPARENT,
+                                width: 0.0,
+                                radius: iced::border::Radius::from(4.0),
+                            },
+                            ..iced::widget::button::text(_theme, _status)
+                        }
+                    }),
+            )
+        } else {
+            None
+        },
         iced::widget::Space::new().width(2),
         resolution_picker,
         ratio_picker,
@@ -1374,7 +1381,7 @@ fn create_page_separator<'a>(i18n: &'a crate::i18n::I18n, current_page: usize, t
     .align_x(Alignment::Center)
     .align_y(Alignment::Center);
 
-    container(separator).width(Length::Fill).padding([10, 20]).into()
+    container(separator).width(Length::Fill).padding([0, 20]).into()
 }
 
 fn create_modal_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> Element<'a, AppMessage> {

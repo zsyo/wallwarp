@@ -386,9 +386,10 @@ impl App {
         self.show_notification("WallHeven API KEY 保存成功".to_string(), super::NotificationType::Success)
     }
 
-    fn handle_scroll_to_top(&mut self, _scrollable_id: String) -> iced::Task<AppMessage> {
-        // 返回无任务，目前滚动到顶部功能依赖于不同的ID来实现隔离
-        iced::Task::none()
+    fn handle_scroll_to_top(&mut self, scrollable_id: String) -> iced::Task<AppMessage> {
+        // 滚动到指定滚动组件的顶部
+        use iced::widget::operation;
+        operation::scroll_by(scrollable_id, iced::widget::scrollable::AbsoluteOffset { x: 0.0, y: 0.0 })
     }
 
     fn handle_proxy_protocol_changed(&mut self, protocol: String) -> iced::Task<AppMessage> {

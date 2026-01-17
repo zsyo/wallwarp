@@ -491,14 +491,24 @@ impl App {
     fn handle_search(&mut self) -> iced::Task<AppMessage> {
         // 搜索：重置到第一页并重新加载
         self.online_state.current_page = 1;
-        self.handle_load_online_wallpapers()
+
+        // 滚动到顶部，避免触发自动加载下一页
+        let scroll_to_top_task = iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers".to_string()));
+
+        // 执行搜索和滚动到顶部
+        iced::Task::batch([self.handle_load_online_wallpapers(), scroll_to_top_task])
     }
 
     fn handle_refresh(&mut self) -> iced::Task<AppMessage> {
         // 刷新：清空搜索框内容，重置到第一页并重新加载
         self.online_state.search_text.clear();
         self.online_state.current_page = 1;
-        self.handle_load_online_wallpapers()
+
+        // 滚动到顶部，避免触发自动加载下一页
+        let scroll_to_top_task = iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers".to_string()));
+
+        // 执行刷新和滚动到顶部
+        iced::Task::batch([self.handle_load_online_wallpapers(), scroll_to_top_task])
     }
 
     fn handle_online_scroll_to_bottom(&mut self) -> iced::Task<AppMessage> {
