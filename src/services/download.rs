@@ -188,7 +188,7 @@ impl DownloadService {
         )
         .await?;
 
-        info!("[缩略图缓存] [URL:{}] 下载成功，数据大小: {} bytes", url, bytes.len());
+        debug!("[缩略图缓存] [URL:{}] 下载成功，数据大小: {} bytes", url, bytes.len());
 
         // 保存到缓存
         fs::write(cache_path, bytes).map_err(|e| {

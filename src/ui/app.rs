@@ -53,14 +53,6 @@ impl App {
         }
     }
 
-    // 获取初始任务（用于启动时加载在线壁纸）
-    pub fn get_initial_tasks(&self) -> iced::Task<AppMessage> {
-        iced::Task::batch(vec![
-            iced::Task::perform(async {}, |_| AppMessage::Online(super::online::OnlineMessage::LoadWallpapers)),
-            iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())),
-        ])
-    }
-
     // 解析代理字符串为协议、地址和端口
     pub fn parse_proxy_string(proxy: &str) -> (String, String, String) {
         if proxy.is_empty() {

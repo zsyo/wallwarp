@@ -36,8 +36,7 @@ fn main() -> iced::Result {
             let (i18n, config) = init_data.borrow_mut().take().expect("App can only be initialized once");
             let app = App::new_with_config(i18n, config);
             let load_font_task = font::load(assets::ICON_FONT).discard();
-            let initial_tasks = app.get_initial_tasks();
-            (app, load_font_task.chain(initial_tasks))
+            (app, load_font_task)
         },
         App::update,
         App::view,
