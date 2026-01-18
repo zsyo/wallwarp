@@ -255,8 +255,10 @@ pub enum DownloadMessage {
     AddTask(String, String, String, Option<String>, String),
     /// 暂停任务
     PauseTask(usize),
-    /// 继续任务
+    /// 继续任务（断点续传）
     ResumeTask(usize),
+    /// 重新下载（清空已下载文件并从头开始）
+    RetryTask(usize),
     /// 取消任务
     CancelTask(usize),
     /// 删除任务
@@ -474,7 +476,7 @@ fn create_operation_buttons<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Eleme
     let retry_button = common::create_icon_button_with_tooltip(
         "\u{F130}", // play-fill (重新下载)
         BUTTON_COLOR_BLUE,
-        AppMessage::Download(DownloadMessage::ResumeTask(task.id)),
+        AppMessage::Download(DownloadMessage::RetryTask(task.id)),
         i18n.t("download-tasks.tooltip-retry"),
     );
     let copy_button = common::create_icon_button_with_tooltip(

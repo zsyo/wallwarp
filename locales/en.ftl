@@ -113,12 +113,16 @@ download-tasks = Download Tasks
     .tooltip-open = Open file location
     .tooltip-retry = Retry
     .tooltip-copy-url = Copy download link to clipboard
+    .tooltip-set-wallpaper = Set as wallpaper
     .file-already-exists = File already exists
     .copied-from-cache = Copied from cache successfully
     .copy-failed = Copy failed
     .cache-file-not-found = Cache file not found
     .get-cache-path-failed = Failed to get cache path
     .task-already-in-queue = Task already in queue
+    .copy-link-success = Download link copied to clipboard
+    .copy-link-failed = Failed to copy download link
+    .set-wallpaper-file-not-found = File not found, cannot set wallpaper
 
 settings = Settings
     .system-config = System Configuration

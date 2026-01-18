@@ -205,15 +205,17 @@ pub async fn async_download_wallpaper_task_with_progress(
     task_id: usize,
     cancel_token: std::sync::Arc<std::sync::atomic::AtomicBool>,
     downloaded_size: u64,
+    total_size: u64,
     cache_path: String,
 ) -> Result<u64, String> {
     info!("[下载任务] [ID:{}] 开始下载: {}", task_id, url);
+    info!("[下载任务] [ID:{}] 参数：downloaded_size = {} bytes, total_size = {} bytes", task_id, downloaded_size, total_size);
 
     // 步骤1: 获取缓存文件路径（带.download后缀）
-    // 先获取文件大小以生成hash
-    let temp_cache_path = if downloaded_size > 0 {
-        // 断点续传：使用已下载大小
-        crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, downloaded_size)
+    // 使用文件总大小（total_size）来生成hash，确保同一任务的缓存路径始终一致
+    let temp_cache_path = if total_size > 0 {
+        // 使用已知的文件总大小
+        crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, total_size)
             .map_err(|e| format!("获取缓存路径失败: {}", e))?
     } else {
         // 新下载：先发送HEAD请求获取文件大小
@@ -540,6 +542,7 @@ async fn download_to_cache(
     let response = if downloaded_size > 0 {
         // 断点续传：使用 Range 请求头
         let range_header = format!("bytes={}-", downloaded_size);
+        info!("[下载任务] [ID:{}] 断点续传：Range = {}", task_id, range_header);
         let resp = client
             .get(url)
             .header("Range", range_header)
@@ -549,6 +552,7 @@ async fn download_to_cache(
         resp
     } else {
         // 新下载
+        info!("[下载任务] [ID:{}] 新下载：从头开始", task_id);
         client.get(url).send().await.map_err(|e| format!("请求失败: {}", e))?
     };
 
@@ -572,27 +576,30 @@ async fn download_to_cache(
     // 使用流式下载，分块读取并批量写入文件
     let mut stream = response.bytes_stream();
 
-    // 打开文件（追加模式用于断点续传）
+    // 打开文件并移动文件指针到安全偏移量的位置
     let cache_path_buf = PathBuf::from(cache_path);
     let mut file = if downloaded_size > 0 {
-        // 断点续传：检查文件是否存在并验证大小
+        // 断点续传：检查文件是否存在
         if !cache_path_buf.exists() {
             return Err(format!("文件不存在，无法断点续传: {}", cache_path));
         }
 
-        // 检查文件大小是否匹配
-        if let Ok(metadata) = tokio::fs::metadata(&cache_path_buf).await {
-            let actual_size = metadata.len();
-            if actual_size != downloaded_size {
-                return Err(format!("文件大小不匹配，期望: {} bytes，实际: {} bytes", downloaded_size, actual_size));
-            }
-        }
-
-        tokio::fs::OpenOptions::new()
+        // 打开文件
+        let mut f = tokio::fs::OpenOptions::new()
             .write(true)
             .open(&cache_path_buf)
             .await
-            .map_err(|e| format!("打开文件失败: {}", e))?
+            .map_err(|e| format!("打开文件失败: {}", e))?;
+
+        // 将文件指针移动到安全偏移量的位置
+        use tokio::io::AsyncSeekExt;
+        f.seek(std::io::SeekFrom::Start(downloaded_size as u64))
+            .await
+            .map_err(|e| format!("移动文件指针失败: {}", e))?;
+
+        info!("[下载任务] [ID:{}] 断点续传：文件指针移动到位置 {} bytes", task_id, downloaded_size);
+
+        f
     } else {
         // 创建新文件
         tokio::fs::File::create(&cache_path_buf).await.map_err(|e| format!("创建文件失败: {}", e))?
@@ -601,8 +608,14 @@ async fn download_to_cache(
     let mut downloaded: u64 = downloaded_size;
     let mut progress_sent = 0i32;
     let start_time = std::time::Instant::now();
-    let mut buffer = Vec::with_capacity(1024 * 1024);
+    let mut buffer = Vec::with_capacity(64 * 1024); // 64KB 缓冲区
     let mut last_log_time = start_time;
+
+    // 立即发送一次进度更新，确保 total_size 被正确设置
+    if total_size > 0 {
+        let speed = 0u64;
+        crate::services::send_download_progress(task_id, downloaded, total_size, speed);
+    }
 
     use iced::futures::StreamExt;
 
@@ -619,9 +632,11 @@ async fn download_to_cache(
         buffer.extend_from_slice(&chunk);
         downloaded += chunk.len() as u64;
 
-        // 当缓冲区达到1MB时，批量写入文件
-        if buffer.len() >= 1024 * 1024 {
+        // 当缓冲区达到64KB时，批量写入文件
+        if buffer.len() >= 64 * 1024 {
             file.write_all(&buffer).await.map_err(|e| format!("写入文件失败: {}", e))?;
+            // 立即刷新到磁盘，确保数据不会丢失
+            file.flush().await.map_err(|e| format!("刷新文件失败: {}", e))?;
             buffer.clear();
         }
 
@@ -657,6 +672,7 @@ async fn download_to_cache(
     // 验证文件完整性
     if let Ok(metadata) = tokio::fs::metadata(&cache_path_buf).await {
         let actual_size = metadata.len();
+        info!("[下载任务] [ID:{}] 下载完成：downloaded = {} bytes, total_size = {} bytes, actual_size = {} bytes", task_id, downloaded, total_size, actual_size);
         if total_size > 0 && actual_size != total_size {
             error!(
                 "[下载任务] [ID:{}] 文件大小不匹配：期望 {} bytes，实际 {} bytes",

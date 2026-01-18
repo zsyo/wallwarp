@@ -113,12 +113,16 @@ download-tasks = 下载任务
     .tooltip-open = 打开文件位置
     .tooltip-retry = 重试
     .tooltip-copy-url = 复制下载链接到剪贴板
+    .tooltip-set-wallpaper = 设置为壁纸
     .file-already-exists = 文件已存在
     .copied-from-cache = 从缓存复制成功
     .copy-failed = 复制失败
     .cache-file-not-found = 缓存文件不存在
     .get-cache-path-failed = 获取缓存路径失败
     .task-already-in-queue = 任务已在下载队列中
+    .copy-link-success = 下载链接已复制到剪贴板
+    .copy-link-failed = 复制下载链接失败
+    .set-wallpaper-file-not-found = 文件不存在，无法设置壁纸
 
 settings = 设置
     .system-config = 系统配置

@@ -39,13 +39,14 @@ impl App {
             if let Some(index) = task_index {
                 let task_full = self.download_state.get_task_by_index(index);
                 if let Some(task_full) = task_full {
-                    // 先保存需要的数据，再修改状态
+                    // 先保存所有需要的数据，再修改状态
                     let url = task_full.task.url.clone();
                     let save_path = std::path::PathBuf::from(&task_full.task.save_path);
                     let proxy = task_full.proxy.clone();
                     let task_id = task_full.task.id;
                     let cancel_token = task_full.task.cancel_token.clone().unwrap();
                     let downloaded_size = task_full.task.downloaded_size;
+                    let total_size = task_full.task.total_size;
                     let cache_path = cache_path.clone();
 
                     // 更新状态
@@ -62,6 +63,7 @@ impl App {
                             task_id,
                             cancel_token,
                             downloaded_size,
+                            total_size,
                             cache_path,
                         ),
                         move |result| match result {
@@ -94,6 +96,7 @@ impl App {
             }
             DownloadMessage::PauseTask(id) => self.handle_pause_download_task(id),
             DownloadMessage::ResumeTask(id) => self.handle_resume_download_task(id),
+            DownloadMessage::RetryTask(id) => self.handle_retry_download_task(id),
             DownloadMessage::CancelTask(id) => self.handle_cancel_download_task(id),
             DownloadMessage::DeleteTask(id) => self.handle_delete_download_task(id),
             DownloadMessage::OpenFileLocation(id) => self.handle_open_file_location(id),
@@ -152,28 +155,30 @@ impl App {
             }
             None => {}
         }
-
         iced::Task::none()
     }
 
     fn handle_pause_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
-        // 先读取实际文件大小并更新任务
+        // 记录暂停时的下载进度
         if let Some(index) = self.download_state.find_task_index(id) {
             if let Some(task) = self.download_state.get_task_by_index(index) {
-                if let Ok(metadata) = std::fs::metadata(&task.task.save_path) {
-                    let actual_size = metadata.len();
-                    task.task.downloaded_size = actual_size;
-                }
+                info!(
+                    "[下载任务] [ID:{}] 暂停：total_size = {} bytes, downloaded_size = {} bytes",
+                    id, task.task.total_size, task.task.downloaded_size
+                );
+
+                // 注意：不读取缓存文件大小，因为异步写入可能还没刷新到磁盘
+                // 直接使用任务中记录的 downloaded_size 即可
             }
         }
 
         // 然后设置状态为暂停
         self.download_state.update_status(id, super::download::DownloadStatus::Paused);
+
         // 最后设置取消标志，终止下载
         self.download_state.cancel_task(id);
 
-        // 注意：不删除已下载的文件，保留以便断点续传
-
+        // 注意：不删除已下载的缓存文件，保留以便断点续传
         iced::Task::none()
     }
 
@@ -182,6 +187,7 @@ impl App {
         // 先检查是否可以开始下载并保存所有需要的数据
         let can_start = self.download_state.can_start_download();
         let current_status = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| t.task.status.clone());
+
         let task_data = self
             .download_state
             .tasks
@@ -199,10 +205,10 @@ impl App {
                     // 更新状态为下载中
                     let should_reset = current_status == Some(super::download::DownloadStatus::Cancelled)
                         || matches!(current_status, Some(super::download::DownloadStatus::Failed(_)));
-
                     if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
                         task_full.task.status = super::download::DownloadStatus::Downloading;
                         task_full.task.start_time = Some(std::time::Instant::now());
+
                         // 重置取消令牌
                         if let Some(cancel_token) = &task_full.task.cancel_token {
                             cancel_token.store(false, std::sync::atomic::Ordering::Relaxed);
@@ -218,17 +224,51 @@ impl App {
                             let _ = std::fs::remove_file(&task_full.task.save_path);
                         }
                     }
-                    self.download_state.increment_downloading();
 
-                    // 获取取消令牌和已下载大小
-                    let (cancel_token, downloaded_size) = if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == task_id) {
-                        (task.task.cancel_token.clone().unwrap(), task.task.downloaded_size)
+                    // 获取取消令牌、文件总大小
+                    let (cancel_token, total_size) = if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == task_id) {
+                        (task.task.cancel_token.clone().unwrap(), task.task.total_size)
                     } else {
                         (std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), 0)
                     };
 
+                    // 读取实际文件大小作为下载偏移量
                     let cache_path = self.config.data.cache_path.clone();
+                    let actual_file_size = if total_size > 0 {
+                        if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, total_size) {
+                            if let Ok(metadata) = std::fs::metadata(&cache_file_path) {
+                                let size = metadata.len();
+                                // 减去 1KB 作为安全边界
+                                let safe_size = if size > 1024 { size - 1024 } else { 0 };
+                                info!(
+                                    "[下载任务] [ID:{}] 恢复：实际文件大小 = {} bytes, 安全偏移量 = {} bytes",
+                                    task_id, size, safe_size
+                                );
+                                safe_size
+                            } else {
+                                0
+                            }
+                        } else {
+                            0
+                        }
+                    } else {
+                        0
+                    };
 
+                    // 更新任务的 downloaded_size
+                    if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
+                        task_full.task.downloaded_size = actual_file_size;
+                        // 更新进度
+                        if total_size > 0 {
+                            task_full.task.progress = actual_file_size as f32 / total_size as f32;
+                        }
+                    }
+                    info!(
+                        "[下载任务] [ID:{}] 恢复：使用偏移量 = {} bytes, total_size = {} bytes",
+                        task_id, actual_file_size, total_size
+                    );
+
+                    self.download_state.increment_downloading();
                     return iced::Task::perform(
                         super::async_tasks::async_download_wallpaper_task_with_progress(
                             url,
@@ -236,7 +276,8 @@ impl App {
                             proxy,
                             task_id,
                             cancel_token,
-                            downloaded_size,
+                            actual_file_size,
+                            total_size,
                             cache_path,
                         ),
                         move |result| match result {
@@ -244,6 +285,7 @@ impl App {
                                 info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
                                 AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
                             }
+
                             Err(e) => {
                                 error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
                                 AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
@@ -251,6 +293,87 @@ impl App {
                         },
                     );
                 }
+            }
+        }
+        iced::Task::none()
+    }
+
+    fn handle_retry_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
+        // 重新下载：清空已下载文件，从头开始下载
+        // 先检查是否可以开始下载并保存所有需要的数据
+        let can_start = self.download_state.can_start_download();
+        let task_data = self
+            .download_state
+            .tasks
+            .iter()
+            .find(|t| t.task.id == id)
+            .map(|t| (t.task.url.clone(), PathBuf::from(&t.task.save_path), t.proxy.clone(), t.task.id));
+
+        if let Some((url, save_path, proxy, task_id)) = task_data {
+            if can_start {
+                if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
+                    // 重置任务状态和进度
+                    task_full.task.status = super::download::DownloadStatus::Downloading;
+                    task_full.task.start_time = Some(std::time::Instant::now());
+                    task_full.task.downloaded_size = 0;
+                    task_full.task.progress = 0.0;
+                    task_full.task.speed = 0;
+
+                    // 重置取消令牌
+                    if let Some(cancel_token) = &task_full.task.cancel_token {
+                        cancel_token.store(false, std::sync::atomic::Ordering::Relaxed);
+                    }
+
+                    // 清空已下载的文件（data_path中的文件）
+                    let _ = std::fs::remove_file(&task_full.task.save_path);
+                    info!("[下载任务] [ID:{}] 重新下载：已清空文件: {}", task_id, task_full.task.save_path);
+
+                    // 清空缓存文件（cache_path/online中的文件）
+                    let cache_path = self.config.data.cache_path.clone();
+                    if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
+                        let _ = std::fs::remove_file(&cache_file_path);
+                        info!("[下载任务] [ID:{}] 重新下载：已清空缓存文件: {}", task_id, cache_file_path);
+                    }
+
+                    // 清空最终缓存文件（不带.download后缀的文件）
+                    if let Ok(final_cache_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, 0) {
+                        let _ = std::fs::remove_file(&final_cache_path);
+                        info!("[下载任务] [ID:{}] 重新下载：已清空最终缓存文件: {}", task_id, final_cache_path);
+                    }
+                }
+
+                self.download_state.increment_downloading();
+
+                // 获取取消令牌和文件总大小（已下载大小为0，因为要重新下载）
+                let (cancel_token, total_size) = if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == task_id) {
+                    (task.task.cancel_token.clone().unwrap(), task.task.total_size)
+                } else {
+                    (std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), 0)
+                };
+
+                let cache_path = self.config.data.cache_path.clone();
+                return iced::Task::perform(
+                    super::async_tasks::async_download_wallpaper_task_with_progress(
+                        url,
+                        save_path,
+                        proxy,
+                        task_id,
+                        cancel_token,
+                        0,          // 重新下载，从0开始
+                        total_size, // 保留文件总大小，用于缓存路径计算
+                        cache_path,
+                    ),
+                    move |result| match result {
+                        Ok(size) => {
+                            info!("[下载任务] [ID:{}] 重新下载成功, 文件大小: {} bytes", task_id, size);
+                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                        }
+                        Err(e) => {
+                            error!("[下载任务] [ID:{}] 重新下载失败: {}", task_id, e);
+                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                        }
+                    },
+                );
             }
         }
 
@@ -445,6 +568,7 @@ impl App {
             let next_task_id = next_task.task.id;
             let next_cancel_token = next_task.task.cancel_token.clone().unwrap();
             let next_downloaded_size = next_task.task.downloaded_size;
+            let next_total_size = next_task.task.total_size;
 
             next_task.task.status = super::download::DownloadStatus::Downloading;
             next_task.task.start_time = Some(std::time::Instant::now());
@@ -461,6 +585,7 @@ impl App {
                     next_task_id,
                     next_cancel_token,
                     next_downloaded_size,
+                    next_total_size,
                     cache_path,
                 ),
                 move |result| match result {
@@ -508,18 +633,61 @@ impl App {
 
     fn handle_copy_download_link(&mut self, id: usize) -> iced::Task<AppMessage> {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
-            let _url = task.task.url.clone();
-            // TODO: 实现复制到剪贴板功能
-            let _ = self.show_notification("下载链接已复制到剪贴板".to_string(), super::NotificationType::Success);
+            let url = task.task.url.clone();
+            let success_message = self.i18n.t("download-tasks.copy-link-success").to_string();
+            let failed_message = self.i18n.t("download-tasks.copy-link-failed").to_string();
+
+            // 异步复制到剪贴板
+            return iced::Task::perform(
+                async move {
+                    #[cfg(target_os = "windows")]
+                    {
+                        use std::process::Command;
+                        let result = Command::new("cmd").args(["/c", "echo", &url, "|", "clip"]).output();
+                        match result {
+                            Ok(_) => Ok(()),
+                            Err(_) => Err("复制失败".to_string()),
+                        }
+                    }
+                    #[cfg(not(target_os = "windows"))]
+                    {
+                        use std::process::Command;
+                        let result = Command::new("xclip").args(["-selection", "clipboard"]).write_stdin(url.as_bytes()).output();
+                        match result {
+                            Ok(_) => Ok(()),
+                            Err(_) => Err("复制失败".to_string()),
+                        }
+                    }
+                },
+                move |result| match result {
+                    Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
+                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                },
+            );
         }
         iced::Task::none()
     }
 
     fn handle_set_as_wallpaper(&mut self, id: usize) -> iced::Task<AppMessage> {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
-            let _path = task.task.save_path.clone();
-            // TODO: 实现设为壁纸功能
-            let _ = self.show_notification("壁纸设置成功".to_string(), super::NotificationType::Success);
+            let path = task.task.save_path.clone();
+            let full_path = super::common::get_absolute_path(&path);
+
+            // 检查文件是否存在
+            if std::path::Path::new(&full_path).exists() {
+                // 提前获取翻译文本，避免线程安全问题
+                let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
+                let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+
+                // 异步设置壁纸
+                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                    Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
+                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                });
+            } else {
+                let error_message = self.i18n.t("download-tasks.set-wallpaper-file-not-found").to_string();
+                return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+            }
         }
         iced::Task::none()
     }
