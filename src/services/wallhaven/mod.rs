@@ -12,6 +12,6 @@ pub mod service;
 pub mod types;
 
 // 重新导出常用类型
-pub use models::{Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
+pub use models::{AspectRatio, AspectRatioGroup, Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
 pub use service::WallhavenService;
 pub use types::{OnlineWallpaper, WallpaperData};

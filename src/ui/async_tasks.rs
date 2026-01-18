@@ -90,13 +90,14 @@ pub async fn async_load_online_wallpapers(
     time_range: crate::services::wallhaven::TimeRange,
     atleast: Option<String>,
     resolutions: Option<String>,
+    ratios: Option<String>,
     page: usize,
     api_key: Option<String>,
     proxy: Option<String>,
     context: crate::services::request_context::RequestContext,
 ) -> Result<(Vec<crate::services::wallhaven::OnlineWallpaper>, bool, usize, usize), Box<dyn std::error::Error + Send + Sync>> {
     let service = crate::services::wallhaven::WallhavenService::new(api_key, proxy);
-    match service.search_wallpapers(page, categories, sorting, purities, color, &query, time_range, atleast.as_deref(), resolutions.as_deref(), &context).await {
+    match service.search_wallpapers(page, categories, sorting, purities, color, &query, time_range, atleast.as_deref(), resolutions.as_deref(), ratios.as_deref(), &context).await {
         Ok(result) => Ok(result),
         Err(e) => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>),
     }

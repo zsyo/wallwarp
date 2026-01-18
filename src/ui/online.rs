@@ -5,7 +5,7 @@ use iced::widget::{column, stack};
 use iced::{Element, Length};
 
 // 重新导出枚举类型，使其可以被其他模块使用
-pub use crate::services::wallhaven::{Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
+pub use crate::services::wallhaven::{AspectRatio, AspectRatioGroup, Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
 
 // 子模块
 use crate::ui::online_filter::create_filter_bar;
@@ -115,6 +115,13 @@ pub enum OnlineMessage {
     ResolutionModeChanged(ResolutionMode), // 切换分辨率筛选模式
     ResolutionToggled(Resolution), // 切换分辨率选择状态（Exactly模式）
     ResolutionAtLeastSelected(Resolution), // 选择分辨率（AtLeast模式）
+    // 比例筛选器
+    RatioPickerExpanded,  // 展开比例选择器
+    RatioPickerDismiss,   // 关闭比例选择器
+    RatioLandscapeToggled, // 切换"全部横屏"选项
+    RatioPortraitToggled,  // 切换"全部竖屏"选项
+    RatioAllToggled,      // 切换"全部"选项
+    RatioToggled(AspectRatio), // 切换比例选择状态
 }
 
 /// 壁纸加载状态
@@ -163,6 +170,12 @@ pub struct OnlineState {
     pub resolution_mode: ResolutionMode, // 分辨率筛选模式：AtLeast 或 Exactly
     pub selected_resolutions: Vec<Resolution>, // Exactly模式下选中的分辨率列表
     pub atleast_resolution: Option<Resolution>, // AtLeast模式下选中的分辨率
+    // 比例筛选器状态
+    pub ratio_picker_expanded: bool, // 比例选择器展开状态
+    pub selected_ratios: Vec<AspectRatio>, // 选中的比例列表
+    pub ratio_landscape_selected: bool, // 选中"全部横屏"
+    pub ratio_portrait_selected: bool, // 选中"全部竖屏"
+    pub ratio_all_selected: bool, // 选中"全部"
     // 请求上下文，用于取消正在进行的请求
     pub request_context: crate::services::request_context::RequestContext,
     // 待设置壁纸的文件名（用于在下载完成后自动设置壁纸）
@@ -206,6 +219,11 @@ impl Default for OnlineState {
             resolution_mode: ResolutionMode::All,
             selected_resolutions: Vec::new(),
             atleast_resolution: None,
+            ratio_picker_expanded: false,
+            selected_ratios: Vec::new(),
+            ratio_landscape_selected: false,
+            ratio_portrait_selected: false,
+            ratio_all_selected: false,
             request_context: crate::services::request_context::RequestContext::new(),
             pending_set_wallpaper_filename: None,
         }
@@ -336,7 +354,7 @@ impl OnlineState {
                 "1920x1536" => Some(Resolution::R1920x1536),
                 "2560x2048" => Some(Resolution::R2560x2048),
                 "3840x3072" => Some(Resolution::R3840x3072),
-                _ => None,
+                _ => None, // 无效值，返回 None
             }
         } else {
             None
@@ -344,38 +362,106 @@ impl OnlineState {
 
         // 加载Exactly分辨率列表
         state.selected_resolutions = if !config.wallhaven.resolutions.is_empty() {
+            let valid_resolutions = [
+                "2560x1080", "2560x1440", "3840x1600", "1280x720", "1600x900", "1920x1080", "3840x2160",
+                "1280x800", "1600x1000", "1920x1200", "2560x1600", "3840x2400", "1280x960", "1600x1200",
+                "1920x1440", "2560x1920", "3840x2880", "1280x1024", "1600x1280", "1920x1536", "2560x2048", "3840x3072",
+            ];
+            
             let res_list: Vec<Resolution> = config.wallhaven.resolutions
                 .split(',')
-                .filter_map(|s| match s.trim() {
-                    "2560x1080" => Some(Resolution::R2560x1080),
-                    "2560x1440" => Some(Resolution::R2560x1440U),
-                    "3840x1600" => Some(Resolution::R3840x1600),
-                    "1280x720" => Some(Resolution::R1280x720),
-                    "1600x900" => Some(Resolution::R1600x900),
-                    "1920x1080" => Some(Resolution::R1920x1080),
-                    "3840x2160" => Some(Resolution::R3840x2160),
-                    "1280x800" => Some(Resolution::R1280x800),
-                    "1600x1000" => Some(Resolution::R1600x1000),
-                    "1920x1200" => Some(Resolution::R1920x1200),
-                    "2560x1600" => Some(Resolution::R2560x1600),
-                    "3840x2400" => Some(Resolution::R3840x2400),
-                    "1280x960" => Some(Resolution::R1280x960),
-                    "1600x1200" => Some(Resolution::R1600x1200_4_3),
-                    "1920x1440" => Some(Resolution::R1920x1440),
-                    "2560x1920" => Some(Resolution::R2560x1920),
-                    "3840x2880" => Some(Resolution::R3840x2880),
-                    "1280x1024" => Some(Resolution::R1280x1024),
-                    "1600x1280" => Some(Resolution::R1600x1280),
-                    "1920x1536" => Some(Resolution::R1920x1536),
-                    "2560x2048" => Some(Resolution::R2560x2048),
-                    "3840x3072" => Some(Resolution::R3840x3072),
-                    _ => None,
+                .filter_map(|s| {
+                    let s = s.trim();
+                    // 只接受有效的分辨率值
+                    if valid_resolutions.contains(&s) {
+                        match s {
+                            "2560x1080" => Some(Resolution::R2560x1080),
+                            "2560x1440" => Some(Resolution::R2560x1440U),
+                            "3840x1600" => Some(Resolution::R3840x1600),
+                            "1280x720" => Some(Resolution::R1280x720),
+                            "1600x900" => Some(Resolution::R1600x900),
+                            "1920x1080" => Some(Resolution::R1920x1080),
+                            "3840x2160" => Some(Resolution::R3840x2160),
+                            "1280x800" => Some(Resolution::R1280x800),
+                            "1600x1000" => Some(Resolution::R1600x1000),
+                            "1920x1200" => Some(Resolution::R1920x1200),
+                            "2560x1600" => Some(Resolution::R2560x1600),
+                            "3840x2400" => Some(Resolution::R3840x2400),
+                            "1280x960" => Some(Resolution::R1280x960),
+                            "1600x1200" => Some(Resolution::R1600x1200_4_3),
+                            "1920x1440" => Some(Resolution::R1920x1440),
+                            "2560x1920" => Some(Resolution::R2560x1920),
+                            "3840x2880" => Some(Resolution::R3840x2880),
+                            "1280x1024" => Some(Resolution::R1280x1024),
+                            "1600x1280" => Some(Resolution::R1600x1280),
+                            "1920x1536" => Some(Resolution::R1920x1536),
+                            "2560x2048" => Some(Resolution::R2560x2048),
+                            "3840x3072" => Some(Resolution::R3840x3072),
+                            _ => None,
+                        }
+                    } else {
+                        None // 无效值，忽略
+                    }
                 })
                 .collect();
             res_list
         } else {
             Vec::new()
         };
+
+        // 加载比例列表和额外选项
+        state.ratio_landscape_selected = false;
+        state.ratio_portrait_selected = false;
+        state.ratio_all_selected = config.wallhaven.ratios == "all";
+        state.selected_ratios = Vec::new();
+
+        if !state.ratio_all_selected && !config.wallhaven.ratios.is_empty() {
+            // 定义被额外选项包含的详细比例
+            let landscape_included = [
+                AspectRatio::R16x9, AspectRatio::R16x10, AspectRatio::R21x9, AspectRatio::R32x9, AspectRatio::R48x9,
+            ];
+            let portrait_included = [
+                AspectRatio::R9x16, AspectRatio::R10x16, AspectRatio::R9x18,
+            ];
+            
+            // 解析 ratios 字符串
+            let parts: Vec<&str> = config.wallhaven.ratios.split(',').collect();
+            
+            for part in parts {
+                let part = part.trim();
+                match part {
+                    "landscape" => {
+                        state.ratio_landscape_selected = true;
+                    }
+                    "portrait" => {
+                        state.ratio_portrait_selected = true;
+                    }
+                    // 尝试解析详细比例
+                    "16x9" => state.selected_ratios.push(AspectRatio::R16x9),
+                    "16x10" => state.selected_ratios.push(AspectRatio::R16x10),
+                    "21x9" => state.selected_ratios.push(AspectRatio::R21x9),
+                    "32x9" => state.selected_ratios.push(AspectRatio::R32x9),
+                    "48x9" => state.selected_ratios.push(AspectRatio::R48x9),
+                    "9x16" => state.selected_ratios.push(AspectRatio::R9x16),
+                    "10x16" => state.selected_ratios.push(AspectRatio::R10x16),
+                    "9x18" => state.selected_ratios.push(AspectRatio::R9x18),
+                    "1x1" => state.selected_ratios.push(AspectRatio::R1x1),
+                    "3x2" => state.selected_ratios.push(AspectRatio::R3x2),
+                    "4x3" => state.selected_ratios.push(AspectRatio::R4x3),
+                    "5x4" => state.selected_ratios.push(AspectRatio::R5x4),
+                    // 无效值，忽略
+                    _ => {}
+                }
+            }
+            
+            // 移除被额外选项包含的详细比例（避免冗余）
+            if state.ratio_landscape_selected {
+                state.selected_ratios.retain(|r| !landscape_included.contains(r));
+            }
+            if state.ratio_portrait_selected {
+                state.selected_ratios.retain(|r| !portrait_included.contains(r));
+            }
+        }
 
         state.has_loaded = false; // 从配置加载时重置为未加载状态
 
@@ -412,6 +498,26 @@ impl OnlineState {
         } else {
             String::new()
         };
+        
+        // 保存比例列表和额外选项
+        let mut ratios_vec = Vec::new();
+
+        // 如果选中"全部横屏"，添加 landscape
+        if self.ratio_landscape_selected {
+            ratios_vec.push("landscape".to_string());
+        }
+
+        // 如果选中"全部竖屏"，添加 portrait
+        if self.ratio_portrait_selected {
+            ratios_vec.push("portrait".to_string());
+        }
+
+        // 添加详细模式的 ratios
+        for ratio in &self.selected_ratios {
+            ratios_vec.push(ratio.value().to_string());
+        }
+
+        config.wallhaven.ratios = ratios_vec.join(",");
         
         config.save_to_file();
     }

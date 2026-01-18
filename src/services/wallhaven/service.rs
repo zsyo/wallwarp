@@ -39,6 +39,7 @@ impl WallhavenService {
     /// - `time_range`: 时间范围（仅用于 toplist 排序）
     /// - `atleast`: 最小分辨率（atleast参数）
     /// - `resolutions`: 精确分辨率列表（resolutions参数，逗号分隔）
+    /// - `ratios`: 比例列表（ratios参数，逗号分隔）
     /// - `context`: 请求上下文（用于取消操作）
     ///
     /// # 返回
@@ -54,6 +55,7 @@ impl WallhavenService {
         time_range: TimeRange,
         atleast: Option<&str>,
         resolutions: Option<&str>,
+        ratios: Option<&str>,
         context: &RequestContext,
     ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), String> {
         // 检查是否已取消
@@ -80,6 +82,7 @@ impl WallhavenService {
             time_range.value(),
             atleast,
             resolutions,
+            ratios,
         );
 
         // 打印请求参数

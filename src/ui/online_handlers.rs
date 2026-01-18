@@ -45,6 +45,12 @@ impl App {
             OnlineMessage::ResolutionModeChanged(mode) => self.handle_resolution_mode_changed(mode),
             OnlineMessage::ResolutionToggled(resolution) => self.handle_resolution_toggled(resolution),
             OnlineMessage::ResolutionAtLeastSelected(resolution) => self.handle_resolution_atleast_selected(resolution),
+            OnlineMessage::RatioPickerExpanded => self.handle_ratio_picker_expanded(),
+            OnlineMessage::RatioPickerDismiss => self.handle_ratio_picker_dismiss(),
+            OnlineMessage::RatioLandscapeToggled => self.handle_ratio_landscape_toggled(),
+            OnlineMessage::RatioPortraitToggled => self.handle_ratio_portrait_toggled(),
+            OnlineMessage::RatioAllToggled => self.handle_ratio_all_toggled(),
+            OnlineMessage::RatioToggled(ratio) => self.handle_ratio_toggled(ratio),
         }
     }
 
@@ -99,8 +105,33 @@ impl App {
             None
         };
 
+        // 计算比例参数
+        let mut ratios_vec = Vec::new();
+
+        // 如果选中"全部横屏"，添加 landscape
+        if self.online_state.ratio_landscape_selected {
+            ratios_vec.push("landscape".to_string());
+        }
+
+        // 如果选中"全部竖屏"，添加 portrait
+        if self.online_state.ratio_portrait_selected {
+            ratios_vec.push("portrait".to_string());
+        }
+
+        // 添加详细模式的 ratios
+        for ratio in &self.online_state.selected_ratios {
+            ratios_vec.push(ratio.value().to_string());
+        }
+
+        // 如果没有任何选中项，则为 None
+        let ratios = if ratios_vec.is_empty() {
+            None
+        } else {
+            Some(ratios_vec.join(","))
+        };
+
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, atleast, resolutions, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, atleast, resolutions, ratios, page, api_key, proxy, context),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(
                     wallpapers,
@@ -245,8 +276,33 @@ impl App {
             None
         };
 
+        // 计算比例参数
+        let mut ratios_vec = Vec::new();
+
+        // 如果选中"全部横屏"，添加 landscape
+        if self.online_state.ratio_landscape_selected {
+            ratios_vec.push("landscape".to_string());
+        }
+
+        // 如果选中"全部竖屏"，添加 portrait
+        if self.online_state.ratio_portrait_selected {
+            ratios_vec.push("portrait".to_string());
+        }
+
+        // 添加详细模式的 ratios
+        for ratio in &self.online_state.selected_ratios {
+            ratios_vec.push(ratio.value().to_string());
+        }
+
+        // 如果没有任何选中项，则为 None
+        let ratios = if ratios_vec.is_empty() {
+            None
+        } else {
+            Some(ratios_vec.join(","))
+        };
+
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, atleast, resolutions, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, atleast, resolutions, ratios, page, api_key, proxy, context),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => {
                     AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page))
@@ -760,6 +816,90 @@ impl App {
     fn handle_resolution_atleast_selected(&mut self, resolution: super::online::Resolution) -> iced::Task<AppMessage> {
         // AtLeast模式：选择分辨率（不自动关闭）
         self.online_state.atleast_resolution = Some(resolution);
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
+        iced::Task::none()
+    }
+
+    fn handle_ratio_picker_expanded(&mut self) -> iced::Task<AppMessage> {
+        // 展开比例选择器
+        self.online_state.ratio_picker_expanded = true;
+        iced::Task::none()
+    }
+
+    fn handle_ratio_picker_dismiss(&mut self) -> iced::Task<AppMessage> {
+        // 关闭比例选择器
+        self.online_state.ratio_picker_expanded = false;
+        iced::Task::none()
+    }
+
+    fn handle_ratio_toggled(&mut self, ratio: crate::services::wallhaven::AspectRatio) -> iced::Task<AppMessage> {
+        // 切换比例选择状态（多选）
+        if let Some(pos) = self.online_state.selected_ratios.iter().position(|&r| r == ratio) {
+            // 如果已选中，则取消选中
+            self.online_state.selected_ratios.remove(pos);
+        } else {
+            // 如果未选中，则添加到选中列表
+            self.online_state.selected_ratios.push(ratio);
+        }
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
+        iced::Task::none()
+    }
+
+    fn handle_ratio_landscape_toggled(&mut self) -> iced::Task<AppMessage> {
+        // 切换"全部横屏"选项
+        self.online_state.ratio_landscape_selected = !self.online_state.ratio_landscape_selected;
+
+        // 如果选中"全部横屏"，清空宽屏和超宽屏分组下的选中项
+        if self.online_state.ratio_landscape_selected {
+            self.online_state.selected_ratios.retain(|r| {
+                !matches!(r, 
+                    crate::services::wallhaven::AspectRatio::R16x9 | 
+                    crate::services::wallhaven::AspectRatio::R16x10 |
+                    crate::services::wallhaven::AspectRatio::R21x9 |
+                    crate::services::wallhaven::AspectRatio::R32x9 |
+                    crate::services::wallhaven::AspectRatio::R48x9
+                )
+            });
+        }
+
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
+        iced::Task::none()
+    }
+
+    fn handle_ratio_portrait_toggled(&mut self) -> iced::Task<AppMessage> {
+        // 切换"全部竖屏"选项
+        self.online_state.ratio_portrait_selected = !self.online_state.ratio_portrait_selected;
+
+        // 如果选中"全部竖屏"，清空竖屏分组下的选中项
+        if self.online_state.ratio_portrait_selected {
+            self.online_state.selected_ratios.retain(|r| {
+                !matches!(r,
+                    crate::services::wallhaven::AspectRatio::R9x16 |
+                    crate::services::wallhaven::AspectRatio::R10x16 |
+                    crate::services::wallhaven::AspectRatio::R9x18
+                )
+            });
+        }
+
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
+        iced::Task::none()
+    }
+
+    fn handle_ratio_all_toggled(&mut self) -> iced::Task<AppMessage> {
+        // 切换"全部"选项
+        self.online_state.ratio_all_selected = !self.online_state.ratio_all_selected;
+
+        // 如果选中"全部"，清空其他所有选项的选中状态
+        if self.online_state.ratio_all_selected {
+            self.online_state.ratio_landscape_selected = false;
+            self.online_state.ratio_portrait_selected = false;
+            self.online_state.selected_ratios.clear();
+        }
+
         // 保存到配置文件
         self.online_state.save_to_config(&mut self.config);
         iced::Task::none()

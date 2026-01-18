@@ -1,8 +1,8 @@
 use crate::i18n::I18n;
-use crate::services::wallhaven::{Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
+use crate::services::wallhaven::{AspectRatio, Category, ColorOption, Purity, Resolution, Sorting, TimeRange};
 use crate::ui::AppMessage;
 use crate::ui::common;
-use crate::ui::online::{DisplayableRatio, DisplayableSorting, DisplayableTimeRange, OnlineMessage, OnlineState};
+use crate::ui::online::{DisplayableSorting, DisplayableTimeRange, OnlineMessage, OnlineState};
 use crate::ui::style::*;
 use crate::ui::widget::DiagonalLine;
 use crate::utils::config::Config;
@@ -49,35 +49,8 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
     // 分辨率选择器 - 使用 DropDown 组件
     let resolution_picker = create_resolution_picker(i18n, state);
 
-    // 下拉筛选器 - 使用包装类型以支持 i18n
-    let ratio_options: Vec<DisplayableRatio> = Ratio::all()
-        .iter()
-        .map(|r| DisplayableRatio {
-            value: *r,
-            display: i18n.t(r.display_name()).leak(),
-        })
-        .collect();
-    let current_ratio = DisplayableRatio {
-        value: state.ratio,
-        display: i18n.t(state.ratio.display_name()).leak(),
-    };
-
-    let ratio_picker = pick_list(ratio_options.clone(), Some(current_ratio), |rat| {
-        AppMessage::Online(OnlineMessage::RatioChanged(rat.value))
-    })
-    .padding(6)
-    .width(Length::Fixed(80.0))
-    .style(|_theme, _status| iced::widget::pick_list::Style {
-        text_color: COLOR_LIGHT_TEXT,
-        placeholder_color: COLOR_LIGHT_TEXT_SUB,
-        handle_color: COLOR_LIGHT_TEXT_SUB,
-        background: iced::Background::Color(COLOR_LIGHT_BUTTON),
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(4.0),
-        },
-    });
+    // 比例选择器 - 使用 DropDown 组件（支持多选）
+    let ratio_picker = create_ratio_picker(i18n, state);
 
     // 颜色选择器 - 使用 DropDown 组件
     let color_picker = create_color_picker(i18n, state);
@@ -97,6 +70,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
     let sorting_picker = pick_list(sorting_options.clone(), Some(current_sorting), |sort| {
         AppMessage::Online(OnlineMessage::SortingChanged(sort.value))
     })
+    .text_size(14)
     .padding(6)
     .width(Length::Fixed(100.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
@@ -126,6 +100,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
     let time_range_picker = pick_list(time_range_options.clone(), Some(current_time_range), |time| {
         AppMessage::Online(OnlineMessage::TimeRangeChanged(time.value))
     })
+    .text_size(14)
     .padding(6)
     .width(Length::Fixed(130.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
@@ -355,7 +330,7 @@ fn create_color_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
 
     // 创建颜色选择器的触发按钮（underlay）
     let color_underlay = row![
-        text(color_button_text).color(color_button_text_color),
+        text(color_button_text).size(14).color(color_button_text_color),
         iced::widget::Space::new().width(Length::Fill),
         container(text("⏷").color(COLOR_LIGHT_TEXT_SUB)).height(Length::Fill).padding(iced::Padding {
             top: -2.0,
@@ -788,6 +763,307 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
     )
     .padding(12)
     .width(Length::Fixed(530.0))
+    .align_x(Alignment::Center)
+    .style(|_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(COLOR_PICKER_BG)),
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(8.0),
+        },
+        ..Default::default()
+    });
+
+    iced::widget::opaque(picker_content)
+}
+
+/// 创建比例选择器
+fn create_ratio_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+    // 计算按钮显示文本和字体大小
+    let button_text = if state.ratio_all_selected {
+        i18n.t("online-wallpapers.ratio-label").to_string()
+    } else {
+        // 计算总选中数量
+        let extra_count = state.selected_ratios.len() as i32;
+        let landscape_count = if state.ratio_landscape_selected { 1 } else { 0 };
+        let portrait_count = if state.ratio_portrait_selected { 1 } else { 0 };
+        let total_count = extra_count + landscape_count + portrait_count;
+
+        if total_count == 0 {
+            i18n.t("online-wallpapers.ratio-label").to_string()
+        } else {
+            // 确定第一项的显示文本
+            let first_item = if state.ratio_landscape_selected {
+                i18n.t("online-wallpapers.ratio-mode-landscape").to_string()
+            } else if state.ratio_portrait_selected {
+                i18n.t("online-wallpapers.ratio-mode-portrait").to_string()
+            } else if let Some(first_ratio) = state.selected_ratios.first() {
+                first_ratio.value().to_string()
+            } else {
+                String::new()
+            };
+
+            // 计算额外数量（总数减1）
+            let extra_display = total_count - 1;
+            if extra_display > 0 {
+                format!("{}+{}", first_item, extra_display)
+            } else {
+                first_item
+            }
+        }
+    };
+
+    // 根据文本类型确定字体大小
+    let is_label_text = button_text == i18n.t("online-wallpapers.ratio-label");
+    let font_size = if is_label_text { 14 } else { 12 };
+
+    // 创建触发按钮（underlay）
+    let ratio_underlay = row![
+        text(button_text).size(font_size),
+        iced::widget::Space::new().width(Length::Fill),
+        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB)).height(Length::Fill).padding(iced::Padding {
+            top: -2.0,
+            bottom: 0.0,
+            left: 0.0,
+            right: 0.0,
+        }),
+    ]
+    .spacing(4)
+    .align_y(Alignment::Center)
+    .padding(iced::Padding {
+        top: 0.0,
+        bottom: 0.0,
+        left: 0.0,
+        right: -2.0,
+    });
+
+    let ratio_trigger = button(ratio_underlay)
+        .padding(6)
+        .width(Length::Fixed(120.0))
+        .on_press(AppMessage::Online(OnlineMessage::RatioPickerExpanded))
+        .style(|_theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+            text_color: COLOR_LIGHT_TEXT,
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(4.0),
+            },
+            ..iced::widget::button::text(_theme, _status)
+        });
+
+    // 创建比例选项（overlay）
+    let ratio_options = create_ratio_grid_options(i18n, state);
+
+    // 使用 DropDown 组件
+    DropDown::new(ratio_trigger, ratio_options, state.ratio_picker_expanded)
+        .width(Length::Fill)
+        .on_dismiss(AppMessage::Online(OnlineMessage::RatioPickerDismiss))
+        .alignment(drop_down::Alignment::Bottom)
+        .into()
+}
+
+/// 创建比例网格选择器内容
+fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+    // 定义比例分组
+    static RATIO_GROUPS: [(&str, &[(AspectRatio, &str)]); 4] = [
+        (
+            "online-wallpapers.ratio-group-wide",
+            &[(AspectRatio::R16x9, "16x9"), (AspectRatio::R16x10, "16x10")],
+        ),
+        (
+            "online-wallpapers.ratio-group-ultrawide",
+            &[(AspectRatio::R21x9, "21x9"), (AspectRatio::R32x9, "32x9"), (AspectRatio::R48x9, "48x9")],
+        ),
+        (
+            "online-wallpapers.ratio-group-portrait",
+            &[(AspectRatio::R9x16, "9x16"), (AspectRatio::R10x16, "10x16"), (AspectRatio::R9x18, "9x18")],
+        ),
+        (
+            "online-wallpapers.ratio-group-square",
+            &[
+                (AspectRatio::R1x1, "1x1"),
+                (AspectRatio::R3x2, "3x2"),
+                (AspectRatio::R4x3, "4x3"),
+                (AspectRatio::R5x4, "5x4"),
+            ],
+        ),
+    ];
+
+    // 判断分组是否应该被禁用
+    let is_wide_disabled = state.ratio_landscape_selected;
+    let is_ultrawide_disabled = state.ratio_landscape_selected;
+    let is_portrait_disabled = state.ratio_portrait_selected;
+    let is_square_disabled = state.ratio_all_selected;
+    let is_all_disabled = state.ratio_all_selected;
+
+    // 判断额外选项是否应该被禁用
+    let is_landscape_button_disabled = state.ratio_all_selected;
+    let is_portrait_button_disabled = state.ratio_all_selected;
+    let is_all_button_disabled = false;
+
+    // 创建顶部额外选项按钮（水平居中）
+    let landscape_button = button(text(i18n.t("online-wallpapers.ratio-mode-landscape")).size(14))
+        .padding(6)
+        .on_press(if is_landscape_button_disabled {
+            AppMessage::None
+        } else {
+            AppMessage::Online(OnlineMessage::RatioLandscapeToggled)
+        })
+        .style(move |_theme, _status| {
+            let is_selected = state.ratio_landscape_selected;
+            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let text_color = if is_landscape_button_disabled {
+                Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
+            } else if is_selected {
+                Color::WHITE
+            } else {
+                COLOR_LIGHT_TEXT
+            };
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                text_color: text_color,
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            }
+        });
+
+    let portrait_button = button(text(i18n.t("online-wallpapers.ratio-mode-portrait")).size(14))
+        .padding(6)
+        .on_press(if is_portrait_button_disabled {
+            AppMessage::None
+        } else {
+            AppMessage::Online(OnlineMessage::RatioPortraitToggled)
+        })
+        .style(move |_theme, _status| {
+            let is_selected = state.ratio_portrait_selected;
+            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let text_color = if is_portrait_button_disabled {
+                Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
+            } else if is_selected {
+                Color::WHITE
+            } else {
+                COLOR_LIGHT_TEXT
+            };
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                text_color: text_color,
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            }
+        });
+
+    let all_button = button(text(i18n.t("online-wallpapers.ratio-mode-all")).size(14))
+        .padding(6)
+        .on_press(if is_all_button_disabled {
+            AppMessage::None
+        } else {
+            AppMessage::Online(OnlineMessage::RatioAllToggled)
+        })
+        .style(move |_theme, _status| {
+            let is_selected = state.ratio_all_selected;
+            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                text_color: text_color,
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            }
+        });
+
+    let option_buttons = container(row![landscape_button, portrait_button, all_button].spacing(4))
+        .width(Length::Fill)
+        .center_x(Length::Fill);
+
+    // 创建比例表格（水平排列分组）
+    let mut group_columns: Vec<Element<'a, AppMessage>> = Vec::new();
+
+    for (group_name, ratios) in RATIO_GROUPS.iter() {
+        // 确定该分组是否应该被禁用
+        let is_group_disabled = match *group_name {
+            "online-wallpapers.ratio-group-wide" => is_wide_disabled,
+            "online-wallpapers.ratio-group-ultrawide" => is_ultrawide_disabled,
+            "online-wallpapers.ratio-group-portrait" => is_portrait_disabled,
+            "online-wallpapers.ratio-group-square" => is_square_disabled,
+            _ => false,
+        };
+
+        // 创建分组标题（水平居中）
+        let group_header = container(text(i18n.t(group_name)).size(14).color(COLOR_LIGHT_TEXT))
+            .width(Length::Fill)
+            .center_x(Length::Fill);
+
+        // 创建分组内的比例按钮（每一行一个）
+        let mut group_column = column![].spacing(2);
+        for (ratio, label) in ratios.iter() {
+            let is_selected = state.selected_ratios.contains(ratio);
+
+            let border_color = if is_selected { COLOR_PICKER_ACTIVE } else { Color::TRANSPARENT };
+            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { Color::TRANSPARENT };
+            let text_color = if is_all_disabled || is_group_disabled {
+                Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
+            } else {
+                COLOR_LIGHT_TEXT
+            };
+
+            let button_content = container(text(*label).size(13))
+                .align_x(Alignment::Center)
+                .align_y(Alignment::Center)
+                .width(Length::Fill);
+
+            let ratio_button: Element<'a, AppMessage> = button(button_content)
+                .padding(6)
+                .style(move |_theme, _status| iced::widget::button::Style {
+                    background: Some(iced::Background::Color(bg_color)),
+                    text_color: text_color,
+                    border: iced::border::Border {
+                        color: border_color,
+                        width: if is_selected { 2.0 } else { 0.0 },
+                        radius: iced::border::Radius::from(4.0),
+                    },
+                    ..iced::widget::button::text(_theme, _status)
+                })
+                .on_press(if is_all_disabled || is_group_disabled {
+                    AppMessage::None
+                } else {
+                    AppMessage::Online(OnlineMessage::RatioToggled(*ratio))
+                })
+                .into();
+
+            group_column = group_column.push(ratio_button);
+        }
+
+        // 将分组标题和内容组合，使用固定宽度
+        let group_section =
+            container(column![group_header, iced::widget::Space::new().height(Length::Fixed(4.0)), group_column,].spacing(0)).width(Length::Fixed(100.0));
+
+        group_columns.push(group_section.into());
+    }
+
+    // 将所有分组水平排列
+    let table_content = row(group_columns).spacing(2);
+
+    // 创建比例选择器容器
+    let picker_content = container(
+        column![option_buttons, iced::widget::Space::new().height(Length::Fixed(12.0)), table_content,]
+            .spacing(0)
+            .align_x(Alignment::Center),
+    )
+    .padding(6)
+    .width(Length::Fixed(460.0))
     .align_x(Alignment::Center)
     .style(|_theme: &iced::Theme| container::Style {
         background: Some(iced::Background::Color(COLOR_PICKER_BG)),

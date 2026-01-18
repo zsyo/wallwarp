@@ -71,6 +71,8 @@ pub struct WallhavenConfig {
     pub atleast_resolution: String,
     #[serde(default)]
     pub resolutions: String,
+    #[serde(default)]
+    pub ratios: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
@@ -161,6 +163,7 @@ impl Config {
                 resolution_mode: "all".to_string(),
                 atleast_resolution: String::new(),
                 resolutions: String::new(),
+                ratios: String::new(),
             },
         }
     }
