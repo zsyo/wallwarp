@@ -3,7 +3,7 @@
 //! 提供 Wallhaven API 的高级接口
 
 use super::client::WallhavenClient;
-use super::models::{ColorOption, Sorting};
+use super::models::{ColorOption, Sorting, TimeRange};
 use super::types::{OnlineWallpaper, WallhavenResponse, WallpaperData};
 use crate::services::request_context::RequestContext;
 use tracing::debug;
@@ -36,6 +36,7 @@ impl WallhavenService {
     /// - `purities`: 纯净度位掩码（100=SFW, 010=Sketchy, 001=NSFW）
     /// - `color`: 颜色选项
     /// - `query`: 搜索关键词
+    /// - `time_range`: 时间范围（仅用于 toplist 排序）
     /// - `context`: 请求上下文（用于取消操作）
     ///
     /// # 返回
@@ -48,6 +49,7 @@ impl WallhavenService {
         purities: u32,
         color: ColorOption,
         query: &str,
+        time_range: TimeRange,
         context: &RequestContext,
     ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), String> {
         // 检查是否已取消
@@ -71,16 +73,18 @@ impl WallhavenService {
             purities,
             color.value(),
             query,
+            time_range.value(),
         );
 
         // 打印请求参数
         let search_tag = format!(
-            "page{}_cat{:03b}_sort{:?}_purity{:03b}_color{}_q{}",
+            "page{}_cat{:03b}_sort{:?}_purity{:03b}_color{}_tr{}_q{}",
             page,
             categories,
             sorting,
             purities,
             color.value(),
+            time_range.value(),
             if query.is_empty() {
                 "empty"
             } else {

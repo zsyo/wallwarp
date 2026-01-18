@@ -120,6 +120,7 @@ impl WallhavenClient {
     /// - `purities`: 纯净度位掩码
     /// - `color`: 颜色选项
     /// - `query`: 搜索关键词
+    /// - `top_range`: 时间范围（仅用于 toplist 排序）
     ///
     /// # 返回
     /// 返回完整的搜索 URL
@@ -131,6 +132,7 @@ impl WallhavenClient {
         purities: u32,
         color: &str,
         query: &str,
+        top_range: &str,
     ) -> String {
         let mut url = format!("{}/search?page={}", BASE_URL, page);
 
@@ -147,6 +149,11 @@ impl WallhavenClient {
 
         // 默认使用倒序
         url.push_str("&order=desc");
+
+        // 添加 topRange 参数（仅当 sorting 为 toplist 时生效）
+        if sorting == "toplist" && top_range != "any" {
+            url.push_str(&format!("&topRange={}", top_range));
+        }
 
         // 添加颜色参数
         if color != "any" {

@@ -61,6 +61,7 @@ impl App {
         let sorting = self.online_state.sorting;
         let purities = self.online_state.purities;
         let color = self.online_state.color;
+        let time_range = self.online_state.time_range;
         let query = self.online_state.search_text.clone();
         let page = self.online_state.current_page;
         let api_key = if self.config.wallhaven.api_key.is_empty() {
@@ -76,7 +77,7 @@ impl App {
         };
 
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, page, api_key, proxy, context),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(
                     wallpapers,
@@ -181,6 +182,7 @@ impl App {
         let sorting = self.online_state.sorting;
         let purities = self.online_state.purities;
         let color = self.online_state.color;
+        let time_range = self.online_state.time_range;
         let query = self.online_state.search_text.clone();
         let page = self.online_state.current_page;
         let api_key = if self.config.wallhaven.api_key.is_empty() {
@@ -196,7 +198,7 @@ impl App {
         };
 
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, page, api_key, proxy, context),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => {
                     AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page))

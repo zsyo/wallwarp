@@ -175,7 +175,7 @@ impl Default for OnlineState {
             resolution: Resolution::Any,
             ratio: Ratio::Any,
             color: ColorOption::Any,
-            time_range: TimeRange::Any,
+            time_range: TimeRange::Month,
             search_text: String::new(),
             last_page: false,
             has_loaded: false,     // 初始状态为未加载
@@ -265,6 +265,18 @@ impl OnlineState {
             _ => ColorOption::Any,
         };
 
+        // 加载时间范围
+        state.time_range = match config.wallhaven.top_range.as_str() {
+            "1d" => TimeRange::Day,
+            "3d" => TimeRange::ThreeDays,
+            "1w" => TimeRange::Week,
+            "1M" => TimeRange::Month,
+            "3M" => TimeRange::ThreeMonths,
+            "6M" => TimeRange::SixMonths,
+            "1y" => TimeRange::Year,
+            _ => TimeRange::Month,
+        };
+
         state.has_loaded = false; // 从配置加载时重置为未加载状态
 
         state
@@ -277,6 +289,7 @@ impl OnlineState {
         config.wallhaven.purity = format!("{:03b}", self.purities);
         config.wallhaven.sorting = self.sorting.to_string();
         config.wallhaven.color = self.color.value().to_string();
+        config.wallhaven.top_range = self.time_range.value().to_string();
         config.save_to_file();
     }
 

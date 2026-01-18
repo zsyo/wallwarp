@@ -1,21 +1,17 @@
-use crate::ui::online::{OnlineMessage, OnlineState, DisplayableResolution, DisplayableRatio, DisplayableTimeRange, DisplayableSorting};
-use crate::ui::common;
-use crate::ui::AppMessage;
-use crate::ui::widget::DiagonalLine;
-use crate::ui::style::*;
-use crate::services::wallhaven::{Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
 use crate::i18n::I18n;
+use crate::services::wallhaven::{Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
+use crate::ui::AppMessage;
+use crate::ui::common;
+use crate::ui::online::{DisplayableRatio, DisplayableResolution, DisplayableSorting, DisplayableTimeRange, OnlineMessage, OnlineState};
+use crate::ui::style::*;
+use crate::ui::widget::DiagonalLine;
 use crate::utils::config::Config;
 use iced::widget::{button, canvas, column, container, pick_list, row, text};
 use iced::{Alignment, Color, Element, Length};
 use iced_aw::{DropDown, drop_down};
 
 /// 创建筛选栏
-pub fn create_filter_bar<'a>(
-    i18n: &'a I18n,
-    state: &'a OnlineState,
-    config: &'a Config,
-) -> Element<'a, AppMessage> {
+pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a Config) -> Element<'a, AppMessage> {
     // 搜索框（放在最前面）
     let search_input = iced::widget::text_input(&i18n.t("online-wallpapers.search-placeholder"), &state.search_text)
         .on_input(|text| AppMessage::Online(OnlineMessage::SearchTextChanged(text)))
@@ -157,7 +153,7 @@ pub fn create_filter_bar<'a>(
         AppMessage::Online(OnlineMessage::TimeRangeChanged(time.value))
     })
     .padding(6)
-    .width(Length::Fixed(80.0))
+    .width(Length::Fixed(120.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
         text_color: COLOR_LIGHT_TEXT,
         placeholder_color: COLOR_LIGHT_TEXT_SUB,
@@ -319,8 +315,13 @@ pub fn create_filter_bar<'a>(
         resolution_picker,
         ratio_picker,
         color_picker,
-        time_range_picker,
         sorting_picker,
+        // 时间范围选择器：仅在排序为 TopList 时显示
+        if state.sorting == Sorting::TopList {
+            Some(time_range_picker)
+        } else {
+            None
+        },
         refresh_button,
     ]
     .spacing(4)
@@ -380,22 +381,7 @@ fn create_color_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
     };
 
     // 对于浅色背景（白色、浅灰色等），使用深色文字
-    let color_button_text_color = match state.color {
-        ColorOption::Any => COLOR_LIGHT_TEXT,
-        ColorOption::ColorFFFFFF => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::ColorCCCCCC => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::ColorFFFF00 => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::ColorFFCC33 => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::ColorCCCC33 => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::Color999900 => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::ColorEA4C88 => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::ColorCC3333 => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::Color66CCCC => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::Color0099CC => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::Color77CC33 => Color::from_rgb(0.2, 0.2, 0.2),
-        ColorOption::Color999999 => Color::from_rgb(0.2, 0.2, 0.2),
-        _ => COLOR_LIGHT_TEXT,
-    };
+    let color_button_text_color = COLOR_LIGHT_TEXT;
 
     // 创建颜色选择器的触发按钮（underlay）
     let color_underlay = row![

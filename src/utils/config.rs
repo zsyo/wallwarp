@@ -62,6 +62,8 @@ pub struct WallhavenConfig {
     #[serde(default)]
     pub color: String,
     #[serde(default)]
+    pub top_range: String,
+    #[serde(default)]
     pub api_key: String,
 }
 
@@ -112,6 +114,9 @@ impl Config {
                 if local_config.wallhaven.color.is_empty() {
                     local_config.wallhaven.color = default_config.wallhaven.color;
                 }
+                if local_config.wallhaven.top_range.is_empty() {
+                    local_config.wallhaven.top_range = default_config.wallhaven.top_range;
+                }
                 if local_config.wallhaven.api_key.is_empty() {
                     local_config.wallhaven.api_key = default_config.wallhaven.api_key;
                 }
@@ -145,6 +150,7 @@ impl Config {
                 purity: "sfw".to_string(),
                 sorting: "date_added".to_string(),
                 color: "any".to_string(),
+                top_range: "1M".to_string(),
                 api_key: String::new(),
             },
         }

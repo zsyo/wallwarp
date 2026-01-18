@@ -360,38 +360,52 @@ impl std::fmt::Display for ColorOption {
     }
 }
 
-// 时间范围选项
+// 时间范围选项（仅用于 toplist 排序）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TimeRange {
-    Any,
     Day,
+    ThreeDays,
     Week,
     Month,
+    ThreeMonths,
+    SixMonths,
     Year,
 }
 
 impl TimeRange {
-    pub fn all() -> [TimeRange; 5] {
-        [TimeRange::Any, TimeRange::Day, TimeRange::Week, TimeRange::Month, TimeRange::Year]
+    pub fn all() -> [TimeRange; 7] {
+        [
+            TimeRange::Day,
+            TimeRange::ThreeDays,
+            TimeRange::Week,
+            TimeRange::Month,
+            TimeRange::ThreeMonths,
+            TimeRange::SixMonths,
+            TimeRange::Year,
+        ]
     }
 
     pub fn value(&self) -> &str {
         match self {
-            TimeRange::Any => "any",
             TimeRange::Day => "1d",
+            TimeRange::ThreeDays => "3d",
             TimeRange::Week => "1w",
             TimeRange::Month => "1M",
+            TimeRange::ThreeMonths => "3M",
+            TimeRange::SixMonths => "6M",
             TimeRange::Year => "1y",
         }
     }
 
     pub fn display_name(&self) -> &'static str {
         match self {
-            TimeRange::Any => "online-wallpapers.time-any",
-            TimeRange::Day => "online-wallpapers.time-day",
-            TimeRange::Week => "online-wallpapers.time-week",
-            TimeRange::Month => "online-wallpapers.time-month",
-            TimeRange::Year => "online-wallpapers.time-year",
+            TimeRange::Day => "online-wallpapers.time-last-day",
+            TimeRange::ThreeDays => "online-wallpapers.time-last-three-days",
+            TimeRange::Week => "online-wallpapers.time-last-week",
+            TimeRange::Month => "online-wallpapers.time-last-month",
+            TimeRange::ThreeMonths => "online-wallpapers.time-last-three-months",
+            TimeRange::SixMonths => "online-wallpapers.time-last-six-months",
+            TimeRange::Year => "online-wallpapers.time-last-year",
         }
     }
 }
