@@ -465,69 +465,80 @@ impl App {
         // 设为壁纸
         if let Some(wallpaper) = self.online_state.wallpapers_data.get(index) {
             let url = wallpaper.path.clone();
-            let proxy = if self.config.global.proxy.is_empty() {
-                None
-            } else {
-                Some(self.config.global.proxy.clone())
-            };
+            let id = wallpaper.id.clone();
+            let file_type = wallpaper.file_type.clone();
+            let file_size = wallpaper.file_size;
 
-            let success_message = self.i18n.t("online-wallpapers.set-wallpaper-success").to_string();
-            let failed_message = self.i18n.t("online-wallpapers.set-wallpaper-failed").to_string();
+            // 生成目标文件路径
+            let file_name = super::download::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let data_path = self.config.data.data_path.clone();
+            let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
 
-            // 异步下载并设置壁纸
-            return iced::Task::perform(
-                async move {
-                    // 下载图片到临时文件
-                    let temp_dir = std::env::temp_dir();
-                    let temp_file = temp_dir.join(format!(
-                        "wallhaven_{}.jpg",
-                        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
-                    ));
+            // 1. 检查目标文件是否已存在于 data_path 中
+            if let Ok(metadata) = std::fs::metadata(&target_path) {
+                let actual_size = metadata.len();
+                if actual_size == file_size {
+                    // 文件已存在且大小匹配，直接设置壁纸
+                    let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                    let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
+                    let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                    // 创建HTTP客户端
-                    let client = if let Some(proxy_url) = proxy {
-                        if !proxy_url.is_empty() {
-                            if let Ok(p) = reqwest::Proxy::all(&proxy_url) {
-                                reqwest::Client::builder().proxy(p).build().unwrap_or_else(|_| reqwest::Client::new())
-                            } else {
-                                reqwest::Client::new()
+                    return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                        Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
+                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                    });
+                }
+            }
+
+            // 2. 检查缓存文件是否存在且大小匹配
+            let cache_path = self.config.data.cache_path.clone();
+            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size) {
+                if let Ok(metadata) = std::fs::metadata(&cache_file_path) {
+                    let cache_size = metadata.len();
+                    if cache_size == file_size {
+                        // 缓存文件存在且大小匹配，复制到 data_path
+                        let _ = std::fs::create_dir_all(&data_path);
+                        match std::fs::copy(&cache_file_path, &target_path) {
+                            Ok(_) => {
+                                // 复制成功，设置壁纸
+                                let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                                let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
+                                let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+
+                                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                                    Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
+                                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                                });
                             }
-                        } else {
-                            reqwest::Client::new()
+                            Err(e) => {
+                                error!("[在线壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
+                                // 复制失败，继续走下载流程
+                            }
                         }
-                    } else {
-                        reqwest::Client::new()
-                    };
-
-                    // 下载图片
-                    let response = client.get(&url).send().await.map_err(|e| format!("下载失败: {}", e))?;
-
-                    if !response.status().is_success() {
-                        return Err(format!("HTTP错误: {}", response.status()));
                     }
+                }
+            }
 
-                    let bytes = response.bytes().await.map_err(|e| format!("读取数据失败: {}", e))?;
+            // 3. 文件不存在，启动下载任务
+            // 设置待设置壁纸的文件名
+            self.online_state.pending_set_wallpaper_filename = Some(file_name.clone());
 
-                    // 保存到临时文件
-                    tokio::fs::write(&temp_file, &bytes).await.map_err(|e| format!("写入文件失败: {}", e))?;
+            // 检查下载任务列表中是否已有相同 URL 的任务
+            let has_duplicate = self.download_state.tasks.iter().any(|task| {
+                task.task.url == url
+                    && task.task.status != super::download::DownloadStatus::Completed
+                    && task.task.status != super::download::DownloadStatus::Cancelled
+                    && !matches!(task.task.status, super::download::DownloadStatus::Failed(_))
+            });
 
-                    Ok(temp_file.to_string_lossy().to_string())
-                },
-                move |result| match result {
-                    Ok(temp_path) => {
-                        // 下载成功，现在设置壁纸
-                        // 由于 Iced 不支持嵌套 Task，我们使用一个简化的方法：
-                        // 直接返回成功通知，实际的壁纸设置在后台进行
-                        tokio::spawn(async move {
-                            if let Err(e) = super::async_tasks::async_set_wallpaper(temp_path).await {
-                                error!("设置壁纸失败: {}", e);
-                            }
-                        });
-                        AppMessage::ShowNotification(success_message, super::NotificationType::Success)
-                    }
-                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-                },
-            );
+            if has_duplicate {
+                // 任务已在下载队列中，只更新待设置壁纸的文件名
+                let info_message = self.i18n.t("download-tasks.task-already-in-queue").to_string();
+                return iced::Task::done(AppMessage::ShowNotification(info_message, super::NotificationType::Info));
+            }
+
+            // 开始下载
+            return self.start_download(url, &id, &file_type);
         }
 
         iced::Task::none()

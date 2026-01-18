@@ -55,7 +55,15 @@ impl App {
 
                     // 启动异步下载任务（带进度更新）
                     return iced::Task::perform(
-                        super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size, cache_path),
+                        super::async_tasks::async_download_wallpaper_task_with_progress(
+                            url,
+                            save_path,
+                            proxy,
+                            task_id,
+                            cancel_token,
+                            downloaded_size,
+                            cache_path,
+                        ),
                         move |result| match result {
                             Ok(size) => {
                                 info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
@@ -179,12 +187,7 @@ impl App {
             .tasks
             .iter()
             .find(|t| t.task.id == id)
-            .map(|t| (
-                t.task.url.clone(),
-                PathBuf::from(&t.task.save_path),
-                t.proxy.clone(),
-                t.task.id,
-            ));
+            .map(|t| (t.task.url.clone(), PathBuf::from(&t.task.save_path), t.proxy.clone(), t.task.id));
 
         if let Some((url, save_path, proxy, task_id)) = task_data {
             if current_status == Some(super::download::DownloadStatus::Waiting)
@@ -227,7 +230,15 @@ impl App {
                     let cache_path = self.config.data.cache_path.clone();
 
                     return iced::Task::perform(
-                        super::async_tasks::async_download_wallpaper_task_with_progress(url, save_path, proxy, task_id, cancel_token, downloaded_size, cache_path),
+                        super::async_tasks::async_download_wallpaper_task_with_progress(
+                            url,
+                            save_path,
+                            proxy,
+                            task_id,
+                            cancel_token,
+                            downloaded_size,
+                            cache_path,
+                        ),
                         move |result| match result {
                             Ok(size) => {
                                 info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
@@ -248,14 +259,12 @@ impl App {
 
     fn handle_cancel_download_task(&mut self, id: usize) -> iced::Task<AppMessage> {
         // 先保存任务信息，因为取消后可能无法访问
-        let task_info = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| {
-            (
-                t.task.url.clone(),
-                t.task.save_path.clone(),
-                t.task.file_name.clone(),
-                t.task.status.clone(),
-            )
-        });
+        let task_info = self
+            .download_state
+            .tasks
+            .iter()
+            .find(|t| t.task.id == id)
+            .map(|t| (t.task.url.clone(), t.task.save_path.clone(), t.task.file_name.clone(), t.task.status.clone()));
 
         // 取消任务
         self.download_state.cancel_task(id);
@@ -399,6 +408,27 @@ impl App {
                     task.task.progress = 1.0;
                     task.task.total_size = actual_size;
                     task.task.downloaded_size = actual_size;
+
+                    // 检查是否需要自动设置壁纸
+                    let file_name = std::path::Path::new(&task.task.save_path).file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+                    if let Some(pending_filename) = self.online_state.pending_set_wallpaper_filename.as_ref() {
+                        if pending_filename == file_name {
+                            // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
+                            let full_path = super::common::get_absolute_path(&task.task.save_path);
+                            let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
+                            let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+
+                            // 清除待设置壁纸的文件名
+                            self.online_state.pending_set_wallpaper_filename = None;
+
+                            // 异步设置壁纸
+                            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                                Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
+                                Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                            });
+                        }
+                    }
                 }
             }
         }

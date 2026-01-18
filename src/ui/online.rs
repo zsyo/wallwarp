@@ -154,6 +154,8 @@ pub struct OnlineState {
     pub color_picker_expanded: bool, // 颜色选择器展开状态
     // 请求上下文，用于取消正在进行的请求
     pub request_context: crate::services::request_context::RequestContext,
+    // 待设置壁纸的文件名（用于在下载完成后自动设置壁纸）
+    pub pending_set_wallpaper_filename: Option<String>,
 }
 
 impl Default for OnlineState {
@@ -182,6 +184,7 @@ impl Default for OnlineState {
             page_info: Vec::new(), // 初始化为空
             color_picker_expanded: false,
             request_context: crate::services::request_context::RequestContext::new(),
+            pending_set_wallpaper_filename: None,
         }
     }
 }
