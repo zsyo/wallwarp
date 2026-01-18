@@ -358,6 +358,33 @@ impl App {
                         }
                     } else {
                         task.task.status = super::download::DownloadStatus::Failed(error_msg.clone());
+
+                        // 清除未完成的下载文件
+                        let url = task.task.url.clone();
+                        let save_path = task.task.save_path.clone();
+
+                        // 1. 删除目标文件（data_path中的文件）
+                        if let Ok(_metadata) = std::fs::metadata(&save_path) {
+                            let _ = std::fs::remove_file(&save_path);
+                            info!("[下载任务] [ID:{}] 已删除未完成的目标文件: {}", id, save_path);
+                        }
+
+                        // 2. 删除缓存文件（cache_path/online中的.download文件）
+                        let cache_path = self.config.data.cache_path.clone();
+                        if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, size) {
+                            if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
+                                let _ = std::fs::remove_file(&cache_file_path);
+                                info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", id, cache_file_path);
+                            }
+                        }
+
+                        // 3. 删除最终缓存文件（不带.download后缀的文件）
+                        if let Ok(final_cache_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, size) {
+                            if let Ok(_metadata) = std::fs::metadata(&final_cache_path) {
+                                let _ = std::fs::remove_file(&final_cache_path);
+                                info!("[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}", id, final_cache_path);
+                            }
+                        }
                     }
                 } else {
                     // 下载成功

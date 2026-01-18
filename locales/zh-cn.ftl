@@ -92,6 +92,9 @@ download-tasks = 下载任务
     .tooltip-delete = 删除
     .tooltip-open = 打开文件位置
     .tooltip-retry = 重试
+    .file-already-exists = 文件已存在
+    .copied-from-cache = 从缓存复制成功
+    .task-already-in-queue = 任务已在下载队列中
 
 settings = 设置
     .system-config = 系统配置

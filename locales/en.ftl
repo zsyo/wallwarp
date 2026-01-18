@@ -92,6 +92,9 @@ download-tasks = Download Tasks
     .tooltip-delete = Delete
     .tooltip-open = Open file location
     .tooltip-retry = Retry
+    .file-already-exists = File already exists
+    .copied-from-cache = Copied from cache successfully
+    .task-already-in-queue = Task already in queue
 
 settings = Settings
     .system-config = System Configuration

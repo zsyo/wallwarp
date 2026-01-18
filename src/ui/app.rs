@@ -230,6 +230,10 @@ impl App {
                 iced::Color::from_rgb8(220, 53, 69), // 红色背景
                 iced::Color::WHITE,                  // 白色文字
             ),
+            super::NotificationType::Info => (
+                iced::Color::from_rgb8(0, 123, 255), // 蓝色背景
+                iced::Color::WHITE,                  // 白色文字
+            ),
         };
 
         let notification_content = container(

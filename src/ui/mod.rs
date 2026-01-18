@@ -74,6 +74,7 @@ pub enum AppMessage {
 pub enum NotificationType {
     Success,
     Error,
+    Info,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
