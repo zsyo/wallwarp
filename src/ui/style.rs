@@ -286,7 +286,7 @@ pub const ICON_BUTTON_PADDING: [u16; 2] = [4, 4];
 // ============================================================================
 
 /// 侧边栏宽度
-pub const SIDEBAR_WIDTH: f32 = 180.0;
+pub const SIDEBAR_WIDTH: f32 = 200.0;
 
 /// 行间距
 pub const ROW_SPACING_LARGE: f32 = 20.0;

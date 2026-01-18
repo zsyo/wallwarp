@@ -47,6 +47,7 @@ online-wallpapers = 在线壁纸
     .sorting-views = 浏览量
     .sorting-favorites = 收藏数
     .sorting-toplist = 排行榜
+    .sorting-hot = 热门
 
 local-list = 本地列表
     .title = 本地壁纸

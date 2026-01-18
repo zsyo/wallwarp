@@ -70,10 +70,11 @@ pub enum Sorting {
     Views,
     Favorites,
     TopList,
+    Hot,
 }
 
 impl Sorting {
-    pub fn all() -> [Sorting; 6] {
+    pub fn all() -> [Sorting; 7] {
         [
             Sorting::DateAdded,
             Sorting::Relevance,
@@ -81,6 +82,7 @@ impl Sorting {
             Sorting::Views,
             Sorting::Favorites,
             Sorting::TopList,
+            Sorting::Hot,
         ]
     }
 
@@ -92,6 +94,7 @@ impl Sorting {
             Sorting::Views => "views",
             Sorting::Favorites => "favorites",
             Sorting::TopList => "toplist",
+            Sorting::Hot => "hot",
         }
     }
 
@@ -103,6 +106,7 @@ impl Sorting {
             Sorting::Views => "online-wallpapers.sorting-views",
             Sorting::Favorites => "online-wallpapers.sorting-favorites",
             Sorting::TopList => "online-wallpapers.sorting-toplist",
+            Sorting::Hot => "online-wallpapers.sorting-hot",
         }
     }
 }

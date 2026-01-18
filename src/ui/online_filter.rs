@@ -124,7 +124,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
         AppMessage::Online(OnlineMessage::SortingChanged(sort.value))
     })
     .padding(6)
-    .width(Length::Fixed(80.0))
+    .width(Length::Fixed(100.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
         text_color: COLOR_LIGHT_TEXT,
         placeholder_color: COLOR_LIGHT_TEXT_SUB,
@@ -153,7 +153,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
         AppMessage::Online(OnlineMessage::TimeRangeChanged(time.value))
     })
     .padding(6)
-    .width(Length::Fixed(120.0))
+    .width(Length::Fixed(130.0))
     .style(|_theme, _status| iced::widget::pick_list::Style {
         text_color: COLOR_LIGHT_TEXT,
         placeholder_color: COLOR_LIGHT_TEXT_SUB,
@@ -317,11 +317,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
         color_picker,
         sorting_picker,
         // 时间范围选择器：仅在排序为 TopList 时显示
-        if state.sorting == Sorting::TopList {
-            Some(time_range_picker)
-        } else {
-            None
-        },
+        if state.sorting == Sorting::TopList { Some(time_range_picker) } else { None },
         refresh_button,
     ]
     .spacing(4)

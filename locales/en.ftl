@@ -47,6 +47,7 @@ online-wallpapers = Online Wallpapers
     .sorting-views = Views
     .sorting-favorites = Favorites
     .sorting-toplist = Top List
+    .sorting-hot = Hot
 
 local-list = Local List
     .title = Local List

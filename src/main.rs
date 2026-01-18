@@ -44,5 +44,20 @@ fn main() -> iced::Result {
     .subscription(|app: &App| app.subscription())
     .window(settings)
     .title(|app: &App| app.title())
+    .default_font(iced::Font {
+        family: font::Family::Name(get_system_ui_font()),
+        ..iced::Font::DEFAULT
+    })
     .run()
+}
+
+/// 根据平台返回最通用的系统 UI 字体名称
+fn get_system_ui_font() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "Microsoft YaHei" // 微软雅黑
+    } else if cfg!(target_os = "macos") {
+        "Helvetica Neue" // 或使用 ".AppleSystemUIFont"
+    } else {
+        "Noto Sans CJK SC" // Linux 常用中文字体
+    }
 }
