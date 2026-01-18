@@ -65,6 +65,12 @@ pub struct WallhavenConfig {
     pub top_range: String,
     #[serde(default)]
     pub api_key: String,
+    #[serde(default)]
+    pub resolution_mode: String,
+    #[serde(default)]
+    pub atleast_resolution: String,
+    #[serde(default)]
+    pub resolutions: String,
 }
 
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
@@ -152,6 +158,9 @@ impl Config {
                 color: "any".to_string(),
                 top_range: "1M".to_string(),
                 api_key: String::new(),
+                resolution_mode: "all".to_string(),
+                atleast_resolution: String::new(),
+                resolutions: String::new(),
             },
         }
     }

@@ -121,6 +121,8 @@ impl WallhavenClient {
     /// - `color`: 颜色选项
     /// - `query`: 搜索关键词
     /// - `top_range`: 时间范围（仅用于 toplist 排序）
+    /// - `atleast`: 最小分辨率（atleast参数）
+    /// - `resolutions`: 精确分辨率列表（resolutions参数，逗号分隔）
     ///
     /// # 返回
     /// 返回完整的搜索 URL
@@ -133,6 +135,8 @@ impl WallhavenClient {
         color: &str,
         query: &str,
         top_range: &str,
+        atleast: Option<&str>,
+        resolutions: Option<&str>,
     ) -> String {
         let mut url = format!("{}/search?page={}", BASE_URL, page);
 
@@ -158,6 +162,15 @@ impl WallhavenClient {
         // 添加颜色参数
         if color != "any" {
             url.push_str(&format!("&colors={}", color));
+        }
+
+        // 添加分辨率参数
+        if let Some(atleast_res) = atleast {
+            url.push_str(&format!("&atleast={}", atleast_res));
+        }
+
+        if let Some(res_list) = resolutions {
+            url.push_str(&format!("&resolutions={}", res_list));
         }
 
         // 添加搜索查询

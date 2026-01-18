@@ -2,7 +2,7 @@ use crate::i18n::I18n;
 use crate::services::wallhaven::{Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
 use crate::ui::AppMessage;
 use crate::ui::common;
-use crate::ui::online::{DisplayableRatio, DisplayableResolution, DisplayableSorting, DisplayableTimeRange, OnlineMessage, OnlineState};
+use crate::ui::online::{DisplayableRatio, DisplayableSorting, DisplayableTimeRange, OnlineMessage, OnlineState};
 use crate::ui::style::*;
 use crate::ui::widget::DiagonalLine;
 use crate::utils::config::Config;
@@ -46,36 +46,10 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
 
     let search_container = row![search_input, search_button].spacing(2).align_y(Alignment::Center);
 
+    // 分辨率选择器 - 使用 DropDown 组件
+    let resolution_picker = create_resolution_picker(i18n, state);
+
     // 下拉筛选器 - 使用包装类型以支持 i18n
-    let resolution_options: Vec<DisplayableResolution> = Resolution::all()
-        .iter()
-        .map(|r| DisplayableResolution {
-            value: *r,
-            display: i18n.t(r.display_name()).leak(),
-        })
-        .collect();
-    let current_resolution = DisplayableResolution {
-        value: state.resolution,
-        display: i18n.t(state.resolution.display_name()).leak(),
-    };
-
-    let resolution_picker = pick_list(resolution_options.clone(), Some(current_resolution), |res| {
-        AppMessage::Online(OnlineMessage::ResolutionChanged(res.value))
-    })
-    .padding(6)
-    .width(Length::Fixed(80.0))
-    .style(|_theme, _status| iced::widget::pick_list::Style {
-        text_color: COLOR_LIGHT_TEXT,
-        placeholder_color: COLOR_LIGHT_TEXT_SUB,
-        handle_color: COLOR_LIGHT_TEXT_SUB,
-        background: iced::Background::Color(COLOR_LIGHT_BUTTON),
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(4.0),
-        },
-    });
-
     let ratio_options: Vec<DisplayableRatio> = Ratio::all()
         .iter()
         .map(|r| DisplayableRatio {
@@ -535,5 +509,295 @@ fn create_color_grid_options<'a>(_i18n: &'a I18n, state: &'a OnlineState) -> Ele
         ..Default::default()
     });
 
-    picker_content.into()
+    iced::widget::opaque(picker_content)
+}
+
+/// 创建分辨率选择器
+fn create_resolution_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+    // 计算按钮显示文本和字体大小
+    let button_text = match state.resolution_mode {
+        crate::ui::online::ResolutionMode::All => i18n.t("online-wallpapers.resolution-label").to_string(),
+        crate::ui::online::ResolutionMode::AtLeast => {
+            if let Some(res) = state.atleast_resolution {
+                format!(">={}", res.value())
+            } else {
+                i18n.t("online-wallpapers.resolution-label").to_string()
+            }
+        }
+        crate::ui::online::ResolutionMode::Exactly => {
+            if state.selected_resolutions.is_empty() {
+                i18n.t("online-wallpapers.resolution-label").to_string()
+            } else {
+                // 找到最小尺寸的分辨率
+                let min_res = state.selected_resolutions.iter().min_by_key(|r| r.get_pixel_count()).unwrap();
+                let extra_count = state.selected_resolutions.len() - 1;
+                if extra_count > 0 {
+                    format!("{}+{}", min_res.value(), extra_count)
+                } else {
+                    min_res.value().to_string()
+                }
+            }
+        }
+    };
+
+    // 根据文本类型确定字体大小
+    let is_label_text = button_text == i18n.t("online-wallpapers.resolution-label");
+    let font_size = if is_label_text { 14 } else { 12 };
+
+    // 创建触发按钮（underlay）
+    let resolution_underlay = row![
+        text(button_text).size(font_size),
+        iced::widget::Space::new().width(Length::Fill),
+        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB)).height(Length::Fill).padding(iced::Padding {
+            top: -2.0,
+            bottom: 0.0,
+            left: 0.0,
+            right: 0.0,
+        }),
+    ]
+    .spacing(4)
+    .align_y(Alignment::Center)
+    .padding(iced::Padding {
+        top: 0.0,
+        bottom: 0.0,
+        left: 0.0,
+        right: -2.0,
+    });
+
+    let resolution_trigger = button(resolution_underlay)
+        .padding(6)
+        .width(Length::Fixed(110.0))
+        .on_press(AppMessage::Online(OnlineMessage::ResolutionPickerExpanded))
+        .style(|_theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+            text_color: COLOR_LIGHT_TEXT,
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(4.0),
+            },
+            ..iced::widget::button::text(_theme, _status)
+        });
+
+    // 创建分辨率选项（overlay）
+    let resolution_options = create_resolution_grid_options(i18n, state);
+
+    // 使用 DropDown 组件
+    DropDown::new(resolution_trigger, resolution_options, state.resolution_picker_expanded)
+        .width(Length::Fill)
+        .on_dismiss(AppMessage::Online(OnlineMessage::ResolutionPickerDismiss))
+        .alignment(drop_down::Alignment::Bottom)
+        .into()
+}
+
+/// 创建分辨率网格选择器内容
+fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+    // 定义分辨率分组（按尺寸从小到大排序）
+    static RESOLUTION_GROUPS: [(&str, &[(Resolution, &str)]); 5] = [
+        (
+            "online-wallpapers.resolution-group-ultrawide",
+            &[
+                (Resolution::R2560x1080, "2560x1080"),
+                (Resolution::R2560x1440U, "2560x1440"),
+                (Resolution::R3840x1600, "3840x1600"),
+            ],
+        ),
+        (
+            "online-wallpapers.resolution-group-16-9",
+            &[
+                (Resolution::R1280x720, "1280x720"),
+                (Resolution::R1600x900, "1600x900"),
+                (Resolution::R1920x1080, "1920x1080"),
+                (Resolution::R2560x1440, "2560x1440"),
+                (Resolution::R3840x2160, "3840x2160"),
+            ],
+        ),
+        (
+            "online-wallpapers.resolution-group-16-10",
+            &[
+                (Resolution::R1280x800, "1280x800"),
+                (Resolution::R1600x1000, "1600x1000"),
+                (Resolution::R1920x1200, "1920x1200"),
+                (Resolution::R2560x1600, "2560x1600"),
+                (Resolution::R3840x2400, "3840x2400"),
+            ],
+        ),
+        (
+            "online-wallpapers.resolution-group-4-3",
+            &[
+                (Resolution::R1280x960, "1280x960"),
+                (Resolution::R1600x1200_4_3, "1600x1200"),
+                (Resolution::R1920x1440, "1920x1440"),
+                (Resolution::R2560x1920, "2560x1920"),
+                (Resolution::R3840x2880, "3840x2880"),
+            ],
+        ),
+        (
+            "online-wallpapers.resolution-group-5-4",
+            &[
+                (Resolution::R1280x1024, "1280x1024"),
+                (Resolution::R1600x1280, "1600x1280"),
+                (Resolution::R1920x1536, "1920x1536"),
+                (Resolution::R2560x2048, "2560x2048"),
+                (Resolution::R3840x3072, "3840x3072"),
+            ],
+        ),
+    ];
+
+    // 判断分辨率列表是否禁用
+    let is_list_disabled = state.resolution_mode == crate::ui::online::ResolutionMode::All;
+
+    // 创建顶部模式切换按钮（水平居中）
+    let atleast_button = button(text(i18n.t("online-wallpapers.resolution-mode-atleast")).size(14))
+        .padding(6)
+        .on_press(AppMessage::Online(OnlineMessage::ResolutionModeChanged(
+            crate::ui::online::ResolutionMode::AtLeast,
+        )))
+        .style(move |_theme, _status| {
+            let is_selected = state.resolution_mode == crate::ui::online::ResolutionMode::AtLeast;
+            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                text_color: text_color,
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            }
+        });
+
+    let exactly_button = button(text(i18n.t("online-wallpapers.resolution-mode-exactly")).size(14))
+        .padding(6)
+        .on_press(AppMessage::Online(OnlineMessage::ResolutionModeChanged(
+            crate::ui::online::ResolutionMode::Exactly,
+        )))
+        .style(move |_theme, _status| {
+            let is_selected = state.resolution_mode == crate::ui::online::ResolutionMode::Exactly;
+            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                text_color: text_color,
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            }
+        });
+
+    let all_button = button(text(i18n.t("online-wallpapers.resolution-mode-all")).size(14))
+        .padding(6)
+        .on_press(AppMessage::Online(OnlineMessage::ResolutionModeChanged(crate::ui::online::ResolutionMode::All)))
+        .style(move |_theme, _status| {
+            let is_selected = state.resolution_mode == crate::ui::online::ResolutionMode::All;
+            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                text_color: text_color,
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            }
+        });
+
+    let mode_buttons = container(row![atleast_button, exactly_button, all_button].spacing(4))
+        .width(Length::Fill)
+        .center_x(Length::Fill);
+
+    // 创建分辨率表格（水平排列分组）
+    let mut group_columns: Vec<Element<'a, AppMessage>> = Vec::new();
+
+    for (group_name, resolutions) in RESOLUTION_GROUPS.iter() {
+        // 创建分组标题（水平居中）
+        let group_header = container(text(i18n.t(group_name)).size(14).color(COLOR_LIGHT_TEXT))
+            .width(Length::Fill)
+            .center_x(Length::Fill);
+
+        // 创建分组内的分辨率按钮（每一行一个）
+        let mut group_column = column![].spacing(2);
+        for (resolution, label) in resolutions.iter() {
+            let is_selected = if state.resolution_mode == crate::ui::online::ResolutionMode::AtLeast {
+                state.atleast_resolution == Some(*resolution)
+            } else if state.resolution_mode == crate::ui::online::ResolutionMode::Exactly {
+                state.selected_resolutions.contains(resolution)
+            } else {
+                false
+            };
+
+            let border_color = if is_selected { COLOR_PICKER_ACTIVE } else { Color::TRANSPARENT };
+            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { Color::TRANSPARENT };
+            let text_color = if is_list_disabled {
+                Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
+            } else {
+                COLOR_LIGHT_TEXT
+            };
+
+            let button_content = container(text(*label).size(13))
+                .align_x(Alignment::Center)
+                .align_y(Alignment::Center)
+                .width(Length::Fill);
+
+            let res_button: Element<'a, AppMessage> = button(button_content)
+                .padding(6)
+                .style(move |_theme, _status| iced::widget::button::Style {
+                    background: Some(iced::Background::Color(bg_color)),
+                    text_color: text_color,
+                    border: iced::border::Border {
+                        color: border_color,
+                        width: if is_selected { 2.0 } else { 0.0 },
+                        radius: iced::border::Radius::from(4.0),
+                    },
+                    ..iced::widget::button::text(_theme, _status)
+                })
+                .on_press(if is_list_disabled {
+                    AppMessage::None
+                } else if state.resolution_mode == crate::ui::online::ResolutionMode::AtLeast {
+                    AppMessage::Online(OnlineMessage::ResolutionAtLeastSelected(*resolution))
+                } else {
+                    AppMessage::Online(OnlineMessage::ResolutionToggled(*resolution))
+                })
+                .into();
+
+            group_column = group_column.push(res_button);
+        }
+
+        // 将分组标题和内容组合，使用固定宽度
+        let group_section =
+            container(column![group_header, iced::widget::Space::new().height(Length::Fixed(4.0)), group_column,].spacing(0)).width(Length::Fixed(100.0));
+
+        group_columns.push(group_section.into());
+    }
+
+    // 将所有分组水平排列
+    let table_content = row(group_columns).spacing(2);
+
+    // 创建分辨率选择器容器
+    let picker_content = container(
+        column![mode_buttons, iced::widget::Space::new().height(Length::Fixed(12.0)), table_content,]
+            .spacing(0)
+            .align_x(Alignment::Center),
+    )
+    .padding(12)
+    .width(Length::Fixed(530.0))
+    .align_x(Alignment::Center)
+    .style(|_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(COLOR_PICKER_BG)),
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(8.0),
+        },
+        ..Default::default()
+    });
+
+    iced::widget::opaque(picker_content)
 }

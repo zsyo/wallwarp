@@ -109,6 +109,12 @@ pub enum OnlineMessage {
     SearchTextChanged(String),
     Search,
     Refresh, // 刷新按钮
+    // 分辨率筛选器
+    ResolutionPickerExpanded,  // 展开分辨率选择器
+    ResolutionPickerDismiss,   // 关闭分辨率选择器
+    ResolutionModeChanged(ResolutionMode), // 切换分辨率筛选模式
+    ResolutionToggled(Resolution), // 切换分辨率选择状态（Exactly模式）
+    ResolutionAtLeastSelected(Resolution), // 选择分辨率（AtLeast模式）
 }
 
 /// 壁纸加载状态
@@ -152,10 +158,23 @@ pub struct OnlineState {
     pub has_loaded: bool,            // 标记是否已加载过数据
     pub page_info: Vec<PageInfo>,    // 记录每页的结束索引和页码，用于显示分页分隔线
     pub color_picker_expanded: bool, // 颜色选择器展开状态
+    // 分辨率筛选器状态
+    pub resolution_picker_expanded: bool, // 分辨率选择器展开状态
+    pub resolution_mode: ResolutionMode, // 分辨率筛选模式：AtLeast 或 Exactly
+    pub selected_resolutions: Vec<Resolution>, // Exactly模式下选中的分辨率列表
+    pub atleast_resolution: Option<Resolution>, // AtLeast模式下选中的分辨率
     // 请求上下文，用于取消正在进行的请求
     pub request_context: crate::services::request_context::RequestContext,
     // 待设置壁纸的文件名（用于在下载完成后自动设置壁纸）
     pub pending_set_wallpaper_filename: Option<String>,
+}
+
+/// 分辨率筛选模式
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ResolutionMode {
+    All,      // 全部：不携带分辨率参数
+    AtLeast,  // 至少：atleast 参数
+    Exactly,  // 精确：resolutions 参数
 }
 
 impl Default for OnlineState {
@@ -183,6 +202,10 @@ impl Default for OnlineState {
             has_loaded: false,     // 初始状态为未加载
             page_info: Vec::new(), // 初始化为空
             color_picker_expanded: false,
+            resolution_picker_expanded: false,
+            resolution_mode: ResolutionMode::All,
+            selected_resolutions: Vec::new(),
+            atleast_resolution: None,
             request_context: crate::services::request_context::RequestContext::new(),
             pending_set_wallpaper_filename: None,
         }
@@ -280,6 +303,80 @@ impl OnlineState {
             _ => TimeRange::Month,
         };
 
+        // 加载分辨率模式
+        state.resolution_mode = match config.wallhaven.resolution_mode.as_str() {
+            "all" => ResolutionMode::All,
+            "atleast" => ResolutionMode::AtLeast,
+            "exactly" => ResolutionMode::Exactly,
+            _ => ResolutionMode::All,
+        };
+
+        // 加载AtLeast分辨率
+        state.atleast_resolution = if !config.wallhaven.atleast_resolution.is_empty() {
+            match config.wallhaven.atleast_resolution.as_str() {
+                "2560x1080" => Some(Resolution::R2560x1080),
+                "2560x1440" => Some(Resolution::R2560x1440U),
+                "3840x1600" => Some(Resolution::R3840x1600),
+                "1280x720" => Some(Resolution::R1280x720),
+                "1600x900" => Some(Resolution::R1600x900),
+                "1920x1080" => Some(Resolution::R1920x1080),
+                "3840x2160" => Some(Resolution::R3840x2160),
+                "1280x800" => Some(Resolution::R1280x800),
+                "1600x1000" => Some(Resolution::R1600x1000),
+                "1920x1200" => Some(Resolution::R1920x1200),
+                "2560x1600" => Some(Resolution::R2560x1600),
+                "3840x2400" => Some(Resolution::R3840x2400),
+                "1280x960" => Some(Resolution::R1280x960),
+                "1600x1200" => Some(Resolution::R1600x1200_4_3),
+                "1920x1440" => Some(Resolution::R1920x1440),
+                "2560x1920" => Some(Resolution::R2560x1920),
+                "3840x2880" => Some(Resolution::R3840x2880),
+                "1280x1024" => Some(Resolution::R1280x1024),
+                "1600x1280" => Some(Resolution::R1600x1280),
+                "1920x1536" => Some(Resolution::R1920x1536),
+                "2560x2048" => Some(Resolution::R2560x2048),
+                "3840x3072" => Some(Resolution::R3840x3072),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        // 加载Exactly分辨率列表
+        state.selected_resolutions = if !config.wallhaven.resolutions.is_empty() {
+            let res_list: Vec<Resolution> = config.wallhaven.resolutions
+                .split(',')
+                .filter_map(|s| match s.trim() {
+                    "2560x1080" => Some(Resolution::R2560x1080),
+                    "2560x1440" => Some(Resolution::R2560x1440U),
+                    "3840x1600" => Some(Resolution::R3840x1600),
+                    "1280x720" => Some(Resolution::R1280x720),
+                    "1600x900" => Some(Resolution::R1600x900),
+                    "1920x1080" => Some(Resolution::R1920x1080),
+                    "3840x2160" => Some(Resolution::R3840x2160),
+                    "1280x800" => Some(Resolution::R1280x800),
+                    "1600x1000" => Some(Resolution::R1600x1000),
+                    "1920x1200" => Some(Resolution::R1920x1200),
+                    "2560x1600" => Some(Resolution::R2560x1600),
+                    "3840x2400" => Some(Resolution::R3840x2400),
+                    "1280x960" => Some(Resolution::R1280x960),
+                    "1600x1200" => Some(Resolution::R1600x1200_4_3),
+                    "1920x1440" => Some(Resolution::R1920x1440),
+                    "2560x1920" => Some(Resolution::R2560x1920),
+                    "3840x2880" => Some(Resolution::R3840x2880),
+                    "1280x1024" => Some(Resolution::R1280x1024),
+                    "1600x1280" => Some(Resolution::R1600x1280),
+                    "1920x1536" => Some(Resolution::R1920x1536),
+                    "2560x2048" => Some(Resolution::R2560x2048),
+                    "3840x3072" => Some(Resolution::R3840x3072),
+                    _ => None,
+                })
+                .collect();
+            res_list
+        } else {
+            Vec::new()
+        };
+
         state.has_loaded = false; // 从配置加载时重置为未加载状态
 
         state
@@ -293,6 +390,29 @@ impl OnlineState {
         config.wallhaven.sorting = self.sorting.to_string();
         config.wallhaven.color = self.color.value().to_string();
         config.wallhaven.top_range = self.time_range.value().to_string();
+        
+        // 保存分辨率模式
+        config.wallhaven.resolution_mode = match self.resolution_mode {
+            ResolutionMode::All => "all".to_string(),
+            ResolutionMode::AtLeast => "atleast".to_string(),
+            ResolutionMode::Exactly => "exactly".to_string(),
+        };
+        
+        // 保存AtLeast分辨率
+        config.wallhaven.atleast_resolution = if let Some(res) = self.atleast_resolution {
+            res.value().to_string()
+        } else {
+            String::new()
+        };
+        
+        // 保存Exactly分辨率列表
+        config.wallhaven.resolutions = if !self.selected_resolutions.is_empty() {
+            let res_list: Vec<String> = self.selected_resolutions.iter().map(|r| r.value().to_string()).collect();
+            res_list.join(",")
+        } else {
+            String::new()
+        };
+        
         config.save_to_file();
     }
 

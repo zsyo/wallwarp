@@ -40,6 +40,11 @@ impl App {
             OnlineMessage::ColorPickerExpanded => self.handle_color_picker_expanded(),
             OnlineMessage::ColorPickerDismiss => self.handle_color_picker_dismiss(),
             OnlineMessage::TimeRangeChanged(time_range) => self.handle_time_range_changed(time_range),
+            OnlineMessage::ResolutionPickerExpanded => self.handle_resolution_picker_expanded(),
+            OnlineMessage::ResolutionPickerDismiss => self.handle_resolution_picker_dismiss(),
+            OnlineMessage::ResolutionModeChanged(mode) => self.handle_resolution_mode_changed(mode),
+            OnlineMessage::ResolutionToggled(resolution) => self.handle_resolution_toggled(resolution),
+            OnlineMessage::ResolutionAtLeastSelected(resolution) => self.handle_resolution_atleast_selected(resolution),
         }
     }
 
@@ -76,8 +81,26 @@ impl App {
             Some(self.config.global.proxy.clone())
         };
 
+        // 计算分辨率参数
+        let atleast = if self.online_state.resolution_mode == super::online::ResolutionMode::AtLeast {
+            self.online_state.atleast_resolution.map(|r| r.value().to_string())
+        } else {
+            None
+        };
+
+        let resolutions = if self.online_state.resolution_mode == super::online::ResolutionMode::Exactly {
+            if !self.online_state.selected_resolutions.is_empty() {
+                let res_list: Vec<String> = self.online_state.selected_resolutions.iter().map(|r| r.value().to_string()).collect();
+                Some(res_list.join(","))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, atleast, resolutions, page, api_key, proxy, context),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(
                     wallpapers,
@@ -204,8 +227,26 @@ impl App {
             Some(self.config.global.proxy.clone())
         };
 
+        // 计算分辨率参数
+        let atleast = if self.online_state.resolution_mode == super::online::ResolutionMode::AtLeast {
+            self.online_state.atleast_resolution.map(|r| r.value().to_string())
+        } else {
+            None
+        };
+
+        let resolutions = if self.online_state.resolution_mode == super::online::ResolutionMode::Exactly {
+            if !self.online_state.selected_resolutions.is_empty() {
+                let res_list: Vec<String> = self.online_state.selected_resolutions.iter().map(|r| r.value().to_string()).collect();
+                Some(res_list.join(","))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, atleast, resolutions, page, api_key, proxy, context),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => {
                     AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page))
@@ -674,6 +715,51 @@ impl App {
 
     fn handle_time_range_changed(&mut self, time_range: super::online::TimeRange) -> iced::Task<AppMessage> {
         self.online_state.time_range = time_range;
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
+        iced::Task::none()
+    }
+
+    fn handle_resolution_picker_expanded(&mut self) -> iced::Task<AppMessage> {
+        // 切换分辨率选择器的展开/收起状态
+        self.online_state.resolution_picker_expanded = !self.online_state.resolution_picker_expanded;
+        iced::Task::none()
+    }
+
+    fn handle_resolution_picker_dismiss(&mut self) -> iced::Task<AppMessage> {
+        // 关闭分辨率选择器
+        self.online_state.resolution_picker_expanded = false;
+        iced::Task::none()
+    }
+
+    fn handle_resolution_mode_changed(&mut self, mode: super::online::ResolutionMode) -> iced::Task<AppMessage> {
+        // 切换分辨率筛选模式
+        self.online_state.resolution_mode = mode;
+        // 切换模式时清空之前的选择
+        self.online_state.selected_resolutions.clear();
+        self.online_state.atleast_resolution = None;
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
+        iced::Task::none()
+    }
+
+    fn handle_resolution_toggled(&mut self, resolution: super::online::Resolution) -> iced::Task<AppMessage> {
+        // Exactly模式：切换分辨率选择状态
+        if let Some(pos) = self.online_state.selected_resolutions.iter().position(|&r| r == resolution) {
+            // 如果已选中，则取消选中
+            self.online_state.selected_resolutions.remove(pos);
+        } else {
+            // 如果未选中，则添加到选中列表
+            self.online_state.selected_resolutions.push(resolution);
+        }
+        // 保存到配置文件
+        self.online_state.save_to_config(&mut self.config);
+        iced::Task::none()
+    }
+
+    fn handle_resolution_atleast_selected(&mut self, resolution: super::online::Resolution) -> iced::Task<AppMessage> {
+        // AtLeast模式：选择分辨率（不自动关闭）
+        self.online_state.atleast_resolution = Some(resolution);
         // 保存到配置文件
         self.online_state.save_to_config(&mut self.config);
         iced::Task::none()
