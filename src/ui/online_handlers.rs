@@ -114,6 +114,13 @@ impl App {
         };
         self.online_state.has_loaded = true; // 标记已加载过数据
 
+        // 处理空数据但非最后一页的情况：自动加载下一页
+        if is_empty_data && !last_page && current_page < total_pages {
+            // 空数据但还有后续页面，继续加载下一页
+            self.online_state.loading_page = false; // 先设置为 false，避免重复加载
+            return self.handle_load_online_page();
+        }
+
         let proxy = if self.config.global.proxy.is_empty() {
             None
         } else {
@@ -231,6 +238,13 @@ impl App {
             last_page
         };
         self.online_state.has_loaded = true; // 标记已加载过数据
+
+        // 处理空数据但非最后一页的情况：自动加载下一页
+        if is_empty_data && !last_page && current_page < total_pages {
+            // 空数据但还有后续页面，继续加载下一页
+            self.online_state.loading_page = false; // 先设置为 false，避免重复加载
+            return self.handle_load_online_page();
+        }
 
         let proxy = if self.config.global.proxy.is_empty() {
             None
@@ -582,6 +596,11 @@ impl App {
     fn handle_online_check_and_load_next_page(&mut self) -> iced::Task<AppMessage> {
         // 检查是否需要自动加载下一页
         if !self.online_state.last_page && !self.online_state.loading_page {
+            // 如果没有数据，不执行检查（等待空数据自动加载逻辑处理）
+            if self.online_state.wallpapers.is_empty() {
+                return iced::Task::none();
+            }
+
             // 计算每行可以显示多少张图
             let available_width = (self.current_window_width as f32 - crate::ui::style::IMAGE_SPACING).max(crate::ui::style::IMAGE_WIDTH);
             let unit_width = crate::ui::style::IMAGE_WIDTH + crate::ui::style::IMAGE_SPACING;
@@ -596,6 +615,7 @@ impl App {
             let estimated_content_height = num_rows as f32 * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING);
 
             // 如果估算的内容高度小于窗口高度，需要加载下一页
+            // 这样可以确保内容足够多，能够显示滚动条
             if estimated_content_height < self.current_window_height as f32 {
                 self.handle_load_online_page()
             } else {
