@@ -20,11 +20,15 @@ impl App {
             OnlineMessage::LoadPageFailed(error) => self.handle_load_online_page_failed(error),
             OnlineMessage::ShowModal(index) => self.handle_show_online_modal(index),
             OnlineMessage::ModalImageLoaded(handle) => self.handle_online_modal_image_loaded(handle),
+            OnlineMessage::ModalImageDownloaded(handle) => self.handle_modal_image_downloaded(handle),
+            OnlineMessage::ModalImageDownloadFailed(error) => self.handle_modal_image_download_failed(error),
             OnlineMessage::CloseModal => self.handle_close_online_modal(),
             OnlineMessage::NextImage => self.handle_next_online_image(),
             OnlineMessage::PreviousImage => self.handle_previous_online_image(),
             OnlineMessage::ThumbLoaded(idx, handle) => self.handle_thumb_loaded(idx, handle),
             OnlineMessage::DownloadWallpaper(index) => self.handle_download_online_wallpaper(index),
+            OnlineMessage::DownloadFromCache(index) => self.handle_download_from_cache(index),
+            OnlineMessage::SetAsWallpaperFromCache(index) => self.handle_set_wallpaper_from_cache(index),
             OnlineMessage::SetAsWallpaper(index) => self.handle_set_online_wallpaper(index),
             OnlineMessage::CategoryToggled(category) => self.handle_category_toggled(category),
             OnlineMessage::SortingChanged(sorting) => self.handle_sorting_changed(sorting),
@@ -402,19 +406,40 @@ impl App {
         self.online_state.modal_visible = true;
         self.online_state.modal_image_handle = None;
 
-        // 异步加载图片数据
+        // 重置下载状态
+        self.online_state.modal_download_progress = 0.0;
+        self.online_state.modal_downloaded_bytes = 0;
+        self.online_state.modal_total_bytes = 0;
+
+        // 异步加载图片数据（流式下载）
         if let Some(wallpaper) = self.online_state.wallpapers_data.get(index) {
             let url = wallpaper.path.clone();
+            let file_size = wallpaper.file_size;
+            let cache_path = self.config.data.cache_path.clone();
             let proxy = if self.config.global.proxy.is_empty() {
                 None
             } else {
                 Some(self.config.global.proxy.clone())
             };
 
-            return iced::Task::perform(super::async_tasks::async_load_online_wallpaper_image(url, proxy), |result| match result {
-                Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
-                Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
-            });
+            // 创建取消令牌
+            let cancel_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+            self.online_state.modal_download_cancel_token = Some(cancel_token.clone());
+
+            // 启动下载任务
+            return iced::Task::perform(
+                super::async_tasks::async_load_online_wallpaper_image_with_streaming(
+                    url,
+                    file_size,
+                    cache_path,
+                    proxy,
+                    cancel_token.clone(),
+                ),
+                |result| match result {
+                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
+                    Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
+                },
+            );
         }
 
         iced::Task::none()
@@ -429,6 +454,8 @@ impl App {
     fn handle_close_online_modal(&mut self) -> iced::Task<AppMessage> {
         // 关闭模态窗口
         self.online_state.modal_visible = false;
+        // 取消当前下载
+        self.online_state.cancel_modal_download();
         iced::Task::none()
     }
 
@@ -439,18 +466,37 @@ impl App {
             self.online_state.current_image_index = next_index;
             self.online_state.modal_image_handle = None;
 
+            // 取消当前下载
+            self.online_state.cancel_modal_download();
+
             if let Some(wallpaper) = self.online_state.wallpapers_data.get(next_index) {
                 let url = wallpaper.path.clone();
+                let file_size = wallpaper.file_size;
+                let cache_path = self.config.data.cache_path.clone();
                 let proxy = if self.config.global.proxy.is_empty() {
                     None
                 } else {
                     Some(self.config.global.proxy.clone())
                 };
 
-                return iced::Task::perform(super::async_tasks::async_load_online_wallpaper_image(url, proxy), |result| match result {
-                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
-                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
-                });
+                // 创建取消令牌
+                let cancel_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                self.online_state.modal_download_cancel_token = Some(cancel_token.clone());
+
+                // 启动下载任务
+                return iced::Task::perform(
+                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(
+                        url,
+                        file_size,
+                        cache_path,
+                        proxy,
+                        cancel_token.clone(),
+                    ),
+                    |result| match result {
+                        Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
+                        Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
+                    },
+                );
             }
         }
 
@@ -464,18 +510,37 @@ impl App {
             self.online_state.current_image_index = prev_index;
             self.online_state.modal_image_handle = None;
 
+            // 取消当前下载
+            self.online_state.cancel_modal_download();
+
             if let Some(wallpaper) = self.online_state.wallpapers_data.get(prev_index) {
                 let url = wallpaper.path.clone();
+                let file_size = wallpaper.file_size;
+                let cache_path = self.config.data.cache_path.clone();
                 let proxy = if self.config.global.proxy.is_empty() {
                     None
                 } else {
                     Some(self.config.global.proxy.clone())
                 };
 
-                return iced::Task::perform(super::async_tasks::async_load_online_wallpaper_image(url, proxy), |result| match result {
-                    Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(handle)),
-                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ModalImageLoaded(iced::widget::image::Handle::from_bytes(vec![]))),
-                });
+                // 创建取消令牌
+                let cancel_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                self.online_state.modal_download_cancel_token = Some(cancel_token.clone());
+
+                // 启动下载任务
+                return iced::Task::perform(
+                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(
+                        url,
+                        file_size,
+                        cache_path,
+                        proxy,
+                        cancel_token.clone(),
+                    ),
+                    |result| match result {
+                        Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
+                        Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
+                    },
+                );
             }
         }
 
@@ -902,6 +967,155 @@ impl App {
 
         // 保存到配置文件
         self.online_state.save_to_config(&mut self.config);
+        iced::Task::none()
+    }
+
+    fn handle_modal_image_downloaded(&mut self, handle: iced::widget::image::Handle) -> iced::Task<AppMessage> {
+        // 模态窗口图片下载完成，保存图片数据
+        self.online_state.modal_image_handle = Some(handle);
+        // 重置下载状态
+        self.online_state.modal_download_progress = 0.0;
+        self.online_state.modal_downloaded_bytes = 0;
+        self.online_state.modal_total_bytes = 0;
+        self.online_state.modal_download_cancel_token = None;
+        iced::Task::none()
+    }
+
+    fn handle_modal_image_download_failed(&mut self, error: String) -> iced::Task<AppMessage> {
+        // 模态窗口图片下载失败
+        tracing::error!("[模态窗口图片下载] 下载失败: {}", error);
+        // 重置下载状态
+        self.online_state.modal_download_progress = 0.0;
+        self.online_state.modal_downloaded_bytes = 0;
+        self.online_state.modal_total_bytes = 0;
+        self.online_state.modal_download_cancel_token = None;
+        iced::Task::none()
+    }
+
+    fn handle_download_from_cache(&mut self, index: usize) -> iced::Task<AppMessage> {
+        // 从缓存复制文件到 data_path
+        if let Some(wallpaper) = self.online_state.wallpapers_data.get(index) {
+            let url = wallpaper.path.clone();
+            let id = wallpaper.id.clone();
+            let file_type = wallpaper.file_type.clone();
+            let file_size = wallpaper.file_size;
+
+            // 生成目标文件路径
+            let file_name = super::download::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let data_path = self.config.data.data_path.clone();
+            let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
+
+            // 1. 检查目标文件是否已存在于 data_path 中
+            if let Ok(metadata) = std::fs::metadata(&target_path) {
+                let actual_size = metadata.len();
+                if actual_size == file_size {
+                    // 文件已存在且大小匹配
+                    let success_message = format!("{}: {}", self.i18n.t("download-tasks.file-already-exists").to_string(), file_name);
+                    return iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Info));
+                }
+            }
+
+            // 2. 获取缓存文件路径
+            let cache_path = self.config.data.cache_path.clone();
+            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size) {
+                // 检查缓存文件是否存在
+                let cache_path_buf = std::path::PathBuf::from(&cache_file_path);
+                if cache_path_buf.exists() {
+                    // 缓存文件存在，复制到 data_path
+                    let _ = std::fs::create_dir_all(&data_path);
+                    match std::fs::copy(&cache_path_buf, &target_path) {
+                        Ok(_) => {
+                            let success_message = format!("{}: {}", self.i18n.t("download-tasks.copied-from-cache").to_string(), file_name);
+                            return iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success));
+                        }
+                        Err(e) => {
+                            error!("[模态窗口下载] [ID:{}] 从缓存复制失败: {}", id, e);
+                            let error_message = format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
+                            return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                        }
+                    }
+                } else {
+                    // 缓存文件不存在
+                    let error_message = self.i18n.t("download-tasks.cache-file-not-found").to_string();
+                    return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                }
+            } else {
+                // 获取缓存路径失败
+                let error_message = self.i18n.t("download-tasks.get-cache-path-failed").to_string();
+                return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+            }
+        }
+
+        iced::Task::none()
+    }
+
+    fn handle_set_wallpaper_from_cache(&mut self, index: usize) -> iced::Task<AppMessage> {
+        // 从缓存或 data_path 设置壁纸
+        if let Some(wallpaper) = self.online_state.wallpapers_data.get(index) {
+            let url = wallpaper.path.clone();
+            let id = wallpaper.id.clone();
+            let file_type = wallpaper.file_type.clone();
+            let file_size = wallpaper.file_size;
+
+            // 生成目标文件路径
+            let file_name = super::download::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let data_path = self.config.data.data_path.clone();
+            let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
+
+            // 1. 检查目标文件是否已存在于 data_path 中
+            if let Ok(metadata) = std::fs::metadata(&target_path) {
+                let actual_size = metadata.len();
+                if actual_size == file_size {
+                    // 文件已存在且大小匹配，直接设置壁纸
+                    let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                    let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
+                    let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+
+                    return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                        Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
+                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                    });
+                }
+            }
+
+            // 2. 获取缓存文件路径
+            let cache_path = self.config.data.cache_path.clone();
+            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size) {
+                // 检查缓存文件是否存在
+                let cache_path_buf = std::path::PathBuf::from(&cache_file_path);
+                if cache_path_buf.exists() {
+                    // 缓存文件存在，复制到 data_path
+                    let _ = std::fs::create_dir_all(&data_path);
+                    match std::fs::copy(&cache_path_buf, &target_path) {
+                        Ok(_) => {
+                            // 复制成功，设置壁纸
+                            let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                            let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
+                            let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+
+                            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                                Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
+                                Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                            });
+                        }
+                        Err(e) => {
+                            error!("[模态窗口设置壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
+                            let error_message = format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
+                            return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                        }
+                    }
+                } else {
+                    // 缓存文件不存在
+                    let error_message = self.i18n.t("download-tasks.cache-file-not-found").to_string();
+                    return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                }
+            } else {
+                // 获取缓存路径失败
+                let error_message = self.i18n.t("download-tasks.get-cache-path-failed").to_string();
+                return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+            }
+        }
+
         iced::Task::none()
     }
 }

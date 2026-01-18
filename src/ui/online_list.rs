@@ -1,18 +1,14 @@
-use crate::ui::online::{OnlineMessage, OnlineState, WallpaperLoadStatus};
-use crate::ui::common;
-use crate::ui::AppMessage;
-use crate::ui::style::*;
-use crate::services::wallhaven::OnlineWallpaper;
 use crate::i18n::I18n;
+use crate::services::wallhaven::OnlineWallpaper;
+use crate::ui::AppMessage;
+use crate::ui::common;
+use crate::ui::online::{OnlineMessage, OnlineState, WallpaperLoadStatus};
+use crate::ui::style::*;
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Element, Length};
 
 /// 创建壁纸列表内容
-pub fn create_wallpaper_list<'a>(
-    i18n: &'a I18n,
-    window_width: u32,
-    online_state: &'a OnlineState,
-) -> Element<'a, AppMessage> {
+pub fn create_wallpaper_list<'a>(i18n: &'a I18n, window_width: u32, online_state: &'a OnlineState) -> Element<'a, AppMessage> {
     let content: Element<'a, AppMessage> = if !online_state.has_loaded && !online_state.loading_page {
         // 初始状态，还未开始加载
         column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE)]
@@ -87,11 +83,7 @@ pub fn create_wallpaper_list<'a>(
 }
 
 /// 创建壁纸网格内容
-fn create_wallpaper_grid<'a>(
-    i18n: &'a I18n,
-    window_width: u32,
-    online_state: &'a OnlineState,
-) -> Element<'a, AppMessage> {
+fn create_wallpaper_grid<'a>(i18n: &'a I18n, window_width: u32, online_state: &'a OnlineState) -> Element<'a, AppMessage> {
     let available_width = (window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
     let unit_width = IMAGE_WIDTH + IMAGE_SPACING;
     let items_per_row = (available_width / unit_width).floor() as usize;
@@ -224,16 +216,12 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     });
 
     let set_wallpaper_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F196}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::SetAsWallpaper(index))),
+        common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, AppMessage::Online(OnlineMessage::SetAsWallpaper(index))),
         i18n.t("online-wallpapers.tooltip-set-wallpaper"),
     );
 
     let download_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F30A}",
-            BUTTON_COLOR_GREEN,
-            AppMessage::Online(OnlineMessage::DownloadWallpaper(index)),
-        ),
+        common::create_icon_button("\u{F30A}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::DownloadWallpaper(index))),
         i18n.t("online-wallpapers.tooltip-download"),
     );
 

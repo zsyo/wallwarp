@@ -112,8 +112,12 @@ download-tasks = Download Tasks
     .tooltip-delete = Delete
     .tooltip-open = Open file location
     .tooltip-retry = Retry
+    .tooltip-copy-url = Copy download link to clipboard
     .file-already-exists = File already exists
     .copied-from-cache = Copied from cache successfully
+    .copy-failed = Copy failed
+    .cache-file-not-found = Cache file not found
+    .get-cache-path-failed = Failed to get cache path
     .task-already-in-queue = Task already in queue
 
 settings = Settings

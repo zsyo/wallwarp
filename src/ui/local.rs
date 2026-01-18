@@ -213,7 +213,7 @@ pub fn local_view<'a>(i18n: &'a crate::i18n::I18n, _config: &'a Config, window_w
         );
 
         let set_wallpaper_button = common::create_button_with_tooltip(
-            common::create_icon_button("\u{F196}", BUTTON_COLOR_GREEN, AppMessage::Local(LocalMessage::SetWallpaper(wallpaper_index))),
+            common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, AppMessage::Local(LocalMessage::SetWallpaper(wallpaper_index))),
             i18n.t("local-list.tooltip-set-wallpaper"),
         );
 
@@ -406,7 +406,7 @@ fn create_loaded_wallpaper<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wallp
     );
 
     let set_wallpaper_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F196}", BUTTON_COLOR_GREEN, super::AppMessage::Local(LocalMessage::SetWallpaper(index))),
+        common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, super::AppMessage::Local(LocalMessage::SetWallpaper(index))),
         i18n.t("local-list.tooltip-set-wallpaper"),
     );
 

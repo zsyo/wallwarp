@@ -93,8 +93,12 @@ pub enum OnlineMessage {
     NextImage,
     PreviousImage,
     DownloadWallpaper(usize),
+    DownloadFromCache(usize),
+    SetAsWallpaperFromCache(usize),
     SetAsWallpaper(usize),
     ModalImageLoaded(iced::widget::image::Handle),
+    ModalImageDownloaded(iced::widget::image::Handle),
+    ModalImageDownloadFailed(String),
     ThumbLoaded(usize, iced::widget::image::Handle),
     // 筛选条件
     CategoryToggled(Category), // 切换分类选择状态
@@ -110,17 +114,17 @@ pub enum OnlineMessage {
     Search,
     Refresh, // 刷新按钮
     // 分辨率筛选器
-    ResolutionPickerExpanded,  // 展开分辨率选择器
-    ResolutionPickerDismiss,   // 关闭分辨率选择器
+    ResolutionPickerExpanded,              // 展开分辨率选择器
+    ResolutionPickerDismiss,               // 关闭分辨率选择器
     ResolutionModeChanged(ResolutionMode), // 切换分辨率筛选模式
-    ResolutionToggled(Resolution), // 切换分辨率选择状态（Exactly模式）
+    ResolutionToggled(Resolution),         // 切换分辨率选择状态（Exactly模式）
     ResolutionAtLeastSelected(Resolution), // 选择分辨率（AtLeast模式）
     // 比例筛选器
-    RatioPickerExpanded,  // 展开比例选择器
-    RatioPickerDismiss,   // 关闭比例选择器
-    RatioLandscapeToggled, // 切换"全部横屏"选项
-    RatioPortraitToggled,  // 切换"全部竖屏"选项
-    RatioAllToggled,      // 切换"全部"选项
+    RatioPickerExpanded,       // 展开比例选择器
+    RatioPickerDismiss,        // 关闭比例选择器
+    RatioLandscapeToggled,     // 切换"全部横屏"选项
+    RatioPortraitToggled,      // 切换"全部竖屏"选项
+    RatioAllToggled,           // 切换"全部"选项
     RatioToggled(AspectRatio), // 切换比例选择状态
 }
 
@@ -166,28 +170,33 @@ pub struct OnlineState {
     pub page_info: Vec<PageInfo>,    // 记录每页的结束索引和页码，用于显示分页分隔线
     pub color_picker_expanded: bool, // 颜色选择器展开状态
     // 分辨率筛选器状态
-    pub resolution_picker_expanded: bool, // 分辨率选择器展开状态
-    pub resolution_mode: ResolutionMode, // 分辨率筛选模式：AtLeast 或 Exactly
-    pub selected_resolutions: Vec<Resolution>, // Exactly模式下选中的分辨率列表
+    pub resolution_picker_expanded: bool,       // 分辨率选择器展开状态
+    pub resolution_mode: ResolutionMode,        // 分辨率筛选模式：AtLeast 或 Exactly
+    pub selected_resolutions: Vec<Resolution>,  // Exactly模式下选中的分辨率列表
     pub atleast_resolution: Option<Resolution>, // AtLeast模式下选中的分辨率
     // 比例筛选器状态
-    pub ratio_picker_expanded: bool, // 比例选择器展开状态
+    pub ratio_picker_expanded: bool,       // 比例选择器展开状态
     pub selected_ratios: Vec<AspectRatio>, // 选中的比例列表
-    pub ratio_landscape_selected: bool, // 选中"全部横屏"
-    pub ratio_portrait_selected: bool, // 选中"全部竖屏"
-    pub ratio_all_selected: bool, // 选中"全部"
+    pub ratio_landscape_selected: bool,    // 选中"全部横屏"
+    pub ratio_portrait_selected: bool,     // 选中"全部竖屏"
+    pub ratio_all_selected: bool,          // 选中"全部"
     // 请求上下文，用于取消正在进行的请求
     pub request_context: crate::services::request_context::RequestContext,
     // 待设置壁纸的文件名（用于在下载完成后自动设置壁纸）
     pub pending_set_wallpaper_filename: Option<String>,
+    // 模态窗口图片下载状态
+    pub modal_download_cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    pub modal_download_progress: f32, // 0.0 到 1.0
+    pub modal_downloaded_bytes: u64,
+    pub modal_total_bytes: u64,
 }
 
 /// 分辨率筛选模式
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResolutionMode {
-    All,      // 全部：不携带分辨率参数
-    AtLeast,  // 至少：atleast 参数
-    Exactly,  // 精确：resolutions 参数
+    All,     // 全部：不携带分辨率参数
+    AtLeast, // 至少：atleast 参数
+    Exactly, // 精确：resolutions 参数
 }
 
 impl Default for OnlineState {
@@ -226,6 +235,10 @@ impl Default for OnlineState {
             ratio_all_selected: false,
             request_context: crate::services::request_context::RequestContext::new(),
             pending_set_wallpaper_filename: None,
+            modal_download_cancel_token: None,
+            modal_download_progress: 0.0,
+            modal_downloaded_bytes: 0,
+            modal_total_bytes: 0,
         }
     }
 }
@@ -272,6 +285,7 @@ impl OnlineState {
             "views" => Sorting::Views,
             "favorites" => Sorting::Favorites,
             "toplist" => Sorting::TopList,
+            "hot" => Sorting::Hot,
             _ => Sorting::DateAdded,
         };
 
@@ -363,12 +377,33 @@ impl OnlineState {
         // 加载Exactly分辨率列表
         state.selected_resolutions = if !config.wallhaven.resolutions.is_empty() {
             let valid_resolutions = [
-                "2560x1080", "2560x1440", "3840x1600", "1280x720", "1600x900", "1920x1080", "3840x2160",
-                "1280x800", "1600x1000", "1920x1200", "2560x1600", "3840x2400", "1280x960", "1600x1200",
-                "1920x1440", "2560x1920", "3840x2880", "1280x1024", "1600x1280", "1920x1536", "2560x2048", "3840x3072",
+                "2560x1080",
+                "2560x1440",
+                "3840x1600",
+                "1280x720",
+                "1600x900",
+                "1920x1080",
+                "3840x2160",
+                "1280x800",
+                "1600x1000",
+                "1920x1200",
+                "2560x1600",
+                "3840x2400",
+                "1280x960",
+                "1600x1200",
+                "1920x1440",
+                "2560x1920",
+                "3840x2880",
+                "1280x1024",
+                "1600x1280",
+                "1920x1536",
+                "2560x2048",
+                "3840x3072",
             ];
-            
-            let res_list: Vec<Resolution> = config.wallhaven.resolutions
+
+            let res_list: Vec<Resolution> = config
+                .wallhaven
+                .resolutions
                 .split(',')
                 .filter_map(|s| {
                     let s = s.trim();
@@ -418,15 +453,17 @@ impl OnlineState {
         if !state.ratio_all_selected && !config.wallhaven.ratios.is_empty() {
             // 定义被额外选项包含的详细比例
             let landscape_included = [
-                AspectRatio::R16x9, AspectRatio::R16x10, AspectRatio::R21x9, AspectRatio::R32x9, AspectRatio::R48x9,
+                AspectRatio::R16x9,
+                AspectRatio::R16x10,
+                AspectRatio::R21x9,
+                AspectRatio::R32x9,
+                AspectRatio::R48x9,
             ];
-            let portrait_included = [
-                AspectRatio::R9x16, AspectRatio::R10x16, AspectRatio::R9x18,
-            ];
-            
+            let portrait_included = [AspectRatio::R9x16, AspectRatio::R10x16, AspectRatio::R9x18];
+
             // 解析 ratios 字符串
             let parts: Vec<&str> = config.wallhaven.ratios.split(',').collect();
-            
+
             for part in parts {
                 let part = part.trim();
                 match part {
@@ -453,7 +490,7 @@ impl OnlineState {
                     _ => {}
                 }
             }
-            
+
             // 移除被额外选项包含的详细比例（避免冗余）
             if state.ratio_landscape_selected {
                 state.selected_ratios.retain(|r| !landscape_included.contains(r));
@@ -476,21 +513,21 @@ impl OnlineState {
         config.wallhaven.sorting = self.sorting.to_string();
         config.wallhaven.color = self.color.value().to_string();
         config.wallhaven.top_range = self.time_range.value().to_string();
-        
+
         // 保存分辨率模式
         config.wallhaven.resolution_mode = match self.resolution_mode {
             ResolutionMode::All => "all".to_string(),
             ResolutionMode::AtLeast => "atleast".to_string(),
             ResolutionMode::Exactly => "exactly".to_string(),
         };
-        
+
         // 保存AtLeast分辨率
         config.wallhaven.atleast_resolution = if let Some(res) = self.atleast_resolution {
             res.value().to_string()
         } else {
             String::new()
         };
-        
+
         // 保存Exactly分辨率列表
         config.wallhaven.resolutions = if !self.selected_resolutions.is_empty() {
             let res_list: Vec<String> = self.selected_resolutions.iter().map(|r| r.value().to_string()).collect();
@@ -498,7 +535,7 @@ impl OnlineState {
         } else {
             String::new()
         };
-        
+
         // 保存比例列表和额外选项
         let mut ratios_vec = Vec::new();
 
@@ -518,7 +555,7 @@ impl OnlineState {
         }
 
         config.wallhaven.ratios = ratios_vec.join(",");
-        
+
         config.save_to_file();
     }
 
@@ -546,15 +583,21 @@ impl OnlineState {
         // 创建新的请求上下文
         self.request_context = crate::services::request_context::RequestContext::new();
     }
+
+    /// 取消模态窗口图片下载
+    pub fn cancel_modal_download(&mut self) {
+        if let Some(cancel_token) = &self.modal_download_cancel_token {
+            cancel_token.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        self.modal_download_cancel_token = None;
+        self.modal_download_progress = 0.0;
+        self.modal_downloaded_bytes = 0;
+        self.modal_total_bytes = 0;
+    }
 }
 
 /// 在线壁纸页面视图
-pub fn online_view<'a>(
-    i18n: &'a I18n,
-    window_width: u32,
-    online_state: &'a OnlineState,
-    config: &'a Config,
-) -> Element<'a, AppMessage> {
+pub fn online_view<'a>(i18n: &'a I18n, window_width: u32, online_state: &'a OnlineState, config: &'a Config) -> Element<'a, AppMessage> {
     // 创建筛选栏
     let filter_bar = create_filter_bar(i18n, online_state, config);
 
