@@ -4,14 +4,12 @@ use std::path::Path;
 use tracing::error;
 
 const CONFIG_FILE: &str = "config.toml";
-const DEFAULT_WINDOW_WIDTH: u32 = 1200;
-const DEFAULT_WINDOW_HEIGHT: u32 = 800;
 const MIN_WINDOW_WIDTH: u32 = 1280;
 const MIN_WINDOW_HEIGHT: u32 = 800;
 const DEFAULT_DATA_PATH: &str = "data";
 const DEFAULT_CACHE_PATH: &str = "cache";
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Config {
     #[serde(default)]
     pub global: GlobalConfig,
@@ -25,49 +23,95 @@ pub struct Config {
     pub wallpaper: WallpaperConfig,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct GlobalConfig {
-    #[serde(default)]
+    #[serde(default = "default_language")]
     pub language: String,
-    #[serde(default)]
-    pub auto_startup: bool,
     #[serde(default)]
     pub close_action: CloseAction,
     #[serde(default)]
     pub proxy: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+impl Default for GlobalConfig {
+    fn default() -> Self {
+        Self {
+            language: default_language(),
+            close_action: CloseAction::default(),
+            proxy: String::new(),
+        }
+    }
+}
+
+fn default_language() -> String {
+    "zh-cn".to_string()
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DataConfig {
-    #[serde(default)]
+    #[serde(default = "default_data_path")]
     pub data_path: String,
-    #[serde(default)]
+    #[serde(default = "default_cache_path")]
     pub cache_path: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+impl Default for DataConfig {
+    fn default() -> Self {
+        Self {
+            data_path: default_data_path(),
+            cache_path: default_cache_path(),
+        }
+    }
+}
+
+fn default_data_path() -> String {
+    DEFAULT_DATA_PATH.to_string()
+}
+
+fn default_cache_path() -> String {
+    DEFAULT_CACHE_PATH.to_string()
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DisplayConfig {
-    #[serde(default)]
+    #[serde(default = "default_window_width")]
     pub width: u32,
-    #[serde(default)]
+    #[serde(default = "default_window_height")]
     pub height: u32,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+impl Default for DisplayConfig {
+    fn default() -> Self {
+        Self {
+            width: default_window_width(),
+            height: default_window_height(),
+        }
+    }
+}
+
+fn default_window_width() -> u32 {
+    MIN_WINDOW_WIDTH
+}
+
+fn default_window_height() -> u32 {
+    MIN_WINDOW_HEIGHT
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WallhavenConfig {
-    #[serde(default)]
+    #[serde(default = "default_category")]
     pub category: String,
-    #[serde(default)]
+    #[serde(default = "default_purity")]
     pub purity: String,
-    #[serde(default)]
+    #[serde(default = "default_sorting")]
     pub sorting: String,
-    #[serde(default)]
+    #[serde(default = "default_color")]
     pub color: String,
-    #[serde(default)]
+    #[serde(default = "default_top_range")]
     pub top_range: String,
     #[serde(default)]
     pub api_key: String,
-    #[serde(default)]
+    #[serde(default = "default_resolution_mode")]
     pub resolution_mode: String,
     #[serde(default)]
     pub atleast_resolution: String,
@@ -77,7 +121,48 @@ pub struct WallhavenConfig {
     pub ratios: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+impl Default for WallhavenConfig {
+    fn default() -> Self {
+        Self {
+            category: default_category(),
+            purity: default_purity(),
+            sorting: default_sorting(),
+            color: default_color(),
+            top_range: default_top_range(),
+            api_key: String::new(),
+            resolution_mode: default_resolution_mode(),
+            atleast_resolution: String::new(),
+            resolutions: String::new(),
+            ratios: String::new(),
+        }
+    }
+}
+
+fn default_category() -> String {
+    "111".to_string()
+}
+
+fn default_purity() -> String {
+    "sfw".to_string()
+}
+
+fn default_sorting() -> String {
+    "date_added".to_string()
+}
+
+fn default_color() -> String {
+    "any".to_string()
+}
+
+fn default_top_range() -> String {
+    "1M".to_string()
+}
+
+fn default_resolution_mode() -> String {
+    "all".to_string()
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WallpaperConfig {
     #[serde(default)]
     pub mode: WallpaperMode,
@@ -87,17 +172,22 @@ pub struct WallpaperConfig {
     pub auto_change_interval: WallpaperAutoChangeInterval,
 }
 
-#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum WallpaperAutoChangeMode {
-    Online,
-    Local,
+impl Default for WallpaperConfig {
+    fn default() -> Self {
+        Self {
+            mode: WallpaperMode::default(),
+            auto_change_mode: WallpaperAutoChangeMode::default(),
+            auto_change_interval: WallpaperAutoChangeInterval::default(),
+        }
+    }
 }
 
-impl Default for WallpaperAutoChangeMode {
-    fn default() -> Self {
-        WallpaperAutoChangeMode::Local
-    }
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WallpaperAutoChangeMode {
+    #[default]
+    Local,
+    Online,
 }
 
 impl WallpaperAutoChangeMode {
@@ -126,8 +216,9 @@ impl std::fmt::Display for WallpaperAutoChangeMode {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum WallpaperAutoChangeInterval {
+    #[default]
     Off,
     Minutes(u32),
     Custom(u32),
@@ -148,14 +239,7 @@ impl<'de> Deserialize<'de> for WallpaperAutoChangeInterval {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        WallpaperAutoChangeInterval::from_str(&s)
-            .ok_or_else(|| serde::de::Error::custom(format!("invalid wallpaper auto change interval: {}", s)))
-    }
-}
-
-impl Default for WallpaperAutoChangeInterval {
-    fn default() -> Self {
-        WallpaperAutoChangeInterval::Off
+        Ok(WallpaperAutoChangeInterval::from_str(&s).unwrap_or_default())
     }
 }
 
@@ -223,21 +307,16 @@ impl std::fmt::Display for WallpaperAutoChangeInterval {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WallpaperMode {
+    #[default]
+    Stretch,
     Crop,
     Fit,
-    Stretch,
     Tile,
     Center,
     Span,
-}
-
-impl Default for WallpaperMode {
-    fn default() -> Self {
-        WallpaperMode::Stretch
-    }
 }
 
 impl WallpaperMode {
@@ -278,114 +357,62 @@ impl std::fmt::Display for WallpaperMode {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum CloseAction {
+    #[default]
     Ask,
     MinimizeToTray,
     CloseApp,
 }
 
-impl Default for CloseAction {
-    fn default() -> Self {
-        CloseAction::Ask
+impl CloseAction {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CloseAction::Ask => "ask",
+            CloseAction::MinimizeToTray => "minimize_to_tray",
+            CloseAction::CloseApp => "close_app",
+        }
+    }
+}
+
+impl std::fmt::Display for CloseAction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CloseAction::Ask => write!(f, "Ask"),
+            CloseAction::MinimizeToTray => write!(f, "MinimizeToTray"),
+            CloseAction::CloseApp => write!(f, "CloseApp"),
+        }
     }
 }
 
 impl Config {
     pub fn new(lang: &str) -> Self {
         let config_path = Path::new(CONFIG_FILE);
-        let default_config = Self::default_with_lang(lang);
 
         if let Ok(content) = fs::read_to_string(config_path) {
             if let Ok(mut local_config) = toml::from_str::<Config>(&content) {
                 local_config.fix_config();
-                // 合并缺失的配置项
-                if local_config.global.language.is_empty() {
-                    local_config.global.language = default_config.global.language;
-                }
-                if local_config.global.proxy.is_empty() {
-                    local_config.global.proxy = default_config.global.proxy;
-                }
-                if local_config.data.data_path.is_empty() {
-                    local_config.data.data_path = default_config.data.data_path;
-                }
-                if local_config.data.cache_path.is_empty() {
-                    local_config.data.cache_path = default_config.data.cache_path;
-                }
-                if local_config.wallhaven.category.is_empty() {
-                    local_config.wallhaven.category = default_config.wallhaven.category;
-                }
-                if local_config.wallhaven.purity.is_empty() {
-                    local_config.wallhaven.purity = default_config.wallhaven.purity;
-                }
-                if local_config.wallhaven.sorting.is_empty() {
-                    local_config.wallhaven.sorting = default_config.wallhaven.sorting;
-                }
-                if local_config.wallhaven.color.is_empty() {
-                    local_config.wallhaven.color = default_config.wallhaven.color;
-                }
-                if local_config.wallhaven.top_range.is_empty() {
-                    local_config.wallhaven.top_range = default_config.wallhaven.top_range;
-                }
-                if local_config.wallhaven.api_key.is_empty() {
-                    local_config.wallhaven.api_key = default_config.wallhaven.api_key;
-                }
-                // 验证壁纸模式，如果无效则使用默认值
-                if WallpaperMode::from_str(local_config.wallpaper.mode.as_str()).is_none() {
-                    local_config.wallpaper.mode = default_config.wallpaper.mode;
-                }
-                // 验证定时切换模式，如果无效则使用默认值
-                if WallpaperAutoChangeMode::from_str(local_config.wallpaper.auto_change_mode.as_str()).is_none() {
-                    local_config.wallpaper.auto_change_mode = default_config.wallpaper.auto_change_mode;
-                }
-                // 验证定时切换周期，如果无效则使用默认值
-                if WallpaperAutoChangeInterval::from_str(&local_config.wallpaper.auto_change_interval.as_str()).is_none() {
-                    local_config.wallpaper.auto_change_interval = default_config.wallpaper.auto_change_interval;
-                }
+                // 设置语言（优先使用传入的语言）
+                local_config.global.language = lang.to_string();
                 local_config.save_to_file();
                 return local_config;
+            } else {
+                // 配置文件出错, 终止程序
+                panic!("配置文件出错");
             }
         }
 
-        default_config.save_to_file();
-        default_config
-    }
-
-    fn default_with_lang(lang: &str) -> Self {
-        Config {
+        // 配置文件不存在，创建默认配置
+        let default_config = Config {
             global: GlobalConfig {
                 language: lang.to_string(),
-                auto_startup: false,
-                close_action: CloseAction::Ask,
-                proxy: String::new(),
+                ..Default::default()
             },
-            data: DataConfig {
-                data_path: DEFAULT_DATA_PATH.to_string(),
-                cache_path: DEFAULT_CACHE_PATH.to_string(),
-            },
-            display: DisplayConfig {
-                width: DEFAULT_WINDOW_WIDTH,
-                height: DEFAULT_WINDOW_HEIGHT,
-            },
-            wallhaven: WallhavenConfig {
-                category: "general".to_string(),
-                purity: "sfw".to_string(),
-                sorting: "date_added".to_string(),
-                color: "any".to_string(),
-                top_range: "1M".to_string(),
-                api_key: String::new(),
-                resolution_mode: "all".to_string(),
-                atleast_resolution: String::new(),
-                resolutions: String::new(),
-                ratios: String::new(),
-            },
-            wallpaper: WallpaperConfig {
-                mode: WallpaperMode::Stretch,
-                auto_change_mode: WallpaperAutoChangeMode::Local,
-                auto_change_interval: WallpaperAutoChangeInterval::Off,
-            },
-        }
+            ..Default::default()
+        };
+        default_config.save_to_file();
+        default_config
     }
 
     fn fix_config(&mut self) {
@@ -398,7 +425,18 @@ impl Config {
     pub fn save_to_file(&self) {
         match toml::to_string_pretty(self) {
             Ok(content) => {
-                let _ = fs::write(CONFIG_FILE, content);
+                // 1. 定义警告信息（使用 # 开头）
+                let header = concat!(
+                    "# ====================================================\n",
+                    "# 警告：手动修改此配置文件时请务必谨慎！\n",
+                    "# 如果格式填写错误，该项可能会被重置为默认值，甚至导致程序无法启动。\n",
+                    "# 建议在修改前备份此文件。\n",
+                    "# ====================================================\n\n"
+                );
+
+                // 2. 将 header 和 content 拼接在一起
+                let full_content = format!("{}{}", header, content);
+                let _ = fs::write(CONFIG_FILE, full_content);
             }
             Err(e) => error!("TOML 序化失败: {}", e),
         }
@@ -412,11 +450,6 @@ impl Config {
 
     pub fn set_language(&mut self, lang: String) {
         self.global.language = lang.clone();
-        self.save_to_file();
-    }
-
-    pub fn set_auto_startup(&mut self, enable: bool) {
-        self.global.auto_startup = enable;
         self.save_to_file();
     }
 
