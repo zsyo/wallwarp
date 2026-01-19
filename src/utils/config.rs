@@ -21,6 +21,8 @@ pub struct Config {
     pub display: DisplayConfig,
     #[serde(default)]
     pub wallhaven: WallhavenConfig,
+    #[serde(default)]
+    pub wallpaper: WallpaperConfig,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -73,6 +75,207 @@ pub struct WallhavenConfig {
     pub resolutions: String,
     #[serde(default)]
     pub ratios: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct WallpaperConfig {
+    #[serde(default)]
+    pub mode: WallpaperMode,
+    #[serde(default)]
+    pub auto_change_mode: WallpaperAutoChangeMode,
+    #[serde(default)]
+    pub auto_change_interval: WallpaperAutoChangeInterval,
+}
+
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WallpaperAutoChangeMode {
+    Online,
+    Local,
+}
+
+impl Default for WallpaperAutoChangeMode {
+    fn default() -> Self {
+        WallpaperAutoChangeMode::Local
+    }
+}
+
+impl WallpaperAutoChangeMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            WallpaperAutoChangeMode::Online => "online",
+            WallpaperAutoChangeMode::Local => "local",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "online" => Some(WallpaperAutoChangeMode::Online),
+            "local" => Some(WallpaperAutoChangeMode::Local),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for WallpaperAutoChangeMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WallpaperAutoChangeMode::Online => write!(f, "Online"),
+            WallpaperAutoChangeMode::Local => write!(f, "Local"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WallpaperAutoChangeInterval {
+    Off,
+    Minutes(u32),
+    Custom(u32),
+}
+
+impl Serialize for WallpaperAutoChangeInterval {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for WallpaperAutoChangeInterval {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        WallpaperAutoChangeInterval::from_str(&s)
+            .ok_or_else(|| serde::de::Error::custom(format!("invalid wallpaper auto change interval: {}", s)))
+    }
+}
+
+impl Default for WallpaperAutoChangeInterval {
+    fn default() -> Self {
+        WallpaperAutoChangeInterval::Off
+    }
+}
+
+impl WallpaperAutoChangeInterval {
+    pub fn as_str(&self) -> String {
+        match self {
+            WallpaperAutoChangeInterval::Off => "off".to_string(),
+            WallpaperAutoChangeInterval::Minutes(10) => "10m".to_string(),
+            WallpaperAutoChangeInterval::Minutes(30) => "30m".to_string(),
+            WallpaperAutoChangeInterval::Minutes(60) => "1h".to_string(),
+            WallpaperAutoChangeInterval::Minutes(120) => "2h".to_string(),
+            WallpaperAutoChangeInterval::Minutes(_) | WallpaperAutoChangeInterval::Custom(_) => {
+                if let Some(minutes) = self.get_minutes() {
+                    format!("{}m", minutes)
+                } else {
+                    "off".to_string()
+                }
+            }
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "off" => Some(WallpaperAutoChangeInterval::Off),
+            "10m" => Some(WallpaperAutoChangeInterval::Minutes(10)),
+            "30m" => Some(WallpaperAutoChangeInterval::Minutes(30)),
+            "1h" => Some(WallpaperAutoChangeInterval::Minutes(60)),
+            "2h" => Some(WallpaperAutoChangeInterval::Minutes(120)),
+            s if s.ends_with('m') => {
+                let minutes_str = &s[..s.len() - 1];
+                if let Ok(minutes) = minutes_str.parse::<u32>() {
+                    if minutes >= 1 {
+                        Some(WallpaperAutoChangeInterval::Custom(minutes))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    pub fn get_minutes(&self) -> Option<u32> {
+        match self {
+            WallpaperAutoChangeInterval::Off => None,
+            WallpaperAutoChangeInterval::Minutes(m) => Some(*m),
+            WallpaperAutoChangeInterval::Custom(m) => Some(*m),
+        }
+    }
+}
+
+impl std::fmt::Display for WallpaperAutoChangeInterval {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WallpaperAutoChangeInterval::Off => write!(f, "Off"),
+            WallpaperAutoChangeInterval::Minutes(10) => write!(f, "10 min"),
+            WallpaperAutoChangeInterval::Minutes(30) => write!(f, "30 min"),
+            WallpaperAutoChangeInterval::Minutes(60) => write!(f, "1 hour"),
+            WallpaperAutoChangeInterval::Minutes(120) => write!(f, "2 hours"),
+            WallpaperAutoChangeInterval::Minutes(m) => write!(f, "{} min", m),
+            WallpaperAutoChangeInterval::Custom(m) => write!(f, "{} min", m),
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WallpaperMode {
+    Crop,
+    Fit,
+    Stretch,
+    Tile,
+    Center,
+    Span,
+}
+
+impl Default for WallpaperMode {
+    fn default() -> Self {
+        WallpaperMode::Stretch
+    }
+}
+
+impl WallpaperMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            WallpaperMode::Crop => "crop",
+            WallpaperMode::Fit => "fit",
+            WallpaperMode::Stretch => "stretch",
+            WallpaperMode::Tile => "tile",
+            WallpaperMode::Center => "center",
+            WallpaperMode::Span => "span",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "crop" => Some(WallpaperMode::Crop),
+            "fit" => Some(WallpaperMode::Fit),
+            "stretch" => Some(WallpaperMode::Stretch),
+            "tile" => Some(WallpaperMode::Tile),
+            "center" => Some(WallpaperMode::Center),
+            "span" => Some(WallpaperMode::Span),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for WallpaperMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WallpaperMode::Crop => write!(f, "Fill"),
+            WallpaperMode::Fit => write!(f, "Fit"),
+            WallpaperMode::Stretch => write!(f, "Stretch"),
+            WallpaperMode::Tile => write!(f, "Tile"),
+            WallpaperMode::Center => write!(f, "Center"),
+            WallpaperMode::Span => write!(f, "Span"),
+        }
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq)]
@@ -128,6 +331,18 @@ impl Config {
                 if local_config.wallhaven.api_key.is_empty() {
                     local_config.wallhaven.api_key = default_config.wallhaven.api_key;
                 }
+                // 验证壁纸模式，如果无效则使用默认值
+                if WallpaperMode::from_str(local_config.wallpaper.mode.as_str()).is_none() {
+                    local_config.wallpaper.mode = default_config.wallpaper.mode;
+                }
+                // 验证定时切换模式，如果无效则使用默认值
+                if WallpaperAutoChangeMode::from_str(local_config.wallpaper.auto_change_mode.as_str()).is_none() {
+                    local_config.wallpaper.auto_change_mode = default_config.wallpaper.auto_change_mode;
+                }
+                // 验证定时切换周期，如果无效则使用默认值
+                if WallpaperAutoChangeInterval::from_str(&local_config.wallpaper.auto_change_interval.as_str()).is_none() {
+                    local_config.wallpaper.auto_change_interval = default_config.wallpaper.auto_change_interval;
+                }
                 local_config.save_to_file();
                 return local_config;
             }
@@ -164,6 +379,11 @@ impl Config {
                 atleast_resolution: String::new(),
                 resolutions: String::new(),
                 ratios: String::new(),
+            },
+            wallpaper: WallpaperConfig {
+                mode: WallpaperMode::Stretch,
+                auto_change_mode: WallpaperAutoChangeMode::Local,
+                auto_change_interval: WallpaperAutoChangeInterval::Off,
             },
         }
     }
@@ -222,6 +442,11 @@ impl Config {
 
     pub fn set_proxy(&mut self, proxy: String) {
         self.global.proxy = proxy;
+        self.save_to_file();
+    }
+
+    pub fn set_wallpaper_mode(&mut self, mode: WallpaperMode) {
+        self.wallpaper.mode = mode;
         self.save_to_file();
     }
 }

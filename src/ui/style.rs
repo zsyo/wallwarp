@@ -245,7 +245,10 @@ pub const TOGGLE_SPACING: f32 = 5.0;
 // ============================================================================
 
 /// 设置区块标题文字大小
-pub const SECTION_TITLE_SIZE: f32 = 16.0;
+pub const SECTION_TITLE_SIZE: f32 = 20.0;
+
+/// 设置区块内容间距
+pub const SECTION_CONTENT_SPACING: f32 = 5.0;
 
 /// 按钮文字大小
 pub const BUTTON_TEXT_SIZE: f32 = 14.0;

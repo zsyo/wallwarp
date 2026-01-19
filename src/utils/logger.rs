@@ -43,4 +43,5 @@ fn env_filter_extra(filter: EnvFilter) -> EnvFilter {
         .add_directive("iced_wgpu=warn".parse().unwrap())
         .add_directive("wgpu_core=warn".parse().unwrap())
         .add_directive("wgpu_hal=warn".parse().unwrap())
+        .add_directive("fontdb=error".parse().unwrap())
 }

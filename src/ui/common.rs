@@ -1,8 +1,8 @@
 use crate::ui::style::{
     BORDER_COLOR_GRAY, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, BUTTON_TEXT_SIZE, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH,
     DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, ICON_BUTTON_PADDING,
-    ICON_BUTTON_TEXT_SIZE, INPUT_HEIGHT, MASK_ALPHA, ROW_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
-    TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
+    ICON_BUTTON_TEXT_SIZE, INPUT_HEIGHT, MASK_ALPHA, ROW_SPACING, SECTION_CONTENT_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE, TOOLTIP_BG_COLOR,
+    TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
 };
 use iced::widget::{button, column, container, row, text, tooltip};
 use iced::{Alignment, Color, Element, Font, Length};
@@ -134,7 +134,8 @@ pub fn create_bordered_container_style(theme: &iced::Theme) -> iced::widget::con
 /// - `title`: 区块标题
 /// - `rows`: 区块内容行
 pub fn create_config_section<'a, Message: 'a>(title: String, rows: Vec<Element<'a, Message>>) -> Element<'a, Message> {
-    let mut column_content = column!(text(title).size(SECTION_TITLE_SIZE).width(Length::Fill).align_x(Alignment::Center),);
+    let mut column_content = column!(text(title).size(SECTION_TITLE_SIZE).width(Length::Fill).align_x(Alignment::Center),).spacing(SECTION_CONTENT_SPACING);
+    column_content = column_content.push(iced::widget::Space::new().height(Length::Fixed(20.0)));
 
     for row in rows {
         column_content = column_content.push(row);
@@ -299,6 +300,42 @@ where
     Message: Clone + 'a,
 {
     tooltip(button, text(tooltip_text), tooltip::Position::Top)
+        .style(|_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(TOOLTIP_BG_COLOR)),
+            border: iced::border::Border {
+                color: TOOLTIP_BORDER_COLOR,
+                width: TOOLTIP_BORDER_WIDTH,
+                radius: iced::border::Radius::from(TOOLTIP_BORDER_RADIUS),
+            },
+            ..Default::default()
+        })
+        .into()
+}
+
+/// 创建带 tooltip 的单选按钮
+///
+/// # 参数
+/// - `label`: 选项标签文本
+/// - `value`: 选项值
+/// - `selected_value`: 当前选中的值
+/// - `on_selected`: 选中时的闭包
+/// - `tooltip_text`: tooltip 文本
+pub fn create_radio_with_tooltip<'a, Message, V>(
+    label: String,
+    value: V,
+    selected_value: Option<V>,
+    on_selected: impl FnOnce(V) -> Message + 'a,
+    tooltip_text: String,
+) -> Element<'a, Message>
+where
+    V: Copy + Eq + 'a,
+    Message: Clone + 'a,
+{
+    let radio_button = iced::widget::radio(label, value, selected_value, on_selected).size(16).spacing(8);
+
+    let content = container(radio_button).height(Length::Fixed(30.0)).align_y(Alignment::Center);
+
+    tooltip(content, text(tooltip_text), tooltip::Position::Top)
         .style(|_theme: &iced::Theme| container::Style {
             background: Some(iced::Background::Color(TOOLTIP_BG_COLOR)),
             border: iced::border::Border {

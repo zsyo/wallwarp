@@ -46,6 +46,7 @@ fn main() -> iced::Result {
         family: font::Family::Name(get_system_ui_font()),
         ..iced::Font::DEFAULT
     })
+    .font(iced_aw::ICED_AW_FONT_BYTES)
     .run()
 }
 

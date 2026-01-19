@@ -4,11 +4,11 @@ use super::common;
 use crate::ui::style::{
     ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, ABOUT_ROW_HEIGHT, BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING,
     INPUT_HEIGHT, INPUT_PADDING, LOGO_DISPLAY_SIZE, LOGO_SIZE, PICK_LIST_WIDTH, PORT_INPUT_WIDTH, ROW_SPACING, SCROLL_PADDING, SECTION_PADDING,
-    SECTION_SPACING, SECTION_TITLE_SIZE, TEXT_INPUT_SIZE,
+    SECTION_SPACING, SECTION_TITLE_SIZE, TEXT_INPUT_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
 };
 use crate::utils::assets;
 use crate::utils::config::CloseAction;
-use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input, toggler};
+use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input, toggler, tooltip};
 use iced::{Alignment, Length};
 use std::str::FromStr;
 
@@ -58,7 +58,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
             ),
             common::create_setting_row(
                 app.i18n.t("settings.auto-startup"),
-                toggler(app.config.global.auto_startup).on_toggle(AppMessage::AutoStartupToggled),
+                toggler(crate::utils::startup::is_auto_startup_enabled()).on_toggle(AppMessage::AutoStartupToggled),
             ),
             common::create_setting_row(
                 app.i18n.t("settings.close-action"),
@@ -157,6 +157,157 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         )],
     );
 
+    let wallpaper_config_section = common::create_config_section(
+        app.i18n.t("settings.wallpaper-config"),
+        vec![
+            common::create_setting_row(
+                app.i18n.t("settings.wallpaper-mode"),
+                row![
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("wallpaper-mode-options.crop"),
+                        crate::utils::config::WallpaperMode::Crop,
+                        Some(app.wallpaper_mode),
+                        |mode| AppMessage::WallpaperModeSelected(mode),
+                        app.i18n.t("wallpaper-mode-options.crop-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("wallpaper-mode-options.fit"),
+                        crate::utils::config::WallpaperMode::Fit,
+                        Some(app.wallpaper_mode),
+                        |mode| AppMessage::WallpaperModeSelected(mode),
+                        app.i18n.t("wallpaper-mode-options.fit-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("wallpaper-mode-options.stretch"),
+                        crate::utils::config::WallpaperMode::Stretch,
+                        Some(app.wallpaper_mode),
+                        |mode| AppMessage::WallpaperModeSelected(mode),
+                        app.i18n.t("wallpaper-mode-options.stretch-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("wallpaper-mode-options.tile"),
+                        crate::utils::config::WallpaperMode::Tile,
+                        Some(app.wallpaper_mode),
+                        |mode| AppMessage::WallpaperModeSelected(mode),
+                        app.i18n.t("wallpaper-mode-options.tile-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("wallpaper-mode-options.center"),
+                        crate::utils::config::WallpaperMode::Center,
+                        Some(app.wallpaper_mode),
+                        |mode| AppMessage::WallpaperModeSelected(mode),
+                        app.i18n.t("wallpaper-mode-options.center-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("wallpaper-mode-options.span"),
+                        crate::utils::config::WallpaperMode::Span,
+                        Some(app.wallpaper_mode),
+                        |mode| AppMessage::WallpaperModeSelected(mode),
+                        app.i18n.t("wallpaper-mode-options.span-tooltip")
+                    ),
+                ]
+                .spacing(ROW_SPACING),
+            ),
+            common::create_setting_row(
+                app.i18n.t("settings.auto-change-mode"),
+                row![
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("auto-change-mode-options.online"),
+                        crate::utils::config::WallpaperAutoChangeMode::Online,
+                        Some(app.auto_change_mode),
+                        |mode| AppMessage::AutoChangeModeSelected(mode),
+                        app.i18n.t("auto-change-mode-options.online-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("auto-change-mode-options.local"),
+                        crate::utils::config::WallpaperAutoChangeMode::Local,
+                        Some(app.auto_change_mode),
+                        |mode| AppMessage::AutoChangeModeSelected(mode),
+                        app.i18n.t("auto-change-mode-options.local-tooltip")
+                    ),
+                ]
+                .spacing(ROW_SPACING),
+            ),
+            common::create_setting_row(
+                app.i18n.t("settings.auto-change-interval"),
+                row![
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("auto-change-interval-options.off"),
+                        crate::utils::config::WallpaperAutoChangeInterval::Off,
+                        Some(app.auto_change_interval.clone()),
+                        |interval| AppMessage::AutoChangeIntervalSelected(interval),
+                        app.i18n.t("auto-change-interval-options.off-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("auto-change-interval-options.ten-min"),
+                        crate::utils::config::WallpaperAutoChangeInterval::Minutes(10),
+                        Some(app.auto_change_interval.clone()),
+                        |interval| AppMessage::AutoChangeIntervalSelected(interval),
+                        app.i18n.t("auto-change-interval-options.ten-min-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("auto-change-interval-options.thirty-min"),
+                        crate::utils::config::WallpaperAutoChangeInterval::Minutes(30),
+                        Some(app.auto_change_interval.clone()),
+                        |interval| AppMessage::AutoChangeIntervalSelected(interval),
+                        app.i18n.t("auto-change-interval-options.thirty-min-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("auto-change-interval-options.one-hour"),
+                        crate::utils::config::WallpaperAutoChangeInterval::Minutes(60),
+                        Some(app.auto_change_interval.clone()),
+                        |interval| AppMessage::AutoChangeIntervalSelected(interval),
+                        app.i18n.t("auto-change-interval-options.one-hour-tooltip")
+                    ),
+                    common::create_radio_with_tooltip(
+                        app.i18n.t("auto-change-interval-options.two-hour"),
+                        crate::utils::config::WallpaperAutoChangeInterval::Minutes(120),
+                        Some(app.auto_change_interval.clone()),
+                        |interval| AppMessage::AutoChangeIntervalSelected(interval),
+                        app.i18n.t("auto-change-interval-options.two-hour-tooltip")
+                    ),
+                    tooltip(
+                        container(
+                            row![
+                                iced::widget::radio(
+                                    app.i18n.t("auto-change-interval-options.custom"),
+                                    crate::utils::config::WallpaperAutoChangeInterval::Custom(app.custom_interval_minutes),
+                                    Some(app.auto_change_interval.clone()),
+                                    |interval| {
+                                        if let crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes) = interval {
+                                            AppMessage::AutoChangeIntervalSelected(crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes))
+                                        } else {
+                                            AppMessage::AutoChangeIntervalSelected(interval)
+                                        }
+                                    }
+                                ),
+                                iced_aw::NumberInput::new(&app.custom_interval_minutes, 1..=9999, |minutes| AppMessage::CustomIntervalMinutesChanged(
+                                    minutes
+                                ))
+                                .width(Length::Fixed(80.0))
+                                .padding(INPUT_PADDING)
+                            ]
+                            .spacing(ROW_SPACING)
+                            .align_y(Alignment::Center)
+                        ),
+                        text(app.i18n.t("auto-change-interval-options.custom-tooltip")),
+                        tooltip::Position::Top
+                    )
+                    .style(|_theme: &iced::Theme| container::Style {
+                        background: Some(iced::Background::Color(TOOLTIP_BG_COLOR)),
+                        border: iced::border::Border {
+                            color: TOOLTIP_BORDER_COLOR,
+                            width: TOOLTIP_BORDER_WIDTH,
+                            radius: iced::border::Radius::from(TOOLTIP_BORDER_RADIUS),
+                        },
+                        ..Default::default()
+                    }),
+                ]
+                .spacing(ROW_SPACING),
+            ),
+        ],
+    );
+
     let (img, width, height) = assets::get_logo(LOGO_SIZE);
     let about_config_section = container(
         column!(
@@ -195,11 +346,17 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
     .style(common::create_bordered_container_style);
 
     scrollable(
-        column![system_config_section, data_config_section, api_config_section, about_config_section,]
-            .width(Length::Fill)
-            .align_x(Alignment::Center)
-            .padding(SCROLL_PADDING)
-            .spacing(ROW_SPACING),
+        column![
+            system_config_section,
+            data_config_section,
+            api_config_section,
+            wallpaper_config_section,
+            about_config_section,
+        ]
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .padding(SCROLL_PADDING)
+        .spacing(ROW_SPACING),
     )
     .height(Length::Fill)
     .id(iced::widget::Id::new("settings_scroll"))

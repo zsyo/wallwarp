@@ -28,14 +28,18 @@ impl App {
         Self {
             i18n,
             config: config.clone(),
-            active_page: super::ActivePage::OnlineWallpapers,
+            active_page: super::ActivePage::Settings,
             pending_window_size: None,
             debounce_timer: std::time::Instant::now(),
             _tray_icon,
             proxy_protocol,
             proxy_address,
             proxy_port,
-            wallhaven_api_key: config.wallhaven.api_key.clone(), // 初始化API KEY状态
+            wallhaven_api_key: config.wallhaven.api_key.clone(),         // 初始化API KEY状态
+            wallpaper_mode: config.wallpaper.mode,                       // 初始化壁纸模式状态
+            auto_change_mode: config.wallpaper.auto_change_mode,         // 初始化定时切换模式状态
+            auto_change_interval: config.wallpaper.auto_change_interval, // 初始化定时切换周期状态
+            custom_interval_minutes: config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30), // 初始化自定义分钟数，默认为30
             show_close_confirmation: false,
             remember_close_setting: false,
             show_path_clear_confirmation: false,

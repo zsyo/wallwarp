@@ -35,6 +35,10 @@ impl App {
             AppMessage::ProxyAddressChanged(address) => self.handle_proxy_address_changed(address),
             AppMessage::ProxyPortChanged(port) => self.handle_proxy_port_changed(port),
             AppMessage::SaveProxy => self.handle_save_proxy(),
+            AppMessage::WallpaperModeSelected(mode) => self.handle_wallpaper_mode_selected(mode),
+            AppMessage::AutoChangeModeSelected(mode) => self.handle_auto_change_mode_selected(mode),
+            AppMessage::AutoChangeIntervalSelected(interval) => self.handle_auto_change_interval_selected(interval),
+            AppMessage::CustomIntervalMinutesChanged(minutes) => self.handle_custom_interval_minutes_changed(minutes),
             AppMessage::ShowCloseConfirmation => self.handle_show_close_confirmation(),
             AppMessage::CloseConfirmationResponse(action, remember_setting) => self.handle_close_confirmation_response(action, remember_setting),
             AppMessage::CloseConfirmationCancelled => self.handle_close_confirmation_cancelled(),
@@ -70,6 +74,18 @@ impl App {
 
             // 重置API KEY设置状态
             self.wallhaven_api_key = self.config.wallhaven.api_key.clone();
+
+            // 重置壁纸模式状态
+            self.wallpaper_mode = self.config.wallpaper.mode;
+
+            // 重置定时切换模式状态
+            self.auto_change_mode = self.config.wallpaper.auto_change_mode;
+
+            // 重置定时切换周期状态
+            self.auto_change_interval = self.config.wallpaper.auto_change_interval;
+
+            // 重置自定义分钟数状态
+            self.custom_interval_minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
 
             // 滚动到顶部
             return iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("settings_scroll".to_string()));
@@ -140,7 +156,6 @@ impl App {
     }
 
     fn handle_auto_startup_toggled(&mut self, enabled: bool) -> iced::Task<AppMessage> {
-        self.config.set_auto_startup(enabled);
         if let Err(e) = startup::set_auto_startup(enabled) {
             error!("设置开机启动失败: {}", e);
         }
@@ -479,6 +494,33 @@ impl App {
 
     fn handle_hide_notification(&mut self) -> iced::Task<AppMessage> {
         self.show_notification = false;
+        iced::Task::none()
+    }
+
+    fn handle_wallpaper_mode_selected(&mut self, mode: crate::utils::config::WallpaperMode) -> iced::Task<AppMessage> {
+        self.wallpaper_mode = mode;
+        self.config.set_wallpaper_mode(mode);
+        iced::Task::none()
+    }
+
+    fn handle_auto_change_mode_selected(&mut self, mode: crate::utils::config::WallpaperAutoChangeMode) -> iced::Task<AppMessage> {
+        self.auto_change_mode = mode;
+        self.config.wallpaper.auto_change_mode = mode;
+        self.config.save_to_file();
+        iced::Task::none()
+    }
+
+    fn handle_auto_change_interval_selected(&mut self, interval: crate::utils::config::WallpaperAutoChangeInterval) -> iced::Task<AppMessage> {
+        self.auto_change_interval = interval.clone();
+        self.config.wallpaper.auto_change_interval = interval;
+        self.config.save_to_file();
+        iced::Task::none()
+    }
+
+    fn handle_custom_interval_minutes_changed(&mut self, minutes: u32) -> iced::Task<AppMessage> {
+        // 限制最小值为1
+        let minutes = if minutes < 1 { 1 } else { minutes };
+        self.custom_interval_minutes = minutes;
         iced::Task::none()
     }
 }

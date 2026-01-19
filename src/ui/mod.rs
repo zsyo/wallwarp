@@ -57,6 +57,10 @@ pub enum AppMessage {
     ProxyAddressChanged(String),
     ProxyPortChanged(String),
     SaveProxy,
+    WallpaperModeSelected(crate::utils::config::WallpaperMode), // 壁纸模式选择
+    AutoChangeModeSelected(crate::utils::config::WallpaperAutoChangeMode), // 定时切换模式选择
+    AutoChangeIntervalSelected(crate::utils::config::WallpaperAutoChangeInterval), // 定时切换周期选择
+    CustomIntervalMinutesChanged(u32), // 自定义切换周期分钟数变化
     // 通知相关消息
     ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
     HideNotification,                           // 隐藏通知（用于定时隐藏）
@@ -98,6 +102,14 @@ pub struct App {
     pub proxy_port: String,
     // API KEY设置的临时状态
     pub wallhaven_api_key: String,
+    // 壁纸模式设置的临时状态
+    pub wallpaper_mode: crate::utils::config::WallpaperMode,
+    // 定时切换模式设置的临时状态
+    pub auto_change_mode: crate::utils::config::WallpaperAutoChangeMode,
+    // 定时切换周期设置的临时状态
+    pub auto_change_interval: crate::utils::config::WallpaperAutoChangeInterval,
+    // 自定义切换周期分钟数
+    pub custom_interval_minutes: u32,
     // 关闭确认对话框状态
     pub show_close_confirmation: bool,
     pub remember_close_setting: bool,
