@@ -391,13 +391,14 @@ impl App {
         // 设置壁纸
         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
             let full_path = common::get_absolute_path(&path);
+            let wallpaper_mode = self.config.wallpaper.mode;
 
             // 提前获取翻译文本，避免线程安全问题
             let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
             // 异步设置壁纸
-            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
                 Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
                 Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
             });

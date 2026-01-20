@@ -65,8 +65,11 @@ pub async fn async_load_single_wallpaper_with_fallback(
 }
 
 /// 异步设置壁纸函数
-pub async fn async_set_wallpaper(wallpaper_path: String) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::set_wallpaper(&wallpaper_path))
+pub async fn async_set_wallpaper(
+    wallpaper_path: String,
+    mode: crate::utils::config::WallpaperMode,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::set_wallpaper(&wallpaper_path, mode))
         .await
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
 }

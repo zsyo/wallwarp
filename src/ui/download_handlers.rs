@@ -539,6 +539,7 @@ impl App {
                         if pending_filename == file_name {
                             // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
                             let full_path = super::common::get_absolute_path(&task.task.save_path);
+                            let wallpaper_mode = self.config.wallpaper.mode;
                             let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
@@ -546,7 +547,7 @@ impl App {
                             self.online_state.pending_set_wallpaper_filename = None;
 
                             // 异步设置壁纸
-                            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
                                 Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
                                 Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
                             });
@@ -672,6 +673,7 @@ impl App {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
             let path = task.task.save_path.clone();
             let full_path = super::common::get_absolute_path(&path);
+            let wallpaper_mode = self.config.wallpaper.mode;
 
             // 检查文件是否存在
             if std::path::Path::new(&full_path).exists() {
@@ -680,7 +682,7 @@ impl App {
                 let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                 // 异步设置壁纸
-                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
                     Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
                     Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
                 });

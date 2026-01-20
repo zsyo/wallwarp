@@ -52,8 +52,20 @@ impl Wallpaper {
 pub struct LocalWallpaperService;
 
 impl LocalWallpaperService {
+    /// 将配置的 WallpaperMode 转换为 wallpaper crate 的 Mode
+    fn convert_wallpaper_mode(mode: crate::utils::config::WallpaperMode) -> wallpaper::Mode {
+        match mode {
+            crate::utils::config::WallpaperMode::Crop => wallpaper::Mode::Crop,
+            crate::utils::config::WallpaperMode::Fit => wallpaper::Mode::Fit,
+            crate::utils::config::WallpaperMode::Stretch => wallpaper::Mode::Stretch,
+            crate::utils::config::WallpaperMode::Tile => wallpaper::Mode::Tile,
+            crate::utils::config::WallpaperMode::Center => wallpaper::Mode::Center,
+            crate::utils::config::WallpaperMode::Span => wallpaper::Mode::Span,
+        }
+    }
+
     /// 设置壁纸
-    pub fn set_wallpaper(image_path: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn set_wallpaper(image_path: &str, mode: crate::utils::config::WallpaperMode) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         use std::path::Path;
 
         let path = Path::new(image_path);
@@ -63,9 +75,16 @@ impl LocalWallpaperService {
             std::env::current_dir()?.join(path).canonicalize()?.to_string_lossy().to_string()
         };
 
-        debug!("设置壁纸路径: {}", absolute_path);
+        debug!("设置壁纸路径: {}, 模式: {:?}", absolute_path, mode);
 
-        // 使用 wallpaper 库设置壁纸
+        // 1. 先告诉系统：我要用什么样的方式显示壁纸（修改布局设置）
+        let wallpaper_mode = Self::convert_wallpaper_mode(mode);
+        wallpaper::set_mode(wallpaper_mode).map_err(|e| {
+            error!("设置壁纸模式失败: {}", e);
+            format!("设置壁纸模式失败: {}", e)
+        })?;
+
+        // 2. 再告诉系统：壁纸文件在哪里（触发系统刷新渲染）
         match wallpaper::set_from_path(&absolute_path) {
             Ok(_) => {
                 debug!("壁纸设置成功");

@@ -642,10 +642,11 @@ impl App {
                 if actual_size == file_size {
                     // 文件已存在且大小匹配，直接设置壁纸
                     let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                    let wallpaper_mode = self.config.wallpaper.mode;
                     let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                    return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                    return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
                         Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
                         Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
                     });
@@ -664,10 +665,11 @@ impl App {
                             Ok(_) => {
                                 // 复制成功，设置壁纸
                                 let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                                let wallpaper_mode = self.config.wallpaper.mode;
                                 let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                                 let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
                                     Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
                                     Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
                                 });
@@ -1068,10 +1070,11 @@ impl App {
                 if actual_size == file_size {
                     // 文件已存在且大小匹配，直接设置壁纸
                     let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                    let wallpaper_mode = self.config.wallpaper.mode;
                     let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                    return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                    return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
                         Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
                         Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
                     });
@@ -1090,10 +1093,11 @@ impl App {
                         Ok(_) => {
                             // 复制成功，设置壁纸
                             let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                            let wallpaper_mode = self.config.wallpaper.mode;
                             let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path), move |result| match result {
+                            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
                                 Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
                                 Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
                             });
