@@ -96,6 +96,59 @@ impl LocalWallpaperService {
             }
         }
     }
+
+    /// 获取支持的图片文件列表（仅根据文件后缀筛选）
+    pub fn get_supported_image_paths(data_path: &str) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+        let path = Path::new(data_path);
+
+        if !path.exists() {
+            return Ok(Vec::new());
+        }
+
+        let entries = fs::read_dir(path).map_err(to_boxed_error)?;
+        let mut image_paths = Vec::new();
+
+        for entry in entries {
+            let entry = entry.map_err(to_boxed_error)?;
+            let file_path = entry.path();
+
+            if file_path.is_file() && Self::is_supported_image(&file_path) {
+                image_paths.push(file_path.to_string_lossy().to_string());
+            }
+        }
+
+        debug!("找到 {} 张支持的壁纸", image_paths.len());
+        Ok(image_paths)
+    }
+
+    /// 随机选择一张壁纸并设置（在设置前验证图片是否损坏）
+    pub fn set_random_wallpaper(
+        image_paths: &[String],
+        mode: crate::utils::config::WallpaperMode,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        if image_paths.is_empty() {
+            return Err("没有可用的壁纸".into());
+        }
+
+        // 随机选择一张壁纸
+        use rand::prelude::IndexedRandom;
+        let selected_path = image_paths
+            .choose(&mut rand::rng())
+            .ok_or("随机选择壁纸失败")?;
+
+        debug!("随机选择壁纸: {}", selected_path);
+
+        // 在设置壁纸前验证图片是否可以正常加载
+        if image::open(selected_path).is_err() {
+            debug!("跳过损坏的图片: {}", selected_path);
+            return Err("选择的图片已损坏".into());
+        }
+
+        // 设置壁纸
+        Self::set_wallpaper(selected_path, mode)?;
+
+        Ok(selected_path.clone())
+    }
 }
 
 impl LocalWallpaperService {

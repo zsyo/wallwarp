@@ -513,6 +513,31 @@ impl App {
     fn handle_auto_change_interval_selected(&mut self, interval: crate::utils::config::WallpaperAutoChangeInterval) -> iced::Task<AppMessage> {
         self.auto_change_interval = interval.clone();
         self.config.wallpaper.auto_change_interval = interval;
+
+        // 根据选择的间隔启动或停止定时任务
+        if matches!(self.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Off) {
+            // 选择关闭，停止定时任务
+            self.local_state.auto_change_enabled = false;
+            self.local_state.auto_change_timer = None;
+            self.local_state.auto_change_last_time = None;
+            tracing::info!("[定时切换] [停止] 定时任务已停止");
+        } else {
+            // 选择其他选项，启动定时任务
+            self.local_state.auto_change_enabled = true;
+            self.local_state.auto_change_timer = Some(std::time::Instant::now());
+            self.local_state.auto_change_last_time = Some(std::time::Instant::now());
+
+            // 计算并记录下次执行时间
+            if let Some(minutes) = self.auto_change_interval.get_minutes() {
+                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+                tracing::info!(
+                    "[定时切换] [启动] 间隔: {}分钟, 下次执行时间: {}",
+                    minutes,
+                    next_time.format("%Y-%m-%d %H:%M:%S")
+                );
+            }
+        }
+
         self.config.save_to_file();
         iced::Task::none()
     }
@@ -521,6 +546,26 @@ impl App {
         // 限制最小值为1
         let minutes = if minutes < 1 { 1 } else { minutes };
         self.custom_interval_minutes = minutes;
+
+        // 如果当前选中的是自定义选项，立即更新配置
+        if matches!(self.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Custom(_)) {
+            // 同时更新 UI 状态和配置文件
+            self.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
+            self.config.wallpaper.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
+            self.config.save_to_file();
+
+            // 重置定时任务并记录下次执行时间
+            if self.local_state.auto_change_enabled {
+                self.local_state.auto_change_last_time = Some(std::time::Instant::now());
+                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+                tracing::info!(
+                    "[定时切换] [重置] 自定义间隔: {}分钟, 下次执行时间: {}",
+                    minutes,
+                    next_time.format("%Y-%m-%d %H:%M:%S")
+                );
+            }
+        }
+
         iced::Task::none()
     }
 }

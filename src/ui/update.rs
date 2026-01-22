@@ -27,6 +27,8 @@ impl App {
             time::every(Duration::from_millis(100)).map(|_| AppMessage::Local(super::local::LocalMessage::AnimationTick)),
             // 添加动态图帧更新定时器 - 每50毫秒更新一次
             time::every(Duration::from_millis(50)).map(|_| AppMessage::Local(super::local::LocalMessage::AnimatedFrameUpdate)),
+            // 添加定时切换壁纸定时器 - 每秒检查一次是否需要切换壁纸
+            time::every(Duration::from_secs(1)).map(|_| AppMessage::Local(super::local::LocalMessage::AutoChangeTick)),
             // 添加下载进度监听 - 使用run_with
             iced::Subscription::run_with(DownloadProgressSubscription, |_state| {
                 // 初始化下载进度channel

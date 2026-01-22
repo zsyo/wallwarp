@@ -5774,6 +5774,7 @@ name = "wallwarp"
 version = "1.0.0"
 dependencies = [
  "async-stream",
+ "chrono",
  "fast_image_resize",
  "fluent-bundle",
  "gif",
@@ -5781,6 +5782,7 @@ dependencies = [
  "iced_aw",
  "image",
  "open",
+ "rand",
  "rayon",
  "reqwest",
  "rfd",

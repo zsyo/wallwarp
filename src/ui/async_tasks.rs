@@ -74,6 +74,23 @@ pub async fn async_set_wallpaper(
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
 }
 
+/// 异步获取支持的图片文件列表
+pub async fn async_get_supported_images(data_path: String) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+    tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::get_supported_image_paths(&data_path))
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+}
+
+/// 异步随机设置壁纸函数
+pub async fn async_set_random_wallpaper(
+    image_paths: Vec<String>,
+    mode: crate::utils::config::WallpaperMode,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::set_random_wallpaper(&image_paths, mode))
+        .await
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+}
+
 /// 异步函数用于打开目录选择对话框
 pub async fn select_folder_async() -> String {
     if let Some(path) = rfd::FileDialog::new().pick_folder() {

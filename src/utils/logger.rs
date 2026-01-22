@@ -1,4 +1,29 @@
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::{EnvFilter, fmt as tracing_fmt};
+use tracing_subscriber::fmt::time::FormatTime;
+use tracing_subscriber::fmt::format::Writer;
+use chrono::Datelike;
+use chrono::Timelike;
+
+/// 自定义时间格式化器
+struct LocalTimer;
+
+impl FormatTime for LocalTimer {
+    fn format_time(&self, writer: &mut Writer<'_>) -> std::fmt::Result {
+        // 使用本地时间，格式为 2026-01-22 21:33:40.495
+        let now = chrono::Local::now();
+        write!(
+            writer,
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+            now.year(),
+            now.month(),
+            now.day(),
+            now.hour(),
+            now.minute(),
+            now.second(),
+            now.timestamp_subsec_millis()
+        )
+    }
+}
 
 /// 初始化日志系统
 ///
@@ -18,13 +43,13 @@ pub fn init_logger() {
     let filter = env_filter_extra(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")));
 
     // 配置日志输出格式
-    fmt()
+    tracing_fmt()
         .with_env_filter(filter)
-        .with_target(true) // 显示模块路径
+        .with_target(false) // 不显示模块路径
         .with_thread_ids(false)
         .with_file(true) // 显示文件名
         .with_line_number(true) // 显示行号
-        .compact() // 使用紧凑格式，减少输出
+        .with_timer(LocalTimer) // 使用自定义本地时间格式化器
         .init();
 }
 
@@ -34,7 +59,15 @@ pub fn init_logger() {
 /// - `level`: 日志级别字符串 ("off", "error", "warn", "info", "debug", "trace")
 pub fn set_log_level(level: &str) {
     let filter = env_filter_extra(EnvFilter::new(level));
-    tracing::subscriber::set_global_default(fmt().with_env_filter(filter).compact().finish()).expect("Failed to set global default subscriber");
+    tracing::subscriber::set_global_default(
+        tracing_fmt()
+            .with_env_filter(filter)
+            .with_target(false)
+            .with_file(true)
+            .with_line_number(true)
+            .with_timer(LocalTimer)
+            .finish()
+    ).expect("Failed to set global default subscriber");
 }
 
 fn env_filter_extra(filter: EnvFilter) -> EnvFilter {

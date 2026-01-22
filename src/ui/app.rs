@@ -25,6 +25,25 @@ impl App {
 
         let _tray_icon = Self::init_tray(&i18n);
 
+        // 根据配置文件中的定时切换周期初始化定时任务状态
+        let (auto_change_enabled, auto_change_timer, auto_change_last_time) = if matches!(config.wallpaper.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Off) {
+            // 配置为关闭状态，不启动定时任务
+            tracing::info!("[定时切换] [启动] 配置为关闭状态，定时任务未启动");
+            (false, None, None)
+        } else {
+            // 配置为开启状态，自动启动定时任务
+            let now = std::time::Instant::now();
+            if let Some(minutes) = config.wallpaper.auto_change_interval.get_minutes() {
+                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+                tracing::info!(
+                    "[定时切换] [启动] 配置为开启状态，间隔: {}分钟, 下次执行时间: {}",
+                    minutes,
+                    next_time.format("%Y-%m-%d %H:%M:%S")
+                );
+            }
+            (true, Some(now), Some(now))
+        };
+
         Self {
             i18n,
             config: config.clone(),
@@ -50,7 +69,12 @@ impl App {
             current_window_width: config.display.width,
             current_window_height: config.display.height,
             current_items_per_row: 1, // 初始值为1
-            local_state: super::local::LocalState::default(),
+            local_state: super::local::LocalState {
+                auto_change_enabled,
+                auto_change_timer,
+                auto_change_last_time,
+                ..Default::default()
+            },
             online_state: super::online::OnlineState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
             initial_loaded: false, // 标记是否已加载初始数据
