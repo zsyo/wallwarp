@@ -220,5 +220,7 @@ path-clear-confirmation =
 
 menu =
     .tray-show = Show window
+    .tray-switch-previous = Switch to previous wallpaper
+    .tray-switch-next = Switch to next wallpaper
     .tray-settings = Settings
     .tray-quit = Quit program

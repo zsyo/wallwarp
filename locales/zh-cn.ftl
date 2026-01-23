@@ -78,7 +78,6 @@ local-list = 本地列表
     .image-loading = 图片加载中...
     .delete-success = 删除成功
     .delete-failed = 删除失败
-    .set-wallpaper-success = 设置壁纸成功
     .set-wallpaper-failed = 设置壁纸失败
     .tooltip-locate = 定位文件
     .tooltip-set-wallpaper = 设置为壁纸
@@ -220,5 +219,7 @@ path-clear-confirmation =
 
 menu =
     .tray-show = 显示窗口
+    .tray-switch-previous = 切换上一张壁纸
+    .tray-switch-next = 切换下一张壁纸
     .tray-settings = 设置
     .tray-quit = 退出程序

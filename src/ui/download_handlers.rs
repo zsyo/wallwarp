@@ -540,17 +540,19 @@ impl App {
                             // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
                             let full_path = super::common::get_absolute_path(&task.task.save_path);
                             let wallpaper_mode = self.config.wallpaper.mode;
-                            let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                             // 清除待设置壁纸的文件名
                             self.online_state.pending_set_wallpaper_filename = None;
 
                             // 异步设置壁纸
-                            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
-                                Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
-                                Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-                            });
+                            return iced::Task::perform(
+                                super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                                move |result| match result {
+                                    Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
+                                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                                },
+                            );
                         }
                     }
                 }
@@ -678,14 +680,16 @@ impl App {
             // 检查文件是否存在
             if std::path::Path::new(&full_path).exists() {
                 // 提前获取翻译文本，避免线程安全问题
-                let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                 let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                 // 异步设置壁纸
-                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
-                    Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
-                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-                });
+                return iced::Task::perform(
+                    super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                    move |result| match result {
+                        Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
+                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                    },
+                );
             } else {
                 let error_message = self.i18n.t("download-tasks.set-wallpaper-file-not-found").to_string();
                 return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));

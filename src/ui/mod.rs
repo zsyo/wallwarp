@@ -9,9 +9,9 @@ pub mod local_handlers;
 pub mod main;
 pub mod online;
 pub mod online_filter;
+pub mod online_handlers;
 pub mod online_list;
 pub mod online_modal;
-pub mod online_handlers;
 pub mod settings;
 pub mod settings_handlers;
 pub mod style;
@@ -21,7 +21,6 @@ pub mod widget;
 
 use crate::i18n::I18n;
 use crate::utils::config::CloseAction;
-use tray_icon::TrayIcon;
 
 #[derive(Debug, Clone)]
 pub enum CloseConfirmationAction {
@@ -57,12 +56,12 @@ pub enum AppMessage {
     ProxyAddressChanged(String),
     ProxyPortChanged(String),
     SaveProxy,
-    WallpaperModeSelected(crate::utils::config::WallpaperMode), // 壁纸模式选择
-    AutoChangeModeSelected(crate::utils::config::WallpaperAutoChangeMode), // 定时切换模式选择
+    WallpaperModeSelected(crate::utils::config::WallpaperMode),                    // 壁纸模式选择
+    AutoChangeModeSelected(crate::utils::config::WallpaperAutoChangeMode),         // 定时切换模式选择
     AutoChangeIntervalSelected(crate::utils::config::WallpaperAutoChangeInterval), // 定时切换周期选择
-    CustomIntervalMinutesChanged(u32), // 自定义切换周期分钟数变化
-    AutoChangeQueryChanged(String), // 定时切换关键词变化
-    SaveAutoChangeQuery, // 保存定时切换关键词
+    CustomIntervalMinutesChanged(u32),                                             // 自定义切换周期分钟数变化
+    AutoChangeQueryChanged(String),                                                // 定时切换关键词变化
+    SaveAutoChangeQuery,                                                           // 保存定时切换关键词
     // 通知相关消息
     ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
     HideNotification,                           // 隐藏通知（用于定时隐藏）
@@ -74,6 +73,11 @@ pub enum AppMessage {
     Local(crate::ui::local::LocalMessage),
     Online(crate::ui::online::OnlineMessage),
     Download(crate::ui::download::DownloadMessage),
+    // 托盘菜单切换壁纸相关消息
+    TraySwitchPreviousWallpaper,
+    TraySwitchNextWallpaper,
+    AddToWallpaperHistory(String),  // 添加壁纸到历史记录
+    RemoveLastFromWallpaperHistory, // 从历史记录末尾移除壁纸
 }
 
 #[derive(Debug, Clone)]
@@ -97,7 +101,7 @@ pub struct App {
     active_page: ActivePage,
     pending_window_size: Option<(u32, u32)>,
     debounce_timer: std::time::Instant,
-    _tray_icon: TrayIcon,
+    tray_manager: tray::TrayManager,
     // 代理设置的临时状态
     pub proxy_protocol: String,
     pub proxy_address: String,
@@ -140,6 +144,8 @@ pub struct App {
     pub initial_loaded: bool,
     // 定时切换执行标志，防止任务并行执行
     pub auto_change_running: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    // 壁纸切换历史记录（最多50条）
+    pub wallpaper_history: Vec<String>,
 }
 
 impl Default for App {

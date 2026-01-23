@@ -47,6 +47,10 @@ impl App {
             AppMessage::ToggleRememberSetting(checked) => self.handle_toggle_remember_setting(checked),
             AppMessage::ShowNotification(message, notification_type) => self.handle_show_notification(message, notification_type),
             AppMessage::HideNotification => self.handle_hide_notification(),
+            AppMessage::AddToWallpaperHistory(path) => self.handle_add_to_wallpaper_history(path),
+            AppMessage::TraySwitchPreviousWallpaper => self.handle_tray_switch_previous_wallpaper(),
+            AppMessage::TraySwitchNextWallpaper => self.handle_tray_switch_next_wallpaper(),
+            AppMessage::RemoveLastFromWallpaperHistory => self.handle_remove_last_from_wallpaper_history(),
             _ => iced::Task::none(),
         }
     }
@@ -210,6 +214,14 @@ impl App {
         match id.as_str() {
             "tray_show" => {
                 return window::oldest().and_then(|id| window::set_mode(id, window::Mode::Windowed));
+            }
+            "tray_switch_previous" => {
+                // 切换上一张壁纸
+                return iced::Task::done(AppMessage::TraySwitchPreviousWallpaper);
+            }
+            "tray_switch_next" => {
+                // 切换下一张壁纸
+                return iced::Task::done(AppMessage::TraySwitchNextWallpaper);
             }
             "tray_settings" => {
                 // 打开设置窗口
@@ -400,9 +412,18 @@ impl App {
         // 保存API KEY到配置文件
         let old_api_key = self.config.wallhaven.api_key.clone();
         let new_api_key = self.wallhaven_api_key.clone();
-        tracing::info!("[设置] [Wallhaven API Key] 保存: {} -> {}", 
-            if old_api_key.is_empty() { "(空)" } else { &old_api_key[..8.min(old_api_key.len())] },
-            if new_api_key.is_empty() { "(空)" } else { &new_api_key[..8.min(new_api_key.len())] }
+        tracing::info!(
+            "[设置] [Wallhaven API Key] 保存: {} -> {}",
+            if old_api_key.is_empty() {
+                "(空)"
+            } else {
+                &old_api_key[..8.min(old_api_key.len())]
+            },
+            if new_api_key.is_empty() {
+                "(空)"
+            } else {
+                &new_api_key[..8.min(new_api_key.len())]
+            }
         );
         self.config.set_wallhaven_api_key(new_api_key);
 
@@ -569,48 +590,173 @@ impl App {
 
     fn handle_custom_interval_minutes_changed(&mut self, minutes: u32) -> iced::Task<AppMessage> {
         // 限制最小值为1
-                let minutes = if minutes < 1 { 1 } else { minutes };
-                self.custom_interval_minutes = minutes;
-        
-                // 如果当前选中的是自定义选项，立即更新配置
-                if matches!(self.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Custom(_)) {
-                    // 同时更新 UI 状态和配置文件
-                    self.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
-                    self.config.wallpaper.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
-                    self.config.save_to_file();
-        
-                    // 重置定时任务并记录下次执行时间
-                    if self.local_state.auto_change_enabled {
-                        self.local_state.auto_change_last_time = Some(std::time::Instant::now());
-                        let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
-                        tracing::info!(
-                            "[定时切换] [重置] 自定义间隔: {}分钟, 下次执行时间: {}",
-                            minutes,
-                            next_time.format("%Y-%m-%d %H:%M:%S")
-                        );
-                    }
-                }
-                iced::Task::none()
+        let minutes = if minutes < 1 { 1 } else { minutes };
+        self.custom_interval_minutes = minutes;
+
+        // 如果当前选中的是自定义选项，立即更新配置
+        if matches!(self.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Custom(_)) {
+            // 同时更新 UI 状态和配置文件
+            self.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
+            self.config.wallpaper.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
+            self.config.save_to_file();
+
+            // 重置定时任务并记录下次执行时间
+            if self.local_state.auto_change_enabled {
+                self.local_state.auto_change_last_time = Some(std::time::Instant::now());
+                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+                tracing::info!(
+                    "[定时切换] [重置] 自定义间隔: {}分钟, 下次执行时间: {}",
+                    minutes,
+                    next_time.format("%Y-%m-%d %H:%M:%S")
+                );
             }
-        
-            fn handle_auto_change_query_changed(&mut self, query: String) -> iced::Task<AppMessage> {
-                    // 只更新临时状态，不保存到配置文件
-                    self.auto_change_query = query;
-                    iced::Task::none()
+        }
+        iced::Task::none()
+    }
+
+    fn handle_auto_change_query_changed(&mut self, query: String) -> iced::Task<AppMessage> {
+        // 只更新临时状态，不保存到配置文件
+        self.auto_change_query = query;
+        iced::Task::none()
+    }
+
+    fn handle_save_auto_change_query(&mut self) -> iced::Task<AppMessage> {
+        // 保存到配置文件
+        let old_query = self.config.wallpaper.auto_change_query.clone();
+        let new_query = self.auto_change_query.clone();
+        tracing::info!(
+            "[设置] [定时切换关键词] 保存: {} -> {}",
+            if old_query.is_empty() { "(空)" } else { &old_query },
+            if new_query.is_empty() { "(空)" } else { &new_query }
+        );
+        self.config.wallpaper.auto_change_query = new_query;
+        self.config.save_to_file();
+
+        // 显示保存成功通知
+        let success_message = self.i18n.t("settings.save-success").to_string();
+        iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success))
+    }
+
+    /// 处理添加壁纸到历史记录
+    fn handle_add_to_wallpaper_history(&mut self, path: String) -> iced::Task<AppMessage> {
+        // 检查历史记录中是否已存在该路径，如果存在则先移除
+        if let Some(pos) = self.wallpaper_history.iter().position(|p| p == &path) {
+            self.wallpaper_history.remove(pos);
+        }
+
+        // 记录路径用于日志输出
+        let path_for_log = path.clone();
+
+        // 添加到历史记录末尾
+        self.wallpaper_history.push(path);
+
+        // 限制历史记录最多50条
+        if self.wallpaper_history.len() > 50 {
+            self.wallpaper_history.remove(0);
+        }
+
+        tracing::info!("[壁纸历史] 添加记录: {}, 当前记录数: {}", path_for_log, self.wallpaper_history.len());
+
+        // 更新托盘菜单项的启用状态
+        self.tray_manager.update_switch_previous_item(self.wallpaper_history.len());
+
+        iced::Task::none()
+    }
+
+    /// 处理托盘菜单切换上一张壁纸
+    fn handle_tray_switch_previous_wallpaper(&mut self) -> iced::Task<AppMessage> {
+        // 检查历史记录是否为空
+        if self.wallpaper_history.is_empty() {
+            tracing::warn!("[托盘菜单] 壁纸历史记录为空，无法切换上一张");
+            return iced::Task::none();
+        }
+
+        // 查找上一张壁纸（历史记录中的倒数第二条）
+        if self.wallpaper_history.len() < 2 {
+            tracing::warn!("[托盘菜单] 壁纸历史记录不足2条，无法切换上一张");
+            return iced::Task::none();
+        }
+
+        let previous_wallpaper = self.wallpaper_history[self.wallpaper_history.len() - 2].clone();
+
+        // 设置壁纸
+        let wallpaper_mode = self.config.wallpaper.mode;
+
+        tracing::info!("[托盘菜单] 切换上一张壁纸: {}", previous_wallpaper);
+
+        // 提前获取翻译文本，避免线程安全问题
+        let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+
+        iced::Task::perform(
+            super::async_tasks::async_set_wallpaper(previous_wallpaper.clone(), wallpaper_mode),
+            move |result| match result {
+                Ok(_) => {
+                    // 切换成功，将当前壁纸从历史记录末尾移除
+                    AppMessage::RemoveLastFromWallpaperHistory
                 }
-            
-                fn handle_save_auto_change_query(&mut self) -> iced::Task<AppMessage> {
-                        // 保存到配置文件
-                        let old_query = self.config.wallpaper.auto_change_query.clone();
-                        let new_query = self.auto_change_query.clone();
-                        tracing::info!("[设置] [定时切换关键词] 保存: {} -> {}", 
-                            if old_query.is_empty() { "(空)" } else { &old_query },
-                            if new_query.is_empty() { "(空)" } else { &new_query }
-                        );
-                        self.config.wallpaper.auto_change_query = new_query;
-                        self.config.save_to_file();
-                
-                        // 显示保存成功通知
-                        let success_message = self.i18n.t("settings.save-success").to_string();
-                        iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success))
-                    }            }
+                Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+            },
+        )
+    }
+
+    /// 处理托盘菜单切换下一张壁纸
+    fn handle_tray_switch_next_wallpaper(&mut self) -> iced::Task<AppMessage> {
+        // 提前获取翻译文本，避免线程安全问题
+        let no_valid_wallpapers_message = self.i18n.t("local-list.no-valid-wallpapers").to_string();
+
+        // 根据定时切换模式执行不同的逻辑
+        match self.config.wallpaper.auto_change_mode {
+            crate::utils::config::WallpaperAutoChangeMode::Local => {
+                // 本地模式：获取支持的图片文件列表
+                let data_path = self.config.data.data_path.clone();
+                iced::Task::perform(super::async_tasks::async_get_supported_images(data_path), |result| match result {
+                    Ok(paths) => {
+                        // 获取到图片列表后，立即尝试设置随机壁纸
+                        if paths.is_empty() {
+                            AppMessage::ShowNotification(no_valid_wallpapers_message, super::NotificationType::Error)
+                        } else {
+                            // 发送一个消息来触发设置随机壁纸
+                            AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths))
+                        }
+                    }
+                    Err(e) => {
+                        let error_message = format!("获取壁纸列表失败: {}", e);
+                        AppMessage::ShowNotification(error_message, super::NotificationType::Error)
+                    }
+                })
+            }
+            crate::utils::config::WallpaperAutoChangeMode::Online => {
+                // 在线模式：从Wallhaven获取随机壁纸
+                let config = self.config.clone();
+                let auto_change_running = self.auto_change_running.clone();
+                iced::Task::perform(
+                    super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
+                    |result| match result {
+                        Ok(path) => {
+                            // 设置壁纸成功，将壁纸路径添加到历史记录
+                            AppMessage::AddToWallpaperHistory(path.clone());
+                            AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path))
+                        }
+                        Err(e) => {
+                            let error_message = format!("设置壁纸失败: {}", e);
+                            AppMessage::ShowNotification(error_message, super::NotificationType::Error)
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    /// 处理从历史记录末尾移除壁纸
+    fn handle_remove_last_from_wallpaper_history(&mut self) -> iced::Task<AppMessage> {
+        // 从历史记录末尾移除壁纸
+        if let Some(removed) = self.wallpaper_history.pop() {
+            tracing::info!("[壁纸历史] 移除记录: {}, 当前记录数: {}", removed, self.wallpaper_history.len());
+        }
+
+        // 更新托盘菜单项的启用状态
+        self.tray_manager.update_switch_previous_item(self.wallpaper_history.len());
+
+        iced::Task::none()
+    }
+}

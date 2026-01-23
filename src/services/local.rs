@@ -122,19 +122,14 @@ impl LocalWallpaperService {
     }
 
     /// 随机选择一张壁纸并设置（在设置前验证图片是否损坏）
-    pub fn set_random_wallpaper(
-        image_paths: &[String],
-        mode: crate::utils::config::WallpaperMode,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn set_random_wallpaper(image_paths: &[String], mode: crate::utils::config::WallpaperMode) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         if image_paths.is_empty() {
             return Err("没有可用的壁纸".into());
         }
 
         // 随机选择一张壁纸
         use rand::prelude::IndexedRandom;
-        let selected_path = image_paths
-            .choose(&mut rand::rng())
-            .ok_or("随机选择壁纸失败")?;
+        let selected_path = image_paths.choose(&mut rand::rng()).ok_or("随机选择壁纸失败")?;
 
         debug!("随机选择壁纸: {}", selected_path);
 

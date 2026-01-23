@@ -402,14 +402,19 @@ impl App {
             let wallpaper_mode = self.config.wallpaper.mode;
 
             // 提前获取翻译文本，避免线程安全问题
-            let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
             // 异步设置壁纸
-            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
-                Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
-                Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-            });
+            return iced::Task::perform(
+                super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                move |result| match result {
+                    Ok(_) => {
+                        // 设置壁纸成功，将壁纸路径添加到历史记录
+                        AppMessage::AddToWallpaperHistory(full_path)
+                    }
+                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                },
+            );
         }
 
         iced::Task::none()
@@ -420,7 +425,10 @@ impl App {
     /// 启动定时切换壁纸
     fn handle_start_auto_change(&mut self) -> iced::Task<AppMessage> {
         // 检查定时切换间隔是否为关闭状态
-        if matches!(self.config.wallpaper.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Off) {
+        if matches!(
+            self.config.wallpaper.auto_change_interval,
+            crate::utils::config::WallpaperAutoChangeInterval::Off
+        ) {
             return iced::Task::none();
         }
 
@@ -497,7 +505,7 @@ impl App {
                                     // 发送一个消息来触发设置随机壁纸
                                     AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths))
                                 }
-                            },
+                            }
                             Err(e) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed(e.to_string())),
                         })
                     }
@@ -505,10 +513,17 @@ impl App {
                         // 在线模式：从Wallhaven获取随机壁纸
                         let config = self.config.clone();
                         let auto_change_running = self.auto_change_running.clone();
-                        iced::Task::perform(super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running), |result| match result {
-                            Ok(path) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path)),
-                            Err(e) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperFailed(e.to_string())),
-                        })
+                        iced::Task::perform(
+                            super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
+                            |result| match result {
+                                Ok(path) => {
+                                    // 设置壁纸成功，将壁纸路径添加到历史记录
+                                    AppMessage::AddToWallpaperHistory(path.clone());
+                                    AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path))
+                                }
+                                Err(e) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperFailed(e.to_string())),
+                            },
+                        )
                     }
                 }
             } else {
@@ -528,13 +543,14 @@ impl App {
             // 获取成功，立即设置一张随机壁纸
             let wallpaper_mode = self.config.wallpaper.mode;
 
-            iced::Task::perform(
-                super::async_tasks::async_set_random_wallpaper(paths, wallpaper_mode),
-                |result| match result {
-                    Ok(path) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path)),
-                    Err(e) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperFailed(e.to_string())),
-                },
-            )
+            iced::Task::perform(super::async_tasks::async_set_random_wallpaper(paths, wallpaper_mode), |result| match result {
+                Ok(path) => {
+                    // 设置壁纸成功，将壁纸路径添加到历史记录
+                    AppMessage::AddToWallpaperHistory(path.clone());
+                    AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path))
+                }
+                Err(e) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperFailed(e.to_string())),
+            })
         } else {
             // 没有找到支持的壁纸
             tracing::warn!("[定时切换] [获取] 没有找到支持的壁纸文件");
@@ -554,8 +570,15 @@ impl App {
     /// 处理随机设置壁纸成功
     fn handle_set_random_wallpaper_success(&mut self, path: String) -> iced::Task<AppMessage> {
         tracing::info!("[定时切换] [成功] 已设置壁纸: {}", path);
+        
+        // 将壁纸路径添加到历史记录
+        let path_clone = path.clone();
+        
         let success_message = format!("已设置壁纸: {}", path);
-        iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success))
+        iced::Task::batch(vec![
+            iced::Task::done(AppMessage::AddToWallpaperHistory(path_clone)),
+            iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success)),
+        ])
     }
 
     /// 处理随机设置壁纸失败

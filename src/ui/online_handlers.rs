@@ -128,14 +128,24 @@ impl App {
         }
 
         // 如果没有任何选中项，则为 None
-        let ratios = if ratios_vec.is_empty() {
-            None
-        } else {
-            Some(ratios_vec.join(","))
-        };
+        let ratios = if ratios_vec.is_empty() { None } else { Some(ratios_vec.join(",")) };
 
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, atleast, resolutions, ratios, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(
+                categories,
+                sorting,
+                purities,
+                color,
+                query,
+                time_range,
+                atleast,
+                resolutions,
+                ratios,
+                page,
+                api_key,
+                proxy,
+                context,
+            ),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(
                     wallpapers,
@@ -299,14 +309,24 @@ impl App {
         }
 
         // 如果没有任何选中项，则为 None
-        let ratios = if ratios_vec.is_empty() {
-            None
-        } else {
-            Some(ratios_vec.join(","))
-        };
+        let ratios = if ratios_vec.is_empty() { None } else { Some(ratios_vec.join(",")) };
 
         iced::Task::perform(
-            super::async_tasks::async_load_online_wallpapers(categories, sorting, purities, color, query, time_range, atleast, resolutions, ratios, page, api_key, proxy, context),
+            super::async_tasks::async_load_online_wallpapers(
+                categories,
+                sorting,
+                purities,
+                color,
+                query,
+                time_range,
+                atleast,
+                resolutions,
+                ratios,
+                page,
+                api_key,
+                proxy,
+                context,
+            ),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => {
                     AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page))
@@ -428,13 +448,7 @@ impl App {
 
             // 启动下载任务
             return iced::Task::perform(
-                super::async_tasks::async_load_online_wallpaper_image_with_streaming(
-                    url,
-                    file_size,
-                    cache_path,
-                    proxy,
-                    cancel_token.clone(),
-                ),
+                super::async_tasks::async_load_online_wallpaper_image_with_streaming(url, file_size, cache_path, proxy, cancel_token.clone()),
                 |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
                     Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
@@ -485,13 +499,7 @@ impl App {
 
                 // 启动下载任务
                 return iced::Task::perform(
-                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(
-                        url,
-                        file_size,
-                        cache_path,
-                        proxy,
-                        cancel_token.clone(),
-                    ),
+                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(url, file_size, cache_path, proxy, cancel_token.clone()),
                     |result| match result {
                         Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
                         Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
@@ -529,13 +537,7 @@ impl App {
 
                 // 启动下载任务
                 return iced::Task::perform(
-                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(
-                        url,
-                        file_size,
-                        cache_path,
-                        proxy,
-                        cancel_token.clone(),
-                    ),
+                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(url, file_size, cache_path, proxy, cancel_token.clone()),
                     |result| match result {
                         Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
                         Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
@@ -643,13 +645,18 @@ impl App {
                     // 文件已存在且大小匹配，直接设置壁纸
                     let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
                     let wallpaper_mode = self.config.wallpaper.mode;
-                    let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                    return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
-                        Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
-                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-                    });
+                    return iced::Task::perform(
+                        super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                        move |result| match result {
+                            Ok(_) => {
+                                // 设置壁纸成功，将壁纸路径添加到历史记录
+                                AppMessage::AddToWallpaperHistory(full_path)
+                            }
+                            Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                        },
+                    );
                 }
             }
 
@@ -666,12 +673,13 @@ impl App {
                                 // 复制成功，设置壁纸
                                 let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
                                 let wallpaper_mode = self.config.wallpaper.mode;
-                                let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                                 let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
-                                    Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
-                                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode), move |result| {
+                                    match result {
+                                        Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
+                                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                                    }
                                 });
                             }
                             Err(e) => {
@@ -921,12 +929,13 @@ impl App {
         // 如果选中"全部横屏"，清空宽屏和超宽屏分组下的选中项
         if self.online_state.ratio_landscape_selected {
             self.online_state.selected_ratios.retain(|r| {
-                !matches!(r, 
-                    crate::services::wallhaven::AspectRatio::R16x9 | 
-                    crate::services::wallhaven::AspectRatio::R16x10 |
-                    crate::services::wallhaven::AspectRatio::R21x9 |
-                    crate::services::wallhaven::AspectRatio::R32x9 |
-                    crate::services::wallhaven::AspectRatio::R48x9
+                !matches!(
+                    r,
+                    crate::services::wallhaven::AspectRatio::R16x9
+                        | crate::services::wallhaven::AspectRatio::R16x10
+                        | crate::services::wallhaven::AspectRatio::R21x9
+                        | crate::services::wallhaven::AspectRatio::R32x9
+                        | crate::services::wallhaven::AspectRatio::R48x9
                 )
             });
         }
@@ -943,10 +952,11 @@ impl App {
         // 如果选中"全部竖屏"，清空竖屏分组下的选中项
         if self.online_state.ratio_portrait_selected {
             self.online_state.selected_ratios.retain(|r| {
-                !matches!(r,
-                    crate::services::wallhaven::AspectRatio::R9x16 |
-                    crate::services::wallhaven::AspectRatio::R10x16 |
-                    crate::services::wallhaven::AspectRatio::R9x18
+                !matches!(
+                    r,
+                    crate::services::wallhaven::AspectRatio::R9x16
+                        | crate::services::wallhaven::AspectRatio::R10x16
+                        | crate::services::wallhaven::AspectRatio::R9x18
                 )
             });
         }
@@ -1071,13 +1081,18 @@ impl App {
                     // 文件已存在且大小匹配，直接设置壁纸
                     let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
                     let wallpaper_mode = self.config.wallpaper.mode;
-                    let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                    return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
-                        Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
-                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-                    });
+                    return iced::Task::perform(
+                        super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                        move |result| match result {
+                            Ok(_) => {
+                                // 设置壁纸成功，将壁纸路径添加到历史记录
+                                AppMessage::AddToWallpaperHistory(full_path)
+                            }
+                            Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                        },
+                    );
                 }
             }
 
@@ -1094,13 +1109,18 @@ impl App {
                             // 复制成功，设置壁纸
                             let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
                             let wallpaper_mode = self.config.wallpaper.mode;
-                            let success_message = self.i18n.t("local-list.set-wallpaper-success").to_string();
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                            return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path, wallpaper_mode), move |result| match result {
-                                Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
-                                Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-                            });
+                            return iced::Task::perform(
+                                super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                                move |result| match result {
+                                    Ok(_) => {
+                                        // 设置壁纸成功，将壁纸路径添加到历史记录
+                                        AppMessage::AddToWallpaperHistory(full_path)
+                                    }
+                                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                                },
+                            );
                         }
                         Err(e) => {
                             error!("[模态窗口设置壁纸] [ID:{}] 从缓存复制失败: {}", id, e);

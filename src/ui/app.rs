@@ -23,26 +23,27 @@ impl App {
             config.save_to_file();
         }
 
-        let _tray_icon = Self::init_tray(&i18n);
+        let tray_manager = super::tray::TrayManager::new(&i18n);
 
         // 根据配置文件中的定时切换周期初始化定时任务状态
-        let (auto_change_enabled, auto_change_timer, auto_change_last_time) = if matches!(config.wallpaper.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Off) {
-            // 配置为关闭状态，不启动定时任务
-            tracing::info!("[定时切换] [启动] 配置为关闭状态，定时任务未启动");
-            (false, None, None)
-        } else {
-            // 配置为开启状态，自动启动定时任务
-            let now = std::time::Instant::now();
-            if let Some(minutes) = config.wallpaper.auto_change_interval.get_minutes() {
-                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
-                tracing::info!(
-                    "[定时切换] [启动] 配置为开启状态，间隔: {}分钟, 下次执行时间: {}",
-                    minutes,
-                    next_time.format("%Y-%m-%d %H:%M:%S")
-                );
-            }
-            (true, Some(now), Some(now))
-        };
+        let (auto_change_enabled, auto_change_timer, auto_change_last_time) =
+            if matches!(config.wallpaper.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Off) {
+                // 配置为关闭状态，不启动定时任务
+                tracing::info!("[定时切换] [启动] 配置为关闭状态，定时任务未启动");
+                (false, None, None)
+            } else {
+                // 配置为开启状态，自动启动定时任务
+                let now = std::time::Instant::now();
+                if let Some(minutes) = config.wallpaper.auto_change_interval.get_minutes() {
+                    let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+                    tracing::info!(
+                        "[定时切换] [启动] 配置为开启状态，间隔: {}分钟, 下次执行时间: {}",
+                        minutes,
+                        next_time.format("%Y-%m-%d %H:%M:%S")
+                    );
+                }
+                (true, Some(now), Some(now))
+            };
 
         Self {
             i18n,
@@ -50,7 +51,7 @@ impl App {
             active_page: super::ActivePage::Settings,
             pending_window_size: None,
             debounce_timer: std::time::Instant::now(),
-            _tray_icon,
+            tray_manager,
             proxy_protocol,
             proxy_address,
             proxy_port,
@@ -78,8 +79,19 @@ impl App {
             },
             online_state: super::online::OnlineState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
-            initial_loaded: false, // 标记是否已加载初始数据
+            initial_loaded: false,                                                               // 标记是否已加载初始数据
             auto_change_running: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), // 初始化定时切换执行标志
+            wallpaper_history: {
+                // 初始化壁纸切换历史记录，获取当前壁纸路径并添加到记录中
+                let mut history = Vec::new();
+                if let Ok(current_wallpaper) = wallpaper::get() {
+                    if !current_wallpaper.is_empty() {
+                        tracing::info!("[壁纸历史] 初始化，添加当前壁纸: {}", current_wallpaper);
+                        history.push(current_wallpaper);
+                    }
+                }
+                history
+            },
         }
     }
 
