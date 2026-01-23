@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 //! 请求上下文模块，提供类似 Golang 中 context 的取消机制
 
 use std::sync::Arc;

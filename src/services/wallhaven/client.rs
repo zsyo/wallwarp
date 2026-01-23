@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 //! Wallhaven HTTP 客户端
 //!
 //! 处理 HTTP 请求和重试逻辑
@@ -67,12 +69,7 @@ impl WallhavenClient {
     ///
     /// # 返回
     /// 返回操作结果或错误信息
-    pub async fn retry_with_backoff<F, T, Fut>(
-        identifier: &str,
-        _operation_name: &str,
-        max_retries: usize,
-        mut operation: F,
-    ) -> Result<T, String>
+    pub async fn retry_with_backoff<F, T, Fut>(identifier: &str, _operation_name: &str, max_retries: usize, mut operation: F) -> Result<T, String>
     where
         F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<T, String>>,
@@ -90,19 +87,10 @@ impl WallhavenClient {
                 Err(e) => {
                     last_error = e;
                     if attempt < max_retries {
-                        warn!(
-                            "[Wallhaven API] [{}] 第 {} 次尝试失败，将在1秒后重试: {}",
-                            identifier,
-                            attempt + 1,
-                            last_error
-                        );
+                        warn!("[Wallhaven API] [{}] 第 {} 次尝试失败，将在1秒后重试: {}", identifier, attempt + 1, last_error);
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                     } else {
-                        error!(
-                            "[Wallhaven API] [{}] 所有重试失败，共尝试 {} 次",
-                            identifier,
-                            max_retries + 1
-                        );
+                        error!("[Wallhaven API] [{}] 所有重试失败，共尝试 {} 次", identifier, max_retries + 1);
                     }
                 }
             }
@@ -202,12 +190,7 @@ impl WallhavenClient {
     ///
     /// # 返回
     /// 返回响应文本或错误信息
-    pub async fn get(
-        &self,
-        url: String,
-        identifier: String,
-        context: &RequestContext,
-    ) -> Result<String, String> {
+    pub async fn get(&self, url: String, identifier: String, context: &RequestContext) -> Result<String, String> {
         Self::retry_with_backoff(&identifier, "HTTP GET", 3, || {
             let client = self.client.clone();
             let url = url.clone();

@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 //! Wallhaven API 响应类型
 //!
 //! 定义 Wallhaven API 返回的数据结构

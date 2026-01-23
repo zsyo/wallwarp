@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use super::{ActivePage, App, AppMessage};
 use crate::ui::style::{
     APP_NAME_SIZE, BORDER_RADIUS, BORDER_WIDTH, BUTTON_PADDING, BUTTON_SPACING, LAYOUT_PADDING, LOGO_DISPLAY_SIZE, LOGO_SIZE, LOGO_SPACING, OUTER_PADDING,

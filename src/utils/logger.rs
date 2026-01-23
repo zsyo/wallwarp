@@ -1,8 +1,10 @@
-use tracing_subscriber::{EnvFilter, fmt as tracing_fmt};
-use tracing_subscriber::fmt::time::FormatTime;
-use tracing_subscriber::fmt::format::Writer;
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use chrono::Datelike;
 use chrono::Timelike;
+use tracing_subscriber::fmt::format::Writer;
+use tracing_subscriber::fmt::time::FormatTime;
+use tracing_subscriber::{EnvFilter, fmt as tracing_fmt};
 
 /// 自定义时间格式化器
 struct LocalTimer;
@@ -66,8 +68,9 @@ pub fn set_log_level(level: &str) {
             .with_file(true)
             .with_line_number(true)
             .with_timer(LocalTimer)
-            .finish()
-    ).expect("Failed to set global default subscriber");
+            .finish(),
+    )
+    .expect("Failed to set global default subscriber");
 }
 
 fn env_filter_extra(filter: EnvFilter) -> EnvFilter {

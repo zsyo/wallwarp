@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use iced::mouse;
 use iced::widget::canvas;
 use iced::{Color, Point, Rectangle, Renderer, Theme};

@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use iced::{
     Alignment, Length,
     widget::{column, container, row, text, toggler},

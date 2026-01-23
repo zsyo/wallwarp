@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use super::App;
 use super::AppMessage;
 use super::common;
@@ -552,10 +554,10 @@ impl App {
     /// 处理随机设置壁纸成功
     fn handle_set_random_wallpaper_success(&mut self, path: String) -> iced::Task<AppMessage> {
         tracing::info!("[定时切换] [成功] 已设置壁纸: {}", path);
-        
+
         // 将壁纸路径添加到历史记录
         let path_clone = path.clone();
-        
+
         let success_message = format!("已设置壁纸: {}", path);
         iced::Task::batch(vec![
             iced::Task::done(AppMessage::AddToWallpaperHistory(path_clone)),

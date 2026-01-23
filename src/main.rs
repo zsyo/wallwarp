@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use iced::{Size, font, window};
 use wallwarp::i18n::I18n;
 use wallwarp::ui::App;

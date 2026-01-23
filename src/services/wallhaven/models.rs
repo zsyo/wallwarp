@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 //! Wallhaven 数据模型
 //!
 //! 定义 Wallhaven API 的查询参数和枚举类型

@@ -1,7 +1,11 @@
 [package]
 name = "wallwarp"
 version = "1.0.0"
+authors = ["zsyo <zephyr@aico.top>"]
+repository = "https://github.com/zsyo/wallwarp"
 edition = "2024"
+license = "AGPL-3.0"
+readme = "README.md"
 
 [dependencies]
 iced = { version = "0.14", features = ["tokio", "image", "advanced"] }

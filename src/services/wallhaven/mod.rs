@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 //! Wallhaven API 客户端模块
 //!
 //! 提供完整的 Wallhaven API 访问功能，包括：

@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use fluent_bundle::{FluentBundle, FluentResource};
 use std::{collections::HashMap, fs, path::PathBuf};
 use sys_locale::get_locale;

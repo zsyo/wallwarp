@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 pub mod animated_image;
 pub mod assets;
 pub mod config;

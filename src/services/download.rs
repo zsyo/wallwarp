@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::debug;

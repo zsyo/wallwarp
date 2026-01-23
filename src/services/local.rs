@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use fast_image_resize as fr;
 use image;
 use rayon::prelude::*;

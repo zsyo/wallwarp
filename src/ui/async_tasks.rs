@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
 use tracing::error;

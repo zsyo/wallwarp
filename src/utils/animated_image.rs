@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;

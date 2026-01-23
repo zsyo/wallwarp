@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use std::path::Path;
 
 /// 在文件管理器中打开并选中指定文件
@@ -22,25 +24,19 @@ pub fn open_file_in_explorer(path: &str) {
 
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("explorer")
-            .args(["/select,", &full_path])
-            .spawn();
+        let _ = std::process::Command::new("explorer").args(["/select,", &full_path]).spawn();
     }
 
     #[cfg(target_os = "macos")]
     {
-        let _ = std::process::Command::new("open")
-            .args(["-R", &full_path])
-            .spawn();
+        let _ = std::process::Command::new("open").args(["-R", &full_path]).spawn();
     }
 
     #[cfg(target_os = "linux")]
     {
         // Linux 上使用 xdg-open 打开文件所在目录
         if let Some(parent) = Path::new(&full_path).parent() {
-            let _ = std::process::Command::new("xdg-open")
-                .arg(parent)
-                .spawn();
+            let _ = std::process::Command::new("xdg-open").arg(parent).spawn();
         }
     }
 }

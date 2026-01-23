@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 pub mod app;
 pub mod async_tasks;
 pub mod close_confirmation;

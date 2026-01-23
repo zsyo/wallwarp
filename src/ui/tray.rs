@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use crate::i18n;
 use crate::utils::assets;
 use std::collections::HashMap;

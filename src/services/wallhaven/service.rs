@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 //! Wallhaven 服务层
 //!
 //! 提供 Wallhaven API 的高级接口
@@ -94,11 +96,7 @@ impl WallhavenService {
             purities,
             color.value(),
             time_range.value(),
-            if query.is_empty() {
-                "empty"
-            } else {
-                &query[..query.len().min(10)]
-            }
+            if query.is_empty() { "empty" } else { &query[..query.len().min(10)] }
         );
         info!("[Wallhaven API] [{}] 请求URL: {}", search_tag, url);
 
@@ -111,39 +109,21 @@ impl WallhavenService {
         }
 
         // 解析响应
-        let wallhaven_response: WallhavenResponse<Vec<WallpaperData>> =
-            serde_json::from_str(&text).map_err(|e| {
-                error!("[Wallhaven API] [{}] JSON解析失败: {}", search_tag, e);
-                format!("解析JSON失败: {}", e)
-            })?;
+        let wallhaven_response: WallhavenResponse<Vec<WallpaperData>> = serde_json::from_str(&text).map_err(|e| {
+            error!("[Wallhaven API] [{}] JSON解析失败: {}", search_tag, e);
+            format!("解析JSON失败: {}", e)
+        })?;
 
         // 打印解析结果
-        info!(
-            "[Wallhaven API] [{}] 解析成功，获取到 {} 张壁纸",
-            search_tag,
-            wallhaven_response.data.len()
-        );
+        info!("[Wallhaven API] [{}] 解析成功，获取到 {} 张壁纸", search_tag, wallhaven_response.data.len());
 
-        let wallpapers: Vec<OnlineWallpaper> =
-            wallhaven_response.data.into_iter().map(OnlineWallpaper::from).collect();
+        let wallpapers: Vec<OnlineWallpaper> = wallhaven_response.data.into_iter().map(OnlineWallpaper::from).collect();
 
-        let last_page = wallhaven_response
-            .meta
-            .as_ref()
-            .map(|m| page as u64 >= m.last_page)
-            .unwrap_or(false);
+        let last_page = wallhaven_response.meta.as_ref().map(|m| page as u64 >= m.last_page).unwrap_or(false);
 
-        let total_pages = wallhaven_response
-            .meta
-            .as_ref()
-            .map(|m| m.last_page as usize)
-            .unwrap_or(0);
+        let total_pages = wallhaven_response.meta.as_ref().map(|m| m.last_page as usize).unwrap_or(0);
 
-        let current_page = wallhaven_response
-            .meta
-            .as_ref()
-            .map(|m| m.current_page as usize)
-            .unwrap_or(page);
+        let current_page = wallhaven_response.meta.as_ref().map(|m| m.current_page as usize).unwrap_or(page);
 
         Ok((wallpapers, last_page, total_pages, current_page))
     }
@@ -156,11 +136,7 @@ impl WallhavenService {
     ///
     /// # 返回
     /// 返回壁纸详情
-    pub async fn get_wallpaper(
-        &self,
-        id: &str,
-        context: &RequestContext,
-    ) -> Result<OnlineWallpaper, String> {
+    pub async fn get_wallpaper(&self, id: &str, context: &RequestContext) -> Result<OnlineWallpaper, String> {
         // 检查是否已取消
         if let Some(()) = context.check_cancelled() {
             return Err("请求已取消".to_string());
@@ -187,16 +163,12 @@ impl WallhavenService {
         }
 
         // 解析响应
-        let wallhaven_response: WallhavenResponse<WallpaperData> =
-            serde_json::from_str(&text).map_err(|e| {
-                error!("[Wallhaven API] [ID:{}] JSON解析失败: {}", id, e);
-                format!("解析JSON失败: {}", e)
-            })?;
+        let wallhaven_response: WallhavenResponse<WallpaperData> = serde_json::from_str(&text).map_err(|e| {
+            error!("[Wallhaven API] [ID:{}] JSON解析失败: {}", id, e);
+            format!("解析JSON失败: {}", e)
+        })?;
 
-        info!(
-            "[Wallhaven API] [ID:{}] 解析成功，获取壁纸: {}",
-            id, wallhaven_response.data.path
-        );
+        info!("[Wallhaven API] [ID:{}] 解析成功，获取壁纸: {}", id, wallhaven_response.data.path);
 
         Ok(OnlineWallpaper::from(wallhaven_response.data))
     }

@@ -1,3 +1,5 @@
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+
 use super::AppMessage;
 use crate::i18n::I18n;
 use crate::utils::config::Config;
