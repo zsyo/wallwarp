@@ -254,9 +254,11 @@ impl WallpaperAutoChangeInterval {
             WallpaperAutoChangeInterval::Minutes(30) => "30m".to_string(),
             WallpaperAutoChangeInterval::Minutes(60) => "1h".to_string(),
             WallpaperAutoChangeInterval::Minutes(120) => "2h".to_string(),
-            WallpaperAutoChangeInterval::Minutes(_) | WallpaperAutoChangeInterval::Custom(_) => {
+            WallpaperAutoChangeInterval::Custom(minutes) => format!("custom:{}m", minutes),
+            WallpaperAutoChangeInterval::Minutes(_) => {
+                // 其他未预定义的 Minutes 值，序列化为 custom: 格式
                 if let Some(minutes) = self.get_minutes() {
-                    format!("{}m", minutes)
+                    format!("custom:{}m", minutes)
                 } else {
                     "off".to_string()
                 }
@@ -271,19 +273,20 @@ impl WallpaperAutoChangeInterval {
             "30m" => Some(WallpaperAutoChangeInterval::Minutes(30)),
             "1h" => Some(WallpaperAutoChangeInterval::Minutes(60)),
             "2h" => Some(WallpaperAutoChangeInterval::Minutes(120)),
-            s if s.ends_with('m') => {
-                let minutes_str = &s[..s.len() - 1];
-                if let Ok(minutes) = minutes_str.parse::<u32>() {
-                    if minutes >= 1 {
+            s if s.starts_with("custom:") && s.ends_with('m') => {
+                // 解析 custom:XXm 格式
+                let inner = &s[7..s.len() - 1]; // 去掉 "custom:" 和 "m"
+                if let Ok(minutes) = inner.parse::<u32>() {
+                    if minutes >= 1 && minutes <= 1440 {
                         Some(WallpaperAutoChangeInterval::Custom(minutes))
                     } else {
-                        None
+                        Some(WallpaperAutoChangeInterval::Off)
                     }
                 } else {
-                    None
+                    Some(WallpaperAutoChangeInterval::Off)
                 }
             }
-            _ => None,
+            _ => Some(WallpaperAutoChangeInterval::Off),
         }
     }
 

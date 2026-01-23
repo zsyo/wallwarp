@@ -427,44 +427,6 @@ pub async fn async_load_online_wallpapers(
     }
 }
 
-/// 异步加载在线壁纸图片函数
-pub async fn async_load_online_wallpaper_image(
-    url: String,
-    proxy: Option<String>,
-) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
-    let client = if let Some(proxy_url) = proxy {
-        if !proxy_url.is_empty() {
-            if let Ok(proxy) = reqwest::Proxy::all(&proxy_url) {
-                reqwest::Client::builder().proxy(proxy).build().unwrap_or_else(|_| reqwest::Client::new())
-            } else {
-                reqwest::Client::new()
-            }
-        } else {
-            reqwest::Client::new()
-        }
-    } else {
-        reqwest::Client::new()
-    };
-
-    let response = client.get(&url).send().await.map_err(|e| {
-        error!("[图片加载] [URL:{}] 请求失败: {}", url, e);
-        Box::new(e) as Box<dyn std::error::Error + Send + Sync>
-    })?;
-
-    if !response.status().is_success() {
-        let error_msg = format!("下载失败: {}", response.status());
-        error!("[图片加载] [URL:{}] {}", url, error_msg);
-        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send + Sync>);
-    }
-
-    let bytes = response.bytes().await.map_err(|e| {
-        error!("[图片加载] [URL:{}] 读取响应体失败: {}", url, e);
-        Box::new(e) as Box<dyn std::error::Error + Send + Sync>
-    })?;
-
-    Ok(iced::widget::image::Handle::from_bytes(bytes.to_vec()))
-}
-
 /// 异步加载在线壁纸缩略图函数（带缓存）
 pub async fn async_load_online_wallpaper_thumb_with_cache(
     url: String,

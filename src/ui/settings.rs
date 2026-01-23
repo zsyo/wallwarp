@@ -100,11 +100,10 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                         .padding(INPUT_PADDING)
                         .on_input(AppMessage::ProxyAddressChanged),
                     container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
-                    text_input(&app.i18n.t("settings.proxy-port-placeholder"), &app.proxy_port)
+                    iced_aw::NumberInput::new(&app.proxy_port, 1..=65535, AppMessage::ProxyPortChanged)
                         .width(Length::Fixed(PORT_INPUT_WIDTH))
-                        .align_x(Alignment::Center)
-                        .padding(INPUT_PADDING)
-                        .on_input(AppMessage::ProxyPortChanged),
+                        .align_x(Alignment::Start)
+                        .padding(INPUT_PADDING),
                     container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
                     common::create_colored_button(app.i18n.t("settings.proxy-save"), BUTTON_COLOR_BLUE, AppMessage::SaveProxy)
                 ]
@@ -281,7 +280,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                                         }
                                     }
                                 ),
-                                iced_aw::NumberInput::new(&app.custom_interval_minutes, 1..=9999, |minutes| AppMessage::CustomIntervalMinutesChanged(
+                                iced_aw::NumberInput::new(&app.custom_interval_minutes, 1..=1440, |minutes| AppMessage::CustomIntervalMinutesChanged(
                                     minutes
                                 ))
                                 .width(Length::Fixed(80.0))

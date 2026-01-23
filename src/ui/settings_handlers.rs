@@ -45,7 +45,7 @@ impl App {
             AppMessage::CloseConfirmationResponse(action, remember_setting) => self.handle_close_confirmation_response(action, remember_setting),
             AppMessage::CloseConfirmationCancelled => self.handle_close_confirmation_cancelled(),
             AppMessage::ToggleRememberSetting(checked) => self.handle_toggle_remember_setting(checked),
-            AppMessage::ShowNotification(message, notification_type) => self.handle_show_notification(message, notification_type),
+            AppMessage::ShowNotification(message, notification_type) => self.show_notification(message, notification_type),
             AppMessage::HideNotification => self.handle_hide_notification(),
             AppMessage::AddToWallpaperHistory(path) => self.handle_add_to_wallpaper_history(path),
             AppMessage::TraySwitchPreviousWallpaper => self.handle_tray_switch_previous_wallpaper(),
@@ -455,7 +455,8 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_proxy_port_changed(&mut self, port: String) -> iced::Task<AppMessage> {
+    fn handle_proxy_port_changed(&mut self, port: u32) -> iced::Task<AppMessage> {
+        // 数字输入框已经限制了范围为 1-65535
         self.proxy_port = port;
         iced::Task::none()
     }
@@ -463,11 +464,7 @@ impl App {
     fn handle_save_proxy(&mut self) -> iced::Task<AppMessage> {
         // 检查地址和端口是否都设置且端口格式正确
         let is_address_valid = !self.proxy_address.trim().is_empty();
-        let is_port_valid = if let Ok(port) = self.proxy_port.parse::<u16>() {
-            port != 0 // u16的范围是0-65535，所以只需检查不为0
-        } else {
-            false // 端口不是有效数字
-        };
+        let is_port_valid = self.proxy_port >= 1 && self.proxy_port <= 65535;
 
         if is_address_valid && is_port_valid {
             // 地址和端口都有效，保存代理设置
@@ -480,9 +477,9 @@ impl App {
         } else {
             // 地址或端口无效，保存为空字符串（相当于关闭代理）
             self.config.set_proxy(String::new());
-            // 同时清空地址和端口输入框
+            // 同时清空地址和端口输入框（端口显示为 1080）
             self.proxy_address = String::new();
-            self.proxy_port = String::new();
+            self.proxy_port = 1080;
             // 显示错误通知
             self.show_notification("格式错误，代理设置保存失败".to_string(), super::NotificationType::Error)
         }
@@ -526,10 +523,6 @@ impl App {
     fn handle_toggle_remember_setting(&mut self, checked: bool) -> iced::Task<AppMessage> {
         self.remember_close_setting = checked;
         iced::Task::none()
-    }
-
-    fn handle_show_notification(&mut self, message: String, notification_type: super::NotificationType) -> iced::Task<AppMessage> {
-        self.show_notification(message, notification_type)
     }
 
     fn handle_hide_notification(&mut self) -> iced::Task<AppMessage> {

@@ -1,5 +1,6 @@
 use super::App;
 use super::AppMessage;
+use super::common;
 use crate::i18n::I18n;
 use crate::utils::config::Config;
 use iced;
@@ -17,10 +18,13 @@ impl App {
 
         // 检查代理配置格式，如果不正确则还原为空字符串
         let (proxy_protocol, proxy_address, proxy_port) = Self::parse_proxy_string(&config.global.proxy);
-        if config.global.proxy != format!("{}://{}:{}", proxy_protocol, proxy_address, proxy_port) && !config.global.proxy.is_empty() {
-            // 代理格式不正确，还原为空字符串
-            config.global.proxy = String::new();
-            config.save_to_file();
+        if proxy_port > 0 {
+            let expected_proxy = format!("{}://{}:{}", proxy_protocol, proxy_address, proxy_port);
+            if config.global.proxy != expected_proxy {
+                // 代理格式不正确，还原为空字符串
+                config.global.proxy = String::new();
+                config.save_to_file();
+            }
         }
 
         let tray_manager = super::tray::TrayManager::new(&i18n);
@@ -48,7 +52,7 @@ impl App {
         Self {
             i18n,
             config: config.clone(),
-            active_page: super::ActivePage::Settings,
+            active_page: super::ActivePage::OnlineWallpapers,
             pending_window_size: None,
             debounce_timer: std::time::Instant::now(),
             tray_manager,
@@ -96,12 +100,11 @@ impl App {
     }
 
     // 解析代理字符串为协议、地址和端口
-    pub fn parse_proxy_string(proxy: &str) -> (String, String, String) {
+    pub fn parse_proxy_string(proxy: &str) -> (String, String, u32) {
         if proxy.is_empty() {
-            return ("http".to_string(), "".to_string(), "".to_string());
+            return ("http".to_string(), "".to_string(), 0);
         }
 
-        // 尝试解析代理URL格式: protocol://address:port
         if let Some(at) = proxy.find("://") {
             let protocol = &proxy[..at];
             let remaining = &proxy[at + 3..];
@@ -111,17 +114,16 @@ impl App {
                 let port_str = &remaining[colon_index + 1..];
 
                 // 验证端口号是否为有效数字
-                if let Ok(port) = port_str.parse::<u16>() {
-                    if port != 0 {
-                        // u16的范围是0-65535，所以只需检查不为0
-                        return (protocol.to_string(), address.to_string(), port_str.to_string());
+                if let Ok(port) = port_str.parse::<u32>() {
+                    if port >= 1 && port <= 65535 {
+                        return (protocol.to_string(), address.to_string(), port);
                     }
                 }
             }
         }
 
-        // 如果格式不正确，返回默认值
-        ("http".to_string(), "".to_string(), "".to_string())
+        // 如果格式不正确，返回默认值（端口显示为 1080，但实际代理为空）
+        ("http".to_string(), "".to_string(), 1080)
     }
 
     pub fn title(&self) -> String {
@@ -153,106 +155,19 @@ impl App {
 
     // 渲染路径清空确认对话框
     fn path_clear_confirmation_view(&self) -> iced::Element<'_, AppMessage> {
-        use iced::{
-            Alignment, Length,
-            widget::{button, column, container, row, text},
-        };
-
         let path_display = self.get_path_display(&self.path_to_clear);
 
-        let dialog_content = column![
-            text(self.i18n.t("path-clear-confirmation.title"))
-                .size(16)
-                .width(Length::Fill)
-                .align_x(Alignment::Center),
-            text(self.i18n.t("path-clear-confirmation.message"))
-                .size(14)
-                .width(Length::Fill)
-                .align_x(Alignment::Center),
-            text(path_display)
-                .size(12)
-                .width(Length::Fill)
-                .align_x(Alignment::Center)
-                .style(|_theme: &iced::Theme| iced::widget::text::Style {
-                    color: Some(iced::Color::from_rgb8(220, 53, 69)), // 红色文字
-                }),
-            row![
-                button(text(self.i18n.t("path-clear-confirmation.confirm")).size(14))
-                    .on_press(AppMessage::ConfirmPathClear(self.path_to_clear.clone()))
-                    .style(|_theme: &iced::Theme, _status| {
-                        let base = iced::widget::button::text(_theme, _status);
-                        iced::widget::button::Style {
-                            background: Some(iced::Background::Color(iced::Color::from_rgb8(220, 53, 69))), // 红色
-                            text_color: iced::Color::WHITE,
-                            ..base
-                        }
-                    }),
-                button(text(self.i18n.t("path-clear-confirmation.cancel")).size(14))
-                    .on_press(AppMessage::CancelPathClear)
-                    .style(|_theme: &iced::Theme, _status| {
-                        let base = iced::widget::button::text(_theme, _status);
-                        iced::widget::button::Style {
-                            background: Some(iced::Background::Color(iced::Color::from_rgb8(108, 117, 125))), // 灰色
-                            text_color: iced::Color::WHITE,
-                            ..base
-                        }
-                    }),
-            ]
-            .spacing(10)
-            .align_y(Alignment::Center),
-        ]
-        .padding(20)
-        .spacing(15)
-        .align_x(Alignment::Center);
+        // 将消息转换为字符串（简化处理）
+        let message_text = format!("{}\n{}", self.i18n.t("path-clear-confirmation.message"), path_display);
 
-        // 将对话框包装在容器中，设置样式（白色背景，边框）
-        let modal_dialog = container(dialog_content)
-            .width(Length::Shrink)
-            .height(Length::Shrink)
-            .width(400) // 限制对话框最大宽度
-            .padding(10)
-            .style(|_theme: &iced::Theme| iced::widget::container::Style {
-                background: Some(iced::Background::Color(iced::Color::WHITE)),
-                border: iced::border::Border {
-                    radius: iced::border::Radius::from(8.0),
-                    width: 1.0,
-                    color: iced::Color::from_rgb(0.8, 0.8, 0.8),
-                },
-                ..Default::default()
-            });
-
-        // 创建完整的模态内容：使用容器包含半透明背景和居中的对话框
-        let modal_content = container(
-            // 使用stack将遮罩层和居中对话框叠加
-            iced::widget::stack(vec![
-                // 半透明背景遮罩
-                container(iced::widget::Space::new())
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .style(|_theme: &iced::Theme| iced::widget::container::Style {
-                        background: Some(iced::Background::Color(iced::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 0.5, // 半透明背景，实现模态效果
-                        })),
-                        ..Default::default()
-                    })
-                    .into(),
-                // 居中的对话框
-                container(modal_dialog)
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .center_x(Length::Fill)
-                    .center_y(Length::Fill)
-                    .into(),
-            ]),
+        common::create_confirmation_dialog(
+            self.i18n.t("path-clear-confirmation.title"),
+            message_text,
+            self.i18n.t("path-clear-confirmation.confirm"),
+            self.i18n.t("path-clear-confirmation.cancel"),
+            AppMessage::ConfirmPathClear(self.path_to_clear.clone()),
+            AppMessage::CancelPathClear,
         )
-        .width(Length::Fill)
-        .height(Length::Fill);
-
-        // 返回使用opaque包装的模态内容
-        iced::widget::opaque(modal_content).into()
     }
 
     // 渲染通知组件

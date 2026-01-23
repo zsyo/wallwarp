@@ -54,7 +54,7 @@ pub enum AppMessage {
     ScrollToTop(String), // 滚动到顶部，参数为滚动组件ID
     ProxyProtocolChanged(String),
     ProxyAddressChanged(String),
-    ProxyPortChanged(String),
+    ProxyPortChanged(u32),
     SaveProxy,
     WallpaperModeSelected(crate::utils::config::WallpaperMode),                    // 壁纸模式选择
     AutoChangeModeSelected(crate::utils::config::WallpaperAutoChangeMode),         // 定时切换模式选择
@@ -105,7 +105,7 @@ pub struct App {
     // 代理设置的临时状态
     pub proxy_protocol: String,
     pub proxy_address: String,
-    pub proxy_port: String,
+    pub proxy_port: u32,
     // API KEY设置的临时状态
     pub wallhaven_api_key: String,
     // 壁纸模式设置的临时状态

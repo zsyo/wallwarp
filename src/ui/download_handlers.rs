@@ -442,22 +442,7 @@ impl App {
     fn handle_open_file_location(&mut self, id: usize) -> iced::Task<AppMessage> {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
             let full_path = super::common::get_absolute_path(&task.task.save_path);
-
-            // Windows: 使用 explorer /select,路径
-            #[cfg(target_os = "windows")]
-            {
-                let _ = std::process::Command::new("explorer").args(["/select,", &full_path]).spawn();
-            }
-            // macOS: 使用 open -R 路径
-            #[cfg(target_os = "macos")]
-            {
-                let _ = std::process::Command::new("open").args(["-R", &full_path]).spawn();
-            }
-            // Linux: 使用 xdg-open 路径
-            #[cfg(target_os = "linux")]
-            {
-                let _ = std::process::Command::new("xdg-open").arg(&full_path).spawn();
-            }
+            crate::utils::helpers::open_file_in_explorer(&full_path);
         }
 
         iced::Task::none()

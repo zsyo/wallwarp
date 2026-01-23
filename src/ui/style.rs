@@ -40,10 +40,6 @@ pub const COLOR_LIGHT_BG: Color = Color::from_rgb(0.969, 0.969, 0.969); // #F8F8
 /// 浅色按钮背景
 pub const COLOR_LIGHT_BUTTON: Color = Color::from_rgb(0.933, 0.933, 0.933); // #EEEEEE
 
-/// 浅色按钮悬停状态
-#[allow(dead_code)]
-pub const COLOR_LIGHT_BUTTON_HOVER: Color = Color::from_rgb(0.878, 0.878, 0.878); // #E0E0E0
-
 /// 浅色文字颜色
 pub const COLOR_LIGHT_TEXT: Color = Color::from_rgb(0.2, 0.2, 0.2); // #333333
 
@@ -374,26 +370,6 @@ pub const MODAL_LOADING_TEXT_SIZE: f32 = 20.0;
 
 /// 边框灰色值
 pub const BORDER_COLOR_GRAY: f32 = 0.8;
-
-// ============================================================================
-// 筛选栏样式常量
-// ============================================================================
-
-/// 筛选栏高度
-#[allow(dead_code)]
-pub const FILTER_BAR_HEIGHT: f32 = 60.0;
-
-/// 筛选栏内边距
-#[allow(dead_code)]
-pub const FILTER_BAR_PADDING: f32 = 10.0;
-
-/// 筛选元素间距
-#[allow(dead_code)]
-pub const FILTER_SPACING: f32 = 10.0;
-
-/// 筛选标签文字大小
-#[allow(dead_code)]
-pub const FILTER_LABEL_SIZE: f32 = 14.0;
 
 // ============================================================================
 // 分页分隔线样式常量

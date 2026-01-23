@@ -318,25 +318,7 @@ impl App {
         // 查看文件夹并选中文件
         if let Some(path) = self.local_state.all_paths.get(index) {
             let full_path = common::get_absolute_path(path);
-
-            // Windows: 使用 explorer /select,路径
-            #[cfg(target_os = "windows")]
-            {
-                let _ = std::process::Command::new("explorer").args(["/select,", &full_path]).spawn();
-            }
-            // macOS: 使用 open -R 路径
-            #[cfg(target_os = "macos")]
-            {
-                let _ = std::process::Command::new("open").args(["-R", &full_path]).spawn();
-            }
-            // Linux: 使用 dbus 调用文件管理器（需要支持）
-            #[cfg(target_os = "linux")]
-            {
-                // 尝试使用 xdg-open 打开文件所在目录
-                if let Some(parent) = std::path::Path::new(&full_path).parent() {
-                    let _ = std::process::Command::new("xdg-open").arg(parent).spawn();
-                }
-            }
+            crate::utils::helpers::open_file_in_explorer(&full_path);
         }
 
         iced::Task::none()
