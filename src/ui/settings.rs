@@ -305,6 +305,18 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                 ]
                 .spacing(ROW_SPACING),
             ),
+            common::create_setting_row(
+                app.i18n.t("settings.auto-change-query"),
+                row![
+                    text_input(&app.i18n.t("settings.auto-change-query-placeholder"), &app.auto_change_query)
+                        .width(Length::Fixed(400.0))
+                        .align_x(Alignment::Center)
+                        .padding(INPUT_PADDING)
+                        .on_input(|query| AppMessage::AutoChangeQueryChanged(query)),
+                    common::create_colored_button(app.i18n.t("settings.save"), BUTTON_COLOR_BLUE, AppMessage::SaveAutoChangeQuery)
+                ]
+                .spacing(ROW_SPACING),
+            ),
         ],
     );
 

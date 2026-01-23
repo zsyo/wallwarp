@@ -65,10 +65,7 @@ pub async fn async_load_single_wallpaper_with_fallback(
 }
 
 /// 异步设置壁纸函数
-pub async fn async_set_wallpaper(
-    wallpaper_path: String,
-    mode: crate::utils::config::WallpaperMode,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn async_set_wallpaper(wallpaper_path: String, mode: crate::utils::config::WallpaperMode) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::set_wallpaper(&wallpaper_path, mode))
         .await
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
@@ -89,6 +86,298 @@ pub async fn async_set_random_wallpaper(
     tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::set_random_wallpaper(&image_paths, mode))
         .await
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+}
+
+/// 异步随机设置在线壁纸函数（用于定时切换）
+///
+/// # 功能说明
+/// 1. 从Wallhaven API获取壁纸列表
+/// 2. 如果返回data为空数组则继续请求下一页，最多请求5页
+/// 3. 直到返回的data不是空数组或者current_page=last_page
+/// 4. 从返回的列表中随机选择一张图片
+/// 5. 按照在线壁纸列表项的设置壁纸逻辑来设置壁纸：
+///    - 先判断壁纸是否在config.data.data_path中，如果有则直接设置壁纸
+///    - 否则判断壁纸是否在config.data.cache_path/online中，如果有则将该缓存图移动至config.data.data_path中并且设置为正确的文件名
+///    - 否则下载壁纸到缓存，然后复制到data_path中并设置壁纸
+pub async fn async_set_random_online_wallpaper(
+    config: crate::utils::config::Config,
+    auto_change_running: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    use rand::prelude::IndexedRandom;
+    use std::sync::atomic::Ordering;
+    use tracing::error;
+    use tracing::info;
+
+    // 尝试设置执行标志，防止定时任务并行执行
+    if !auto_change_running.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+        info!("[定时切换] [在线] 已有任务在执行，跳过本次切换");
+        return Err("已有任务在执行".into());
+    }
+
+    // 确保在函数结束时清除执行标志
+    let _guard = scopeguard::guard((), |_| {
+        auto_change_running.store(false, Ordering::SeqCst);
+    });
+
+    // 解析配置参数
+    let categories = parse_category_bitmask(&config.wallhaven.category);
+    // let sorting = parse_sorting(&config.wallhaven.sorting);
+    let sorting = crate::services::wallhaven::Sorting::Random; // 将排序方式固定为随机
+    let purities = parse_purity_bitmask(&config.wallhaven.purity);
+    let color = parse_color(&config.wallhaven.color);
+    let time_range = parse_time_range(&config.wallhaven.top_range);
+
+    let atleast = if config.wallhaven.atleast_resolution.is_empty() {
+        None
+    } else {
+        Some(config.wallhaven.atleast_resolution.clone())
+    };
+
+    let resolutions = if config.wallhaven.resolutions.is_empty() {
+        None
+    } else {
+        Some(config.wallhaven.resolutions.clone())
+    };
+
+    let ratios = if config.wallhaven.ratios.is_empty() {
+        None
+    } else {
+        Some(config.wallhaven.ratios.clone())
+    };
+
+    let api_key = if config.wallhaven.api_key.is_empty() {
+        None
+    } else {
+        Some(config.wallhaven.api_key.clone())
+    };
+
+    let proxy = if config.global.proxy.is_empty() {
+        None
+    } else {
+        Some(config.global.proxy.clone())
+    };
+
+    // 创建请求上下文
+    let context = crate::services::request_context::RequestContext::new();
+
+    // 创建Wallhaven服务
+    let service = crate::services::wallhaven::WallhavenService::new(api_key.clone(), proxy.clone());
+
+    // 获取搜索关键词
+    let query = config.wallpaper.auto_change_query.clone();
+
+    // 最多请求5页
+    let max_pages = 5;
+    let mut wallpapers = Vec::new();
+
+    for page in 1..=max_pages {
+        info!("[定时切换] [在线] 请求第 {} 页壁纸，关键词: {}", page, if query.is_empty() { "(无)" } else { &query });
+
+        match service
+            .search_wallpapers(
+                page,
+                categories,
+                sorting,
+                purities,
+                color,
+                &query, // 使用配置中的关键词
+                time_range,
+                atleast.as_deref(),
+                resolutions.as_deref(),
+                ratios.as_deref(),
+                &context,
+            )
+            .await
+        {
+            Ok((data, is_last_page, _total_pages, current_page)) => {
+                if data.is_empty() {
+                    info!("[定时切换] [在线] 第 {} 页返回空数据", page);
+                    if is_last_page || current_page >= max_pages {
+                        break;
+                    }
+                    continue;
+                }
+
+                info!("[定时切换] [在线] 第 {} 页获取到 {} 张壁纸", page, data.len());
+                wallpapers = data;
+                break;
+            }
+            Err(e) => {
+                error!("[定时切换] [在线] 第 {} 页请求失败: {}", page, e);
+                return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>);
+            }
+        }
+    }
+
+    if wallpapers.is_empty() {
+        error!("[定时切换] [在线] 请求 {} 页后仍无可用壁纸", max_pages);
+        return Err("未找到可用的在线壁纸".into());
+    }
+
+    // 随机选择一张壁纸
+    let selected = wallpapers.choose(&mut rand::rng()).ok_or("随机选择壁纸失败")?;
+
+    info!("[定时切换] [在线] 已选择壁纸: ID={}, URL={}", selected.id, selected.path);
+
+    // 生成目标文件路径（使用原文件名）
+    let file_name = super::download::generate_file_name(&selected.id, selected.file_type.split('/').last().unwrap_or("jpg"));
+    let data_path = config.data.data_path.clone();
+    let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
+
+    // 1. 检查目标文件是否已存在于 data_path 中
+    if let Ok(metadata) = std::fs::metadata(&target_path) {
+        let actual_size = metadata.len();
+        if actual_size == selected.file_size {
+            // 文件已存在且大小匹配，直接设置壁纸
+            info!("[定时切换] [在线] 文件已存在于data_path，直接设置: {}", target_path.display());
+            let wallpaper_mode = config.wallpaper.mode;
+            crate::services::local::LocalWallpaperService::set_wallpaper(&target_path.to_string_lossy().to_string(), wallpaper_mode)?;
+            return Ok(target_path.to_string_lossy().to_string());
+        }
+    }
+
+    // 2. 检查缓存文件是否存在且大小匹配
+    let cache_path = config.data.cache_path.clone();
+    if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &selected.path, selected.file_size)
+    {
+        let cache_file_path_obj = std::path::PathBuf::from(&cache_file_path);
+        if let Ok(metadata) = std::fs::metadata(&cache_file_path_obj) {
+            let cache_size = metadata.len();
+            if cache_size == selected.file_size {
+                // 缓存文件存在且大小匹配，复制到 data_path
+                info!(
+                    "[定时切换] [在线] 从缓存复制到data_path: {} -> {}",
+                    cache_file_path_obj.display(),
+                    target_path.display()
+                );
+                let _ = std::fs::create_dir_all(&data_path);
+                match std::fs::copy(&cache_file_path_obj, &target_path) {
+                    Ok(_) => {
+                        // 复制成功，设置壁纸
+                        let wallpaper_mode = config.wallpaper.mode;
+                        crate::services::local::LocalWallpaperService::set_wallpaper(&target_path.to_string_lossy().to_string(), wallpaper_mode)?;
+                        return Ok(target_path.to_string_lossy().to_string());
+                    }
+                    Err(e) => {
+                        error!("[定时切换] [在线] [ID:{}] 从缓存复制失败: {}", selected.id, e);
+                        // 复制失败，继续走下载流程
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. 文件不存在，下载到缓存
+    let cache_file_path = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &selected.path, selected.file_size)?;
+    let cache_file_path_obj = std::path::PathBuf::from(&cache_file_path);
+    info!("[定时切换] [在线] 缓存不存在，开始下载: {}", cache_file_path_obj.display());
+    crate::services::download::DownloadService::download_thumb_to_cache(&selected.path, &cache_file_path, proxy).await?;
+
+    // 下载完成后，复制到 data_path
+    info!(
+        "[定时切换] [在线] 下载完成，复制到data_path: {} -> {}",
+        cache_file_path_obj.display(),
+        target_path.display()
+    );
+    let _ = std::fs::create_dir_all(&data_path);
+    std::fs::copy(&cache_file_path_obj, &target_path)?;
+
+    // 设置壁纸
+    let wallpaper_mode = config.wallpaper.mode;
+    crate::services::local::LocalWallpaperService::set_wallpaper(&target_path.to_string_lossy().to_string(), wallpaper_mode)?;
+
+    info!("[定时切换] [在线] 壁纸设置成功: {}", target_path.display());
+    Ok(target_path.to_string_lossy().to_string())
+}
+
+/// 解析分类位掩码
+pub fn parse_category_bitmask(category: &str) -> u32 {
+    let mut result = 0u32;
+    for (i, c) in category.chars().enumerate() {
+        if c == '1' && i < 3 {
+            result |= 1 << (2 - i);
+        }
+    }
+    result
+}
+
+/// 解析纯净度位掩码
+pub fn parse_purity_bitmask(purity: &str) -> u32 {
+    match purity {
+        "100" | "sfw" => 0b100,
+        "010" | "sketchy" => 0b010,
+        "001" | "nsfw" => 0b001,
+        "110" => 0b110, // sfw + sketchy
+        "101" => 0b101, // sfw + nsfw
+        "011" => 0b011, // sketchy + nsfw
+        "111" => 0b111, // all
+        _ => 0b100,
+    }
+}
+
+/// 解析排序方式
+pub fn parse_sorting(sorting: &str) -> crate::services::wallhaven::Sorting {
+    match sorting {
+        "date_added" => crate::services::wallhaven::Sorting::DateAdded,
+        "views" => crate::services::wallhaven::Sorting::Views,
+        "favorites" => crate::services::wallhaven::Sorting::Favorites,
+        "toplist" => crate::services::wallhaven::Sorting::TopList,
+        "random" => crate::services::wallhaven::Sorting::Random,
+        "relevance" => crate::services::wallhaven::Sorting::Relevance,
+        "hot" => crate::services::wallhaven::Sorting::Hot,
+        _ => crate::services::wallhaven::Sorting::DateAdded,
+    }
+}
+
+/// 解析颜色选项
+pub fn parse_color(color: &str) -> crate::services::wallhaven::ColorOption {
+    match color.to_lowercase().as_str() {
+        "any" => crate::services::wallhaven::ColorOption::Any,
+        "660000" => crate::services::wallhaven::ColorOption::Color660000,
+        "990000" => crate::services::wallhaven::ColorOption::Color990000,
+        "cc0000" => crate::services::wallhaven::ColorOption::ColorCC0000,
+        "cc3333" => crate::services::wallhaven::ColorOption::ColorCC3333,
+        "ea4c88" => crate::services::wallhaven::ColorOption::ColorEA4C88,
+        "993399" => crate::services::wallhaven::ColorOption::Color993399,
+        "663399" => crate::services::wallhaven::ColorOption::Color663399,
+        "333399" => crate::services::wallhaven::ColorOption::Color333399,
+        "0066cc" => crate::services::wallhaven::ColorOption::Color0066CC,
+        "0099cc" => crate::services::wallhaven::ColorOption::Color0099CC,
+        "66cccc" => crate::services::wallhaven::ColorOption::Color66CCCC,
+        "77cc33" => crate::services::wallhaven::ColorOption::Color77CC33,
+        "669900" => crate::services::wallhaven::ColorOption::Color669900,
+        "336600" => crate::services::wallhaven::ColorOption::Color336600,
+        "666600" => crate::services::wallhaven::ColorOption::Color666600,
+        "999900" => crate::services::wallhaven::ColorOption::Color999900,
+        "cccc33" => crate::services::wallhaven::ColorOption::ColorCCCC33,
+        "ffff00" => crate::services::wallhaven::ColorOption::ColorFFFF00,
+        "ffcc33" => crate::services::wallhaven::ColorOption::ColorFFCC33,
+        "ff9900" => crate::services::wallhaven::ColorOption::ColorFF9900,
+        "ff6600" => crate::services::wallhaven::ColorOption::ColorFF6600,
+        "cc6633" => crate::services::wallhaven::ColorOption::ColorCC6633,
+        "996633" => crate::services::wallhaven::ColorOption::Color996633,
+        "663300" => crate::services::wallhaven::ColorOption::Color663300,
+        "000000" => crate::services::wallhaven::ColorOption::Color000000,
+        "999999" => crate::services::wallhaven::ColorOption::Color999999,
+        "cccccc" => crate::services::wallhaven::ColorOption::ColorCCCCCC,
+        "ffffff" => crate::services::wallhaven::ColorOption::ColorFFFFFF,
+        "424153" => crate::services::wallhaven::ColorOption::Color424153,
+        _ => crate::services::wallhaven::ColorOption::Any,
+    }
+}
+
+/// 解析时间范围
+pub fn parse_time_range(time_range: &str) -> crate::services::wallhaven::TimeRange {
+    match time_range {
+        "1d" => crate::services::wallhaven::TimeRange::Day,
+        "3d" => crate::services::wallhaven::TimeRange::ThreeDays,
+        "1w" => crate::services::wallhaven::TimeRange::Week,
+        "1M" => crate::services::wallhaven::TimeRange::Month,
+        "3M" => crate::services::wallhaven::TimeRange::ThreeMonths,
+        "6M" => crate::services::wallhaven::TimeRange::SixMonths,
+        "1y" => crate::services::wallhaven::TimeRange::Year,
+        _ => crate::services::wallhaven::TimeRange::Month,
+    }
 }
 
 /// 异步函数用于打开目录选择对话框
@@ -117,7 +406,22 @@ pub async fn async_load_online_wallpapers(
     context: crate::services::request_context::RequestContext,
 ) -> Result<(Vec<crate::services::wallhaven::OnlineWallpaper>, bool, usize, usize), Box<dyn std::error::Error + Send + Sync>> {
     let service = crate::services::wallhaven::WallhavenService::new(api_key, proxy);
-    match service.search_wallpapers(page, categories, sorting, purities, color, &query, time_range, atleast.as_deref(), resolutions.as_deref(), ratios.as_deref(), &context).await {
+    match service
+        .search_wallpapers(
+            page,
+            categories,
+            sorting,
+            purities,
+            color,
+            &query,
+            time_range,
+            atleast.as_deref(),
+            resolutions.as_deref(),
+            ratios.as_deref(),
+            &context,
+        )
+        .await
+    {
         Ok(result) => Ok(result),
         Err(e) => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>),
     }
@@ -229,7 +533,10 @@ pub async fn async_download_wallpaper_task_with_progress(
     cache_path: String,
 ) -> Result<u64, String> {
     info!("[下载任务] [ID:{}] 开始下载: {}", task_id, url);
-    info!("[下载任务] [ID:{}] 参数：downloaded_size = {} bytes, total_size = {} bytes", task_id, downloaded_size, total_size);
+    info!(
+        "[下载任务] [ID:{}] 参数：downloaded_size = {} bytes, total_size = {} bytes",
+        task_id, downloaded_size, total_size
+    );
 
     // 步骤1: 获取缓存文件路径（带.download后缀）
     // 使用文件总大小（total_size）来生成hash，确保同一任务的缓存路径始终一致
@@ -268,8 +575,7 @@ pub async fn async_download_wallpaper_task_with_progress(
 
         let head_response = client.head(&url).send().await.map_err(|e| format!("HEAD请求失败: {}", e))?;
         let file_size = head_response.content_length().unwrap_or(0);
-        crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, file_size)
-            .map_err(|e| format!("获取缓存路径失败: {}", e))?
+        crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, file_size).map_err(|e| format!("获取缓存路径失败: {}", e))?
     };
 
     info!("[下载任务] [ID:{}] 缓存路径: {}", task_id, temp_cache_path);
@@ -288,7 +594,8 @@ pub async fn async_download_wallpaper_task_with_progress(
         .map_err(|e| format!("获取最终缓存路径失败: {}", e))?;
 
     info!("[下载任务] [ID:{}] 重命名文件: {} -> {}", task_id, temp_cache_path, final_cache_path);
-    tokio::fs::rename(&temp_cache_path, &final_cache_path).await
+    tokio::fs::rename(&temp_cache_path, &final_cache_path)
+        .await
         .map_err(|e| format!("重命名缓存文件失败: {}", e))?;
 
     // 步骤5: 复制文件到data_path并应用正确的文件名
@@ -298,7 +605,8 @@ pub async fn async_download_wallpaper_task_with_progress(
     }
 
     info!("[下载任务] [ID:{}] 复制文件: {} -> {}", task_id, final_cache_path, save_path.display());
-    tokio::fs::copy(&final_cache_path, &save_path).await
+    tokio::fs::copy(&final_cache_path, &save_path)
+        .await
         .map_err(|e| format!("复制文件到目标路径失败: {}", e))?;
 
     info!("[下载任务] [ID:{}] 下载完成，文件大小: {} bytes", task_id, actual_size);
@@ -488,7 +796,7 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
             );
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
-                format!("文件大小不匹配：期望 {} bytes，实际 {} bytes", total_size, actual_size)
+                format!("文件大小不匹配：期望 {} bytes，实际 {} bytes", total_size, actual_size),
             )) as Box<dyn std::error::Error + Send + Sync>);
         }
     }
@@ -692,7 +1000,10 @@ async fn download_to_cache(
     // 验证文件完整性
     if let Ok(metadata) = tokio::fs::metadata(&cache_path_buf).await {
         let actual_size = metadata.len();
-        info!("[下载任务] [ID:{}] 下载完成：downloaded = {} bytes, total_size = {} bytes, actual_size = {} bytes", task_id, downloaded, total_size, actual_size);
+        info!(
+            "[下载任务] [ID:{}] 下载完成：downloaded = {} bytes, total_size = {} bytes, actual_size = {} bytes",
+            task_id, downloaded, total_size, actual_size
+        );
         if total_size > 0 && actual_size != total_size {
             error!(
                 "[下载任务] [ID:{}] 文件大小不匹配：期望 {} bytes，实际 {} bytes",

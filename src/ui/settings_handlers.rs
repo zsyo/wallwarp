@@ -39,6 +39,8 @@ impl App {
             AppMessage::AutoChangeModeSelected(mode) => self.handle_auto_change_mode_selected(mode),
             AppMessage::AutoChangeIntervalSelected(interval) => self.handle_auto_change_interval_selected(interval),
             AppMessage::CustomIntervalMinutesChanged(minutes) => self.handle_custom_interval_minutes_changed(minutes),
+            AppMessage::AutoChangeQueryChanged(query) => self.handle_auto_change_query_changed(query),
+            AppMessage::SaveAutoChangeQuery => self.handle_save_auto_change_query(),
             AppMessage::ShowCloseConfirmation => self.handle_show_close_confirmation(),
             AppMessage::CloseConfirmationResponse(action, remember_setting) => self.handle_close_confirmation_response(action, remember_setting),
             AppMessage::CloseConfirmationCancelled => self.handle_close_confirmation_cancelled(),
@@ -50,6 +52,8 @@ impl App {
     }
 
     fn handle_language_selected(&mut self, lang: String) -> iced::Task<AppMessage> {
+        let old_lang = self.config.global.language.clone();
+        tracing::info!("[设置] [语言] 修改: {} -> {}", old_lang, lang);
         self.i18n.set_language(lang.clone());
         // 同时更新配置
         self.config.set_language(lang);
@@ -86,6 +90,9 @@ impl App {
 
             // 重置自定义分钟数状态
             self.custom_interval_minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
+
+            // 重置定时切换关键词状态
+            self.auto_change_query = self.config.wallpaper.auto_change_query.clone();
 
             // 滚动到顶部
             return iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("settings_scroll".to_string()));
@@ -229,6 +236,8 @@ impl App {
     fn handle_data_path_selected(&mut self, path: String) -> iced::Task<AppMessage> {
         if !path.is_empty() && path != "SELECT_DATA_PATH" {
             // 这是异步任务返回的实际路径
+            let old_path = self.config.data.data_path.clone();
+            tracing::info!("[设置] [数据路径] 修改: {} -> {}", old_path, path);
             self.config.set_data_path(path);
         } else if path == "SELECT_DATA_PATH" {
             // 这是用户点击按钮时的原始消息，触发异步任务
@@ -247,6 +256,8 @@ impl App {
     fn handle_cache_path_selected(&mut self, path: String) -> iced::Task<AppMessage> {
         if !path.is_empty() && path != "SELECT_CACHE_PATH" && path != "SELECT_DATA_PATH" {
             // 这是异步任务返回的实际路径
+            let old_path = self.config.data.cache_path.clone();
+            tracing::info!("[设置] [缓存路径] 修改: {} -> {}", old_path, path);
             self.config.set_cache_path(path);
         } else if path == "SELECT_CACHE_PATH" {
             // 这是用户点击按钮时的原始消息，触发异步任务
@@ -387,7 +398,13 @@ impl App {
 
     fn handle_save_wallhaven_api_key(&mut self) -> iced::Task<AppMessage> {
         // 保存API KEY到配置文件
-        self.config.set_wallhaven_api_key(self.wallhaven_api_key.clone());
+        let old_api_key = self.config.wallhaven.api_key.clone();
+        let new_api_key = self.wallhaven_api_key.clone();
+        tracing::info!("[设置] [Wallhaven API Key] 保存: {} -> {}", 
+            if old_api_key.is_empty() { "(空)" } else { &old_api_key[..8.min(old_api_key.len())] },
+            if new_api_key.is_empty() { "(空)" } else { &new_api_key[..8.min(new_api_key.len())] }
+        );
+        self.config.set_wallhaven_api_key(new_api_key);
 
         // 如果 API Key 被清空，移除 NSFW 选项
         if self.wallhaven_api_key.is_empty() {
@@ -434,6 +451,8 @@ impl App {
         if is_address_valid && is_port_valid {
             // 地址和端口都有效，保存代理设置
             let proxy_url = format!("{}://{}:{}", self.proxy_protocol, self.proxy_address, self.proxy_port);
+            let old_proxy = self.config.global.proxy.clone();
+            tracing::info!("[设置] [代理] 保存: {} -> {}", old_proxy, proxy_url);
             self.config.set_proxy(proxy_url);
             // 显示成功通知
             self.show_notification("代理设置保存成功".to_string(), super::NotificationType::Success)
@@ -498,12 +517,16 @@ impl App {
     }
 
     fn handle_wallpaper_mode_selected(&mut self, mode: crate::utils::config::WallpaperMode) -> iced::Task<AppMessage> {
+        let old_mode = self.config.wallpaper.mode;
+        tracing::info!("[设置] [壁纸模式] 修改: {:?} -> {:?}", old_mode, mode);
         self.wallpaper_mode = mode;
         self.config.set_wallpaper_mode(mode);
         iced::Task::none()
     }
 
     fn handle_auto_change_mode_selected(&mut self, mode: crate::utils::config::WallpaperAutoChangeMode) -> iced::Task<AppMessage> {
+        let old_mode = self.config.wallpaper.auto_change_mode;
+        tracing::info!("[设置] [定时切换模式] 修改: {:?} -> {:?}", old_mode, mode);
         self.auto_change_mode = mode;
         self.config.wallpaper.auto_change_mode = mode;
         self.config.save_to_file();
@@ -511,6 +534,8 @@ impl App {
     }
 
     fn handle_auto_change_interval_selected(&mut self, interval: crate::utils::config::WallpaperAutoChangeInterval) -> iced::Task<AppMessage> {
+        let old_interval = self.config.wallpaper.auto_change_interval.clone();
+        tracing::info!("[设置] [定时切换周期] 修改: {:?} -> {:?}", old_interval, interval);
         self.auto_change_interval = interval.clone();
         self.config.wallpaper.auto_change_interval = interval;
 
@@ -544,28 +569,48 @@ impl App {
 
     fn handle_custom_interval_minutes_changed(&mut self, minutes: u32) -> iced::Task<AppMessage> {
         // 限制最小值为1
-        let minutes = if minutes < 1 { 1 } else { minutes };
-        self.custom_interval_minutes = minutes;
-
-        // 如果当前选中的是自定义选项，立即更新配置
-        if matches!(self.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Custom(_)) {
-            // 同时更新 UI 状态和配置文件
-            self.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
-            self.config.wallpaper.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
-            self.config.save_to_file();
-
-            // 重置定时任务并记录下次执行时间
-            if self.local_state.auto_change_enabled {
-                self.local_state.auto_change_last_time = Some(std::time::Instant::now());
-                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
-                tracing::info!(
-                    "[定时切换] [重置] 自定义间隔: {}分钟, 下次执行时间: {}",
-                    minutes,
-                    next_time.format("%Y-%m-%d %H:%M:%S")
-                );
+                let minutes = if minutes < 1 { 1 } else { minutes };
+                self.custom_interval_minutes = minutes;
+        
+                // 如果当前选中的是自定义选项，立即更新配置
+                if matches!(self.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Custom(_)) {
+                    // 同时更新 UI 状态和配置文件
+                    self.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
+                    self.config.wallpaper.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
+                    self.config.save_to_file();
+        
+                    // 重置定时任务并记录下次执行时间
+                    if self.local_state.auto_change_enabled {
+                        self.local_state.auto_change_last_time = Some(std::time::Instant::now());
+                        let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+                        tracing::info!(
+                            "[定时切换] [重置] 自定义间隔: {}分钟, 下次执行时间: {}",
+                            minutes,
+                            next_time.format("%Y-%m-%d %H:%M:%S")
+                        );
+                    }
+                }
+                iced::Task::none()
             }
-        }
-
-        iced::Task::none()
-    }
-}
+        
+            fn handle_auto_change_query_changed(&mut self, query: String) -> iced::Task<AppMessage> {
+                    // 只更新临时状态，不保存到配置文件
+                    self.auto_change_query = query;
+                    iced::Task::none()
+                }
+            
+                fn handle_save_auto_change_query(&mut self) -> iced::Task<AppMessage> {
+                        // 保存到配置文件
+                        let old_query = self.config.wallpaper.auto_change_query.clone();
+                        let new_query = self.auto_change_query.clone();
+                        tracing::info!("[设置] [定时切换关键词] 保存: {} -> {}", 
+                            if old_query.is_empty() { "(空)" } else { &old_query },
+                            if new_query.is_empty() { "(空)" } else { &new_query }
+                        );
+                        self.config.wallpaper.auto_change_query = new_query;
+                        self.config.save_to_file();
+                
+                        // 显示保存成功通知
+                        let success_message = self.i18n.t("settings.save-success").to_string();
+                        iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success))
+                    }            }

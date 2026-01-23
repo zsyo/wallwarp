@@ -59,6 +59,7 @@ impl App {
             auto_change_mode: config.wallpaper.auto_change_mode,         // 初始化定时切换模式状态
             auto_change_interval: config.wallpaper.auto_change_interval, // 初始化定时切换周期状态
             custom_interval_minutes: config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30), // 初始化自定义分钟数，默认为30
+            auto_change_query: config.wallpaper.auto_change_query.clone(), // 初始化定时切换关键词
             show_close_confirmation: false,
             remember_close_setting: false,
             show_path_clear_confirmation: false,
@@ -78,6 +79,7 @@ impl App {
             online_state: super::online::OnlineState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
             initial_loaded: false, // 标记是否已加载初始数据
+            auto_change_running: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), // 初始化定时切换执行标志
         }
     }
 

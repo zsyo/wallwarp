@@ -170,6 +170,8 @@ pub struct WallpaperConfig {
     pub auto_change_mode: WallpaperAutoChangeMode,
     #[serde(default)]
     pub auto_change_interval: WallpaperAutoChangeInterval,
+    #[serde(default)]
+    pub auto_change_query: String,
 }
 
 impl Default for WallpaperConfig {
@@ -178,6 +180,7 @@ impl Default for WallpaperConfig {
             mode: WallpaperMode::default(),
             auto_change_mode: WallpaperAutoChangeMode::default(),
             auto_change_interval: WallpaperAutoChangeInterval::default(),
+            auto_change_query: String::new(),
         }
     }
 }
@@ -311,9 +314,9 @@ impl std::fmt::Display for WallpaperAutoChangeInterval {
 #[serde(rename_all = "snake_case")]
 pub enum WallpaperMode {
     #[default]
-    Stretch,
     Crop,
     Fit,
+    Stretch,
     Tile,
     Center,
     Span,
@@ -339,7 +342,7 @@ impl WallpaperMode {
             "tile" => Some(WallpaperMode::Tile),
             "center" => Some(WallpaperMode::Center),
             "span" => Some(WallpaperMode::Span),
-            _ => None,
+            _ => Some(WallpaperMode::Crop),
         }
     }
 }

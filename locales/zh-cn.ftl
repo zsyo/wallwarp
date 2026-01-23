@@ -148,6 +148,8 @@ settings = 设置
     .wallpaper-mode = 壁纸模式:
     .auto-change-mode = 定时切换模式:
     .auto-change-interval = 定时切换周期:
+    .auto-change-query = 定时切换关键词:
+    .auto-change-query-placeholder = 输入搜索关键词（仅支持英文）...
     .auto-change-control = 定时切换控制:
     .start-auto-change = 启动定时切换
     .stop-auto-change = 停止定时切换
@@ -157,6 +159,7 @@ settings = 设置
     .about-author = 作者:
     .about-repo = 开源地址:
     .save = 保存
+    .save-success = 保存成功
 
 auto-change-mode-options =
     .online = 在线切换

@@ -419,11 +419,6 @@ impl App {
 
     /// 启动定时切换壁纸
     fn handle_start_auto_change(&mut self) -> iced::Task<AppMessage> {
-        // 检查配置是否允许定时切换
-        if self.config.wallpaper.auto_change_mode != crate::utils::config::WallpaperAutoChangeMode::Local {
-            return iced::Task::none();
-        }
-
         // 检查定时切换间隔是否为关闭状态
         if matches!(self.config.wallpaper.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Off) {
             return iced::Task::none();
@@ -434,12 +429,21 @@ impl App {
         self.local_state.auto_change_timer = Some(std::time::Instant::now());
         self.local_state.auto_change_last_time = Some(std::time::Instant::now());
 
-        // 获取支持的图片文件列表
-        let data_path = self.config.data.data_path.clone();
-        iced::Task::perform(super::async_tasks::async_get_supported_images(data_path), |result| match result {
-            Ok(paths) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths)),
-            Err(e) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed(e.to_string())),
-        })
+        // 根据切换模式启动不同的逻辑
+        match self.config.wallpaper.auto_change_mode {
+            crate::utils::config::WallpaperAutoChangeMode::Local => {
+                // 本地模式：获取支持的图片文件列表
+                let data_path = self.config.data.data_path.clone();
+                iced::Task::perform(super::async_tasks::async_get_supported_images(data_path), |result| match result {
+                    Ok(paths) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths)),
+                    Err(e) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed(e.to_string())),
+                })
+            }
+            crate::utils::config::WallpaperAutoChangeMode::Online => {
+                // 在线模式：启动在线壁纸切换
+                iced::Task::none()
+            }
+        }
     }
 
     /// 停止定时切换壁纸
@@ -474,29 +478,45 @@ impl App {
                 // 计算并记录下次执行时间
                 let next_time = chrono::Local::now() + chrono::Duration::minutes(interval_minutes as i64);
                 tracing::info!(
-                    "[定时切换] [执行] 触发壁纸切换, 下次执行时间: {}",
+                    "[定时切换] [执行] 触发壁纸切换, 模式: {:?}, 下次执行时间: {}",
+                    self.config.wallpaper.auto_change_mode,
                     next_time.format("%Y-%m-%d %H:%M:%S")
                 );
 
-                // 重新获取支持的图片文件列表（因为可能有新增或删除）
-                let data_path = self.config.data.data_path.clone();
-
-                return iced::Task::perform(super::async_tasks::async_get_supported_images(data_path), |result| match result {
-                    Ok(paths) => {
-                        // 获取到图片列表后，立即尝试设置随机壁纸
-                        if paths.is_empty() {
-                            AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed("没有找到支持的壁纸文件".to_string()))
-                        } else {
-                            // 发送一个消息来触发设置随机壁纸
-                            AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths))
-                        }
-                    },
-                    Err(e) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed(e.to_string())),
-                });
+                // 根据切换模式执行不同的逻辑
+                match self.config.wallpaper.auto_change_mode {
+                    crate::utils::config::WallpaperAutoChangeMode::Local => {
+                        // 本地模式：重新获取支持的图片文件列表（因为可能有新增或删除）
+                        let data_path = self.config.data.data_path.clone();
+                        iced::Task::perform(super::async_tasks::async_get_supported_images(data_path), |result| match result {
+                            Ok(paths) => {
+                                // 获取到图片列表后，立即尝试设置随机壁纸
+                                if paths.is_empty() {
+                                    AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed("没有找到支持的壁纸文件".to_string()))
+                                } else {
+                                    // 发送一个消息来触发设置随机壁纸
+                                    AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths))
+                                }
+                            },
+                            Err(e) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed(e.to_string())),
+                        })
+                    }
+                    crate::utils::config::WallpaperAutoChangeMode::Online => {
+                        // 在线模式：从Wallhaven获取随机壁纸
+                        let config = self.config.clone();
+                        let auto_change_running = self.auto_change_running.clone();
+                        iced::Task::perform(super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running), |result| match result {
+                            Ok(path) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path)),
+                            Err(e) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperFailed(e.to_string())),
+                        })
+                    }
+                }
+            } else {
+                iced::Task::none()
             }
+        } else {
+            iced::Task::none()
         }
-
-        iced::Task::none()
     }
 
     /// 处理获取支持的图片文件列表成功

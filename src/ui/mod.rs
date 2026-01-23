@@ -61,6 +61,8 @@ pub enum AppMessage {
     AutoChangeModeSelected(crate::utils::config::WallpaperAutoChangeMode), // 定时切换模式选择
     AutoChangeIntervalSelected(crate::utils::config::WallpaperAutoChangeInterval), // 定时切换周期选择
     CustomIntervalMinutesChanged(u32), // 自定义切换周期分钟数变化
+    AutoChangeQueryChanged(String), // 定时切换关键词变化
+    SaveAutoChangeQuery, // 保存定时切换关键词
     // 通知相关消息
     ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
     HideNotification,                           // 隐藏通知（用于定时隐藏）
@@ -110,6 +112,8 @@ pub struct App {
     pub auto_change_interval: crate::utils::config::WallpaperAutoChangeInterval,
     // 自定义切换周期分钟数
     pub custom_interval_minutes: u32,
+    // 定时切换关键词
+    pub auto_change_query: String,
     // 关闭确认对话框状态
     pub show_close_confirmation: bool,
     pub remember_close_setting: bool,
@@ -134,6 +138,8 @@ pub struct App {
     pub download_state: crate::ui::download::DownloadStateFull,
     // 标记是否已加载初始数据
     pub initial_loaded: bool,
+    // 定时切换执行标志，防止任务并行执行
+    pub auto_change_running: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Default for App {

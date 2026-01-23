@@ -148,6 +148,8 @@ settings = Settings
     .wallpaper-mode = Wallpaper Mode:
     .auto-change-mode = Auto Change Mode:
     .auto-change-interval = Auto Change Interval:
+    .auto-change-query = Auto Change Query:
+    .auto-change-query-placeholder = Enter search keywords (English only)...
     .auto-change-control = Auto Change Control:
     .start-auto-change = Start Auto Change
     .stop-auto-change = Stop Auto Change
@@ -157,6 +159,7 @@ settings = Settings
     .about-version = Version:
     .about-repo = Repository:
     .save = Save
+    .save-success = Saved successfully
 
 auto-change-mode-options =
     .online = Online

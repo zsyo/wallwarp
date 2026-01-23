@@ -249,28 +249,10 @@ impl OnlineState {
         let mut state = Self::default();
 
         // 加载分类（从字符串解析位掩码）
-        state.categories = match config.wallhaven.category.as_str() {
-            "100" | "general" => 0b100,
-            "010" | "anime" => 0b010,
-            "001" | "people" => 0b001,
-            "110" => 0b110, // general + anime
-            "101" => 0b101, // general + people
-            "011" => 0b011, // anime + people
-            "111" => 0b111, // all
-            _ => 0b100,
-        };
+        state.categories = super::async_tasks::parse_category_bitmask(&config.wallhaven.category);
 
         // 加载纯净度（从字符串解析位掩码）
-        state.purities = match config.wallhaven.purity.as_str() {
-            "100" | "sfw" => 0b100,
-            "010" | "sketchy" => 0b010,
-            "001" | "nsfw" => 0b001,
-            "110" => 0b110, // sfw + sketchy
-            "101" => 0b101, // sfw + nsfw
-            "011" => 0b011, // sketchy + nsfw
-            "111" => 0b111, // all
-            _ => 0b100,
-        };
+        state.purities = super::async_tasks::parse_purity_bitmask(&config.wallhaven.purity);
 
         // 如果 API Key 为空，移除 NSFW 选项
         if config.wallhaven.api_key.is_empty() {
@@ -278,62 +260,13 @@ impl OnlineState {
         }
 
         // 加载排序
-        state.sorting = match config.wallhaven.sorting.as_str() {
-            "date_added" => Sorting::DateAdded,
-            "relevance" => Sorting::Relevance,
-            "random" => Sorting::Random,
-            "views" => Sorting::Views,
-            "favorites" => Sorting::Favorites,
-            "toplist" => Sorting::TopList,
-            "hot" => Sorting::Hot,
-            _ => Sorting::DateAdded,
-        };
+        state.sorting = super::async_tasks::parse_sorting(&config.wallhaven.sorting);
 
         // 加载颜色
-        state.color = match config.wallhaven.color.as_str() {
-            "660000" => ColorOption::Color660000,
-            "990000" => ColorOption::Color990000,
-            "cc0000" => ColorOption::ColorCC0000,
-            "cc3333" => ColorOption::ColorCC3333,
-            "ea4c88" => ColorOption::ColorEA4C88,
-            "993399" => ColorOption::Color993399,
-            "663399" => ColorOption::Color663399,
-            "333399" => ColorOption::Color333399,
-            "0066cc" => ColorOption::Color0066CC,
-            "0099cc" => ColorOption::Color0099CC,
-            "66cccc" => ColorOption::Color66CCCC,
-            "77cc33" => ColorOption::Color77CC33,
-            "669900" => ColorOption::Color669900,
-            "336600" => ColorOption::Color336600,
-            "666600" => ColorOption::Color666600,
-            "999900" => ColorOption::Color999900,
-            "cccc33" => ColorOption::ColorCCCC33,
-            "ffff00" => ColorOption::ColorFFFF00,
-            "ffcc33" => ColorOption::ColorFFCC33,
-            "ff9900" => ColorOption::ColorFF9900,
-            "ff6600" => ColorOption::ColorFF6600,
-            "cc6633" => ColorOption::ColorCC6633,
-            "996633" => ColorOption::Color996633,
-            "663300" => ColorOption::Color663300,
-            "000000" => ColorOption::Color000000,
-            "999999" => ColorOption::Color999999,
-            "cccccc" => ColorOption::ColorCCCCCC,
-            "ffffff" => ColorOption::ColorFFFFFF,
-            "424153" => ColorOption::Color424153,
-            _ => ColorOption::Any,
-        };
+        state.color = super::async_tasks::parse_color(&config.wallhaven.color);
 
         // 加载时间范围
-        state.time_range = match config.wallhaven.top_range.as_str() {
-            "1d" => TimeRange::Day,
-            "3d" => TimeRange::ThreeDays,
-            "1w" => TimeRange::Week,
-            "1M" => TimeRange::Month,
-            "3M" => TimeRange::ThreeMonths,
-            "6M" => TimeRange::SixMonths,
-            "1y" => TimeRange::Year,
-            _ => TimeRange::Month,
-        };
+        state.time_range = super::async_tasks::parse_time_range(&config.wallhaven.top_range);
 
         // 加载分辨率模式
         state.resolution_mode = match config.wallhaven.resolution_mode.as_str() {
