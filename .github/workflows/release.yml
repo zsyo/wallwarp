@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Package
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install cargo-packager
+        run: cargo install cargo-packager
+
+      - name: Build and package
+        run: cargo packager --release
+
+      - name: Get version
+        id: version
+        run: |
+          if ("${{ github.ref }}" -match "refs/tags/v(.*)") {
+            echo "version=$matches[1]" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "version=latest" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Create portable zip
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $portableDir = "wallwarp-portable-windows-x64-$version"
+          New-Item -ItemType Directory -Force -Path $portableDir
+          Copy-Item -Path "target/release/wallwarp.exe" -Destination "$portableDir/"
+          Copy-Item -Path "locales" -Destination "$portableDir/" -Recurse
+          Compress-Archive -Path "$portableDir/*" -DestinationPath "wallwarp-portable-windows-x64-$version.zip"
+
+      - name: Create source archive (zip)
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          Compress-Archive -Path "*" -DestinationPath "wallwarp-source-$version.zip" -Force
+
+      - name: Create source archive (tar.gz)
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          tar -czf "wallwarp-source-$version.tar.gz" --exclude=".git" --exclude="target" --exclude="cache" --exclude="data" --exclude="config.toml" *
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          path: |
+            *.msi
+            *.exe
+            *.zip
+            *.tar.gz
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.msi
+            *.exe
+            *.zip
+            *.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
