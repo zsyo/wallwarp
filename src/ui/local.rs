@@ -23,12 +23,10 @@ pub enum LocalMessage {
     WallpaperSelected(Wallpaper),
     ScrollToBottom,
     CheckAndLoadNextPage, // 检查是否需要自动加载下一页
-    AnimationTick,
     ShowModal(usize),
     CloseModal,
     NextImage,
     PreviousImage,
-    AnimatedFrameUpdate,
     ViewInFolder(usize),
     SetWallpaper(usize),
     ShowDeleteConfirm(usize),
@@ -61,7 +59,6 @@ pub struct LocalState {
     pub total_count: usize,
     pub modal_visible: bool,
     pub current_image_index: usize,
-    pub animated_decoder: Option<crate::utils::animated_image::AnimatedDecoder>,
     pub delete_confirm_visible: bool,
     pub delete_target_index: Option<usize>,
     pub modal_image_handle: Option<iced::widget::image::Handle>,
@@ -82,7 +79,6 @@ impl Default for LocalState {
             total_count: 0,
             modal_visible: false,
             current_image_index: 0,
-            animated_decoder: None,
             delete_confirm_visible: false,
             delete_target_index: None,
             modal_image_handle: None,
@@ -198,14 +194,6 @@ pub fn local_view<'a>(i18n: &'a crate::i18n::I18n, _config: &'a Config, window_w
         let image_layer: Element<_> = if let Some(ref handle) = local_state.modal_image_handle {
             // 使用预加载的图片数据
             let modal_image = iced::widget::image(handle.clone())
-                .content_fit(iced::ContentFit::Contain)
-                .width(Length::Fill)
-                .height(Length::Fill);
-            modal_image.into()
-        } else if let Some(ref decoder) = local_state.animated_decoder {
-            // 动态图
-            let current_frame = decoder.current_frame();
-            let modal_image = iced::widget::image(current_frame.handle.clone())
                 .content_fit(iced::ContentFit::Contain)
                 .width(Length::Fill)
                 .height(Length::Fill);
@@ -492,25 +480,6 @@ fn create_loaded_wallpaper<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wallp
 }
 
 impl LocalState {
-    /// 初始化动态图解码器
-    pub fn init_animated_decoder(&mut self, index: usize) {
-        if let Some(path) = self.all_paths.get(index) {
-            let path = std::path::PathBuf::from(path);
-            match crate::utils::animated_image::AnimatedDecoder::from_path(&path) {
-                Ok(decoder) => {
-                    if decoder.frame_count() > 1 {
-                        self.animated_decoder = Some(decoder);
-                    } else {
-                        self.animated_decoder = None;
-                    }
-                }
-                Err(_) => {
-                    self.animated_decoder = None;
-                }
-            }
-        }
-    }
-
     /// 查找下一个有效的图片索引
     pub fn find_next_valid_image_index(&self, start_index: usize, direction: i32) -> Option<usize> {
         if self.all_paths.is_empty() {

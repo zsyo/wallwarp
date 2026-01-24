@@ -35,7 +35,7 @@ pub enum AppMessage {
     None, // 空消息，用于某些不需要实际操作的情况
     LanguageSelected(String),
     WindowResized(u32, u32), // 窗口大小改变事件
-    DebounceTimer,
+    ExecutePendingSave,
     PageSelected(ActivePage),
     AutoStartupToggled(bool),
     CloseActionSelected(CloseAction),
@@ -58,12 +58,12 @@ pub enum AppMessage {
     ProxyAddressChanged(String),
     ProxyPortChanged(u32),
     SaveProxy,
-    WallpaperModeSelected(crate::utils::config::WallpaperMode),                    // 壁纸模式选择
-    AutoChangeModeSelected(crate::utils::config::WallpaperAutoChangeMode),         // 定时切换模式选择
+    WallpaperModeSelected(crate::utils::config::WallpaperMode), // 壁纸模式选择
+    AutoChangeModeSelected(crate::utils::config::WallpaperAutoChangeMode), // 定时切换模式选择
     AutoChangeIntervalSelected(crate::utils::config::WallpaperAutoChangeInterval), // 定时切换周期选择
-    CustomIntervalMinutesChanged(u32),                                             // 自定义切换周期分钟数变化
-    AutoChangeQueryChanged(String),                                                // 定时切换关键词变化
-    SaveAutoChangeQuery,                                                           // 保存定时切换关键词
+    CustomIntervalMinutesChanged(u32),                          // 自定义切换周期分钟数变化
+    AutoChangeQueryChanged(String),                             // 定时切换关键词变化
+    SaveAutoChangeQuery,                                        // 保存定时切换关键词
     // 通知相关消息
     ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
     HideNotification,                           // 隐藏通知（用于定时隐藏）

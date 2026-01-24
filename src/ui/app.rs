@@ -32,24 +32,26 @@ impl App {
         let tray_manager = super::tray::TrayManager::new(&i18n);
 
         // 根据配置文件中的定时切换周期初始化定时任务状态
-        let (auto_change_enabled, auto_change_timer, auto_change_last_time) =
-            if matches!(config.wallpaper.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Off) {
-                // 配置为关闭状态，不启动定时任务
-                tracing::info!("[定时切换] [启动] 配置为关闭状态，定时任务未启动");
-                (false, None, None)
-            } else {
-                // 配置为开启状态，自动启动定时任务
-                let now = std::time::Instant::now();
-                if let Some(minutes) = config.wallpaper.auto_change_interval.get_minutes() {
-                    let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
-                    tracing::info!(
-                        "[定时切换] [启动] 配置为开启状态，间隔: {}分钟, 下次执行时间: {}",
-                        minutes,
-                        next_time.format("%Y-%m-%d %H:%M:%S")
-                    );
-                }
-                (true, Some(now), Some(now))
-            };
+        let (auto_change_enabled, auto_change_timer, auto_change_last_time) = if matches!(
+            config.wallpaper.auto_change_interval,
+            crate::utils::config::WallpaperAutoChangeInterval::Off
+        ) {
+            // 配置为关闭状态，不启动定时任务
+            tracing::info!("[定时切换] [启动] 配置为关闭状态，定时任务未启动");
+            (false, None, None)
+        } else {
+            // 配置为开启状态，自动启动定时任务
+            let now = std::time::Instant::now();
+            if let Some(minutes) = config.wallpaper.auto_change_interval.get_minutes() {
+                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+                tracing::info!(
+                    "[定时切换] [启动] 配置为开启状态，间隔: {}分钟, 下次执行时间: {}",
+                    minutes,
+                    next_time.format("%Y-%m-%d %H:%M:%S")
+                );
+            }
+            (true, Some(now), Some(now))
+        };
 
         Self {
             i18n,
@@ -61,9 +63,9 @@ impl App {
             proxy_protocol,
             proxy_address,
             proxy_port,
-            wallhaven_api_key: config.wallhaven.api_key.clone(),         // 初始化API KEY状态
-            wallpaper_mode: config.wallpaper.mode,                       // 初始化壁纸模式状态
-            auto_change_mode: config.wallpaper.auto_change_mode,         // 初始化定时切换模式状态
+            wallhaven_api_key: config.wallhaven.api_key.clone(), // 初始化API KEY状态
+            wallpaper_mode: config.wallpaper.mode,               // 初始化壁纸模式状态
+            auto_change_mode: config.wallpaper.auto_change_mode, // 初始化定时切换模式状态
             auto_change_interval: config.wallpaper.auto_change_interval, // 初始化定时切换周期状态
             custom_interval_minutes: config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30), // 初始化自定义分钟数，默认为30
             auto_change_query: config.wallpaper.auto_change_query.clone(), // 初始化定时切换关键词
@@ -85,7 +87,7 @@ impl App {
             },
             online_state: super::online::OnlineState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
-            initial_loaded: false,                                                               // 标记是否已加载初始数据
+            initial_loaded: false, // 标记是否已加载初始数据
             auto_change_running: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), // 初始化定时切换执行标志
             wallpaper_history: {
                 // 初始化壁纸切换历史记录，获取当前壁纸路径并添加到记录中
@@ -133,7 +135,11 @@ impl App {
     }
 
     // 辅助方法：显示通知
-    pub fn show_notification(&mut self, message: String, notification_type: super::NotificationType) -> iced::Task<AppMessage> {
+    pub fn show_notification(
+        &mut self,
+        message: String,
+        notification_type: super::NotificationType,
+    ) -> iced::Task<AppMessage> {
         self.notification_message = message;
         self.notification_type = notification_type;
         self.show_notification = true;
@@ -195,31 +201,39 @@ impl App {
             ),
         };
 
-        let notification_content = container(
-            text(&self.notification_message)
-                .size(14)
-                .style(move |_theme| iced::widget::text::Style { color: Some(text_color) }),
-        )
-        .padding(10)
-        .width(Length::Shrink)
-        .height(Length::Shrink)
-        .style(move |_theme| iced::widget::container::Style {
-            background: Some(iced::Background::Color(bg_color)),
-            border: iced::border::Border {
-                radius: iced::border::Radius::from(8.0),
-                width: 1.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            ..Default::default()
-        });
+        let notification_content =
+            container(
+                text(&self.notification_message)
+                    .size(14)
+                    .style(move |_theme| iced::widget::text::Style {
+                        color: Some(text_color),
+                    }),
+            )
+            .padding(10)
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .style(move |_theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                border: iced::border::Border {
+                    radius: iced::border::Radius::from(8.0),
+                    width: 1.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                ..Default::default()
+            });
 
         // 将通知放在窗口底部中央
-        container(container(notification_content).width(Length::Shrink).height(Length::Shrink).padding(10))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .align_x(iced::alignment::Horizontal::Center)
-            .align_y(iced::alignment::Vertical::Bottom)
-            .into()
+        container(
+            container(notification_content)
+                .width(Length::Shrink)
+                .height(Length::Shrink)
+                .padding(10),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .align_x(iced::alignment::Horizontal::Center)
+        .align_y(iced::alignment::Vertical::Bottom)
+        .into()
     }
 
     pub fn view(&self) -> iced::Element<'_, AppMessage> {
@@ -244,7 +258,10 @@ impl App {
     }
 
     // 辅助方法：创建叠加层（底层内容 + 覆盖内容）
-    fn create_stack<'a>(base: iced::Element<'a, AppMessage>, overlay: iced::Element<'a, AppMessage>) -> iced::Element<'a, AppMessage> {
+    fn create_stack<'a>(
+        base: iced::Element<'a, AppMessage>,
+        overlay: iced::Element<'a, AppMessage>,
+    ) -> iced::Element<'a, AppMessage> {
         iced::widget::stack(vec![base, overlay])
             .width(iced::Length::Fill)
             .height(iced::Length::Fill)

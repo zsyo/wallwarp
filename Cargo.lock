@@ -5777,7 +5777,6 @@ dependencies = [
  "chrono",
  "fast_image_resize",
  "fluent-bundle",
- "gif",
  "iced",
  "iced_aw",
  "image",

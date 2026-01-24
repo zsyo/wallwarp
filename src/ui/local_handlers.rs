@@ -9,6 +9,7 @@ use tracing::error;
 impl App {
     /// 处理本地壁纸相关消息
     pub fn handle_local_message(&mut self, msg: LocalMessage) -> iced::Task<AppMessage> {
+        dbg!(&msg);
         match msg {
             LocalMessage::LoadWallpapers => self.handle_load_local_wallpapers(),
             LocalMessage::LoadWallpapersSuccess(paths) => self.handle_load_local_wallpapers_success(paths),
@@ -24,8 +25,6 @@ impl App {
             LocalMessage::PreviousImage => self.handle_previous_local_image(),
             LocalMessage::ScrollToBottom => self.handle_scroll_to_bottom(),
             LocalMessage::CheckAndLoadNextPage => self.handle_check_and_load_next_page(),
-            LocalMessage::AnimationTick => self.handle_local_animation_tick(),
-            LocalMessage::AnimatedFrameUpdate => self.handle_local_animated_frame_update(),
             LocalMessage::ViewInFolder(index) => self.handle_view_in_folder(index),
             LocalMessage::ShowDeleteConfirm(index) => self.handle_show_delete_confirm(index),
             LocalMessage::CloseDeleteConfirm => self.handle_close_delete_confirm(),
@@ -178,9 +177,6 @@ impl App {
         // 清除之前的图片数据
         self.local_state.modal_image_handle = None;
 
-        // 使用辅助方法初始化动态图解码器
-        self.local_state.init_animated_decoder(index);
-
         // 异步加载图片数据
         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
             return iced::Task::perform(
@@ -207,8 +203,6 @@ impl App {
     fn handle_close_local_modal(&mut self) -> iced::Task<AppMessage> {
         // 关闭模态窗口
         self.local_state.modal_visible = false;
-        // 清理动态图解码器
-        self.local_state.animated_decoder = None;
         iced::Task::none()
     }
 
@@ -219,8 +213,6 @@ impl App {
 
             // 清除之前的图片数据
             self.local_state.modal_image_handle = None;
-
-            self.local_state.init_animated_decoder(next_index);
 
             // 异步加载图片数据
             if let Some(path) = self.local_state.all_paths.get(next_index).cloned() {
@@ -247,8 +239,6 @@ impl App {
 
             // 清除之前的图片数据
             self.local_state.modal_image_handle = None;
-
-            self.local_state.init_animated_decoder(prev_index);
 
             // 异步加载图片数据
             if let Some(path) = self.local_state.all_paths.get(prev_index).cloned() {
@@ -303,19 +293,6 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_local_animation_tick(&mut self) -> iced::Task<AppMessage> {
-        // 动画刻度消息（已不再使用，保留以避免编译错误）
-        iced::Task::none()
-    }
-
-    fn handle_local_animated_frame_update(&mut self) -> iced::Task<AppMessage> {
-        // 更新动态图帧
-        if let Some(ref mut decoder) = self.local_state.animated_decoder {
-            decoder.update();
-        }
-        iced::Task::none()
-    }
-
     fn handle_view_in_folder(&mut self, index: usize) -> iced::Task<AppMessage> {
         // 查看文件夹并选中文件
         if let Some(path) = self.local_state.all_paths.get(index) {
@@ -360,7 +337,6 @@ impl App {
                     // 如果删除的是当前显示的图片，关闭模态窗口
                     if self.local_state.modal_visible && self.local_state.current_image_index == index {
                         self.local_state.modal_visible = false;
-                        self.local_state.animated_decoder = None;
                     } else if self.local_state.modal_visible && self.local_state.current_image_index > index {
                         // 如果删除的图片在当前显示图片之前，调整索引
                         self.local_state.current_image_index -= 1;

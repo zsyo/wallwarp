@@ -15,7 +15,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_with = "3.16"
 serde_json = "1.0"
 image = { version = "0.25", features = ["webp"] }
-gif = "0.14"
 toml = "0.9"
 open = "5.3"
 rfd = "0.17"

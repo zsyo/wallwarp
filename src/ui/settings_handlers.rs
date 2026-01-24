@@ -11,11 +11,12 @@ use tracing::error;
 impl App {
     /// 处理设置相关消息
     pub fn handle_settings_message(&mut self, msg: AppMessage) -> iced::Task<AppMessage> {
+        dbg!(&msg);
         match msg {
             AppMessage::LanguageSelected(lang) => self.handle_language_selected(lang),
             AppMessage::PageSelected(page) => self.handle_page_selected(page),
             AppMessage::WindowResized(width, height) => self.handle_window_resized(width, height),
-            AppMessage::DebounceTimer => self.handle_debounce_timer(),
+            AppMessage::ExecutePendingSave => self.execute_pending_save(),
             AppMessage::AutoStartupToggled(enabled) => self.handle_auto_startup_toggled(enabled),
             AppMessage::CloseActionSelected(action) => self.handle_close_action_selected(action),
             AppMessage::WindowCloseRequested => self.handle_window_close_requested(),
@@ -44,10 +45,14 @@ impl App {
             AppMessage::AutoChangeQueryChanged(query) => self.handle_auto_change_query_changed(query),
             AppMessage::SaveAutoChangeQuery => self.handle_save_auto_change_query(),
             AppMessage::ShowCloseConfirmation => self.handle_show_close_confirmation(),
-            AppMessage::CloseConfirmationResponse(action, remember_setting) => self.handle_close_confirmation_response(action, remember_setting),
+            AppMessage::CloseConfirmationResponse(action, remember_setting) => {
+                self.handle_close_confirmation_response(action, remember_setting)
+            }
             AppMessage::CloseConfirmationCancelled => self.handle_close_confirmation_cancelled(),
             AppMessage::ToggleRememberSetting(checked) => self.handle_toggle_remember_setting(checked),
-            AppMessage::ShowNotification(message, notification_type) => self.show_notification(message, notification_type),
+            AppMessage::ShowNotification(message, notification_type) => {
+                self.show_notification(message, notification_type)
+            }
             AppMessage::HideNotification => self.handle_hide_notification(),
             AppMessage::AddToWallpaperHistory(path) => self.handle_add_to_wallpaper_history(path),
             AppMessage::TraySwitchPreviousWallpaper => self.handle_tray_switch_previous_wallpaper(),
@@ -109,8 +114,12 @@ impl App {
             // 重置本地状态，以便重新加载壁纸
             self.local_state = super::local::LocalState::default();
             return iced::Task::batch(vec![
-                iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadWallpapers)),
-                iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("local_wallpapers_scroll".to_string())),
+                iced::Task::perform(async {}, |_| {
+                    AppMessage::Local(super::local::LocalMessage::LoadWallpapers)
+                }),
+                iced::Task::perform(async {}, |_| {
+                    AppMessage::ScrollToTop("local_wallpapers_scroll".to_string())
+                }),
             ]);
         }
 
@@ -119,7 +128,9 @@ impl App {
         // 后续通过搜索按钮和刷新按钮手动重载
         if page == super::ActivePage::OnlineWallpapers {
             // 滚动到顶部
-            return iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers_scroll".to_string()));
+            return iced::Task::perform(async {}, |_| {
+                AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
+            });
         }
 
         // 对于其他页面切换，返回无任务
@@ -132,31 +143,19 @@ impl App {
         self.current_window_height = height;
         // 暂存窗口大小，等待防抖处理
         self.pending_window_size = Some((width, height));
+        // 在收到调整大小事件时，直接开启一个延迟任务
         self.debounce_timer = std::time::Instant::now();
-        iced::Task::none()
+        // 这个 Task 会在 300ms 后发出一条“执行保存”的消息
+        return iced::Task::perform(tokio::time::sleep(std::time::Duration::from_millis(300)), |_| {
+            AppMessage::ExecutePendingSave
+        });
     }
 
-    fn handle_debounce_timer(&mut self) -> iced::Task<AppMessage> {
-        use tray_icon::{TrayIconEvent, menu::MenuEvent};
-
-        // 托盘事件轮询
-        // 检查菜单点击
-        if let Ok(menu_event) = MenuEvent::receiver().try_recv() {
-            // 这里通过 Task::done 立即在下一个 loop 处理具体的菜单逻辑
-            return iced::Task::done(AppMessage::TrayMenuEvent(menu_event.id.0));
-        }
-
-        // 检查图标双击
-        if let Ok(tray_event) = TrayIconEvent::receiver().try_recv() {
-            if let TrayIconEvent::DoubleClick { .. } = tray_event {
-                return iced::Task::done(AppMessage::TrayIconClicked);
-            }
-        }
-
-        // 检查是否需要执行延迟的保存操作
+    /// 处理延迟保存
+    fn execute_pending_save(&mut self) -> iced::Task<AppMessage> {
         let elapsed = self.debounce_timer.elapsed();
         if elapsed >= std::time::Duration::from_millis(300) {
-            // 保存窗口大小
+            // 只有当存在 pending 数据时才保存，保存完立即 take() 掉
             if let Some((width, height)) = self.pending_window_size.take() {
                 if width > 0 && height > 0 {
                     // 同步窗口大小到配置文件
@@ -164,7 +163,6 @@ impl App {
                 }
             }
         }
-
         iced::Task::none()
     }
 
@@ -357,7 +355,11 @@ impl App {
                 }
             }
 
-            if error_count == 0 { Ok(success_count) } else { Err(error_count) }
+            if error_count == 0 {
+                Ok(success_count)
+            } else {
+                Err(error_count)
+            }
         } else {
             Err(0) // 目录不存在或无法访问
         };
@@ -438,13 +440,19 @@ impl App {
         }
 
         // 显示成功通知
-        self.show_notification("WallHeven API KEY 保存成功".to_string(), super::NotificationType::Success)
+        self.show_notification(
+            "WallHeven API KEY 保存成功".to_string(),
+            super::NotificationType::Success,
+        )
     }
 
     fn handle_scroll_to_top(&mut self, scrollable_id: String) -> iced::Task<AppMessage> {
         // 滚动到指定滚动组件的顶部
         use iced::widget::operation;
-        operation::scroll_by(scrollable_id, iced::widget::scrollable::AbsoluteOffset { x: 0.0, y: 0.0 })
+        operation::scroll_by(
+            scrollable_id,
+            iced::widget::scrollable::AbsoluteOffset { x: 0.0, y: 0.0 },
+        )
     }
 
     fn handle_proxy_protocol_changed(&mut self, protocol: String) -> iced::Task<AppMessage> {
@@ -492,7 +500,11 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_close_confirmation_response(&mut self, action: super::CloseConfirmationAction, remember_setting: bool) -> iced::Task<AppMessage> {
+    fn handle_close_confirmation_response(
+        &mut self,
+        action: super::CloseConfirmationAction,
+        remember_setting: bool,
+    ) -> iced::Task<AppMessage> {
         // 隐藏对话框
         self.show_close_confirmation = false;
 
@@ -540,7 +552,10 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_auto_change_mode_selected(&mut self, mode: crate::utils::config::WallpaperAutoChangeMode) -> iced::Task<AppMessage> {
+    fn handle_auto_change_mode_selected(
+        &mut self,
+        mode: crate::utils::config::WallpaperAutoChangeMode,
+    ) -> iced::Task<AppMessage> {
         let old_mode = self.config.wallpaper.auto_change_mode;
         tracing::info!("[设置] [定时切换模式] 修改: {:?} -> {:?}", old_mode, mode);
         self.auto_change_mode = mode;
@@ -549,14 +564,20 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_auto_change_interval_selected(&mut self, interval: crate::utils::config::WallpaperAutoChangeInterval) -> iced::Task<AppMessage> {
+    fn handle_auto_change_interval_selected(
+        &mut self,
+        interval: crate::utils::config::WallpaperAutoChangeInterval,
+    ) -> iced::Task<AppMessage> {
         let old_interval = self.config.wallpaper.auto_change_interval.clone();
         tracing::info!("[设置] [定时切换周期] 修改: {:?} -> {:?}", old_interval, interval);
         self.auto_change_interval = interval.clone();
         self.config.wallpaper.auto_change_interval = interval;
 
         // 根据选择的间隔启动或停止定时任务
-        if matches!(self.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Off) {
+        if matches!(
+            self.auto_change_interval,
+            crate::utils::config::WallpaperAutoChangeInterval::Off
+        ) {
             // 选择关闭，停止定时任务
             self.local_state.auto_change_enabled = false;
             self.local_state.auto_change_timer = None;
@@ -589,10 +610,14 @@ impl App {
         self.custom_interval_minutes = minutes;
 
         // 如果当前选中的是自定义选项，立即更新配置
-        if matches!(self.auto_change_interval, crate::utils::config::WallpaperAutoChangeInterval::Custom(_)) {
+        if matches!(
+            self.auto_change_interval,
+            crate::utils::config::WallpaperAutoChangeInterval::Custom(_)
+        ) {
             // 同时更新 UI 状态和配置文件
             self.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
-            self.config.wallpaper.auto_change_interval = crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
+            self.config.wallpaper.auto_change_interval =
+                crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes);
             self.config.save_to_file();
 
             // 重置定时任务并记录下次执行时间
@@ -629,7 +654,10 @@ impl App {
 
         // 显示保存成功通知
         let success_message = self.i18n.t("settings.save-success").to_string();
-        iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success))
+        iced::Task::done(AppMessage::ShowNotification(
+            success_message,
+            super::NotificationType::Success,
+        ))
     }
 
     /// 处理添加壁纸到历史记录
@@ -650,10 +678,15 @@ impl App {
             self.wallpaper_history.remove(0);
         }
 
-        tracing::info!("[壁纸历史] 添加记录: {}, 当前记录数: {}", path_for_log, self.wallpaper_history.len());
+        tracing::info!(
+            "[壁纸历史] 添加记录: {}, 当前记录数: {}",
+            path_for_log,
+            self.wallpaper_history.len()
+        );
 
         // 更新托盘菜单项的启用状态
-        self.tray_manager.update_switch_previous_item(self.wallpaper_history.len());
+        self.tray_manager
+            .update_switch_previous_item(self.wallpaper_history.len());
 
         iced::Task::none()
     }
@@ -689,7 +722,9 @@ impl App {
                     // 切换成功，将当前壁纸从历史记录末尾移除
                     AppMessage::RemoveLastFromWallpaperHistory
                 }
-                Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                Err(e) => {
+                    AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error)
+                }
             },
         )
     }
@@ -704,21 +739,27 @@ impl App {
             crate::utils::config::WallpaperAutoChangeMode::Local => {
                 // 本地模式：获取支持的图片文件列表
                 let data_path = self.config.data.data_path.clone();
-                iced::Task::perform(super::async_tasks::async_get_supported_images(data_path), |result| match result {
-                    Ok(paths) => {
-                        // 获取到图片列表后，立即尝试设置随机壁纸
-                        if paths.is_empty() {
-                            AppMessage::ShowNotification(no_valid_wallpapers_message, super::NotificationType::Error)
-                        } else {
-                            // 发送一个消息来触发设置随机壁纸
-                            AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths))
+                iced::Task::perform(
+                    super::async_tasks::async_get_supported_images(data_path),
+                    |result| match result {
+                        Ok(paths) => {
+                            // 获取到图片列表后，立即尝试设置随机壁纸
+                            if paths.is_empty() {
+                                AppMessage::ShowNotification(
+                                    no_valid_wallpapers_message,
+                                    super::NotificationType::Error,
+                                )
+                            } else {
+                                // 发送一个消息来触发设置随机壁纸
+                                AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths))
+                            }
                         }
-                    }
-                    Err(e) => {
-                        let error_message = format!("获取壁纸列表失败: {}", e);
-                        AppMessage::ShowNotification(error_message, super::NotificationType::Error)
-                    }
-                })
+                        Err(e) => {
+                            let error_message = format!("获取壁纸列表失败: {}", e);
+                            AppMessage::ShowNotification(error_message, super::NotificationType::Error)
+                        }
+                    },
+                )
             }
             crate::utils::config::WallpaperAutoChangeMode::Online => {
                 // 在线模式：从Wallhaven获取随机壁纸
@@ -746,11 +787,16 @@ impl App {
     fn handle_remove_last_from_wallpaper_history(&mut self) -> iced::Task<AppMessage> {
         // 从历史记录末尾移除壁纸
         if let Some(removed) = self.wallpaper_history.pop() {
-            tracing::info!("[壁纸历史] 移除记录: {}, 当前记录数: {}", removed, self.wallpaper_history.len());
+            tracing::info!(
+                "[壁纸历史] 移除记录: {}, 当前记录数: {}",
+                removed,
+                self.wallpaper_history.len()
+            );
         }
 
         // 更新托盘菜单项的启用状态
-        self.tray_manager.update_switch_previous_item(self.wallpaper_history.len());
+        self.tray_manager
+            .update_switch_previous_item(self.wallpaper_history.len());
 
         iced::Task::none()
     }

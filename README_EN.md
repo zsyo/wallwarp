@@ -18,9 +18,8 @@ WallWarp is a cross-platform desktop wallpaper management application built with
 
 - 🖼️ **Local Wallpaper Management**
   - Browse wallpapers in local folders
-  - Support for multiple image formats (JPG, PNG, BMP, GIF, WebP)
+  - Support for multiple image formats (JPG, PNG, BMP, WebP)
   - Wallpaper preview and quick setup
-  - Animated image (GIF) preview support
 
 - 🌐 **Online Wallpaper Search**
   - Integrated Wallhaven API

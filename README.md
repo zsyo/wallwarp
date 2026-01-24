@@ -18,9 +18,8 @@ WallWarp 是一款用 Rust 开发的跨平台桌面壁纸管理应用程序，�
 
 - 🖼️ **本地壁纸管理**
   - 浏览本地文件夹中的壁纸
-  - 支持多种图像格式（JPG、PNG、BMP、GIF、WebP）
+  - 支持多种图像格式（JPG、PNG、BMP、WebP）
   - 壁纸预览和快速设置
-  - 支持动态图（GIF）预览
 
 - 🌐 **在线壁纸搜索**
   - 集成 Wallhaven API

@@ -11,7 +11,7 @@ use tracing::debug;
 use tracing::error;
 use xxhash_rust::xxh3::xxh3_128;
 
-const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "bmp", "gif", "webp"];
+const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "bmp", "webp"];
 const THREAD_POOL_SIZE: usize = 3;
 const HASH_CHUNK_SIZE: u64 = 64 * 1024;
 const THUMBNAIL_MAX_WIDTH: u32 = 256;
