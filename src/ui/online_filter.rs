@@ -31,7 +31,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
             icon: COLOR_LIGHT_TEXT_SUB,
             placeholder: COLOR_LIGHT_TEXT_SUB,
             value: COLOR_LIGHT_TEXT,
-            selection: Color::from_rgba(0.098, 0.463, 0.824, 0.3),
+            selection: crate::ui::style::TEXT_INPUT_SELECTION_COLOR,
         });
 
     let search_button = common::create_icon_button_with_size(
@@ -783,7 +783,7 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
                 Color::TRANSPARENT
             };
             let text_color = if is_list_disabled {
-                Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
+                crate::ui::style::DISABLED_COLOR
             } else {
                 COLOR_LIGHT_TEXT
             };
@@ -1011,7 +1011,7 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
                 COLOR_LIGHT_BUTTON
             };
             let text_color = if is_landscape_button_disabled {
-                Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
+                crate::ui::style::DISABLED_COLOR
             } else if is_selected {
                 Color::WHITE
             } else {
@@ -1044,7 +1044,7 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
                 COLOR_LIGHT_BUTTON
             };
             let text_color = if is_portrait_button_disabled {
-                Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
+                crate::ui::style::DISABLED_COLOR
             } else if is_selected {
                 Color::WHITE
             } else {
@@ -1127,7 +1127,7 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
                 Color::TRANSPARENT
             };
             let text_color = if is_all_disabled || is_group_disabled {
-                Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
+                crate::ui::style::DISABLED_COLOR
             } else {
                 COLOR_LIGHT_TEXT
             };

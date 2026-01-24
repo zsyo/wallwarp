@@ -188,16 +188,16 @@ impl App {
         // 根据通知类型设置颜色
         let (bg_color, text_color) = match self.notification_type {
             super::NotificationType::Success => (
-                iced::Color::from_rgb8(40, 167, 69), // 绿色背景
-                iced::Color::WHITE,                  // 白色文字
+                super::style::NOTIFICATION_SUCCESS_BG,
+                super::style::NOTIFICATION_TEXT_COLOR,
             ),
             super::NotificationType::Error => (
-                iced::Color::from_rgb8(220, 53, 69), // 红色背景
-                iced::Color::WHITE,                  // 白色文字
+                super::style::NOTIFICATION_ERROR_BG,
+                super::style::NOTIFICATION_TEXT_COLOR,
             ),
             super::NotificationType::Info => (
-                iced::Color::from_rgb8(0, 123, 255), // 蓝色背景
-                iced::Color::WHITE,                  // 白色文字
+                super::style::NOTIFICATION_INFO_BG,
+                super::style::NOTIFICATION_TEXT_COLOR,
             ),
         };
 

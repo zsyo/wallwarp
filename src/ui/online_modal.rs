@@ -82,12 +82,7 @@ pub fn create_modal<'a>(i18n: &'a I18n, online_state: &'a OnlineState) -> Elemen
         let disabled_button = common::create_icon_button("\u{F30A}", BUTTON_COLOR_GRAY, AppMessage::None);
         container(disabled_button)
             .style(|_theme: &iced::Theme| container::Style {
-                background: Some(iced::Background::Color(iced::Color {
-                    r: 0.7,
-                    g: 0.7,
-                    b: 0.7,
-                    a: 0.5,
-                })),
+                background: Some(iced::Background::Color(crate::ui::style::DISABLED_BUTTON_BG)),
                 ..Default::default()
             })
             .into()

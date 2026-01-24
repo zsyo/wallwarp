@@ -138,7 +138,7 @@ fn create_menu_button<'a>(
 
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
-                text_color: iced::Color::from_rgb(0.13, 0.13, 0.13), // #212121
+                text_color: crate::ui::style::COLOR_TEXT_DARK,
                 border: iced::border::Border {
                     color: iced::Color::TRANSPARENT,
                     width: 0.0,

@@ -310,18 +310,9 @@ fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> button::Button
         .height(Length::Fixed(IMAGE_HEIGHT))
         .style(|_theme, status| {
             let base_style = iced::widget::button::text(_theme, status);
-            let shadow = match status {
-                iced::widget::button::Status::Hovered => iced::Shadow {
-                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.12),
-                    offset: iced::Vector { x: 0.0, y: 4.0 },
-                    blur_radius: 12.0,
-                },
-                _ => iced::Shadow {
-                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.08),
-                    offset: iced::Vector { x: 0.0, y: 2.0 },
-                    blur_radius: 8.0,
-                },
-            };
+            let shadow = crate::ui::style::get_card_shadow_by_status(
+                matches!(status, iced::widget::button::Status::Hovered),
+            );
             iced::widget::button::Style {
                 shadow,
                 ..base_style
