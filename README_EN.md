@@ -78,7 +78,7 @@ Visit the [Releases](https://github.com/zsyo/wallwarp/releases) page to download
 ### First Run
 
 1. Launch WallWarp
-2. Add wallpaper folders in the "Local Wallpapers" page
+2. Add wallpaper folders in the "Settings" page
 3. Browse and set wallpapers
 4. Search and download wallpapers in the "Online Wallpapers" page
 
@@ -95,7 +95,7 @@ Visit the [Releases](https://github.com/zsyo/wallwarp/releases) page to download
 1. Switch to the "Settings" page
 2. Enable "Auto Rotation" feature
 3. Set rotation interval
-4. Select rotation source (local/downloaded)
+4. Select rotation source (local/online)
 
 ## Configuration File
 

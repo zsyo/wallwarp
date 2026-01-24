@@ -440,6 +440,23 @@ pub async fn async_load_online_wallpaper_thumb_with_cache(
     crate::services::download::DownloadService::load_thumb_with_cache(url, file_size, cache_base_path, proxy).await
 }
 
+/// 异步加载在线壁纸缩略图函数（带缓存和取消支持）
+pub async fn async_load_online_wallpaper_thumb_with_cache_with_cancel(
+    url: String,
+    file_size: u64,
+    cache_base_path: String,
+    proxy: Option<String>,
+    cancel_token: std::sync::Arc<std::sync::atomic::AtomicBool>,
+) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
+    // 在下载前检查取消状态
+    if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+    }
+
+    // 使用DownloadService的智能缓存加载功能
+    crate::services::download::DownloadService::load_thumb_with_cache_with_cancel(url, file_size, cache_base_path, proxy, cancel_token).await
+}
+
 /// 异步下载壁纸任务函数
 pub async fn async_download_wallpaper_task(url: String, save_path: PathBuf, proxy: Option<String>, _task_id: usize) -> Result<u64, String> {
     // 确保父目录存在

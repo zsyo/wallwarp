@@ -56,6 +56,7 @@ impl DownloadService {
 
         Err(last_error.unwrap())
     }
+
     /// 获取在线缩略图缓存路径
     /// 根据URL和文件大小生成hash值，用于缓存文件命名
     pub fn get_online_thumb_cache_path(cache_base_path: &str, url: &str, file_size: u64) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
@@ -252,112 +253,7 @@ impl DownloadService {
         }
     }
 
-    /// 下载图片并返回Handle（不带缓存，带重试机制，最多重试3次）
-    pub async fn download_image_handle(url: String, proxy: Option<String>) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
-        // 获取并发控制许可
-        let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER.acquire().await;
-
-        debug!("[图片下载] [URL:{}] 开始下载", url);
-
-        let create_optimized_client = || -> reqwest::Client {
-            reqwest::Client::builder()
-                // 连接池配置：最大100个连接，每个主机最多10个连接
-                .pool_max_idle_per_host(10)
-                .pool_idle_timeout(std::time::Duration::from_secs(90))
-                // 超时配置
-                .connect_timeout(std::time::Duration::from_secs(30))
-                .timeout(std::time::Duration::from_secs(300))
-                // TCP配置：启用TCP_NODELAY减少延迟
-                .tcp_nodelay(true)
-                // 启用HTTP/2
-                .http2_prior_knowledge()
-                // 启用gzip压缩（reqwest默认支持）
-                .gzip(true)
-                // 启用brotli压缩（需要features支持）
-                .brotli(true)
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new())
-        };
-
-        let client = if let Some(proxy_url) = proxy {
-            if !proxy_url.is_empty() {
-                debug!("[图片下载] [URL:{}] 尝试创建代理客户端，代理URL: {}", url, proxy_url);
-                match reqwest::Proxy::all(&proxy_url) {
-                    Ok(p) => {
-                        debug!("[图片下载] [URL:{}] Proxy::all 成功", url);
-                        match reqwest::Client::builder()
-                            .proxy(p)
-                            .pool_max_idle_per_host(10)
-                            .pool_idle_timeout(std::time::Duration::from_secs(90))
-                            .connect_timeout(std::time::Duration::from_secs(30))
-                            .timeout(std::time::Duration::from_secs(300))
-                            .tcp_nodelay(true)
-                            .http2_prior_knowledge()
-                            .gzip(true)
-                            .brotli(true)
-                            .build()
-                        {
-                            Ok(http_client) => {
-                                debug!("[图片下载] [URL:{}] HTTP客户端创建成功（已优化）", url);
-                                http_client
-                            }
-                            Err(e) => {
-                                warn!("[图片下载] [URL:{}] HTTP客户端创建失败: {}，回退到无代理", url, e);
-                                create_optimized_client()
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        warn!("[图片下载] [URL:{}] Proxy::all 失败: {}，回退到无代理", url, e);
-                        create_optimized_client()
-                    }
-                }
-            } else {
-                debug!("[图片下载] [URL:{}] 代理URL为空，使用无代理客户端", url);
-                create_optimized_client()
-            }
-        } else {
-            debug!("[图片下载] [URL:{}] 无代理配置，使用无代理客户端", url);
-            create_optimized_client()
-        };
-
-        // 使用重试机制下载图片
-        let bytes = Self::retry_with_backoff(
-            &url,
-            "图片下载",
-            3, // 最多重试3次
-            || {
-                let client = client.clone();
-                let url = url.clone();
-                async move {
-                    let response = client.get(&url).send().await.map_err(|e| {
-                        error!("[图片下载] [URL:{}] 请求失败: {}", url, e);
-                        e
-                    })?;
-
-                    debug!("[图片下载] [URL:{}] 响应状态: {}", url, response.status());
-
-                    if !response.status().is_success() {
-                        let status = response.status();
-                        let error_msg = format!("下载失败: {}", status);
-                        error!("[图片下载] [URL:{}] {}", url, error_msg);
-                        // 手动构造错误，使用 response.error_for_status_ref()
-                        let _ = response.error_for_status_ref()?;
-                        unreachable!();
-                    }
-
-                    response.bytes().await
-                }
-            },
-        )
-        .await?;
-
-        info!("[图片下载] [URL:{}] 下载成功，数据大小: {} bytes", url, bytes.len());
-
-        Ok(iced::widget::image::Handle::from_bytes(bytes.to_vec()))
-    }
-
-    /// 智能加载缩略图：优先使用缓存，缓存不存在时下载并缓存
+    /// 加载缩略图（带缓存）
     pub async fn load_thumb_with_cache(
         url: String,
         file_size: u64,
@@ -380,5 +276,192 @@ impl DownloadService {
 
         // 返回缓存的图片Handle
         Ok(iced::widget::image::Handle::from_path(Path::new(&cache_path)))
+    }
+
+    /// 加载缩略图（带缓存和取消支持）
+    pub async fn load_thumb_with_cache_with_cancel(
+        url: String,
+        file_size: u64,
+        cache_base_path: String,
+        proxy: Option<String>,
+        cancel_token: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    ) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
+        // 在下载前检查取消状态
+        if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+        }
+
+        // 计算缓存路径
+        let cache_path = Self::get_online_thumb_cache_path(&cache_base_path, &url, file_size)?;
+
+        // 检查缓存是否存在
+        if let Some(cached_handle) = Self::get_cached_thumb_handle(&cache_path) {
+            return Ok(cached_handle);
+        }
+
+        // 缓存不存在，下载图片
+        debug!("[缩略图缓存] [URL:{}] 缓存不存在，开始下载", url);
+
+        // 下载并保存到缓存（带取消支持）
+        Self::download_thumb_to_cache_with_cancel(&url, &cache_path, proxy, cancel_token.clone()).await?;
+
+        // 再次检查取消状态（下载完成后）
+        if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+        }
+
+        // 返回缓存的图片Handle
+        Ok(iced::widget::image::Handle::from_path(Path::new(&cache_path)))
+    }
+
+    /// 下载缩略图到缓存目录（带取消支持，不使用重试机制）
+    pub async fn download_thumb_to_cache_with_cancel(
+        url: &str,
+        cache_path: &str,
+        proxy: Option<String>,
+        cancel_token: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // 获取并发控制许可
+        let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER.acquire().await;
+
+        debug!("[缩略图缓存] [URL:{}] 开始下载到: {}", url, cache_path);
+
+        // 确保缓存目录存在
+        let cache_file_path = Path::new(cache_path);
+        if let Some(cache_dir) = cache_file_path.parent() {
+            fs::create_dir_all(cache_dir).map_err(|e| {
+                error!("[缩略图缓存] [URL:{}] 创建缓存目录失败: {}", url, e);
+                Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+            })?;
+        }
+
+        // 创建优化的HTTP客户端
+        let create_optimized_client = || -> reqwest::Client {
+            reqwest::Client::builder()
+                // 连接池配置：最大100个连接，每个主机最多10个连接
+                .pool_max_idle_per_host(10)
+                .pool_idle_timeout(std::time::Duration::from_secs(90))
+                // 超时配置
+                .connect_timeout(std::time::Duration::from_secs(30))
+                .timeout(std::time::Duration::from_secs(300))
+                // TCP配置：启用TCP_NODELAY减少延迟
+                .tcp_nodelay(true)
+                // 启用HTTP/2
+                .http2_prior_knowledge()
+                // 启用gzip压缩（reqwest默认支持）
+                .gzip(true)
+                // 启用brotli压缩（需要features支持）
+                .brotli(true)
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new())
+        };
+
+        let client = if let Some(proxy_url) = proxy {
+            if !proxy_url.is_empty() {
+                debug!("[缩略图缓存] [URL:{}] 尝试创建代理客户端，代理URL: {}", url, proxy_url);
+                match reqwest::Proxy::all(&proxy_url) {
+                    Ok(p) => {
+                        debug!("[缩略图缓存] [URL:{}] Proxy::all 成功", url);
+                        match reqwest::Client::builder()
+                            .proxy(p)
+                            .pool_max_idle_per_host(10)
+                            .pool_idle_timeout(std::time::Duration::from_secs(90))
+                            .connect_timeout(std::time::Duration::from_secs(30))
+                            .timeout(std::time::Duration::from_secs(300))
+                            .tcp_nodelay(true)
+                            .http2_prior_knowledge()
+                            .gzip(true)
+                            .brotli(true)
+                            .build()
+                        {
+                            Ok(http_client) => {
+                                debug!("[缩略图缓存] [URL:{}] HTTP客户端创建成功（已优化）", url);
+                                http_client
+                            }
+                            Err(e) => {
+                                warn!("[缩略图缓存] [URL:{}] HTTP客户端创建失败: {}，回退到无代理", url, e);
+                                create_optimized_client()
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        warn!("[缩略图缓存] [URL:{}] Proxy::all 失败: {}，回退到无代理", url, e);
+                        create_optimized_client()
+                    }
+                }
+            } else {
+                debug!("[缩略图缓存] [URL:{}] 代理URL为空，使用无代理客户端", url);
+                create_optimized_client()
+            }
+        } else {
+            debug!("[缩略图缓存] [URL:{}] 无代理配置，使用无代理客户端", url);
+            create_optimized_client()
+        };
+
+        // 直接下载图片（带取消支持，不使用重试机制）
+        let bytes = {
+            let client = client.clone();
+            let url = url.to_string();
+            let cancel_token = cancel_token.clone();
+            async move {
+                // 检查取消状态
+                if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
+                    return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+                }
+
+                let response = client.get(&url).send().await.map_err(|e| {
+                    error!("[缩略图缓存] [URL:{}] 请求失败: {}", url, e);
+                    Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+                })?;
+
+                debug!("[缩略图缓存] [URL:{}] 响应状态: {}", url, response.status());
+
+                if !response.status().is_success() {
+                    let status = response.status();
+                    let error_msg = format!("下载失败: {}", status);
+                    error!("[缩略图缓存] [URL:{}] {}", url, error_msg);
+                    // 手动构造错误
+                    return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send + Sync>);
+                }
+
+                // 流式读取数据，定期检查取消状态
+                use iced::futures::StreamExt;
+                let mut stream = response.bytes_stream();
+                let mut buffer = Vec::with_capacity(1024 * 1024); // 1MB缓冲区
+
+                while let Some(chunk_result) = stream.next().await {
+                    // 检查取消状态
+                    if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
+                        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+                    }
+
+                    let chunk = chunk_result.map_err(|e| {
+                        error!("[缩略图缓存] [URL:{}] 读取数据流失败: {}", url, e);
+                        Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+                    })?;
+
+                    buffer.extend_from_slice(&chunk);
+                }
+
+                Ok(buffer)
+            }
+        }.await?;
+
+        // 再次检查取消状态（下载完成后）
+        if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+        }
+
+        debug!("[缩略图缓存] [URL:{}] 下载成功，数据大小: {} bytes", url, bytes.len());
+
+        // 保存到缓存
+        fs::write(cache_path, bytes).map_err(|e| {
+            error!("[缩略图缓存] [URL:{}] 保存文件失败: {}", url, e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+
+        debug!("[缩略图缓存] [URL:{}] 文件保存成功: {}", url, cache_path);
+
+        Ok(())
     }
 }

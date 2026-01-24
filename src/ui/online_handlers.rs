@@ -63,8 +63,16 @@ impl App {
     fn handle_load_online_wallpapers(&mut self) -> iced::Task<AppMessage> {
         // 设置加载状态
         self.online_state.loading_page = true;
+        // 取消所有缩略图加载任务
+        self.online_state.cancel_thumb_loads();
+        // 显式释放 Handle 引用
+        for status in self.online_state.wallpapers.drain(..) {
+            if let super::online::WallpaperLoadStatus::ThumbLoaded(_, handle) = status {
+                // Rust 会自动释放，但显式 drop 可以确保立即释放
+                drop(handle);
+            }
+        }
         // 清空当前数据，准备加载新数据
-        self.online_state.wallpapers.clear();
         self.online_state.wallpapers_data.clear();
         self.online_state.page_info.clear();
         self.online_state.has_loaded = false;
@@ -216,8 +224,13 @@ impl App {
             let file_size = wallpaper.file_size;
             let proxy = proxy.clone();
             let cache_path = cache_path.clone();
+
+            // 创建取消令牌
+            let cancel_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+            self.online_state.thumb_load_cancel_tokens.push(cancel_token.clone());
+
             tasks.push(iced::Task::perform(
-                super::async_tasks::async_load_online_wallpaper_thumb_with_cache(url, file_size, cache_path, proxy),
+                super::async_tasks::async_load_online_wallpaper_thumb_with_cache_with_cancel(url, file_size, cache_path, proxy, cancel_token),
                 move |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
                     Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(
@@ -414,8 +427,13 @@ impl App {
             let file_size = wallpaper.file_size;
             let proxy = proxy.clone();
             let cache_path = cache_path.clone();
+
+            // 创建取消令牌
+            let cancel_token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+            self.online_state.thumb_load_cancel_tokens.push(cancel_token.clone());
+
             tasks.push(iced::Task::perform(
-                super::async_tasks::async_load_online_wallpaper_thumb_with_cache(url, file_size, cache_path, proxy),
+                super::async_tasks::async_load_online_wallpaper_thumb_with_cache_with_cancel(url, file_size, cache_path, proxy, cancel_token),
                 move |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
                     Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(
@@ -850,6 +868,60 @@ impl App {
         // 搜索：重置到第一页并重新加载
         self.online_state.current_page = 1;
 
+        // 取消所有等待中的下载任务
+        let waiting_tasks: Vec<usize> = self.download_state.tasks
+            .iter()
+            .filter(|t| matches!(t.task.status, super::download::DownloadStatus::Waiting | super::download::DownloadStatus::Paused))
+            .map(|t| t.task.id)
+            .collect();
+
+        for task_id in waiting_tasks {
+            // 先保存任务信息，因为取消后可能无法访问
+            let task_info = self
+                .download_state
+                .tasks
+                .iter()
+                .find(|t| t.task.id == task_id)
+                .map(|t| (t.task.url.clone(), t.task.save_path.clone(), t.task.file_name.clone(), t.task.status.clone()));
+
+            // 取消任务
+            self.download_state.cancel_task(task_id);
+            // 将任务状态设置为已取消
+            self.download_state.update_status(task_id, super::download::DownloadStatus::Cancelled);
+
+            // 清除未完成的下载文件
+            if let Some((url, save_path, _file_name, status)) = task_info {
+                // 只有在下载中、等待中或暂停时才清除文件
+                if status == super::download::DownloadStatus::Downloading
+                    || status == super::download::DownloadStatus::Waiting
+                    || status == super::download::DownloadStatus::Paused
+                {
+                    // 1. 删除目标文件（data_path中的文件）
+                    if let Ok(_metadata) = std::fs::metadata(&save_path) {
+                        let _ = std::fs::remove_file(&save_path);
+                        tracing::info!("[下载任务] [ID:{}] 已删除未完成的目标文件: {}", task_id, save_path);
+                    }
+
+                    // 2. 删除缓存文件
+                    let cache_path = self.config.data.cache_path.clone();
+                    if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
+                        if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
+                            let _ = std::fs::remove_file(&cache_file_path);
+                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", task_id, cache_file_path);
+                        }
+                    }
+
+                    // 3. 删除缓存文件（不带.download后缀的最终文件）
+                    if let Ok(final_cache_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, 0) {
+                        if let Ok(_metadata) = std::fs::metadata(&final_cache_path) {
+                            let _ = std::fs::remove_file(&final_cache_path);
+                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}", task_id, final_cache_path);
+                        }
+                    }
+                }
+            }
+        }
+
         // 滚动到顶部，避免触发自动加载下一页
         let scroll_to_top_task =
             iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers".to_string()));
@@ -862,6 +934,60 @@ impl App {
         // 刷新：清空搜索框内容，重置到第一页并重新加载
         self.online_state.search_text.clear();
         self.online_state.current_page = 1;
+
+        // 取消所有等待中的下载任务
+        let waiting_tasks: Vec<usize> = self.download_state.tasks
+            .iter()
+            .filter(|t| matches!(t.task.status, super::download::DownloadStatus::Waiting | super::download::DownloadStatus::Paused))
+            .map(|t| t.task.id)
+            .collect();
+
+        for task_id in waiting_tasks {
+            // 先保存任务信息，因为取消后可能无法访问
+            let task_info = self
+                .download_state
+                .tasks
+                .iter()
+                .find(|t| t.task.id == task_id)
+                .map(|t| (t.task.url.clone(), t.task.save_path.clone(), t.task.file_name.clone(), t.task.status.clone()));
+
+            // 取消任务
+            self.download_state.cancel_task(task_id);
+            // 将任务状态设置为已取消
+            self.download_state.update_status(task_id, super::download::DownloadStatus::Cancelled);
+
+            // 清除未完成的下载文件
+            if let Some((url, save_path, _file_name, status)) = task_info {
+                // 只有在下载中、等待中或暂停时才清除文件
+                if status == super::download::DownloadStatus::Downloading
+                    || status == super::download::DownloadStatus::Waiting
+                    || status == super::download::DownloadStatus::Paused
+                {
+                    // 1. 删除目标文件（data_path中的文件）
+                    if let Ok(_metadata) = std::fs::metadata(&save_path) {
+                        let _ = std::fs::remove_file(&save_path);
+                        tracing::info!("[下载任务] [ID:{}] 已删除未完成的目标文件: {}", task_id, save_path);
+                    }
+
+                    // 2. 删除缓存文件
+                    let cache_path = self.config.data.cache_path.clone();
+                    if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
+                        if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
+                            let _ = std::fs::remove_file(&cache_file_path);
+                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", task_id, cache_file_path);
+                        }
+                    }
+
+                    // 3. 删除缓存文件（不带.download后缀的最终文件）
+                    if let Ok(final_cache_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, 0) {
+                        if let Ok(_metadata) = std::fs::metadata(&final_cache_path) {
+                            let _ = std::fs::remove_file(&final_cache_path);
+                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}", task_id, final_cache_path);
+                        }
+                    }
+                }
+            }
+        }
 
         // 滚动到顶部，避免触发自动加载下一页
         let scroll_to_top_task =

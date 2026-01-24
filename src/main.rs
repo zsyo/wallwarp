@@ -18,18 +18,26 @@ fn main() -> iced::Result {
     let args: Vec<String> = std::env::args().collect();
     let mut start_hidden = false;
 
-    // 从当前可执行文件路径解析工作目录
     if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(parent_dir) = exe_path.parent() {
-            if let Err(e) = std::env::set_current_dir(parent_dir) {
-                eprintln!("[启动] 设置工作目录失败: {}", e);
+        // 判断是否为开发模式（cargo run）
+        if !is_running_via_cargo() {
+            // 生产模式：使用可执行文件所在目录作为工作目录
+            if let Some(parent_dir) = exe_path.parent() {
+                if let Err(e) = std::env::set_current_dir(parent_dir) {
+                    eprintln!("[启动] 设置工作目录失败: {}", e);
+                } else {
+                    println!("[启动] 生产模式，工作目录设置为: {}", parent_dir.display());
+                }
             }
         }
     }
 
     // 检查是否有 --hidden 参数
-    if args.len() >= 2 && args[1] == "--hidden" {
-        start_hidden = true;
+    for arg in &args {
+        if arg == "--hidden" {
+            start_hidden = true;
+            break;
+        }
     }
 
     // 初始化日志系统
@@ -82,4 +90,10 @@ fn get_system_ui_font() -> &'static str {
     } else {
         "Noto Sans CJK SC" // Linux 常用中文字体
     }
+}
+
+/// 检测运行环境
+fn is_running_via_cargo() -> bool {
+    // 只要是 cargo 启动的，这个环境变量一定存在
+    std::env::var("CARGO").is_ok()
 }

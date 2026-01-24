@@ -191,6 +191,8 @@ pub struct OnlineState {
     pub modal_download_progress: f32, // 0.0 到 1.0
     pub modal_downloaded_bytes: u64,
     pub modal_total_bytes: u64,
+    // 缩略图加载任务的取消令牌列表
+    pub thumb_load_cancel_tokens: Vec<std::sync::Arc<std::sync::atomic::AtomicBool>>,
 }
 
 /// 分辨率筛选模式
@@ -241,6 +243,7 @@ impl Default for OnlineState {
             modal_download_progress: 0.0,
             modal_downloaded_bytes: 0,
             modal_total_bytes: 0,
+            thumb_load_cancel_tokens: Vec::new(),
         }
     }
 }
@@ -528,6 +531,14 @@ impl OnlineState {
         self.modal_download_progress = 0.0;
         self.modal_downloaded_bytes = 0;
         self.modal_total_bytes = 0;
+    }
+
+    /// 取消所有缩略图加载任务
+    pub fn cancel_thumb_loads(&mut self) {
+        for cancel_token in &self.thumb_load_cancel_tokens {
+            cancel_token.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+        self.thumb_load_cancel_tokens.clear();
     }
 }
 
