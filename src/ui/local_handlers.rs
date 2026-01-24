@@ -196,18 +196,15 @@ impl App {
         self.local_state.current_image_index = index;
         self.local_state.modal_visible = true;
 
-        // 清除之前的图片数据
-        self.local_state.modal_image_handle = None;
+        // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
+        let _old_handle = std::mem::replace(&mut self.local_state.modal_image_handle, None);
 
         // 异步加载图片数据
         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
             return iced::Task::perform(
                 async move {
                     // 异步加载图片数据
-                    let image_handle = iced::widget::image::Handle::from_path(&path);
-                    // 等待一小段时间确保图片数据已加载
-                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                    image_handle
+                    iced::widget::image::Handle::from_path(&path)
                 },
                 |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
             );
@@ -218,6 +215,9 @@ impl App {
 
     fn handle_local_modal_image_loaded(&mut self, handle: iced::widget::image::Handle) -> iced::Task<AppMessage> {
         // 模态窗口图片加载完成，保存图片数据
+        if !self.local_state.modal_visible {
+            return iced::Task::none();
+        }
         self.local_state.modal_image_handle = Some(handle);
         iced::Task::none()
     }
@@ -225,6 +225,10 @@ impl App {
     fn handle_close_local_modal(&mut self) -> iced::Task<AppMessage> {
         // 关闭模态窗口
         self.local_state.modal_visible = false;
+
+        // 显式释放图片数据: 先将 Handle 移出,然后让新值覆盖
+        let _old_handle = std::mem::replace(&mut self.local_state.modal_image_handle, None);
+
         iced::Task::none()
     }
 
@@ -236,18 +240,15 @@ impl App {
         {
             self.local_state.current_image_index = next_index;
 
-            // 清除之前的图片数据
-            self.local_state.modal_image_handle = None;
+            // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
+            let _old_handle = std::mem::replace(&mut self.local_state.modal_image_handle, None);
 
             // 异步加载图片数据
             if let Some(path) = self.local_state.all_paths.get(next_index).cloned() {
                 return iced::Task::perform(
                     async move {
                         // 异步加载图片数据
-                        let image_handle = iced::widget::image::Handle::from_path(&path);
-                        // 等待一小段时间确保图片数据已加载
-                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                        image_handle
+                        iced::widget::image::Handle::from_path(&path)
                     },
                     |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
                 );
@@ -265,18 +266,15 @@ impl App {
         {
             self.local_state.current_image_index = prev_index;
 
-            // 清除之前的图片数据
-            self.local_state.modal_image_handle = None;
+            // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
+            let _old_handle = std::mem::replace(&mut self.local_state.modal_image_handle, None);
 
             // 异步加载图片数据
             if let Some(path) = self.local_state.all_paths.get(prev_index).cloned() {
                 return iced::Task::perform(
                     async move {
                         // 异步加载图片数据
-                        let image_handle = iced::widget::image::Handle::from_path(&path);
-                        // 等待一小段时间确保图片数据已加载
-                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                        image_handle
+                        iced::widget::image::Handle::from_path(&path)
                     },
                     |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
                 );

@@ -460,7 +460,9 @@ impl App {
         // 显示模态窗口
         self.online_state.current_image_index = index;
         self.online_state.modal_visible = true;
-        self.online_state.modal_image_handle = None;
+
+        // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
+        let _old_handle = std::mem::replace(&mut self.online_state.modal_image_handle, None);
 
         // 重置下载状态
         self.online_state.modal_download_progress = 0.0;
@@ -510,6 +512,10 @@ impl App {
     fn handle_close_online_modal(&mut self) -> iced::Task<AppMessage> {
         // 关闭模态窗口
         self.online_state.modal_visible = false;
+
+        // 显式释放图片数据: 先将 Handle 移出,然后让新值覆盖
+        let _old_handle = std::mem::replace(&mut self.online_state.modal_image_handle, None);
+
         // 取消当前下载
         self.online_state.cancel_modal_download();
         iced::Task::none()
@@ -520,7 +526,9 @@ impl App {
         if self.online_state.current_image_index < self.online_state.wallpapers.len().saturating_sub(1) {
             let next_index = self.online_state.current_image_index + 1;
             self.online_state.current_image_index = next_index;
-            self.online_state.modal_image_handle = None;
+
+            // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
+            let _old_handle = std::mem::replace(&mut self.online_state.modal_image_handle, None);
 
             // 取消当前下载
             self.online_state.cancel_modal_download();
@@ -566,7 +574,9 @@ impl App {
         if self.online_state.current_image_index > 0 {
             let prev_index = self.online_state.current_image_index - 1;
             self.online_state.current_image_index = prev_index;
-            self.online_state.modal_image_handle = None;
+
+            // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
+            let _old_handle = std::mem::replace(&mut self.online_state.modal_image_handle, None);
 
             // 取消当前下载
             self.online_state.cancel_modal_download();
@@ -1084,8 +1094,14 @@ impl App {
     }
 
     fn handle_modal_image_downloaded(&mut self, handle: iced::widget::image::Handle) -> iced::Task<AppMessage> {
-        // 模态窗口图片下载完成，保存图片数据
-        self.online_state.modal_image_handle = Some(handle);
+        // 检查模态窗口是否仍然可见
+        if self.online_state.modal_visible {
+            // 模态窗口图片下载完成，保存图片数据
+            self.online_state.modal_image_handle = Some(handle);
+        } else {
+            // 模态窗口已关闭，显式释放图片数据
+            let _old_handle = handle;
+        }
         // 重置下载状态
         self.online_state.modal_download_progress = 0.0;
         self.online_state.modal_downloaded_bytes = 0;
