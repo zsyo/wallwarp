@@ -102,7 +102,12 @@ impl App {
 
         let resolutions = if self.online_state.resolution_mode == super::online::ResolutionMode::Exactly {
             if !self.online_state.selected_resolutions.is_empty() {
-                let res_list: Vec<String> = self.online_state.selected_resolutions.iter().map(|r| r.value().to_string()).collect();
+                let res_list: Vec<String> = self
+                    .online_state
+                    .selected_resolutions
+                    .iter()
+                    .map(|r| r.value().to_string())
+                    .collect();
                 Some(res_list.join(","))
             } else {
                 None
@@ -130,7 +135,11 @@ impl App {
         }
 
         // 如果没有任何选中项，则为 None
-        let ratios = if ratios_vec.is_empty() { None } else { Some(ratios_vec.join(",")) };
+        let ratios = if ratios_vec.is_empty() {
+            None
+        } else {
+            Some(ratios_vec.join(","))
+        };
 
         iced::Task::perform(
             super::async_tasks::async_load_online_wallpapers(
@@ -149,12 +158,14 @@ impl App {
                 context,
             ),
             |result| match result {
-                Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(
-                    wallpapers,
-                    last_page,
-                    total_pages,
-                    current_page,
-                )),
+                Ok((wallpapers, last_page, total_pages, current_page)) => {
+                    AppMessage::Online(super::online::OnlineMessage::LoadWallpapersSuccess(
+                        wallpapers,
+                        last_page,
+                        total_pages,
+                        current_page,
+                    ))
+                }
                 Err(e) => AppMessage::Online(super::online::OnlineMessage::LoadWallpapersFailed(e.to_string())),
             },
         )
@@ -209,13 +220,19 @@ impl App {
                 super::async_tasks::async_load_online_wallpaper_thumb_with_cache(url, file_size, cache_path, proxy),
                 move |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
-                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, iced::widget::image::Handle::from_bytes(vec![]))),
+                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(
+                        idx,
+                        iced::widget::image::Handle::from_bytes(vec![]),
+                    )),
                 },
             ));
         }
 
         self.online_state.wallpapers_data = wallpapers.clone();
-        self.online_state.wallpapers = wallpapers.into_iter().map(|_w| super::online::WallpaperLoadStatus::Loading).collect();
+        self.online_state.wallpapers = wallpapers
+            .into_iter()
+            .map(|_w| super::online::WallpaperLoadStatus::Loading)
+            .collect();
         self.online_state.total_count = self.online_state.wallpapers.len();
 
         // 初始化 page_info，记录第一页的结束索引和页码
@@ -241,7 +258,10 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_online_wallpaper_selected(&mut self, _wallpaper: super::online::OnlineWallpaper) -> iced::Task<AppMessage> {
+    fn handle_online_wallpaper_selected(
+        &mut self,
+        _wallpaper: super::online::OnlineWallpaper,
+    ) -> iced::Task<AppMessage> {
         // 处理壁纸选择
         iced::Task::none()
     }
@@ -283,7 +303,12 @@ impl App {
 
         let resolutions = if self.online_state.resolution_mode == super::online::ResolutionMode::Exactly {
             if !self.online_state.selected_resolutions.is_empty() {
-                let res_list: Vec<String> = self.online_state.selected_resolutions.iter().map(|r| r.value().to_string()).collect();
+                let res_list: Vec<String> = self
+                    .online_state
+                    .selected_resolutions
+                    .iter()
+                    .map(|r| r.value().to_string())
+                    .collect();
                 Some(res_list.join(","))
             } else {
                 None
@@ -311,7 +336,11 @@ impl App {
         }
 
         // 如果没有任何选中项，则为 None
-        let ratios = if ratios_vec.is_empty() { None } else { Some(ratios_vec.join(",")) };
+        let ratios = if ratios_vec.is_empty() {
+            None
+        } else {
+            Some(ratios_vec.join(","))
+        };
 
         iced::Task::perform(
             super::async_tasks::async_load_online_wallpapers(
@@ -330,9 +359,9 @@ impl App {
                 context,
             ),
             |result| match result {
-                Ok((wallpapers, last_page, total_pages, current_page)) => {
-                    AppMessage::Online(super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page))
-                }
+                Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(
+                    super::online::OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page),
+                ),
                 Err(e) => AppMessage::Online(super::online::OnlineMessage::LoadPageFailed(e.to_string())),
             },
         )
@@ -389,7 +418,10 @@ impl App {
                 super::async_tasks::async_load_online_wallpaper_thumb_with_cache(url, file_size, cache_path, proxy),
                 move |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
-                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, iced::widget::image::Handle::from_bytes(vec![]))),
+                    Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(
+                        idx,
+                        iced::widget::image::Handle::from_bytes(vec![]),
+                    )),
                 },
             ));
         }
@@ -397,7 +429,9 @@ impl App {
         // 保存原始数据
         for wallpaper in &wallpapers {
             self.online_state.wallpapers_data.push(wallpaper.clone());
-            self.online_state.wallpapers.push(super::online::WallpaperLoadStatus::Loading);
+            self.online_state
+                .wallpapers
+                .push(super::online::WallpaperLoadStatus::Loading);
         }
 
         // 在添加完当前页数据后记录分页信息
@@ -450,7 +484,13 @@ impl App {
 
             // 启动下载任务
             return iced::Task::perform(
-                super::async_tasks::async_load_online_wallpaper_image_with_streaming(url, file_size, cache_path, proxy, cancel_token.clone()),
+                super::async_tasks::async_load_online_wallpaper_image_with_streaming(
+                    url,
+                    file_size,
+                    cache_path,
+                    proxy,
+                    cancel_token.clone(),
+                ),
                 |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
                     Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
@@ -501,10 +541,18 @@ impl App {
 
                 // 启动下载任务
                 return iced::Task::perform(
-                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(url, file_size, cache_path, proxy, cancel_token.clone()),
+                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(
+                        url,
+                        file_size,
+                        cache_path,
+                        proxy,
+                        cancel_token.clone(),
+                    ),
                     |result| match result {
                         Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
-                        Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
+                        Err(e) => {
+                            AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string()))
+                        }
                     },
                 );
             }
@@ -539,10 +587,18 @@ impl App {
 
                 // 启动下载任务
                 return iced::Task::perform(
-                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(url, file_size, cache_path, proxy, cancel_token.clone()),
+                    super::async_tasks::async_load_online_wallpaper_image_with_streaming(
+                        url,
+                        file_size,
+                        cache_path,
+                        proxy,
+                        cancel_token.clone(),
+                    ),
                     |result| match result {
                         Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloaded(handle)),
-                        Err(e) => AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string())),
+                        Err(e) => {
+                            AppMessage::Online(super::online::OnlineMessage::ModalImageDownloadFailed(e.to_string()))
+                        }
                     },
                 );
             }
@@ -555,7 +611,8 @@ impl App {
         // 缩略图加载完成
         if idx < self.online_state.wallpapers.len() {
             if let Some(wallpaper) = self.online_state.wallpapers_data.get(idx) {
-                self.online_state.wallpapers[idx] = super::online::WallpaperLoadStatus::ThumbLoaded(wallpaper.clone(), handle);
+                self.online_state.wallpapers[idx] =
+                    super::online::WallpaperLoadStatus::ThumbLoaded(wallpaper.clone(), handle);
             }
         }
         iced::Task::none()
@@ -579,14 +636,25 @@ impl App {
                 let actual_size = metadata.len();
                 if actual_size == file_size {
                     // 文件已存在且大小匹配
-                    let success_message = format!("{}: {}", self.i18n.t("download-tasks.file-already-exists").to_string(), file_name);
-                    return iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Info));
+                    let success_message = format!(
+                        "{}: {}",
+                        self.i18n.t("download-tasks.file-already-exists").to_string(),
+                        file_name
+                    );
+                    return iced::Task::done(AppMessage::ShowNotification(
+                        success_message,
+                        super::NotificationType::Info,
+                    ));
                 }
             }
 
             // 2. 检查缓存文件是否存在且大小匹配
             let cache_path = self.config.data.cache_path.clone();
-            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size) {
+            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(
+                &cache_path,
+                &url,
+                file_size,
+            ) {
                 if let Ok(metadata) = std::fs::metadata(&cache_file_path) {
                     let cache_size = metadata.len();
                     if cache_size == file_size {
@@ -594,8 +662,15 @@ impl App {
                         let _ = std::fs::create_dir_all(&data_path);
                         match std::fs::copy(&cache_file_path, &target_path) {
                             Ok(_) => {
-                                let success_message = format!("{}: {}", self.i18n.t("download-tasks.copied-from-cache").to_string(), file_name);
-                                return iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success));
+                                let success_message = format!(
+                                    "{}: {}",
+                                    self.i18n.t("download-tasks.copied-from-cache").to_string(),
+                                    file_name
+                                );
+                                return iced::Task::done(AppMessage::ShowNotification(
+                                    success_message,
+                                    super::NotificationType::Success,
+                                ));
                             }
                             Err(e) => {
                                 error!("[在线壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
@@ -617,7 +692,10 @@ impl App {
             if has_duplicate {
                 // 任务已在下载队列中
                 let info_message = self.i18n.t("download-tasks.task-already-in-queue").to_string();
-                return iced::Task::done(AppMessage::ShowNotification(info_message, super::NotificationType::Info));
+                return iced::Task::done(AppMessage::ShowNotification(
+                    info_message,
+                    super::NotificationType::Info,
+                ));
             }
 
             // 4. 开始下载
@@ -652,11 +730,11 @@ impl App {
                     return iced::Task::perform(
                         super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                         move |result| match result {
-                            Ok(_) => {
-                                // 设置壁纸成功，将壁纸路径添加到历史记录
-                                AppMessage::AddToWallpaperHistory(full_path)
-                            }
-                            Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                            Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
+                            Err(e) => AppMessage::ShowNotification(
+                                format!("{}: {}", failed_message, e),
+                                super::NotificationType::Error,
+                            ),
                         },
                     );
                 }
@@ -664,7 +742,11 @@ impl App {
 
             // 2. 检查缓存文件是否存在且大小匹配
             let cache_path = self.config.data.cache_path.clone();
-            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size) {
+            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(
+                &cache_path,
+                &url,
+                file_size,
+            ) {
                 if let Ok(metadata) = std::fs::metadata(&cache_file_path) {
                     let cache_size = metadata.len();
                     if cache_size == file_size {
@@ -673,16 +755,21 @@ impl App {
                         match std::fs::copy(&cache_file_path, &target_path) {
                             Ok(_) => {
                                 // 复制成功，设置壁纸
-                                let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                                let full_path =
+                                    super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
                                 let wallpaper_mode = self.config.wallpaper.mode;
                                 let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                                return iced::Task::perform(super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode), move |result| {
-                                    match result {
+                                return iced::Task::perform(
+                                    super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                                    move |result| match result {
                                         Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
-                                    }
-                                });
+                                        Err(e) => AppMessage::ShowNotification(
+                                            format!("{}: {}", failed_message, e),
+                                            super::NotificationType::Error,
+                                        ),
+                                    },
+                                );
                             }
                             Err(e) => {
                                 error!("[在线壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
@@ -708,7 +795,10 @@ impl App {
             if has_duplicate {
                 // 任务已在下载队列中，只更新待设置壁纸的文件名
                 let info_message = self.i18n.t("download-tasks.task-already-in-queue").to_string();
-                return iced::Task::done(AppMessage::ShowNotification(info_message, super::NotificationType::Info));
+                return iced::Task::done(AppMessage::ShowNotification(
+                    info_message,
+                    super::NotificationType::Info,
+                ));
             }
 
             // 开始下载
@@ -751,7 +841,8 @@ impl App {
         self.online_state.current_page = 1;
 
         // 滚动到顶部，避免触发自动加载下一页
-        let scroll_to_top_task = iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers".to_string()));
+        let scroll_to_top_task =
+            iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers".to_string()));
 
         // 执行搜索和滚动到顶部
         iced::Task::batch([self.handle_load_online_wallpapers(), scroll_to_top_task])
@@ -763,7 +854,8 @@ impl App {
         self.online_state.current_page = 1;
 
         // 滚动到顶部，避免触发自动加载下一页
-        let scroll_to_top_task = iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers".to_string()));
+        let scroll_to_top_task =
+            iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers".to_string()));
 
         // 执行刷新和滚动到顶部
         iced::Task::batch([self.handle_load_online_wallpapers(), scroll_to_top_task])
@@ -787,7 +879,8 @@ impl App {
             }
 
             // 计算每行可以显示多少张图
-            let available_width = (self.current_window_width as f32 - crate::ui::style::IMAGE_SPACING).max(crate::ui::style::IMAGE_WIDTH);
+            let available_width =
+                (self.current_window_width as f32 - crate::ui::style::IMAGE_SPACING).max(crate::ui::style::IMAGE_WIDTH);
             let unit_width = crate::ui::style::IMAGE_WIDTH + crate::ui::style::IMAGE_SPACING;
             let items_per_row = (available_width / unit_width).floor() as usize;
             let items_per_row = items_per_row.max(1);
@@ -797,7 +890,8 @@ impl App {
             let num_rows = (num_wallpapers + items_per_row - 1) / items_per_row;
 
             // 估算内容高度
-            let estimated_content_height = num_rows as f32 * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING);
+            let estimated_content_height =
+                num_rows as f32 * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING);
 
             // 如果估算的内容高度小于窗口高度，需要加载下一页
             // 这样可以确保内容足够多，能够显示滚动条
@@ -878,7 +972,12 @@ impl App {
 
     fn handle_resolution_toggled(&mut self, resolution: super::online::Resolution) -> iced::Task<AppMessage> {
         // Exactly模式：切换分辨率选择状态
-        if let Some(pos) = self.online_state.selected_resolutions.iter().position(|&r| r == resolution) {
+        if let Some(pos) = self
+            .online_state
+            .selected_resolutions
+            .iter()
+            .position(|&r| r == resolution)
+        {
             // 如果已选中，则取消选中
             self.online_state.selected_resolutions.remove(pos);
         } else {
@@ -1024,14 +1123,25 @@ impl App {
                 let actual_size = metadata.len();
                 if actual_size == file_size {
                     // 文件已存在且大小匹配
-                    let success_message = format!("{}: {}", self.i18n.t("download-tasks.file-already-exists").to_string(), file_name);
-                    return iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Info));
+                    let success_message = format!(
+                        "{}: {}",
+                        self.i18n.t("download-tasks.file-already-exists").to_string(),
+                        file_name
+                    );
+                    return iced::Task::done(AppMessage::ShowNotification(
+                        success_message,
+                        super::NotificationType::Info,
+                    ));
                 }
             }
 
             // 2. 获取缓存文件路径
             let cache_path = self.config.data.cache_path.clone();
-            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size) {
+            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(
+                &cache_path,
+                &url,
+                file_size,
+            ) {
                 // 检查缓存文件是否存在
                 let cache_path_buf = std::path::PathBuf::from(&cache_file_path);
                 if cache_path_buf.exists() {
@@ -1039,24 +1149,41 @@ impl App {
                     let _ = std::fs::create_dir_all(&data_path);
                     match std::fs::copy(&cache_path_buf, &target_path) {
                         Ok(_) => {
-                            let success_message = format!("{}: {}", self.i18n.t("download-tasks.copied-from-cache").to_string(), file_name);
-                            return iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success));
+                            let success_message = format!(
+                                "{}: {}",
+                                self.i18n.t("download-tasks.copied-from-cache").to_string(),
+                                file_name
+                            );
+                            return iced::Task::done(AppMessage::ShowNotification(
+                                success_message,
+                                super::NotificationType::Success,
+                            ));
                         }
                         Err(e) => {
                             error!("[模态窗口下载] [ID:{}] 从缓存复制失败: {}", id, e);
-                            let error_message = format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
-                            return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                            let error_message =
+                                format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
+                            return iced::Task::done(AppMessage::ShowNotification(
+                                error_message,
+                                super::NotificationType::Error,
+                            ));
                         }
                     }
                 } else {
                     // 缓存文件不存在
                     let error_message = self.i18n.t("download-tasks.cache-file-not-found").to_string();
-                    return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                    return iced::Task::done(AppMessage::ShowNotification(
+                        error_message,
+                        super::NotificationType::Error,
+                    ));
                 }
             } else {
                 // 获取缓存路径失败
                 let error_message = self.i18n.t("download-tasks.get-cache-path-failed").to_string();
-                return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                return iced::Task::done(AppMessage::ShowNotification(
+                    error_message,
+                    super::NotificationType::Error,
+                ));
             }
         }
 
@@ -1088,11 +1215,11 @@ impl App {
                     return iced::Task::perform(
                         super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                         move |result| match result {
-                            Ok(_) => {
-                                // 设置壁纸成功，将壁纸路径添加到历史记录
-                                AppMessage::AddToWallpaperHistory(full_path)
-                            }
-                            Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                            Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
+                            Err(e) => AppMessage::ShowNotification(
+                                format!("{}: {}", failed_message, e),
+                                super::NotificationType::Error,
+                            ),
                         },
                     );
                 }
@@ -1100,7 +1227,11 @@ impl App {
 
             // 2. 获取缓存文件路径
             let cache_path = self.config.data.cache_path.clone();
-            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size) {
+            if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(
+                &cache_path,
+                &url,
+                file_size,
+            ) {
                 // 检查缓存文件是否存在
                 let cache_path_buf = std::path::PathBuf::from(&cache_file_path);
                 if cache_path_buf.exists() {
@@ -1109,36 +1240,47 @@ impl App {
                     match std::fs::copy(&cache_path_buf, &target_path) {
                         Ok(_) => {
                             // 复制成功，设置壁纸
-                            let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                            let full_path =
+                                super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
                             let wallpaper_mode = self.config.wallpaper.mode;
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                             return iced::Task::perform(
                                 super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                                 move |result| match result {
-                                    Ok(_) => {
-                                        // 设置壁纸成功，将壁纸路径添加到历史记录
-                                        AppMessage::AddToWallpaperHistory(full_path)
-                                    }
-                                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                                    Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
+                                    Err(e) => AppMessage::ShowNotification(
+                                        format!("{}: {}", failed_message, e),
+                                        super::NotificationType::Error,
+                                    ),
                                 },
                             );
                         }
                         Err(e) => {
                             error!("[模态窗口设置壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
-                            let error_message = format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
-                            return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                            let error_message =
+                                format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
+                            return iced::Task::done(AppMessage::ShowNotification(
+                                error_message,
+                                super::NotificationType::Error,
+                            ));
                         }
                     }
                 } else {
                     // 缓存文件不存在
                     let error_message = self.i18n.t("download-tasks.cache-file-not-found").to_string();
-                    return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                    return iced::Task::done(AppMessage::ShowNotification(
+                        error_message,
+                        super::NotificationType::Error,
+                    ));
                 }
             } else {
                 // 获取缓存路径失败
                 let error_message = self.i18n.t("download-tasks.get-cache-path-failed").to_string();
-                return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                return iced::Task::done(AppMessage::ShowNotification(
+                    error_message,
+                    super::NotificationType::Error,
+                ));
             }
         }
 

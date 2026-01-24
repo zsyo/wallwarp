@@ -15,7 +15,9 @@ impl App {
             LocalMessage::LoadWallpapersSuccess(paths) => self.handle_load_local_wallpapers_success(paths),
             LocalMessage::LoadWallpapersFailed(error) => self.handle_load_local_wallpapers_failed(error),
             LocalMessage::LoadPage => self.handle_load_local_page(),
-            LocalMessage::LoadPageSuccess(wallpapers_with_idx) => self.handle_load_local_page_success(wallpapers_with_idx),
+            LocalMessage::LoadPageSuccess(wallpapers_with_idx) => {
+                self.handle_load_local_page_success(wallpapers_with_idx)
+            }
             LocalMessage::LoadPageFailed(error) => self.handle_load_local_page_failed(error),
             LocalMessage::WallpaperSelected(wallpaper) => self.handle_local_wallpaper_selected(wallpaper),
             LocalMessage::ShowModal(index) => self.handle_show_local_modal(index),
@@ -43,10 +45,13 @@ impl App {
 
     fn handle_load_local_wallpapers(&mut self) -> iced::Task<AppMessage> {
         let data_path = self.config.data.data_path.clone();
-        iced::Task::perform(super::async_tasks::async_load_wallpaper_paths(data_path), |result| match result {
-            Ok(paths) => AppMessage::Local(super::local::LocalMessage::LoadWallpapersSuccess(paths)),
-            Err(e) => AppMessage::Local(super::local::LocalMessage::LoadWallpapersFailed(e.to_string())),
-        })
+        iced::Task::perform(
+            super::async_tasks::async_load_wallpaper_paths(data_path),
+            |result| match result {
+                Ok(paths) => AppMessage::Local(super::local::LocalMessage::LoadWallpapersSuccess(paths)),
+                Err(e) => AppMessage::Local(super::local::LocalMessage::LoadWallpapersFailed(e.to_string())),
+            },
+        )
     }
 
     fn handle_load_local_wallpapers_success(&mut self, paths: Vec<String>) -> iced::Task<AppMessage> {
@@ -93,7 +98,10 @@ impl App {
             tasks.push(iced::Task::perform(
                 super::async_tasks::async_load_single_wallpaper_with_fallback(path.clone(), cache_path),
                 move |result| match result {
-                    Ok(wallpaper) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(absolute_idx, wallpaper)])),
+                    Ok(wallpaper) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(
+                        absolute_idx,
+                        wallpaper,
+                    )])),
                     Err(_) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(
                         absolute_idx,
                         crate::services::local::Wallpaper::new(path, "加载失败".to_string(), 0, 0, 0),
@@ -112,7 +120,9 @@ impl App {
         } else {
             // 后续页面：扩展wallpapers数组
             for _ in 0..(page_end - self.local_state.wallpapers.len()) {
-                self.local_state.wallpapers.push(super::local::WallpaperLoadStatus::Loading);
+                self.local_state
+                    .wallpapers
+                    .push(super::local::WallpaperLoadStatus::Loading);
             }
         }
 
@@ -120,7 +130,10 @@ impl App {
         iced::Task::batch(tasks)
     }
 
-    fn handle_load_local_page_success(&mut self, wallpapers_with_idx: Vec<(usize, crate::services::local::Wallpaper)>) -> iced::Task<AppMessage> {
+    fn handle_load_local_page_success(
+        &mut self,
+        wallpapers_with_idx: Vec<(usize, crate::services::local::Wallpaper)>,
+    ) -> iced::Task<AppMessage> {
         // 为每个加载完成的壁纸更新状态
         for (idx, wallpaper) in wallpapers_with_idx {
             if idx < self.local_state.wallpapers.len() {
@@ -132,14 +145,21 @@ impl App {
         let page_start = (self.local_state.current_page - 1) * self.local_state.page_size; // 上一页的起始位置
         let page_end = std::cmp::min(page_start + self.local_state.page_size, self.local_state.total_count);
 
-        let all_loaded = (page_start..page_end)
-            .all(|i| i < self.local_state.wallpapers.len() && matches!(self.local_state.wallpapers[i], super::local::WallpaperLoadStatus::Loaded(_)));
+        let all_loaded = (page_start..page_end).all(|i| {
+            i < self.local_state.wallpapers.len()
+                && matches!(
+                    self.local_state.wallpapers[i],
+                    super::local::WallpaperLoadStatus::Loaded(_)
+                )
+        });
 
         if all_loaded {
             self.local_state.loading_page = false;
 
             // 添加检查是否需要自动加载下一页的任务
-            let check_task = iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::CheckAndLoadNextPage));
+            let check_task = iced::Task::perform(async {}, |_| {
+                AppMessage::Local(super::local::LocalMessage::CheckAndLoadNextPage)
+            });
             return check_task;
         }
 
@@ -154,7 +174,10 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_local_wallpaper_selected(&mut self, _wallpaper: crate::services::local::Wallpaper) -> iced::Task<AppMessage> {
+    fn handle_local_wallpaper_selected(
+        &mut self,
+        _wallpaper: crate::services::local::Wallpaper,
+    ) -> iced::Task<AppMessage> {
         // 处理壁纸选择
         iced::Task::none()
     }
@@ -208,7 +231,10 @@ impl App {
 
     fn handle_next_local_image(&mut self) -> iced::Task<AppMessage> {
         // 显示下一张图片，跳过加载失败的图片
-        if let Some(next_index) = self.local_state.find_next_valid_image_index(self.local_state.current_image_index, 1) {
+        if let Some(next_index) = self
+            .local_state
+            .find_next_valid_image_index(self.local_state.current_image_index, 1)
+        {
             self.local_state.current_image_index = next_index;
 
             // 清除之前的图片数据
@@ -234,7 +260,10 @@ impl App {
 
     fn handle_previous_local_image(&mut self) -> iced::Task<AppMessage> {
         // 显示上一张图片，跳过加载失败的图片
-        if let Some(prev_index) = self.local_state.find_next_valid_image_index(self.local_state.current_image_index, -1) {
+        if let Some(prev_index) = self
+            .local_state
+            .find_next_valid_image_index(self.local_state.current_image_index, -1)
+        {
             self.local_state.current_image_index = prev_index;
 
             // 清除之前的图片数据
@@ -260,7 +289,9 @@ impl App {
 
     fn handle_scroll_to_bottom(&mut self) -> iced::Task<AppMessage> {
         // 滚动到底部，如果还有更多壁纸则加载下一页
-        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count && !self.local_state.loading_page {
+        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count
+            && !self.local_state.loading_page
+        {
             return iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadPage));
         }
 
@@ -270,9 +301,12 @@ impl App {
     fn handle_check_and_load_next_page(&mut self) -> iced::Task<AppMessage> {
         // 检查是否需要自动加载下一页
         // 条件：还有更多壁纸，且当前没有正在加载
-        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count && !self.local_state.loading_page {
+        if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count
+            && !self.local_state.loading_page
+        {
             // 计算每行可以显示多少张图
-            let available_width = (self.current_window_width as f32 - crate::ui::style::IMAGE_SPACING).max(crate::ui::style::IMAGE_WIDTH);
+            let available_width =
+                (self.current_window_width as f32 - crate::ui::style::IMAGE_SPACING).max(crate::ui::style::IMAGE_WIDTH);
             let unit_width = crate::ui::style::IMAGE_WIDTH + crate::ui::style::IMAGE_SPACING;
             let items_per_row = (available_width / unit_width).floor() as usize;
             let items_per_row = items_per_row.max(1);
@@ -282,7 +316,8 @@ impl App {
             let num_rows = (num_wallpapers + items_per_row - 1) / items_per_row; // 向上取整
 
             // 估算内容高度：行数 * (每张图高度 + 间距)
-            let estimated_content_height = num_rows as f32 * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING);
+            let estimated_content_height =
+                num_rows as f32 * (crate::ui::style::IMAGE_HEIGHT + crate::ui::style::IMAGE_SPACING);
 
             // 如果估算的内容高度小于窗口高度，说明没有滚动条，需要加载下一页
             if estimated_content_height < self.current_window_height as f32 {
@@ -343,11 +378,17 @@ impl App {
                     }
 
                     // 显示成功通知
-                    return self.show_notification(self.i18n.t("local-list.delete-success"), super::NotificationType::Success);
+                    return self.show_notification(
+                        self.i18n.t("local-list.delete-success"),
+                        super::NotificationType::Success,
+                    );
                 }
                 Err(e) => {
                     // 删除失败，显示错误通知
-                    return self.show_notification(format!("{}: {}", self.i18n.t("local-list.delete-failed"), e), super::NotificationType::Error);
+                    return self.show_notification(
+                        format!("{}: {}", self.i18n.t("local-list.delete-failed"), e),
+                        super::NotificationType::Error,
+                    );
                 }
             }
         }
@@ -368,11 +409,11 @@ impl App {
             return iced::Task::perform(
                 super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                 move |result| match result {
-                    Ok(_) => {
-                        // 设置壁纸成功，将壁纸路径添加到历史记录
-                        AppMessage::AddToWallpaperHistory(full_path)
-                    }
-                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                    Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
+                    Err(e) => AppMessage::ShowNotification(
+                        format!("{}: {}", failed_message, e),
+                        super::NotificationType::Error,
+                    ),
                 },
             );
         }
@@ -402,10 +443,15 @@ impl App {
             crate::utils::config::WallpaperAutoChangeMode::Local => {
                 // 本地模式：获取支持的图片文件列表
                 let data_path = self.config.data.data_path.clone();
-                iced::Task::perform(super::async_tasks::async_get_supported_images(data_path), |result| match result {
-                    Ok(paths) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths)),
-                    Err(e) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed(e.to_string())),
-                })
+                iced::Task::perform(
+                    super::async_tasks::async_get_supported_images(data_path),
+                    |result| match result {
+                        Ok(paths) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths)),
+                        Err(e) => {
+                            AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed(e.to_string()))
+                        }
+                    },
+                )
             }
             crate::utils::config::WallpaperAutoChangeMode::Online => {
                 // 在线模式：启动在线壁纸切换
@@ -428,69 +474,49 @@ impl App {
             return iced::Task::none();
         }
 
-        // 获取定时切换间隔（分钟）
-        let interval_minutes = match self.config.wallpaper.auto_change_interval.get_minutes() {
-            Some(minutes) => minutes,
-            None => return iced::Task::none(),
-        };
+        // 2. 更新最后一次执行时间（用于 UI 显示或其他逻辑参考）
+        self.local_state.auto_change_last_time = Some(std::time::Instant::now());
 
-        // 检查是否到达切换时间
-        if let Some(last_time) = self.local_state.auto_change_last_time {
-            let elapsed = last_time.elapsed().as_secs();
-            let interval_seconds = interval_minutes as u64 * 60;
+        // 3. 记录日志 (现在只有在真正执行时才会打印)
+        let next_interval = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
+        let next_time_label = chrono::Local::now() + chrono::Duration::minutes(next_interval as i64);
+        tracing::info!(
+            "[定时切换] 执行壁纸切换。模式: {:?}, 下次预计时间: {}",
+            self.config.wallpaper.auto_change_mode,
+            next_time_label.format("%H:%M:%S")
+        );
 
-            if elapsed >= interval_seconds {
-                // 到达切换时间，执行切换
-                self.local_state.auto_change_last_time = Some(std::time::Instant::now());
-
-                // 计算并记录下次执行时间
-                let next_time = chrono::Local::now() + chrono::Duration::minutes(interval_minutes as i64);
-                tracing::info!(
-                    "[定时切换] [执行] 触发壁纸切换, 模式: {:?}, 下次执行时间: {}",
-                    self.config.wallpaper.auto_change_mode,
-                    next_time.format("%Y-%m-%d %H:%M:%S")
-                );
-
-                // 根据切换模式执行不同的逻辑
-                match self.config.wallpaper.auto_change_mode {
-                    crate::utils::config::WallpaperAutoChangeMode::Local => {
-                        // 本地模式：重新获取支持的图片文件列表（因为可能有新增或删除）
-                        let data_path = self.config.data.data_path.clone();
-                        iced::Task::perform(super::async_tasks::async_get_supported_images(data_path), |result| match result {
-                            Ok(paths) => {
-                                // 获取到图片列表后，立即尝试设置随机壁纸
-                                if paths.is_empty() {
-                                    AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed("没有找到支持的壁纸文件".to_string()))
-                                } else {
-                                    // 发送一个消息来触发设置随机壁纸
-                                    AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths))
-                                }
+        // 4. 根据模式直接执行切换任务
+        match self.config.wallpaper.auto_change_mode {
+            crate::utils::config::WallpaperAutoChangeMode::Local => {
+                let data_path = self.config.data.data_path.clone();
+                iced::Task::perform(
+                    super::async_tasks::async_get_supported_images(data_path),
+                    |result| match result {
+                        Ok(paths) => {
+                            if paths.is_empty() {
+                                AppMessage::Local(LocalMessage::GetSupportedImagesFailed(
+                                    "没有找到支持的壁纸文件".to_string(),
+                                ))
+                            } else {
+                                AppMessage::Local(LocalMessage::GetSupportedImagesSuccess(paths))
                             }
-                            Err(e) => AppMessage::Local(super::local::LocalMessage::GetSupportedImagesFailed(e.to_string())),
-                        })
-                    }
-                    crate::utils::config::WallpaperAutoChangeMode::Online => {
-                        // 在线模式：从Wallhaven获取随机壁纸
-                        let config = self.config.clone();
-                        let auto_change_running = self.auto_change_running.clone();
-                        iced::Task::perform(
-                            super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
-                            |result| match result {
-                                Ok(path) => {
-                                    // 设置壁纸成功，将壁纸路径添加到历史记录
-                                    AppMessage::AddToWallpaperHistory(path.clone());
-                                    AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path))
-                                }
-                                Err(e) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperFailed(e.to_string())),
-                            },
-                        )
-                    }
-                }
-            } else {
-                iced::Task::none()
+                        }
+                        Err(e) => AppMessage::Local(LocalMessage::GetSupportedImagesFailed(e.to_string())),
+                    },
+                )
             }
-        } else {
-            iced::Task::none()
+            crate::utils::config::WallpaperAutoChangeMode::Online => {
+                let config = self.config.clone();
+                let auto_change_running = self.auto_change_running.clone();
+                iced::Task::perform(
+                    super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
+                    |result| match result {
+                        Ok(path) => AppMessage::Local(LocalMessage::SetRandomWallpaperSuccess(path)),
+                        Err(e) => AppMessage::Local(LocalMessage::SetRandomWallpaperFailed(e.to_string())),
+                    },
+                )
+            }
         }
     }
 
@@ -503,19 +529,21 @@ impl App {
             // 获取成功，立即设置一张随机壁纸
             let wallpaper_mode = self.config.wallpaper.mode;
 
-            iced::Task::perform(super::async_tasks::async_set_random_wallpaper(paths, wallpaper_mode), |result| match result {
-                Ok(path) => {
-                    // 设置壁纸成功，将壁纸路径添加到历史记录
-                    AppMessage::AddToWallpaperHistory(path.clone());
-                    AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path))
-                }
-                Err(e) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperFailed(e.to_string())),
-            })
+            iced::Task::perform(
+                super::async_tasks::async_set_random_wallpaper(paths, wallpaper_mode),
+                |result| match result {
+                    Ok(path) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path)),
+                    Err(e) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperFailed(e.to_string())),
+                },
+            )
         } else {
             // 没有找到支持的壁纸
             tracing::warn!("[定时切换] [获取] 没有找到支持的壁纸文件");
             let error_message = self.i18n.t("local-list.no-valid-wallpapers").to_string();
-            iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error))
+            iced::Task::done(AppMessage::ShowNotification(
+                error_message,
+                super::NotificationType::Error,
+            ))
         }
     }
 
@@ -524,7 +552,10 @@ impl App {
         tracing::error!("[定时切换] [失败] 获取壁纸列表失败: {}", error);
         self.local_state.auto_change_enabled = false;
         let error_message = format!("获取壁纸列表失败: {}", error);
-        iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error))
+        iced::Task::done(AppMessage::ShowNotification(
+            error_message,
+            super::NotificationType::Error,
+        ))
     }
 
     /// 处理随机设置壁纸成功
@@ -532,12 +563,13 @@ impl App {
         tracing::info!("[定时切换] [成功] 已设置壁纸: {}", path);
 
         // 将壁纸路径添加到历史记录
-        let path_clone = path.clone();
-
-        let success_message = format!("已设置壁纸: {}", path);
+        // let success_message = format!("已设置壁纸: {}", path.clone());
         iced::Task::batch(vec![
-            iced::Task::done(AppMessage::AddToWallpaperHistory(path_clone)),
-            iced::Task::done(AppMessage::ShowNotification(success_message, super::NotificationType::Success)),
+            iced::Task::done(AppMessage::AddToWallpaperHistory(path)),
+            // iced::Task::done(AppMessage::ShowNotification(
+            //     success_message,
+            //     super::NotificationType::Success,
+            // )),
         ])
     }
 
@@ -545,6 +577,9 @@ impl App {
     fn handle_set_random_wallpaper_failed(&mut self, error: String) -> iced::Task<AppMessage> {
         tracing::error!("[定时切换] [失败] 设置壁纸失败: {}", error);
         let error_message = format!("设置壁纸失败: {}", error);
-        iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error))
+        iced::Task::done(AppMessage::ShowNotification(
+            error_message,
+            super::NotificationType::Error,
+        ))
     }
 }

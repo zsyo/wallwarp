@@ -14,6 +14,16 @@ impl App {
         use iced::event;
         use iced::window;
 
+        let auto_change_background = if self.local_state.auto_change_enabled {
+            let minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
+            // Iced 的这个定时器非常智能：
+            // 如果 minutes 变了，生成的 Subscription ID 就会变，旧的定时器会被自动替换
+            iced::time::every(std::time::Duration::from_secs(minutes as u64 * 60))
+                .map(|_| AppMessage::Local(super::local::LocalMessage::AutoChangeTick))
+        } else {
+            iced::Subscription::none()
+        };
+
         iced::Subscription::batch([
             // 窗口事件监听
             event::listen_with(|event, _status, _loop_status| match event {
@@ -47,8 +57,7 @@ impl App {
                 }
             }),
             // 添加定时切换壁纸定时器 - 每秒检查一次是否需要切换壁纸
-            iced::time::every(std::time::Duration::from_secs(1))
-                .map(|_| AppMessage::Local(super::local::LocalMessage::AutoChangeTick)),
+            auto_change_background,
             // 添加下载进度监听 - 使用run_with
             iced::Subscription::run_with(DownloadProgressSubscription, |_state| {
                 // 初始化下载进度channel

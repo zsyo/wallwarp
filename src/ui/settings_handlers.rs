@@ -768,11 +768,7 @@ impl App {
                 iced::Task::perform(
                     super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
                     |result| match result {
-                        Ok(path) => {
-                            // 设置壁纸成功，将壁纸路径添加到历史记录
-                            AppMessage::AddToWallpaperHistory(path.clone());
-                            AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path))
-                        }
+                        Ok(path) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path)),
                         Err(e) => {
                             let error_message = format!("设置壁纸失败: {}", e);
                             AppMessage::ShowNotification(error_message, super::NotificationType::Error)
