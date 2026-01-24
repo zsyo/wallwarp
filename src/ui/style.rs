@@ -21,11 +21,44 @@ pub const BORDER_RADIUS: f32 = 5.0;
 // 颜色常量
 // ============================================================================
 
-/// 浅色背景色
-pub const COLOR_BG_LIGHT: Color = Color::from_rgb(0.9, 0.9, 0.9);
+/// 浅色背景色（主背景，类似 macOS 风格的浅灰色）
+pub const COLOR_BG_LIGHT: Color = Color::from_rgb(0.96, 0.96, 0.96); // #F5F5F7
 
 /// 深色文字颜色
-pub const COLOR_TEXT_DARK: Color = Color::from_rgb(0.3, 0.3, 0.3);
+pub const COLOR_TEXT_DARK: Color = Color::from_rgb(0.13, 0.13, 0.13); // #212121
+
+/// 侧边栏背景色（浅灰色）
+pub const COLOR_SIDEBAR_BG: Color = Color::from_rgb(0.94, 0.94, 0.94); // #EEEEF0
+
+/// 侧边栏按钮默认背景色（透明）
+pub const COLOR_SIDEBAR_BUTTON_DEFAULT: Color = Color::TRANSPARENT;
+
+/// 侧边栏按钮悬停背景色
+pub const COLOR_SIDEBAR_BUTTON_HOVER: Color = Color::from_rgb(0.93, 0.93, 0.95); // #EEEEF0
+
+/// 侧边栏按钮选中背景色）
+pub const COLOR_SIDEBAR_BUTTON_SELECTED: Color = Color::from_rgb(0.85, 0.85, 0.85); // #D9D9D9
+
+/// 侧边栏选中指示条颜色（蓝色）
+pub const COLOR_SIDEBAR_INDICATOR: Color = Color::from_rgb(0.13, 0.59, 0.95); // #2196F3
+
+/// 侧边栏选中指示条宽度
+pub const SIDEBAR_INDICATOR_WIDTH: f32 = 6.0;
+
+/// 分隔线颜色（深灰色）
+pub const COLOR_SEPARATOR: Color = Color::from_rgb(0.85, 0.85, 0.85); // #D9D9D9
+
+/// 分隔线宽度
+pub const SEPARATOR_WIDTH: f32 = 1.0;
+
+/// 分隔线阴影颜色
+pub const COLOR_SEPARATOR_SHADOW: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.15);
+
+/// 分隔线阴影偏移
+pub const SEPARATOR_SHADOW_OFFSET: f32 = 3.0;
+
+/// 分隔线阴影模糊
+pub const SEPARATOR_SHADOW_BLUR: f32 = 6.0;
 
 /// 模态窗口背景色（半透明黑色）
 pub const COLOR_MODAL_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.85);
@@ -260,6 +293,9 @@ pub const INPUT_HEIGHT: f32 = 30.0;
 /// 设置行间距
 pub const ROW_SPACING: f32 = 10.0;
 
+/// 设置行间距
+pub const SETTINGS_ROW_SPACING: f32 = 20.0;
+
 /// 设置区块内边距
 pub const SECTION_PADDING: f32 = 15.0;
 
@@ -438,3 +474,28 @@ pub const TABLE_SEPARATOR_COLOR: Color = Color::from_rgb(0.9, 0.9, 0.9);
 
 /// 表格分隔线宽度
 pub const TABLE_SEPARATOR_WIDTH: f32 = 1.0;
+
+// ============================================================================
+// 卡片阴影样式常量
+// ============================================================================
+
+/// 卡片阴影颜色
+pub const CARD_SHADOW_COLOR: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.08);
+
+/// 卡片阴影偏移X
+pub const CARD_SHADOW_OFFSET_X: f32 = 0.0;
+
+/// 卡片阴影偏移Y
+pub const CARD_SHADOW_OFFSET_Y: f32 = 2.0;
+
+/// 卡片阴影模糊半径
+pub const CARD_SHADOW_BLUR: f32 = 8.0;
+
+/// 卡片悬停阴影颜色
+pub const CARD_SHADOW_HOVER_COLOR: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.12);
+
+/// 卡片悬停阴影偏移Y
+pub const CARD_SHADOW_HOVER_OFFSET_Y: f32 = 4.0;
+
+/// 卡片悬停阴影模糊半径
+pub const CARD_SHADOW_HOVER_BLUR: f32 = 12.0;

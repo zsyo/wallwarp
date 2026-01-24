@@ -4,9 +4,11 @@ use super::App;
 use super::AppMessage;
 use super::common;
 use crate::ui::style::{
-    ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, ABOUT_ROW_HEIGHT, BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING,
-    INPUT_HEIGHT, INPUT_PADDING, LOGO_DISPLAY_SIZE, LOGO_SIZE, PICK_LIST_WIDTH, PORT_INPUT_WIDTH, ROW_SPACING, SCROLL_PADDING, SECTION_PADDING,
-    SECTION_SPACING, SECTION_TITLE_SIZE, TEXT_INPUT_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
+    ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, ABOUT_ROW_HEIGHT, BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN,
+    BUTTON_COLOR_RED, BUTTON_SPACING, INPUT_HEIGHT, INPUT_PADDING, LOGO_DISPLAY_SIZE, LOGO_SIZE, PICK_LIST_WIDTH,
+    PORT_INPUT_WIDTH, ROW_SPACING, SCROLL_PADDING, SECTION_PADDING, SECTION_SPACING, SECTION_TITLE_SIZE,
+    SETTINGS_ROW_SPACING, TEXT_INPUT_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS,
+    TOOLTIP_BORDER_WIDTH,
 };
 use crate::utils::assets;
 use crate::utils::config::CloseAction;
@@ -55,8 +57,12 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         vec![
             common::create_setting_row(
                 app.i18n.t("settings.app-language"),
-                pick_list(&app.i18n.available_langs[..], Some(app.i18n.current_lang.clone()), AppMessage::LanguageSelected)
-                    .width(Length::Fixed(PICK_LIST_WIDTH)),
+                pick_list(
+                    &app.i18n.available_langs[..],
+                    Some(app.i18n.current_lang.clone()),
+                    AppMessage::LanguageSelected,
+                )
+                .width(Length::Fixed(PICK_LIST_WIDTH)),
             ),
             common::create_setting_row(
                 app.i18n.t("settings.auto-startup"),
@@ -107,7 +113,11 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                         .align_x(Alignment::Start)
                         .padding(INPUT_PADDING),
                     container(iced::widget::Space::new()).width(Length::Fixed(ROW_SPACING)),
-                    common::create_colored_button(app.i18n.t("settings.proxy-save"), BUTTON_COLOR_BLUE, AppMessage::SaveProxy)
+                    common::create_colored_button(
+                        app.i18n.t("settings.proxy-save"),
+                        BUTTON_COLOR_BLUE,
+                        AppMessage::SaveProxy
+                    )
                 ]
                 .width(Length::FillPortion(2))
                 .spacing(0),
@@ -144,14 +154,21 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         vec![common::create_setting_row(
             app.i18n.t("settings.wallhaven-api-key"),
             row![
-                text_input(&app.i18n.t("settings.wallhaven-api-key-placeholder"), &app.wallhaven_api_key)
-                    .width(Length::Fill)
-                    .size(TEXT_INPUT_SIZE)
-                    .align_x(Alignment::Center)
-                    .on_input(AppMessage::WallhavenApiKeyChanged)
-                    .padding(INPUT_PADDING),
+                text_input(
+                    &app.i18n.t("settings.wallhaven-api-key-placeholder"),
+                    &app.wallhaven_api_key
+                )
+                .width(Length::Fill)
+                .size(TEXT_INPUT_SIZE)
+                .align_x(Alignment::Center)
+                .on_input(AppMessage::WallhavenApiKeyChanged)
+                .padding(INPUT_PADDING),
                 container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-                common::create_colored_button(app.i18n.t("settings.save"), BUTTON_COLOR_BLUE, AppMessage::SaveWallhavenApiKey)
+                common::create_colored_button(
+                    app.i18n.t("settings.save"),
+                    BUTTON_COLOR_BLUE,
+                    AppMessage::SaveWallhavenApiKey
+                )
             ]
             .width(Length::FillPortion(3))
             .spacing(0),
@@ -272,19 +289,25 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                             row![
                                 iced::widget::radio(
                                     app.i18n.t("auto-change-interval-options.custom"),
-                                    crate::utils::config::WallpaperAutoChangeInterval::Custom(app.custom_interval_minutes),
+                                    crate::utils::config::WallpaperAutoChangeInterval::Custom(
+                                        app.custom_interval_minutes
+                                    ),
                                     Some(app.auto_change_interval.clone()),
                                     |interval| {
-                                        if let crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes) = interval {
-                                            AppMessage::AutoChangeIntervalSelected(crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes))
+                                        if let crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes) =
+                                            interval
+                                        {
+                                            AppMessage::AutoChangeIntervalSelected(
+                                                crate::utils::config::WallpaperAutoChangeInterval::Custom(minutes),
+                                            )
                                         } else {
                                             AppMessage::AutoChangeIntervalSelected(interval)
                                         }
                                     }
                                 ),
-                                iced_aw::NumberInput::new(&app.custom_interval_minutes, 1..=1440, |minutes| AppMessage::CustomIntervalMinutesChanged(
-                                    minutes
-                                ))
+                                iced_aw::NumberInput::new(&app.custom_interval_minutes, 1..=1440, |minutes| {
+                                    AppMessage::CustomIntervalMinutesChanged(minutes)
+                                })
                                 .width(Length::Fixed(80.0))
                                 .padding(INPUT_PADDING)
                             ]
@@ -309,12 +332,19 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
             common::create_setting_row(
                 app.i18n.t("settings.auto-change-query"),
                 row![
-                    text_input(&app.i18n.t("settings.auto-change-query-placeholder"), &app.auto_change_query)
-                        .width(Length::Fixed(400.0))
-                        .align_x(Alignment::Center)
-                        .padding(INPUT_PADDING)
-                        .on_input(|query| AppMessage::AutoChangeQueryChanged(query)),
-                    common::create_colored_button(app.i18n.t("settings.save"), BUTTON_COLOR_BLUE, AppMessage::SaveAutoChangeQuery)
+                    text_input(
+                        &app.i18n.t("settings.auto-change-query-placeholder"),
+                        &app.auto_change_query
+                    )
+                    .width(Length::Fixed(400.0))
+                    .align_x(Alignment::Center)
+                    .padding(INPUT_PADDING)
+                    .on_input(|query| AppMessage::AutoChangeQueryChanged(query)),
+                    common::create_colored_button(
+                        app.i18n.t("settings.save"),
+                        BUTTON_COLOR_BLUE,
+                        AppMessage::SaveAutoChangeQuery
+                    )
                 ]
                 .spacing(ROW_SPACING),
             ),
@@ -332,7 +362,10 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                 container(
                     column![
                         common::create_info_row(app.i18n.t("settings.about-name"), app.i18n.t("app-title")),
-                        common::create_info_row(app.i18n.t("settings.about-version"), env!("CARGO_PKG_VERSION").to_string()),
+                        common::create_info_row(
+                            app.i18n.t("settings.about-version"),
+                            env!("CARGO_PKG_VERSION").to_string()
+                        ),
                         create_about_link_row(app.i18n.t("settings.about-author"), "zsyo", "https://github.com/zsyo"),
                         create_about_link_row(
                             app.i18n.t("settings.about-repo"),
@@ -369,7 +402,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
         .width(Length::Fill)
         .align_x(Alignment::Center)
         .padding(SCROLL_PADDING)
-        .spacing(ROW_SPACING),
+        .spacing(SETTINGS_ROW_SPACING),
     )
     .height(Length::Fill)
     .id(iced::widget::Id::new("settings_scroll"))

@@ -164,12 +164,40 @@ fn create_loading_placeholder<'a>(i18n: &'a I18n) -> Element<'a, AppMessage> {
         .height(Length::Fixed(IMAGE_HEIGHT))
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
-        .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT));
+        .style(|theme| {
+            let mut style = common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT);
+            // 添加阴影效果
+            style.shadow = iced::Shadow {
+                color: COLOR_OVERLAY_BG,
+                offset: iced::Vector { x: 0.0, y: 2.0 },
+                blur_radius: 8.0,
+            };
+            style
+        });
 
     button(placeholder_content)
         .padding(0)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
+        .style(|_theme, status| {
+            let base_style = iced::widget::button::text(_theme, status);
+            let shadow = match status {
+                iced::widget::button::Status::Hovered => iced::Shadow {
+                    color: iced::Color::from_rgba(0.0, 0.0, 0.0, 0.12),
+                    offset: iced::Vector { x: 0.0, y: 4.0 },
+                    blur_radius: 12.0,
+                },
+                _ => iced::Shadow {
+                    color: iced::Color::from_rgba(0.0, 0.0, 0.0, 0.08),
+                    offset: iced::Vector { x: 0.0, y: 2.0 },
+                    blur_radius: 8.0,
+                },
+            };
+            iced::widget::button::Style {
+                shadow,
+                ..base_style
+            }
+        })
         .into()
 }
 
@@ -204,7 +232,16 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     let styled_image = container(image)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT));
+        .style(|theme| {
+            let mut style = common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT);
+            // 添加阴影效果
+            style.shadow = iced::Shadow {
+                color: COLOR_OVERLAY_BG,
+                offset: iced::Vector { x: 0.0, y: 2.0 },
+                blur_radius: 8.0,
+            };
+            style
+        });
 
     // 创建透明遮罩内容
     let file_size_text = text(crate::utils::helpers::format_file_size(wallpaper.file_size))
@@ -284,6 +321,25 @@ fn create_loaded_wallpaper_with_thumb<'a>(
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
         .on_press(AppMessage::Online(OnlineMessage::ShowModal(index)))
+        .style(|_theme, status| {
+            let base_style = iced::widget::button::text(_theme, status);
+            let shadow = match status {
+                iced::widget::button::Status::Hovered => iced::Shadow {
+                    color: iced::Color::from_rgba(0.0, 0.0, 0.0, 0.12),
+                    offset: iced::Vector { x: 0.0, y: 4.0 },
+                    blur_radius: 12.0,
+                },
+                _ => iced::Shadow {
+                    color: iced::Color::from_rgba(0.0, 0.0, 0.0, 0.08),
+                    offset: iced::Vector { x: 0.0, y: 2.0 },
+                    blur_radius: 8.0,
+                },
+            };
+            iced::widget::button::Style {
+                shadow,
+                ..base_style
+            }
+        })
         .into()
 }
 

@@ -34,17 +34,21 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
             selection: Color::from_rgba(0.098, 0.463, 0.824, 0.3),
         });
 
-    let search_button = common::create_icon_button_with_size("\u{F52A}", BUTTON_COLOR_BLUE, 16, AppMessage::Online(OnlineMessage::Search)).style(
-        |_theme: &iced::Theme, _status| iced::widget::button::Style {
-            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-            border: iced::border::Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: iced::border::Radius::from(4.0),
-            },
-            ..iced::widget::button::text(_theme, _status)
+    let search_button = common::create_icon_button_with_size(
+        "\u{F52A}",
+        BUTTON_COLOR_BLUE,
+        16,
+        AppMessage::Online(OnlineMessage::Search),
+    )
+    .style(|_theme: &iced::Theme, _status| iced::widget::button::Style {
+        background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(4.0),
         },
-    );
+        ..iced::widget::button::text(_theme, _status)
+    });
 
     let search_container = row![search_input, search_button].spacing(2).align_y(Alignment::Center);
 
@@ -118,18 +122,21 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
     });
 
     // 功能按钮
-    let refresh_button =
-        common::create_icon_button_with_size("\u{F130}", BUTTON_COLOR_GREEN, 16, AppMessage::Online(OnlineMessage::Refresh)).style(|_theme, _status| {
-            iced::widget::button::Style {
-                background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-                border: iced::border::Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: iced::border::Radius::from(4.0),
-                },
-                ..iced::widget::button::text(_theme, _status)
-            }
-        });
+    let refresh_button = common::create_icon_button_with_size(
+        "\u{F130}",
+        BUTTON_COLOR_GREEN,
+        16,
+        AppMessage::Online(OnlineMessage::Refresh),
+    )
+    .style(|_theme, _status| iced::widget::button::Style {
+        background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+        border: iced::border::Border {
+            color: Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(4.0),
+        },
+        ..iced::widget::button::text(_theme, _status)
+    });
 
     // 组合所有元素
     let filter_row = row![
@@ -141,7 +148,11 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::General.bit_value()) != 0;
-                let bg_color = if is_checked { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+                let bg_color = if is_checked {
+                    COLOR_SELECTED_BLUE
+                } else {
+                    COLOR_LIGHT_BUTTON
+                };
                 let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
@@ -159,7 +170,11 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::Anime.bit_value()) != 0;
-                let bg_color = if is_checked { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+                let bg_color = if is_checked {
+                    COLOR_SELECTED_BLUE
+                } else {
+                    COLOR_LIGHT_BUTTON
+                };
                 let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
@@ -177,7 +192,11 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::People.bit_value()) != 0;
-                let bg_color = if is_checked { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+                let bg_color = if is_checked {
+                    COLOR_SELECTED_BLUE
+                } else {
+                    COLOR_LIGHT_BUTTON
+                };
                 let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
@@ -268,26 +287,33 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
         color_picker,
         sorting_picker,
         // 时间范围选择器：仅在排序为 TopList 时显示
-        if state.sorting == Sorting::TopList { Some(time_range_picker) } else { None },
+        if state.sorting == Sorting::TopList {
+            Some(time_range_picker)
+        } else {
+            None
+        },
         refresh_button,
     ]
     .spacing(4)
     .align_y(Alignment::Center);
 
-    container(filter_row)
-        .width(Length::Fill)
-        .height(Length::Fixed(50.0))
-        .padding(8)
-        .style(|_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(COLOR_LIGHT_BG)),
-            border: iced::border::Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: iced::border::Radius::from(4.0),
-            },
-            ..Default::default()
-        })
-        .into()
+    container(row![
+        iced::widget::Space::new().width(Length::Fixed(1.0)),
+        container(filter_row)
+            .width(Length::Fill)
+            .height(Length::Fixed(50.0))
+            .padding(8)
+            .style(|_theme: &iced::Theme| container::Style {
+                background: Some(iced::Background::Color(COLOR_LIGHT_BG)),
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..Default::default()
+            })
+    ])
+    .into()
 }
 
 /// 创建颜色选择器
@@ -334,12 +360,14 @@ fn create_color_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
     let color_underlay = row![
         text(color_button_text).size(14).color(color_button_text_color),
         iced::widget::Space::new().width(Length::Fill),
-        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB)).height(Length::Fill).padding(iced::Padding {
-            top: -2.0,
-            bottom: 0.0,
-            left: 0.0,
-            right: 0.0,
-        }),
+        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB))
+            .height(Length::Fill)
+            .padding(iced::Padding {
+                top: -2.0,
+                bottom: 0.0,
+                left: 0.0,
+                right: 0.0,
+            }),
     ]
     .spacing(4)
     .align_y(Alignment::Center)
@@ -423,7 +451,11 @@ fn create_color_grid_options<'a>(_i18n: &'a I18n, state: &'a OnlineState) -> Ele
         let mut row_items: Vec<Element<'a, AppMessage>> = Vec::new();
         for (color, color_option) in row {
             let is_selected = state.color == *color_option;
-            let border_color = if is_selected { COLOR_PICKER_ACTIVE } else { Color::TRANSPARENT };
+            let border_color = if is_selected {
+                COLOR_PICKER_ACTIVE
+            } else {
+                Color::TRANSPARENT
+            };
 
             // 对于 Any 选项，显示白色底色
             let color_button: Element<'a, AppMessage> = if *color_option == ColorOption::Any {
@@ -434,33 +466,41 @@ fn create_color_grid_options<'a>(_i18n: &'a I18n, state: &'a OnlineState) -> Ele
                     padding: 3.0,
                 };
 
-                button(canvas(line_program).width(Length::Fixed(64.0)).height(Length::Fixed(28.0)))
-                    .padding(0)
-                    .style(move |_theme, _status| iced::widget::button::Style {
-                        background: Some(iced::Background::Color(*color)),
-                        border: iced::border::Border {
-                            color: border_color,
-                            width: if is_selected { 2.0 } else { 0.0 },
-                            radius: iced::border::Radius::from(2.0),
-                        },
-                        ..iced::widget::button::text(_theme, _status)
-                    })
-                    .on_press(AppMessage::Online(OnlineMessage::ColorChanged(*color_option)))
-                    .into()
+                button(
+                    canvas(line_program)
+                        .width(Length::Fixed(64.0))
+                        .height(Length::Fixed(28.0)),
+                )
+                .padding(0)
+                .style(move |_theme, _status| iced::widget::button::Style {
+                    background: Some(iced::Background::Color(*color)),
+                    border: iced::border::Border {
+                        color: border_color,
+                        width: if is_selected { 2.0 } else { 0.0 },
+                        radius: iced::border::Radius::from(2.0),
+                    },
+                    ..iced::widget::button::text(_theme, _status)
+                })
+                .on_press(AppMessage::Online(OnlineMessage::ColorChanged(*color_option)))
+                .into()
             } else {
-                button(iced::widget::Space::new().width(Length::Fixed(64.0)).height(Length::Fixed(28.0)))
-                    .padding(0)
-                    .style(move |_theme, _status| iced::widget::button::Style {
-                        background: Some(iced::Background::Color(*color)),
-                        border: iced::border::Border {
-                            color: border_color,
-                            width: if is_selected { 2.0 } else { 0.0 },
-                            radius: iced::border::Radius::from(2.0),
-                        },
-                        ..iced::widget::button::text(_theme, _status)
-                    })
-                    .on_press(AppMessage::Online(OnlineMessage::ColorChanged(*color_option)))
-                    .into()
+                button(
+                    iced::widget::Space::new()
+                        .width(Length::Fixed(64.0))
+                        .height(Length::Fixed(28.0)),
+                )
+                .padding(0)
+                .style(move |_theme, _status| iced::widget::button::Style {
+                    background: Some(iced::Background::Color(*color)),
+                    border: iced::border::Border {
+                        color: border_color,
+                        width: if is_selected { 2.0 } else { 0.0 },
+                        radius: iced::border::Radius::from(2.0),
+                    },
+                    ..iced::widget::button::text(_theme, _status)
+                })
+                .on_press(AppMessage::Online(OnlineMessage::ColorChanged(*color_option)))
+                .into()
             };
 
             row_items.push(color_button);
@@ -476,15 +516,17 @@ fn create_color_grid_options<'a>(_i18n: &'a I18n, state: &'a OnlineState) -> Ele
     }
 
     // 创建颜色选择器容器
-    let picker_content = container(grid).padding(12).style(|_theme: &iced::Theme| container::Style {
-        background: Some(iced::Background::Color(COLOR_PICKER_BG)),
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(8.0),
-        },
-        ..Default::default()
-    });
+    let picker_content = container(grid)
+        .padding(12)
+        .style(|_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(COLOR_PICKER_BG)),
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(8.0),
+            },
+            ..Default::default()
+        });
 
     iced::widget::opaque(picker_content)
 }
@@ -506,7 +548,11 @@ fn create_resolution_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Eleme
                 i18n.t("online-wallpapers.resolution-label").to_string()
             } else {
                 // 找到最小尺寸的分辨率
-                let min_res = state.selected_resolutions.iter().min_by_key(|r| r.get_pixel_count()).unwrap();
+                let min_res = state
+                    .selected_resolutions
+                    .iter()
+                    .min_by_key(|r| r.get_pixel_count())
+                    .unwrap();
                 let extra_count = state.selected_resolutions.len() - 1;
                 if extra_count > 0 {
                     format!("{}+{}", min_res.value(), extra_count)
@@ -525,12 +571,14 @@ fn create_resolution_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Eleme
     let resolution_underlay = row![
         text(button_text).size(font_size),
         iced::widget::Space::new().width(Length::Fill),
-        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB)).height(Length::Fill).padding(iced::Padding {
-            top: -2.0,
-            bottom: 0.0,
-            left: 0.0,
-            right: 0.0,
-        }),
+        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB))
+            .height(Length::Fill)
+            .padding(iced::Padding {
+                top: -2.0,
+                bottom: 0.0,
+                left: 0.0,
+                right: 0.0,
+            }),
     ]
     .spacing(4)
     .align_y(Alignment::Center)
@@ -632,7 +680,11 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
         )))
         .style(move |_theme, _status| {
             let is_selected = state.resolution_mode == crate::ui::online::ResolutionMode::AtLeast;
-            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let bg_color = if is_selected {
+                COLOR_SELECTED_BLUE
+            } else {
+                COLOR_LIGHT_BUTTON
+            };
             let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
@@ -653,7 +705,11 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
         )))
         .style(move |_theme, _status| {
             let is_selected = state.resolution_mode == crate::ui::online::ResolutionMode::Exactly;
-            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let bg_color = if is_selected {
+                COLOR_SELECTED_BLUE
+            } else {
+                COLOR_LIGHT_BUTTON
+            };
             let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
@@ -669,10 +725,16 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
 
     let all_button = button(text(i18n.t("online-wallpapers.resolution-mode-all")).size(14))
         .padding(6)
-        .on_press(AppMessage::Online(OnlineMessage::ResolutionModeChanged(crate::ui::online::ResolutionMode::All)))
+        .on_press(AppMessage::Online(OnlineMessage::ResolutionModeChanged(
+            crate::ui::online::ResolutionMode::All,
+        )))
         .style(move |_theme, _status| {
             let is_selected = state.resolution_mode == crate::ui::online::ResolutionMode::All;
-            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let bg_color = if is_selected {
+                COLOR_SELECTED_BLUE
+            } else {
+                COLOR_LIGHT_BUTTON
+            };
             let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
@@ -710,8 +772,16 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
                 false
             };
 
-            let border_color = if is_selected { COLOR_PICKER_ACTIVE } else { Color::TRANSPARENT };
-            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { Color::TRANSPARENT };
+            let border_color = if is_selected {
+                COLOR_PICKER_ACTIVE
+            } else {
+                Color::TRANSPARENT
+            };
+            let bg_color = if is_selected {
+                COLOR_SELECTED_BLUE
+            } else {
+                Color::TRANSPARENT
+            };
             let text_color = if is_list_disabled {
                 Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
             } else {
@@ -748,8 +818,15 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
         }
 
         // 将分组标题和内容组合，使用固定宽度
-        let group_section =
-            container(column![group_header, iced::widget::Space::new().height(Length::Fixed(4.0)), group_column,].spacing(0)).width(Length::Fixed(100.0));
+        let group_section = container(
+            column![
+                group_header,
+                iced::widget::Space::new().height(Length::Fixed(4.0)),
+                group_column,
+            ]
+            .spacing(0),
+        )
+        .width(Length::Fixed(100.0));
 
         group_columns.push(group_section.into());
     }
@@ -759,9 +836,13 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
 
     // 创建分辨率选择器容器
     let picker_content = container(
-        column![mode_buttons, iced::widget::Space::new().height(Length::Fixed(12.0)), table_content,]
-            .spacing(0)
-            .align_x(Alignment::Center),
+        column![
+            mode_buttons,
+            iced::widget::Space::new().height(Length::Fixed(12.0)),
+            table_content,
+        ]
+        .spacing(0)
+        .align_x(Alignment::Center),
     )
     .padding(12)
     .width(Length::Fixed(530.0))
@@ -823,12 +904,14 @@ fn create_ratio_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
     let ratio_underlay = row![
         text(button_text).size(font_size),
         iced::widget::Space::new().width(Length::Fill),
-        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB)).height(Length::Fill).padding(iced::Padding {
-            top: -2.0,
-            bottom: 0.0,
-            left: 0.0,
-            right: 0.0,
-        }),
+        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB))
+            .height(Length::Fill)
+            .padding(iced::Padding {
+                top: -2.0,
+                bottom: 0.0,
+                left: 0.0,
+                right: 0.0,
+            }),
     ]
     .spacing(4)
     .align_y(Alignment::Center)
@@ -875,11 +958,19 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
         ),
         (
             "online-wallpapers.ratio-group-ultrawide",
-            &[(AspectRatio::R21x9, "21x9"), (AspectRatio::R32x9, "32x9"), (AspectRatio::R48x9, "48x9")],
+            &[
+                (AspectRatio::R21x9, "21x9"),
+                (AspectRatio::R32x9, "32x9"),
+                (AspectRatio::R48x9, "48x9"),
+            ],
         ),
         (
             "online-wallpapers.ratio-group-portrait",
-            &[(AspectRatio::R9x16, "9x16"), (AspectRatio::R10x16, "10x16"), (AspectRatio::R9x18, "9x18")],
+            &[
+                (AspectRatio::R9x16, "9x16"),
+                (AspectRatio::R10x16, "10x16"),
+                (AspectRatio::R9x18, "9x18"),
+            ],
         ),
         (
             "online-wallpapers.ratio-group-square",
@@ -914,7 +1005,11 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
         })
         .style(move |_theme, _status| {
             let is_selected = state.ratio_landscape_selected;
-            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let bg_color = if is_selected {
+                COLOR_SELECTED_BLUE
+            } else {
+                COLOR_LIGHT_BUTTON
+            };
             let text_color = if is_landscape_button_disabled {
                 Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
             } else if is_selected {
@@ -943,7 +1038,11 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
         })
         .style(move |_theme, _status| {
             let is_selected = state.ratio_portrait_selected;
-            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let bg_color = if is_selected {
+                COLOR_SELECTED_BLUE
+            } else {
+                COLOR_LIGHT_BUTTON
+            };
             let text_color = if is_portrait_button_disabled {
                 Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
             } else if is_selected {
@@ -972,7 +1071,11 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
         })
         .style(move |_theme, _status| {
             let is_selected = state.ratio_all_selected;
-            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { COLOR_LIGHT_BUTTON };
+            let bg_color = if is_selected {
+                COLOR_SELECTED_BLUE
+            } else {
+                COLOR_LIGHT_BUTTON
+            };
             let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
@@ -1013,8 +1116,16 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
         for (ratio, label) in ratios.iter() {
             let is_selected = state.selected_ratios.contains(ratio);
 
-            let border_color = if is_selected { COLOR_PICKER_ACTIVE } else { Color::TRANSPARENT };
-            let bg_color = if is_selected { COLOR_SELECTED_BLUE } else { Color::TRANSPARENT };
+            let border_color = if is_selected {
+                COLOR_PICKER_ACTIVE
+            } else {
+                Color::TRANSPARENT
+            };
+            let bg_color = if is_selected {
+                COLOR_SELECTED_BLUE
+            } else {
+                Color::TRANSPARENT
+            };
             let text_color = if is_all_disabled || is_group_disabled {
                 Color::from_rgba(0.5, 0.5, 0.5, 1.0) // 禁用状态使用灰色
             } else {
@@ -1049,8 +1160,15 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
         }
 
         // 将分组标题和内容组合，使用固定宽度
-        let group_section =
-            container(column![group_header, iced::widget::Space::new().height(Length::Fixed(4.0)), group_column,].spacing(0)).width(Length::Fixed(100.0));
+        let group_section = container(
+            column![
+                group_header,
+                iced::widget::Space::new().height(Length::Fixed(4.0)),
+                group_column,
+            ]
+            .spacing(0),
+        )
+        .width(Length::Fixed(100.0));
 
         group_columns.push(group_section.into());
     }
@@ -1060,9 +1178,13 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
 
     // 创建比例选择器容器
     let picker_content = container(
-        column![option_buttons, iced::widget::Space::new().height(Length::Fixed(12.0)), table_content,]
-            .spacing(0)
-            .align_x(Alignment::Center),
+        column![
+            option_buttons,
+            iced::widget::Space::new().height(Length::Fixed(12.0)),
+            table_content,
+        ]
+        .spacing(0)
+        .align_x(Alignment::Center),
     )
     .padding(6)
     .width(Length::Fixed(460.0))
