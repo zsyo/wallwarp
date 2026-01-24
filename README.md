@@ -148,6 +148,21 @@ wallwarp/
 
 - Rust 1.70 或更高版本
 - Windows 10 或更高版本（当前主要支持 Windows）
+- **最低 CPU 要求**: 支持 x86-64-v3 指令集的处理器（约 2013 年及以后的 Intel/AMD CPU）
+
+### 编译优化
+
+本项目使用 `x86-64-v3` 目标 CPU 进行编译优化，以获得更好的性能：
+
+```bash
+# 设置编译优化标志
+RUSTFLAGS="-C target-cpu=x86-64-v3" cargo build --release
+```
+
+**说明**:
+- `x86-64-v3` 目标启用了 AVX2、BMI1/2、FMA 等现代指令集
+- 放弃了对古董级 CPU（不支持 AVX2 的处理器）的支持
+- 如果需要在更老的 CPU 上运行，请移除 `RUSTFLAGS` 环境变量进行编译
 
 ### 开发命令
 

@@ -148,6 +148,21 @@ wallwarp/
 
 - Rust 1.70 or higher
 - Windows 10 or higher (currently primarily supports Windows)
+- **Minimum CPU Requirement**: Processors supporting x86-64-v3 instruction set (Intel/AMD CPUs from around 2013 and later)
+
+### Compilation Optimization
+
+This project uses the `x86-64-v3` target CPU for compilation optimization to achieve better performance:
+
+```bash
+# Set compilation optimization flags
+RUSTFLAGS="-C target-cpu=x86-64-v3" cargo build --release
+```
+
+**Notes**:
+- The `x86-64-v3` target enables modern instruction sets such as AVX2, BMI1/2, FMA, etc.
+- Support for legacy CPUs (processors without AVX2 support) is dropped
+- If you need to run on older CPUs, please compile without the `RUSTFLAGS` environment variable
 
 ### Development Commands
 
