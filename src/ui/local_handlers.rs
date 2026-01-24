@@ -9,7 +9,6 @@ use tracing::error;
 impl App {
     /// 处理本地壁纸相关消息
     pub fn handle_local_message(&mut self, msg: LocalMessage) -> iced::Task<AppMessage> {
-        dbg!(&msg);
         match msg {
             LocalMessage::LoadWallpapers => self.handle_load_local_wallpapers(),
             LocalMessage::LoadWallpapersSuccess(paths) => self.handle_load_local_wallpapers_success(paths),

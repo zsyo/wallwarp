@@ -8,7 +8,15 @@ license = "AGPL-3.0"
 readme = "README.md"
 
 [dependencies]
-iced = { version = "0.14", features = ["tokio", "image", "advanced"] }
+iced = { version = "0.14", default-features = false, features = [
+    "advanced",   # 启用高级功能
+    "tiny-skia",  # 启用 CPU 渲染后端
+    "image",      # 需要显示图片
+    "tokio",      # 异步任务（sleep等）运行时支持
+    "canvas",     # 自定义绘图
+    "web-colors", # 支持标准的颜色定义,方便使用类似 Color::from_rgb 的颜色定义
+    # "x11",           # Linux 环境支持 (如果是 Windows 可选)
+] }
 iced_aw = { version = "0.13", features = ["drop_down", "number_input"] }
 tokio = { version = "1.49", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }

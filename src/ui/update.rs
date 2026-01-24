@@ -2,7 +2,6 @@
 
 use super::App;
 use super::AppMessage;
-use tracing::warn;
 
 // 用于下载进度订阅的唯一类型标识
 #[derive(std::hash::Hash)]
@@ -132,7 +131,6 @@ impl App {
             }
             _ => {
                 // 其他消息交给 settings_handlers 处理
-                warn!("other message running...");
                 return self.handle_settings_message(msg);
             }
         }

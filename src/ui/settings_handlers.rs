@@ -11,7 +11,6 @@ use tracing::error;
 impl App {
     /// 处理设置相关消息
     pub fn handle_settings_message(&mut self, msg: AppMessage) -> iced::Task<AppMessage> {
-        dbg!(&msg);
         match msg {
             AppMessage::LanguageSelected(lang) => self.handle_language_selected(lang),
             AppMessage::PageSelected(page) => self.handle_page_selected(page),

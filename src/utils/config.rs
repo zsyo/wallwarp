@@ -457,7 +457,7 @@ impl Config {
     }
 
     pub fn set_language(&mut self, lang: String) {
-        self.global.language = lang.clone();
+        self.global.language = lang;
         self.save_to_file();
     }
 
