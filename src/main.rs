@@ -14,6 +14,24 @@ const MIN_WINDOW_WIDTH: f32 = 1280.0;
 const MIN_WINDOW_HEIGHT: f32 = 800.0;
 
 fn main() -> iced::Result {
+    // 解析命令行参数，设置工作目录（用于开机自启动）
+    let args: Vec<String> = std::env::args().collect();
+    let mut start_hidden = false;
+
+    // 从当前可执行文件路径解析工作目录
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent_dir) = exe_path.parent() {
+            if let Err(e) = std::env::set_current_dir(parent_dir) {
+                eprintln!("[启动] 设置工作目录失败: {}", e);
+            }
+        }
+    }
+
+    // 检查是否有 --hidden 参数
+    if args.len() >= 2 && args[1] == "--hidden" {
+        start_hidden = true;
+    }
+
     // 初始化日志系统
     logger::init_logger();
 
@@ -29,6 +47,7 @@ fn main() -> iced::Result {
         min_size: Some(Size::new(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT)),
         icon: Some(icon),
         exit_on_close_request: false,
+        visible: !start_hidden, // 如果是隐藏模式，初始不显示窗口
         ..window::Settings::default()
     };
 

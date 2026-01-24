@@ -41,7 +41,9 @@ fn set_auto_startup_windows(enable: bool) -> Result<(), Box<dyn std::error::Erro
     let exe_path = std::env::current_exe()?.to_string_lossy().to_string();
 
     if enable {
-        startup_key.set_value(APP_NAME, &exe_path)?;
+        // 格式: "exe_path" --hidden
+        let startup_value = format!("\"{}\" --hidden", exe_path);
+        startup_key.set_value(APP_NAME, &startup_value)?;
     } else {
         startup_key.delete_value(APP_NAME).ok();
     }
@@ -54,8 +56,27 @@ fn get_auto_startup_windows() -> Result<bool, Box<dyn std::error::Error>> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let startup_key = hkcu.open_subkey(APP_PATH)?;
 
-    let exe_path: String = startup_key.get_value(APP_NAME)?;
+    let startup_value: String = startup_key.get_value(APP_NAME)?;
     let current_exe = std::env::current_exe()?.to_string_lossy().to_string();
 
-    Ok(exe_path == current_exe)
+    // 解析启动命令，提取 exe_path
+    // 支持以下格式：
+    // 1. E:\Tool\wallwarp\wallwarp.exe
+    // 2. "E:\Tool\wallwarp\wallwarp.exe"
+    // 3. E:\Tool\wallwarp\wallwarp.exe --hidden
+    // 4. "E:\Tool\wallwarp\wallwarp.exe" --hidden
+    let registered_exe = if startup_value.starts_with('"') {
+        // 提取第一个引号内的内容
+        if let Some(end_quote) = startup_value[1..].find('"') {
+            &startup_value[1..end_quote + 1]
+        } else {
+            // 如果没有结束引号，尝试整个字符串
+            startup_value.trim_start_matches('"')
+        }
+    } else {
+        // 如果没有引号，按空格分割取第一部分
+        startup_value.split_whitespace().next().unwrap_or(&startup_value)
+    };
+
+    Ok(registered_exe == current_exe)
 }
