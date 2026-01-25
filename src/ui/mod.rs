@@ -40,6 +40,7 @@ pub enum AppMessage {
     AutoStartupToggled(bool),
     CloseActionSelected(CloseAction),
     WindowCloseRequested,
+    WindowFocused,
     MinimizeToTray,
     TrayIconClicked,
     TrayMenuEvent(String),
@@ -69,11 +70,14 @@ pub enum AppMessage {
     LanguagePickerDismiss,       // 关闭语言选择器
     ProxyProtocolPickerExpanded, // 展开代理协议选择器
     ProxyProtocolPickerDismiss,  // 关闭代理协议选择器
+    // 主题下拉框相关消息
+    ThemePickerExpanded,                        // 展开主题选择器
+    ThemePickerDismiss,                         // 关闭主题选择器
+    ThemeSelected(crate::utils::config::Theme), // 主题选择
+    AutoDetectColorModeTick,                    // 自动检测颜色模式
     // 通知相关消息
     ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
     HideNotification,                           // 隐藏通知（用于定时隐藏）
-    // 主题切换消息
-    ToggleTheme, // 切换主题（浅色/深色）
     // 关闭确认对话框相关消息
     ShowCloseConfirmation,
     CloseConfirmationResponse(CloseConfirmationAction, bool), // (动作, 是否记住设置)
@@ -87,7 +91,6 @@ pub enum AppMessage {
     TraySwitchNextWallpaper,
     AddToWallpaperHistory(String),  // 添加壁纸到历史记录
     RemoveLastFromWallpaperHistory, // 从历史记录末尾移除壁纸
-    ThemeChanged(bool),
 }
 
 #[derive(Debug, Clone)]
@@ -122,6 +125,8 @@ pub struct App {
     pub language_picker_expanded: bool,
     // 代理协议下拉框展开状态
     pub proxy_protocol_picker_expanded: bool,
+    // 主题下拉框展开状态
+    pub theme_picker_expanded: bool,
     // API KEY设置的临时状态
     pub wallhaven_api_key: String,
     // 壁纸模式设置的临时状态

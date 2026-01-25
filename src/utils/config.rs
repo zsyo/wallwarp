@@ -30,6 +30,8 @@ pub struct GlobalConfig {
     #[serde(default = "default_language")]
     pub language: String,
     #[serde(default)]
+    pub theme: Theme,
+    #[serde(default)]
     pub close_action: CloseAction,
     #[serde(default)]
     pub proxy: String,
@@ -39,6 +41,7 @@ impl Default for GlobalConfig {
     fn default() -> Self {
         Self {
             language: default_language(),
+            theme: Theme::default(),
             close_action: CloseAction::default(),
             proxy: String::new(),
         }
@@ -205,9 +208,9 @@ impl WallpaperAutoChangeMode {
 
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
-            "online" => Some(WallpaperAutoChangeMode::Online),
             "local" => Some(WallpaperAutoChangeMode::Local),
-            _ => None,
+            "online" => Some(WallpaperAutoChangeMode::Online),
+            _ => Some(WallpaperAutoChangeMode::Local),
         }
     }
 }
@@ -215,8 +218,8 @@ impl WallpaperAutoChangeMode {
 impl std::fmt::Display for WallpaperAutoChangeMode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            WallpaperAutoChangeMode::Online => write!(f, "Online"),
             WallpaperAutoChangeMode::Local => write!(f, "Local"),
+            WallpaperAutoChangeMode::Online => write!(f, "Online"),
         }
     }
 }
@@ -365,6 +368,45 @@ impl std::fmt::Display for WallpaperMode {
     }
 }
 
+/// 主题配置
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Theme {
+    #[default]
+    Dark,
+    Light,
+    Auto,
+}
+
+impl Theme {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Theme::Dark => "dark",
+            Theme::Light => "light",
+            Theme::Auto => "auto",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "dark" => Some(Theme::Dark),
+            "light" => Some(Theme::Light),
+            "auto" => Some(Theme::Auto),
+            _ => Some(Theme::Auto),
+        }
+    }
+}
+
+impl std::fmt::Display for Theme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Theme::Dark => write!(f, "Dark"),
+            Theme::Light => write!(f, "Light"),
+            Theme::Auto => write!(f, "Auto"),
+        }
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum CloseAction {
@@ -380,6 +422,15 @@ impl CloseAction {
             CloseAction::Ask => "ask",
             CloseAction::MinimizeToTray => "minimize_to_tray",
             CloseAction::CloseApp => "close_app",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "ask" => Some(CloseAction::Ask),
+            "minimize_to_tray" => Some(CloseAction::MinimizeToTray),
+            "close_app" => Some(CloseAction::CloseApp),
+            _ => Some(CloseAction::Ask),
         }
     }
 }
@@ -399,15 +450,18 @@ impl Config {
         let config_path = Path::new(CONFIG_FILE);
 
         if let Ok(content) = fs::read_to_string(config_path) {
-            if let Ok(mut local_config) = toml::from_str::<Config>(&content) {
-                local_config.fix_config();
-                // 设置语言（优先使用传入的语言）
-                local_config.global.language = lang.to_string();
-                local_config.save_to_file();
-                return local_config;
-            } else {
-                // 配置文件出错, 终止程序
-                panic!("配置文件出错");
+            match toml::from_str::<Config>(&content) {
+                Ok(mut local_config) => {
+                    local_config.fix_config();
+                    // 设置语言（优先使用传入的语言）
+                    local_config.global.language = lang.to_string();
+                    local_config.save_to_file();
+                    return local_config;
+                }
+                Err(e) => {
+                    // 配置文件出错, 终止程序
+                    panic!("配置文件出错 {}", e);
+                }
             }
         }
 

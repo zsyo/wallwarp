@@ -2,7 +2,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use iced::{Size, font, window};
+use iced::{Size, Task, font, window};
 use wallwarp::i18n::I18n;
 use wallwarp::ui::App;
 use wallwarp::utils::assets;
@@ -64,8 +64,9 @@ fn main() -> iced::Result {
         move || {
             let (i18n, config) = init_data.borrow_mut().take().expect("App can only be initialized once");
             let app = App::new_with_config(i18n, config);
+            let set_title_bar_task = app.update_window_title_bar_color(app.theme_config.is_dark());
             let load_font_task = font::load(assets::ICON_FONT).discard();
-            (app, load_font_task)
+            (app, Task::batch(vec![load_font_task, set_title_bar_task]))
         },
         App::update,
         App::view,

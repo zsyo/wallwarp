@@ -4,9 +4,9 @@ use super::AppMessage;
 use super::common;
 use crate::services::local::Wallpaper;
 use crate::ui::style::{
-    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_MODAL_BG, COLOR_OVERLAY_BG,
-    COLOR_OVERLAY_TEXT, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, ERROR_ICON_SIZE, ERROR_PATH_SIZE, ERROR_TEXT_SIZE, IMAGE_HEIGHT,
-    IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
+    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_MODAL_BG,
+    COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, ERROR_ICON_SIZE, ERROR_PATH_SIZE,
+    ERROR_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
 };
 use crate::utils::config::Config;
 use iced::widget::{button, column, container, row, scrollable, text};
@@ -51,6 +51,7 @@ pub enum WallpaperLoadStatus {
 
 #[derive(Debug)]
 pub struct LocalState {
+    pub is_visible: bool,
     pub wallpapers: Vec<WallpaperLoadStatus>,
     pub all_paths: Vec<String>,
     pub loading_page: bool,
@@ -66,11 +67,13 @@ pub struct LocalState {
     pub auto_change_enabled: bool,
     pub auto_change_timer: Option<std::time::Instant>,
     pub auto_change_last_time: Option<std::time::Instant>,
+    pub auto_detect_color_mode: bool,
 }
 
 impl Default for LocalState {
     fn default() -> Self {
         Self {
+            is_visible: false,
             wallpapers: Vec::new(),
             all_paths: Vec::new(),
             loading_page: false,
@@ -85,6 +88,7 @@ impl Default for LocalState {
             auto_change_enabled: false,
             auto_change_timer: None,
             auto_change_last_time: None,
+            auto_detect_color_mode: false,
         }
     }
 }
@@ -98,21 +102,26 @@ pub fn local_view<'a>(
 ) -> Element<'a, AppMessage> {
     let content = if local_state.all_paths.is_empty() {
         let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
-        column![text(i18n.t("local-list.no-wallpapers"))
-            .size(EMPTY_STATE_TEXT_SIZE)
-            .style(move |_theme: &iced::Theme| text::Style {
-                color: Some(theme_colors.text),
-            })]
-            .width(Length::Fill)
-            .align_x(Alignment::Center)
-            .padding(EMPTY_STATE_PADDING)
+        column![
+            text(i18n.t("local-list.no-wallpapers"))
+                .size(EMPTY_STATE_TEXT_SIZE)
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.text),
+                })
+        ]
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .padding(EMPTY_STATE_PADDING)
     } else {
         let available_width = (window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
         let unit_width = IMAGE_WIDTH + IMAGE_SPACING;
         let items_per_row = (available_width / unit_width).floor() as usize;
         let items_per_row = items_per_row.max(1);
 
-        let mut content = column![].spacing(IMAGE_SPACING).width(Length::Fill).align_x(Alignment::Center);
+        let mut content = column![]
+            .spacing(IMAGE_SPACING)
+            .width(Length::Fill)
+            .align_x(Alignment::Center);
 
         for chunk in local_state.wallpapers.chunks(items_per_row) {
             let mut row_container = row![].spacing(IMAGE_SPACING).align_y(Alignment::Center);
@@ -121,7 +130,11 @@ pub fn local_view<'a>(
                 let image_element = match wallpaper_status {
                     WallpaperLoadStatus::Loading => create_loading_placeholder(i18n, theme_config),
                     WallpaperLoadStatus::Loaded(wallpaper) => {
-                        let wallpaper_index = local_state.all_paths.iter().position(|p| p == &wallpaper.path).unwrap_or(0);
+                        let wallpaper_index = local_state
+                            .all_paths
+                            .iter()
+                            .position(|p| p == &wallpaper.path)
+                            .unwrap_or(0);
 
                         if wallpaper.name == "加载失败" {
                             create_error_placeholder(i18n, wallpaper, wallpaper_index, theme_config)
@@ -141,11 +154,12 @@ pub fn local_view<'a>(
         // 如果已加载全部，显示提示文本
         if local_state.current_page * local_state.page_size >= local_state.total_count {
             let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
-            let all_loaded_text = text(i18n.t("local-list.all-loaded"))
-                .size(ALL_LOADED_TEXT_SIZE)
-                .style(move |_theme: &iced::Theme| text::Style {
-                    color: Some(theme_colors.text),
-                });
+            let all_loaded_text =
+                text(i18n.t("local-list.all-loaded"))
+                    .size(ALL_LOADED_TEXT_SIZE)
+                    .style(move |_theme: &iced::Theme| text::Style {
+                        color: Some(theme_colors.text),
+                    });
             content = content.push(all_loaded_text)
         }
 
@@ -216,7 +230,10 @@ pub fn local_view<'a>(
             modal_image.into()
         } else {
             // 图片未加载完成，显示透明占位符（让背景文字可见）
-            container(iced::widget::Space::new()).width(Length::Fill).height(Length::Fill).into()
+            container(iced::widget::Space::new())
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
         };
 
         // 使用 stack 将图片层叠加在加载文字之上
@@ -224,22 +241,38 @@ pub fn local_view<'a>(
 
         // 创建底部工具栏按钮
         let prev_button = common::create_button_with_tooltip(
-            common::create_icon_button("\u{F12E}", BUTTON_COLOR_BLUE, AppMessage::Local(LocalMessage::PreviousImage)),
+            common::create_icon_button(
+                "\u{F12E}",
+                BUTTON_COLOR_BLUE,
+                AppMessage::Local(LocalMessage::PreviousImage),
+            ),
             i18n.t("local-list.tooltip-prev"),
         );
 
         let next_button = common::create_button_with_tooltip(
-            common::create_icon_button("\u{F137}", BUTTON_COLOR_BLUE, AppMessage::Local(LocalMessage::NextImage)),
+            common::create_icon_button(
+                "\u{F137}",
+                BUTTON_COLOR_BLUE,
+                AppMessage::Local(LocalMessage::NextImage),
+            ),
             i18n.t("local-list.tooltip-next"),
         );
 
         let set_wallpaper_button = common::create_button_with_tooltip(
-            common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, AppMessage::Local(LocalMessage::SetWallpaper(wallpaper_index))),
+            common::create_icon_button(
+                "\u{F429}",
+                BUTTON_COLOR_GREEN,
+                AppMessage::Local(LocalMessage::SetWallpaper(wallpaper_index)),
+            ),
             i18n.t("local-list.tooltip-set-wallpaper"),
         );
 
         let close_button = common::create_button_with_tooltip(
-            common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, AppMessage::Local(LocalMessage::CloseModal)),
+            common::create_icon_button(
+                "\u{F659}",
+                BUTTON_COLOR_RED,
+                AppMessage::Local(LocalMessage::CloseModal),
+            ),
             i18n.t("local-list.tooltip-close"),
         );
 
@@ -271,9 +304,15 @@ pub fn local_view<'a>(
         });
 
         let modal_content = container(
-            column![container(modal_image_content).width(Length::Fill).height(Length::Fill).padding(20), toolbar,]
-                .width(Length::Fill)
-                .height(Length::Fill),
+            column![
+                container(modal_image_content)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .padding(20),
+                toolbar,
+            ]
+            .width(Length::Fill)
+            .height(Length::Fill),
         )
         .style(|_theme: &iced::Theme| container::Style {
             background: Some(iced::Background::Color(COLOR_MODAL_BG)),
@@ -290,13 +329,18 @@ pub fn local_view<'a>(
             i18n.t("local-list.delete-confirm-message"),
             i18n.t("local-list.delete-confirm-confirm"),
             i18n.t("local-list.delete-confirm-cancel"),
-            AppMessage::Local(LocalMessage::ConfirmDelete(local_state.delete_target_index.unwrap_or(0))),
+            AppMessage::Local(LocalMessage::ConfirmDelete(
+                local_state.delete_target_index.unwrap_or(0),
+            )),
             AppMessage::Local(LocalMessage::CloseDeleteConfirm),
         );
         layers.push(delete_confirm_dialog);
     }
 
-    iced::widget::stack(layers).width(Length::Fill).height(Length::Fill).into()
+    iced::widget::stack(layers)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }
 
 fn create_loading_placeholder<'a>(
@@ -305,11 +349,12 @@ fn create_loading_placeholder<'a>(
 ) -> button::Button<'a, AppMessage> {
     let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
 
-    let loading_text = text(i18n.t("local-list.image-loading"))
-        .size(LOADING_TEXT_SIZE)
-        .style(move |_theme: &iced::Theme| text::Style {
-            color: Some(theme_colors.text),
-        });
+    let loading_text =
+        text(i18n.t("local-list.image-loading"))
+            .size(LOADING_TEXT_SIZE)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            });
 
     let placeholder_content = container(loading_text)
         .width(Length::Fixed(IMAGE_WIDTH))
@@ -333,13 +378,9 @@ fn create_loading_placeholder<'a>(
         .height(Length::Fixed(IMAGE_HEIGHT))
         .style(|_theme, status| {
             let base_style = iced::widget::button::text(_theme, status);
-            let shadow = crate::ui::style::get_card_shadow_by_status(
-                matches!(status, iced::widget::button::Status::Hovered),
-            );
-            iced::widget::button::Style {
-                shadow,
-                ..base_style
-            }
+            let shadow =
+                crate::ui::style::get_card_shadow_by_status(matches!(status, iced::widget::button::Status::Hovered));
+            iced::widget::button::Style { shadow, ..base_style }
         })
 }
 
@@ -356,11 +397,12 @@ fn create_error_placeholder<'a>(
         .color(Color::BLACK)
         .size(ERROR_ICON_SIZE);
 
-    let error_text = text(i18n.t("local-list.loading-error"))
-        .size(ERROR_TEXT_SIZE)
-        .style(move |_theme: &iced::Theme| text::Style {
-            color: Some(theme_colors.text),
-        });
+    let error_text =
+        text(i18n.t("local-list.loading-error"))
+            .size(ERROR_TEXT_SIZE)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            });
 
     let error_path = text(&wallpaper.path)
         .size(ERROR_PATH_SIZE)
@@ -368,11 +410,15 @@ fn create_error_placeholder<'a>(
             color: Some(theme_colors.text),
         });
 
-    let inner_content = container(column![error_image, error_text, error_path].width(Length::Fill).align_x(Alignment::Center))
-        .width(Length::Fixed(IMAGE_WIDTH))
-        .height(Length::Fixed(IMAGE_HEIGHT))
-        .center_x(Length::Fill)
-        .center_y(Length::Fill);
+    let inner_content = container(
+        column![error_image, error_text, error_path]
+            .width(Length::Fill)
+            .align_x(Alignment::Center),
+    )
+    .width(Length::Fixed(IMAGE_WIDTH))
+    .height(Length::Fixed(IMAGE_HEIGHT))
+    .center_x(Length::Fill)
+    .center_y(Length::Fill);
 
     let error_content = container(inner_content)
         .width(Length::Fixed(IMAGE_WIDTH))
@@ -396,12 +442,20 @@ fn create_error_placeholder<'a>(
         });
 
     let view_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F341}", BUTTON_COLOR_YELLOW, super::AppMessage::Local(LocalMessage::ViewInFolder(index))),
+        common::create_icon_button(
+            "\u{F341}",
+            BUTTON_COLOR_YELLOW,
+            super::AppMessage::Local(LocalMessage::ViewInFolder(index)),
+        ),
         i18n.t("local-list.tooltip-locate"),
     );
 
     let delete_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F78B}", BUTTON_COLOR_RED, super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index))),
+        common::create_icon_button(
+            "\u{F78B}",
+            BUTTON_COLOR_RED,
+            super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
+        ),
         i18n.t("local-list.tooltip-delete"),
     );
 
@@ -412,9 +466,13 @@ fn create_error_placeholder<'a>(
     let right_area = row![view_button, delete_button].spacing(2.0).align_y(Alignment::Center);
 
     // 遮罩层内容（左中右布局，中间为空，因为没有分辨率）
-    let overlay_content = row![left_area, container(iced::widget::Space::new()).width(Length::Fill), right_area,]
-        .align_y(Alignment::Center)
-        .padding([0, 8]);
+    let overlay_content = row![
+        left_area,
+        container(iced::widget::Space::new()).width(Length::Fill),
+        right_area,
+    ]
+    .align_y(Alignment::Center)
+    .padding([0, 8]);
 
     // 创建遮罩层
     let overlay = container(overlay_content)
@@ -454,10 +512,7 @@ fn create_error_placeholder<'a>(
                     blur_radius: 8.0,
                 },
             };
-            iced::widget::button::Style {
-                shadow,
-                ..base_style
-            }
+            iced::widget::button::Style { shadow, ..base_style }
         })
 }
 
@@ -496,24 +551,39 @@ fn create_loaded_wallpaper<'a>(
             color: Some(theme_colors.overlay_text),
         });
 
-    let resolution_text = text(crate::utils::helpers::format_resolution(wallpaper.width, wallpaper.height))
-        .size(OVERLAY_TEXT_SIZE)
-        .style(move |_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_OVERLAY_TEXT),
-        });
+    let resolution_text = text(crate::utils::helpers::format_resolution(
+        wallpaper.width,
+        wallpaper.height,
+    ))
+    .size(OVERLAY_TEXT_SIZE)
+    .style(move |_theme: &iced::Theme| text::Style {
+        color: Some(COLOR_OVERLAY_TEXT),
+    });
 
     let view_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F341}", BUTTON_COLOR_YELLOW, super::AppMessage::Local(LocalMessage::ViewInFolder(index))),
+        common::create_icon_button(
+            "\u{F341}",
+            BUTTON_COLOR_YELLOW,
+            super::AppMessage::Local(LocalMessage::ViewInFolder(index)),
+        ),
         i18n.t("local-list.tooltip-locate"),
     );
 
     let set_wallpaper_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, super::AppMessage::Local(LocalMessage::SetWallpaper(index))),
+        common::create_icon_button(
+            "\u{F429}",
+            BUTTON_COLOR_GREEN,
+            super::AppMessage::Local(LocalMessage::SetWallpaper(index)),
+        ),
         i18n.t("local-list.tooltip-set-wallpaper"),
     );
 
     let delete_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F78B}", BUTTON_COLOR_RED, super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index))),
+        common::create_icon_button(
+            "\u{F78B}",
+            BUTTON_COLOR_RED,
+            super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
+        ),
         i18n.t("local-list.tooltip-delete"),
     );
 
@@ -521,7 +591,9 @@ fn create_loaded_wallpaper<'a>(
     let left_area = container(file_size_text).align_y(Alignment::Center);
 
     // 右侧区域：操作按钮
-    let right_area = row![view_button, set_wallpaper_button, delete_button].spacing(2.0).align_y(Alignment::Center);
+    let right_area = row![view_button, set_wallpaper_button, delete_button]
+        .spacing(2.0)
+        .align_y(Alignment::Center);
 
     // 使用 stack 确保分辨率永远居中，不受两侧内容影响
     let overlay_content = iced::widget::stack(vec![
@@ -587,10 +659,7 @@ fn create_loaded_wallpaper<'a>(
                     blur_radius: 8.0,
                 },
             };
-            iced::widget::button::Style {
-                shadow,
-                ..base_style
-            }
+            iced::widget::button::Style { shadow, ..base_style }
         })
         .on_press(super::AppMessage::Local(LocalMessage::ShowModal(index)))
 }
@@ -610,10 +679,18 @@ impl LocalState {
             // 根据方向更新索引
             if direction > 0 {
                 // 向前查找
-                current_index = if current_index < total - 1 { current_index + 1 } else { 0 };
+                current_index = if current_index < total - 1 {
+                    current_index + 1
+                } else {
+                    0
+                };
             } else {
                 // 向后查找
-                current_index = if current_index > 0 { current_index - 1 } else { total - 1 };
+                current_index = if current_index > 0 {
+                    current_index - 1
+                } else {
+                    total - 1
+                };
             }
 
             // 检查是否回到起始位置
@@ -637,9 +714,11 @@ impl LocalState {
 
 // 创建模态窗口加载占位符，静态文字显示
 fn create_modal_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> Element<'a, AppMessage> {
-    let loading_text = text(i18n.t("local-list.image-loading")).size(24).style(|_theme: &iced::Theme| text::Style {
-        color: Some(COLOR_OVERLAY_TEXT),
-    });
+    let loading_text = text(i18n.t("local-list.image-loading"))
+        .size(24)
+        .style(|_theme: &iced::Theme| text::Style {
+            color: Some(COLOR_OVERLAY_TEXT),
+        });
 
     container(loading_text)
         .width(Length::Fill)

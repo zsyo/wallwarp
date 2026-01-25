@@ -133,6 +133,7 @@ settings = 设置
     .proxy-address-placeholder = 地址
     .proxy-port-placeholder = 端口
     .proxy-save = 保存
+    .theme-color = 主题配色:
     .api-config = API配置
     .wallhaven-api-key = WallHeven APIKEY:
     .wallhaven-api-key-placeholder = 输入API KEY
@@ -202,6 +203,11 @@ close-action-options =
     .ask = 每次询问
     .minimize-to-tray = 最小化到托盘
     .close-app = 关闭程序
+
+theme-options =
+    .dark = 暗色
+    .light = 亮色
+    .auto = 自动
 
 close-confirmation =
     .title = 确认关闭

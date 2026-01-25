@@ -134,6 +134,7 @@ settings = Settings
     .proxy-address-placeholder = Address
     .proxy-port-placeholder = Port
     .proxy-save = Save
+    .theme-color = Theme Color:
     .api-config = API Configuration
     .wallhaven-api-key = WallHeven APIKEY:
     .wallhaven-api-key-placeholder = Enter API KEY
@@ -203,6 +204,11 @@ close-action-options =
     .ask = Ask every time
     .minimize-to-tray = Minimize to tray
     .close-app = Close app
+
+theme-options =
+    .dark = Dark
+    .light = Light
+    .auto = Auto
 
 close-confirmation =
     .title = Confirm Close

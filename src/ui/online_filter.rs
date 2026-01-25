@@ -263,7 +263,7 @@ pub fn create_filter_bar<'a>(
     .align_y(Alignment::Center);
 
     container(row![
-        iced::widget::Space::new().width(Length::Fixed(1.0)),
+        iced::widget::Space::new().width(Length::Fixed(2.0)),
         container(filter_row)
             .width(Length::Fill)
             .height(Length::Fixed(50.0))

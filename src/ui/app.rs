@@ -33,6 +33,28 @@ impl App {
 
         let tray_manager = super::tray::TrayManager::new(&i18n);
 
+        let auto_detect_color_mode = config.global.theme == crate::utils::config::Theme::Auto;
+
+        // 根据配置文件中的主题配置初始化主题
+        let theme_config = match config.global.theme {
+            crate::utils::config::Theme::Dark => crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Dark),
+            crate::utils::config::Theme::Light => crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Light),
+            crate::utils::config::Theme::Auto => {
+                // 自动模式：根据系统主题判断
+                let is_system_dark = crate::utils::window_utils::get_system_color_mode();
+                tracing::info!(
+                    "[启动] [主题] 自动模式，系统主题: {}",
+                    if is_system_dark { "深色" } else { "浅色" }
+                );
+
+                if is_system_dark {
+                    crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Dark)
+                } else {
+                    crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Light)
+                }
+            }
+        };
+
         // 根据配置文件中的定时切换周期初始化定时任务状态
         let (auto_change_enabled, auto_change_timer, auto_change_last_time) = if matches!(
             config.wallpaper.auto_change_interval,
@@ -62,12 +84,13 @@ impl App {
             pending_window_size: None,
             debounce_timer: std::time::Instant::now(),
             tray_manager,
-            theme_config: crate::ui::style::ThemeConfig::default(),
+            theme_config,
             proxy_protocol,
             proxy_address,
             proxy_port,
             language_picker_expanded: false,
             proxy_protocol_picker_expanded: false,
+            theme_picker_expanded: false,
             wallhaven_api_key: config.wallhaven.api_key.clone(), // 初始化API KEY状态
             wallpaper_mode: config.wallpaper.mode,               // 初始化壁纸模式状态
             auto_change_mode: config.wallpaper.auto_change_mode, // 初始化定时切换模式状态
@@ -88,6 +111,7 @@ impl App {
                 auto_change_enabled,
                 auto_change_timer,
                 auto_change_last_time,
+                auto_detect_color_mode,
                 ..Default::default()
             },
             online_state: super::online::OnlineState::load_from_config(&config),

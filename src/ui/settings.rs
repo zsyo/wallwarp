@@ -64,6 +64,11 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                 &app.theme_config,
             ),
             common::create_setting_row(
+                app.i18n.t("settings.theme-color"),
+                create_theme_picker(app),
+                &app.theme_config,
+            ),
+            common::create_setting_row(
                 app.i18n.t("settings.auto-startup"),
                 toggler(crate::utils::startup::is_auto_startup_enabled()).on_toggle(AppMessage::AutoStartupToggled),
                 &app.theme_config,
@@ -716,6 +721,158 @@ fn create_language_picker<'a>(app: &'a super::App) -> iced::Element<'a, super::A
     )
     .width(Length::Fill)
     .on_dismiss(super::AppMessage::LanguagePickerDismiss)
+    .alignment(drop_down::Alignment::Bottom)
+    .into()
+}
+
+/// 创建主题选择器
+fn create_theme_picker<'a>(app: &'a super::App) -> iced::Element<'a, super::AppMessage> {
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(app.theme_config.get_theme());
+    let current_theme = app.config.global.theme.clone();
+
+    // 根据当前主题获取对应的翻译文本
+    let current_theme_text = match current_theme {
+        crate::utils::config::Theme::Dark => app.i18n.t("theme-options.dark"),
+        crate::utils::config::Theme::Light => app.i18n.t("theme-options.light"),
+        crate::utils::config::Theme::Auto => app.i18n.t("theme-options.auto"),
+    };
+
+    // 创建触发按钮（underlay）
+    let theme_underlay = row![
+        text(current_theme_text).size(14),
+        iced::widget::Space::new().width(Length::Fill),
+        container(text("⏷").color(theme_colors.light_text_sub))
+            .height(Length::Fill)
+            .padding(iced::Padding {
+                top: -2.0,
+                bottom: 0.0,
+                left: 0.0,
+                right: 0.0,
+            }),
+    ]
+    .spacing(4)
+    .align_y(Alignment::Center)
+    .padding(iced::Padding {
+        top: 0.0,
+        bottom: 0.0,
+        left: 0.0,
+        right: -2.0,
+    });
+
+    let theme_trigger = button(theme_underlay)
+        .padding(6)
+        .width(Length::Fixed(PICK_LIST_WIDTH))
+        .on_press(super::AppMessage::ThemePickerExpanded)
+        .style(move |_theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(theme_colors.settings_dropdown_bg)),
+            text_color: theme_colors.light_text,
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(4.0),
+            },
+            ..iced::widget::button::text(_theme, _status)
+        });
+
+    // 创建主题选项（overlay）
+    let theme_options_content = {
+        let theme_colors = theme_colors.clone();
+        let current_theme = app.config.global.theme;
+
+        column([
+            button(text(app.i18n.t("theme-options.dark")).size(14))
+                .padding(6)
+                .width(Length::Fill)
+                .on_press(super::AppMessage::ThemeSelected(crate::utils::config::Theme::Dark))
+                .style(move |_theme, _status| iced::widget::button::Style {
+                    background: if current_theme == crate::utils::config::Theme::Dark {
+                        Some(iced::Background::Color(COLOR_SELECTED_BLUE))
+                    } else {
+                        Some(iced::Background::Color(Color::TRANSPARENT))
+                    },
+                    text_color: if current_theme == crate::utils::config::Theme::Dark {
+                        Color::WHITE
+                    } else {
+                        theme_colors.light_text
+                    },
+                    border: iced::border::Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: iced::border::Radius::from(4.0),
+                    },
+                    ..iced::widget::button::text(_theme, _status)
+                })
+                .into(),
+            button(text(app.i18n.t("theme-options.light")).size(14))
+                .padding(6)
+                .width(Length::Fill)
+                .on_press(super::AppMessage::ThemeSelected(crate::utils::config::Theme::Light))
+                .style(move |_theme, _status| iced::widget::button::Style {
+                    background: if current_theme == crate::utils::config::Theme::Light {
+                        Some(iced::Background::Color(COLOR_SELECTED_BLUE))
+                    } else {
+                        Some(iced::Background::Color(Color::TRANSPARENT))
+                    },
+                    text_color: if current_theme == crate::utils::config::Theme::Light {
+                        Color::WHITE
+                    } else {
+                        theme_colors.light_text
+                    },
+                    border: iced::border::Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: iced::border::Radius::from(4.0),
+                    },
+                    ..iced::widget::button::text(_theme, _status)
+                })
+                .into(),
+            button(text(app.i18n.t("theme-options.auto")).size(14))
+                .padding(6)
+                .width(Length::Fill)
+                .on_press(super::AppMessage::ThemeSelected(crate::utils::config::Theme::Auto))
+                .style(move |_theme, _status| iced::widget::button::Style {
+                    background: if current_theme == crate::utils::config::Theme::Auto {
+                        Some(iced::Background::Color(COLOR_SELECTED_BLUE))
+                    } else {
+                        Some(iced::Background::Color(Color::TRANSPARENT))
+                    },
+                    text_color: if current_theme == crate::utils::config::Theme::Auto {
+                        Color::WHITE
+                    } else {
+                        theme_colors.light_text
+                    },
+                    border: iced::border::Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: iced::border::Radius::from(4.0),
+                    },
+                    ..iced::widget::button::text(_theme, _status)
+                })
+                .into(),
+        ])
+        .spacing(2)
+    };
+
+    let picker_content = container(theme_options_content)
+        .padding(8)
+        .width(Length::Fixed(PICK_LIST_WIDTH))
+        .style(move |_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(theme_colors.settings_dropdown_bg)),
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(8.0),
+            },
+            ..Default::default()
+        });
+
+    DropDown::new(
+        theme_trigger,
+        iced::widget::opaque(picker_content),
+        app.theme_picker_expanded,
+    )
+    .width(Length::Fill)
+    .on_dismiss(super::AppMessage::ThemePickerDismiss)
     .alignment(drop_down::Alignment::Bottom)
     .into()
 }

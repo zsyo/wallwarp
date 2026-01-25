@@ -10,7 +10,6 @@ use iced::window;
 use std::ffi::c_void;
 use tracing::error;
 use windows::Win32::Foundation::HWND;
-use windows::Win32::Graphics::Dwm::{DWMWA_USE_IMMERSIVE_DARK_MODE, DwmSetWindowAttribute};
 
 impl App {
     /// 处理设置相关消息
@@ -23,6 +22,7 @@ impl App {
             AppMessage::AutoStartupToggled(enabled) => self.handle_auto_startup_toggled(enabled),
             AppMessage::CloseActionSelected(action) => self.handle_close_action_selected(action),
             AppMessage::WindowCloseRequested => self.handle_window_close_requested(),
+            AppMessage::WindowFocused => self.handle_window_focused(),
             AppMessage::MinimizeToTray => self.handle_minimize_to_tray(),
             AppMessage::TrayIconClicked => self.handle_tray_icon_clicked(),
             AppMessage::TrayMenuEvent(id) => self.handle_tray_menu_event(id),
@@ -51,6 +51,10 @@ impl App {
             AppMessage::LanguagePickerDismiss => self.handle_language_picker_dismiss(),
             AppMessage::ProxyProtocolPickerExpanded => self.handle_proxy_protocol_picker_expanded(),
             AppMessage::ProxyProtocolPickerDismiss => self.handle_proxy_protocol_picker_dismiss(),
+            AppMessage::ThemePickerExpanded => self.handle_theme_picker_expanded(),
+            AppMessage::ThemePickerDismiss => self.handle_theme_picker_dismiss(),
+            AppMessage::ThemeSelected(theme) => self.handle_theme_selected(theme),
+            AppMessage::AutoDetectColorModeTick => self.handle_detect_color_mode(),
             AppMessage::ShowCloseConfirmation => self.handle_show_close_confirmation(),
             AppMessage::CloseConfirmationResponse(action, remember_setting) => {
                 self.handle_close_confirmation_response(action, remember_setting)
@@ -61,12 +65,10 @@ impl App {
                 self.show_notification(message, notification_type)
             }
             AppMessage::HideNotification => self.handle_hide_notification(),
-            AppMessage::ToggleTheme => self.handle_toggle_theme(),
             AppMessage::AddToWallpaperHistory(path) => self.handle_add_to_wallpaper_history(path),
             AppMessage::TraySwitchPreviousWallpaper => self.handle_tray_switch_previous_wallpaper(),
             AppMessage::TraySwitchNextWallpaper => self.handle_tray_switch_next_wallpaper(),
             AppMessage::RemoveLastFromWallpaperHistory => self.handle_remove_last_from_wallpaper_history(),
-            AppMessage::ThemeChanged(is_dark) => self.handle_theme_changed(is_dark),
             _ => iced::Task::none(),
         }
     }
@@ -153,6 +155,8 @@ impl App {
         // 更新当前窗口宽度和高度，用于响应式布局和判断是否需要自动加载下一页
         self.current_window_width = width;
         self.current_window_height = height;
+        // 如果宽度和高度都为 0，通常意味着窗口被最小化了
+        self.local_state.is_visible = width > 0 && height > 0;
         // 暂存窗口大小，等待防抖处理
         self.pending_window_size = Some((width, height));
         // 在收到调整大小事件时，直接开启一个延迟任务
@@ -208,7 +212,14 @@ impl App {
         }
     }
 
+    fn handle_window_focused(&mut self) -> iced::Task<AppMessage> {
+        // 更新窗口状态为已聚焦
+        self.local_state.is_visible = true;
+        iced::Task::none()
+    }
+
     fn handle_minimize_to_tray(&mut self) -> iced::Task<AppMessage> {
+        self.local_state.is_visible = false;
         // 获取 ID 后设置模式为隐藏
         window::oldest().and_then(|id| window::set_mode(id, window::Mode::Hidden))
     }
@@ -649,34 +660,6 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_toggle_theme(&mut self) -> iced::Task<AppMessage> {
-        self.theme_config.toggle();
-        let theme_name = self.theme_config.get_theme().name();
-        tracing::info!("[设置] [主题] 切换到: {}", theme_name);
-
-        // 更新窗口标题栏颜色
-        let is_dark = self.theme_config.is_dark();
-        window::oldest().and_then(move |id| {
-            window::run(id, move |mw| {
-                if let Ok(handle) = mw.window_handle() {
-                    if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
-                        let hwnd = HWND(win32_handle.hwnd.get() as _);
-                        let dark_mode: i32 = if is_dark { 1 } else { 0 };
-                        unsafe {
-                            let _ = DwmSetWindowAttribute(
-                                hwnd,
-                                DWMWA_USE_IMMERSIVE_DARK_MODE,
-                                &dark_mode as *const i32 as *const c_void,
-                                std::mem::size_of::<i32>() as u32,
-                            );
-                        }
-                    }
-                }
-            })
-            .map(|_| AppMessage::None)
-        })
-    }
-
     fn handle_wallpaper_mode_selected(&mut self, mode: crate::utils::config::WallpaperMode) -> iced::Task<AppMessage> {
         let old_mode = self.config.wallpaper.mode;
         tracing::info!("[设置] [壁纸模式] 修改: {:?} -> {:?}", old_mode, mode);
@@ -930,10 +913,6 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_theme_changed(&mut self, _is_dark: bool) -> iced::Task<AppMessage> {
-        iced::Task::none()
-    }
-
     fn handle_language_picker_expanded(&mut self) -> iced::Task<AppMessage> {
         // 切换语言选择器的展开/收起状态
         self.language_picker_expanded = !self.language_picker_expanded;
@@ -956,5 +935,125 @@ impl App {
         // 关闭代理协议选择器
         self.proxy_protocol_picker_expanded = false;
         iced::Task::none()
+    }
+
+    fn handle_theme_picker_expanded(&mut self) -> iced::Task<AppMessage> {
+        // 切换主题选择器的展开/收起状态
+        self.theme_picker_expanded = !self.theme_picker_expanded;
+        iced::Task::none()
+    }
+
+    fn handle_theme_picker_dismiss(&mut self) -> iced::Task<AppMessage> {
+        // 关闭主题选择器
+        self.theme_picker_expanded = false;
+        iced::Task::none()
+    }
+
+    fn handle_theme_selected(&mut self, theme: crate::utils::config::Theme) -> iced::Task<AppMessage> {
+        let old_theme = self.config.global.theme;
+        tracing::info!("[设置] [主题] 修改: {:?} -> {:?}", old_theme, theme);
+
+        // 更新配置
+        self.config.global.theme = theme;
+        self.config.save_to_file();
+
+        // 关闭选择器
+        self.theme_picker_expanded = false;
+
+        self.local_state.auto_detect_color_mode = theme == crate::utils::config::Theme::Auto;
+
+        self.toggle_theme(theme)
+    }
+
+    fn toggle_theme(&mut self, theme: crate::utils::config::Theme) -> iced::Task<AppMessage> {
+        use crate::utils::config::Theme;
+
+        // 根据主题类型决定是否需要切换
+        match theme {
+            Theme::Dark => {
+                // 暗色主题：如果当前不是暗色，则切换
+                if !self.theme_config.is_dark() {
+                    self.theme_config.toggle();
+                    let theme_name = self.theme_config.get_theme().name();
+                    tracing::info!("[设置] [主题] 切换到: {}", theme_name);
+
+                    // 更新窗口标题栏颜色
+                    return self.update_window_title_bar_color(self.theme_config.is_dark());
+                }
+            }
+            Theme::Light => {
+                // 亮色主题：如果当前是暗色，则切换
+                if self.theme_config.is_dark() {
+                    self.theme_config.toggle();
+                    let theme_name = self.theme_config.get_theme().name();
+                    tracing::info!("[设置] [主题] 切换到: {}", theme_name);
+
+                    // 更新窗口标题栏颜色
+                    return self.update_window_title_bar_color(self.theme_config.is_dark());
+                }
+            }
+            Theme::Auto => {
+                // 自动模式：根据系统主题判断
+                let is_system_dark = crate::utils::window_utils::get_system_color_mode();
+                tracing::info!(
+                    "[设置] [主题] 自动模式，系统主题: {}",
+                    if is_system_dark { "深色" } else { "浅色" }
+                );
+
+                // 如果当前主题与系统主题不一致，则切换
+                if self.theme_config.is_dark() != is_system_dark {
+                    self.theme_config.toggle();
+                    let theme_name = self.theme_config.get_theme().name();
+                    tracing::info!("[设置] [主题] 切换到: {}", theme_name);
+
+                    // 更新窗口标题栏颜色
+                    return self.update_window_title_bar_color(self.theme_config.is_dark());
+                }
+            }
+        }
+        iced::Task::none()
+    }
+
+    fn handle_detect_color_mode(&mut self) -> iced::Task<AppMessage> {
+        let system_is_dark = crate::utils::window_utils::get_system_color_mode();
+        if system_is_dark != self.theme_config.is_dark() {
+            if system_is_dark {
+                return self.toggle_theme(crate::utils::config::Theme::Dark);
+            } else {
+                return self.toggle_theme(crate::utils::config::Theme::Light);
+            }
+        }
+        iced::Task::none()
+    }
+
+    /// 更新窗口标题栏颜色
+    ///
+    /// # 参数
+    /// - `is_dark`: 是否为深色主题
+    ///
+    /// # 返回
+    /// 返回一个 Task，用于更新窗口标题栏颜色
+    pub fn update_window_title_bar_color(&self, is_dark: bool) -> iced::Task<AppMessage> {
+        use windows::Win32::Graphics::Dwm::{DWMWA_USE_IMMERSIVE_DARK_MODE, DwmSetWindowAttribute};
+
+        window::oldest().and_then(move |id| {
+            window::run(id, move |mw| {
+                if let Ok(handle) = mw.window_handle() {
+                    if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
+                        let hwnd = HWND(win32_handle.hwnd.get() as _);
+                        let dark_mode: i32 = if is_dark { 1 } else { 0 };
+                        unsafe {
+                            let _ = DwmSetWindowAttribute(
+                                hwnd,
+                                DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                &dark_mode as *const i32 as *const c_void,
+                                std::mem::size_of::<i32>() as u32,
+                            );
+                        }
+                    }
+                }
+            })
+            .map(|_| AppMessage::None)
+        })
     }
 }

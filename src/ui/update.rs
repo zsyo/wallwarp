@@ -13,6 +13,7 @@ impl App {
         use iced::event;
         use iced::window;
 
+        // 定时更新壁纸任务
         let auto_change_background = if self.local_state.auto_change_enabled {
             let minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
             // Iced 的这个定时器非常智能：
@@ -23,13 +24,21 @@ impl App {
             iced::Subscription::none()
         };
 
-        iced::Subscription::batch([
+        // 定时检测系统颜色模式任务
+        let auto_detect_color_mode = if self.local_state.auto_detect_color_mode && self.local_state.is_visible {
+            iced::time::every(std::time::Duration::from_secs(1)).map(|_| AppMessage::AutoDetectColorModeTick)
+        } else {
+            iced::Subscription::none()
+        };
+
+        iced::Subscription::batch(vec![
             // 窗口事件监听
             event::listen_with(|event, _status, _loop_status| match event {
                 iced::Event::Window(window::Event::Resized(size)) => {
                     Some(AppMessage::WindowResized(size.width as u32, size.height as u32))
                 }
                 iced::Event::Window(window::Event::CloseRequested) => Some(AppMessage::WindowCloseRequested),
+                iced::Event::Window(window::Event::Focused) => Some(AppMessage::WindowFocused),
                 _ => None,
             }),
             // 托盘事件监听
@@ -55,8 +64,10 @@ impl App {
                     }
                 }
             }),
-            // 添加定时切换壁纸定时器 - 每秒检查一次是否需要切换壁纸
+            // 添加定时切换壁纸定时器
             auto_change_background,
+            // 添加自动检测颜色模式定时器
+            auto_detect_color_mode,
             // 添加下载进度监听 - 使用run_with
             iced::Subscription::run_with(DownloadProgressSubscription, |_state| {
                 // 初始化下载进度channel

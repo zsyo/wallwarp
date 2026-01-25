@@ -73,6 +73,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
             ),
             container(iced::widget::Space::new()).height(Length::Fill), // 占位符，将主题按钮推到底部
             create_theme_toggle_button(app),
+            container(iced::widget::Space::new()).height(Length::Fixed(20.0)),
         ]
         .spacing(BUTTON_SPACING)
         .align_x(Alignment::Center),
@@ -224,35 +225,40 @@ fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
     use crate::ui::style::ThemeColors;
 
     let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
-    let is_dark = app.theme_config.is_dark();
 
-    // 使用太阳图标表示浅色主题，月亮图标表示深色主题
-    let icon = if is_dark {
-        "\u{F185}" // 太阳图标（当前是深色，点击切换到浅色）
+    let (icon_char, tooltip_text, target_theme) = if app.theme_config.is_dark() {
+        (
+            "\u{F5A1}",
+            app.i18n.t("theme.switch-to-light"),
+            crate::utils::config::Theme::Light,
+        )
     } else {
-        "\u{F186}" // 月亮图标（当前是浅色，点击切换到深色）
+        (
+            "\u{F494}",
+            app.i18n.t("theme.switch-to-dark"),
+            crate::utils::config::Theme::Dark,
+        )
     };
 
-    let tooltip_text = if is_dark {
-        app.i18n.t("theme.switch-to-light")
-    } else {
-        app.i18n.t("theme.switch-to-dark")
-    };
-
-    let btn = button(text(icon).size(20))
-        .on_press(AppMessage::ToggleTheme)
-        .width(Length::Fixed(40.0))
-        .height(Length::Fixed(40.0))
-        .style(move |_theme: &iced::Theme, _status| iced::widget::button::Style {
-            background: Some(iced::Background::Color(iced::Color::TRANSPARENT)),
-            text_color: theme_colors.text,
-            border: iced::border::Border {
-                color: iced::Color::TRANSPARENT,
-                width: 0.0,
-                radius: iced::border::Radius::from(20.0),
-            },
-            ..Default::default()
-        });
+    let btn = button(
+        text(icon_char)
+            .color(super::style::BUTTON_COLOR_YELLOW)
+            .font(iced::Font::with_name("bootstrap-icons"))
+            .size(20),
+    )
+    .on_press(AppMessage::ThemeSelected(target_theme))
+    .width(Length::Fixed(40.0))
+    .height(Length::Fixed(40.0))
+    .style(move |_theme: &iced::Theme, _status| iced::widget::button::Style {
+        background: Some(iced::Background::Color(iced::Color::TRANSPARENT)),
+        text_color: theme_colors.text,
+        border: iced::border::Border {
+            color: iced::Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(20.0),
+        },
+        ..Default::default()
+    });
 
     super::common::create_button_with_tooltip(btn, tooltip_text)
 }
