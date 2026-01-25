@@ -38,6 +38,7 @@ pub enum AppMessage {
     ExecutePendingSave,
     PageSelected(ActivePage),
     AutoStartupToggled(bool),
+    LoggingToggled(bool),
     CloseActionSelected(CloseAction),
     WindowCloseRequested,
     WindowFocused,
@@ -48,6 +49,7 @@ pub enum AppMessage {
     DataPathSelected(String),
     CachePathSelected(String),
     OpenPath(String),
+    OpenLogsPath, // 打开日志目录
     ShowPathClearConfirmation(String), // 显示路径清空确认对话框，参数为路径类型 ("data" 或 "cache")
     ConfirmPathClear(String),          // 确认清空路径，参数为路径类型
     CancelPathClear,                   // 取消清空路径

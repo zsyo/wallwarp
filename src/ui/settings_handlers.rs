@@ -20,6 +20,7 @@ impl App {
             AppMessage::WindowResized(width, height) => self.handle_window_resized(width, height),
             AppMessage::ExecutePendingSave => self.execute_pending_save(),
             AppMessage::AutoStartupToggled(enabled) => self.handle_auto_startup_toggled(enabled),
+            AppMessage::LoggingToggled(enabled) => self.handle_logging_toggled(enabled),
             AppMessage::CloseActionSelected(action) => self.handle_close_action_selected(action),
             AppMessage::WindowCloseRequested => self.handle_window_close_requested(),
             AppMessage::WindowFocused => self.handle_window_focused(),
@@ -30,6 +31,7 @@ impl App {
             AppMessage::DataPathSelected(path) => self.handle_data_path_selected(path),
             AppMessage::CachePathSelected(path) => self.handle_cache_path_selected(path),
             AppMessage::OpenPath(path_type) => self.handle_open_path(path_type),
+            AppMessage::OpenLogsPath => self.handle_open_logs_path(),
             AppMessage::ShowPathClearConfirmation(path_type) => self.handle_show_path_clear_confirmation(path_type),
             AppMessage::ConfirmPathClear(path_type) => self.handle_confirm_path_clear(path_type),
             AppMessage::CancelPathClear => self.handle_cancel_path_clear(),
@@ -187,6 +189,21 @@ impl App {
             error!("设置开机启动失败: {}", e);
         }
         iced::Task::none()
+    }
+
+    fn handle_logging_toggled(&mut self, enabled: bool) -> iced::Task<AppMessage> {
+        let old_value = self.config.global.enable_logging;
+        tracing::info!("[设置] [运行日志] 修改: {} -> {}", old_value, enabled);
+        self.config.global.enable_logging = enabled;
+        self.config.save_to_file();
+
+        // 发送通知
+        let message = if enabled {
+            self.i18n.t("settings.logging-notice-enabled")
+        } else {
+            self.i18n.t("settings.logging-notice-disabled")
+        };
+        self.show_notification(message, super::NotificationType::Info)
     }
 
     fn handle_close_action_selected(&mut self, action: CloseAction) -> iced::Task<AppMessage> {
@@ -417,6 +434,17 @@ impl App {
 
         if let Err(e) = open::that(&full_path) {
             error!("Failed to open path {}: {}", full_path, e);
+        }
+
+        iced::Task::none()
+    }
+
+    fn handle_open_logs_path(&mut self) -> iced::Task<AppMessage> {
+        let logs_path = "logs";
+        let full_path = common::get_absolute_path(logs_path);
+
+        if let Err(e) = open::that(&full_path) {
+            error!("Failed to open logs path {}: {}", full_path, e);
         }
 
         iced::Task::none()

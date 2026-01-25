@@ -32,6 +32,8 @@ pub struct GlobalConfig {
     #[serde(default)]
     pub theme: Theme,
     #[serde(default)]
+    pub enable_logging: bool,
+    #[serde(default)]
     pub close_action: CloseAction,
     #[serde(default)]
     pub proxy: String,
@@ -42,6 +44,7 @@ impl Default for GlobalConfig {
         Self {
             language: default_language(),
             theme: Theme::default(),
+            enable_logging: false,
             close_action: CloseAction::default(),
             proxy: String::new(),
         }

@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use super::{ActivePage, App, AppMessage};
-use crate::ui::style::{APP_NAME_SIZE, BUTTON_SPACING, LOGO_DISPLAY_SIZE, LOGO_SIZE, LOGO_SPACING, SIDEBAR_WIDTH};
+use crate::ui::style::{APP_NAME_SIZE, LOGO_DISPLAY_SIZE, LOGO_SIZE, LOGO_SPACING, SIDEBAR_WIDTH};
 use crate::utils::assets;
 use iced::widget::{button, column, container, row, text};
 use iced::{Alignment, Element, Length, Padding};
@@ -75,7 +75,6 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
             create_theme_toggle_button(app),
             container(iced::widget::Space::new()).height(Length::Fixed(20.0)),
         ]
-        .spacing(BUTTON_SPACING)
         .align_x(Alignment::Center),
     )
     .width(Length::Fixed(SIDEBAR_WIDTH))

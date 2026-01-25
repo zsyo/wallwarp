@@ -40,11 +40,12 @@ fn main() -> iced::Result {
         }
     }
 
-    // 初始化日志系统
-    logger::init_logger();
-
     let i18n = I18n::new();
     let config = Config::new(&i18n.current_lang);
+
+    // 初始化日志系统，必须保存 guard 直到程序结束
+    // 根据配置中的 enable_logging 参数决定是否启用文件日志
+    let _log_guard = logger::init_logger(config.global.enable_logging);
 
     let (rgba, width, height) = assets::get_logo(LOGO_SIZE);
     let icon = window::icon::from_rgba(rgba, width, height).expect("生成 Iced 图标失败");

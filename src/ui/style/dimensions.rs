@@ -117,7 +117,7 @@ pub const SECTION_SPACING: f32 = 10.0;
 pub const INPUT_PADDING: u16 = 5;
 
 /// 按钮间距
-pub const BUTTON_SPACING: f32 = 2.0;
+pub const BUTTON_SPACING: f32 = 6.0;
 
 /// 滚动边距
 pub const SCROLL_PADDING: f32 = 20.0;

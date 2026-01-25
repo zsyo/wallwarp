@@ -74,6 +74,11 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                 &app.theme_config,
             ),
             common::create_setting_row(
+                app.i18n.t("settings.enable-logging"),
+                toggler(app.config.global.enable_logging).on_toggle(AppMessage::LoggingToggled),
+                &app.theme_config,
+            ),
+            common::create_setting_row(
                 app.i18n.t("settings.close-action"),
                 row![
                     iced::widget::radio(
@@ -197,6 +202,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
                 AppMessage::RestoreDefaultPath("cache".to_string()),
                 theme_colors,
             ),
+            create_logs_path_row(&app.i18n, app.i18n.t("settings.logs-path"), theme_colors),
         ],
         &app.theme_config,
     );
@@ -592,6 +598,54 @@ fn create_path_config_row<'a>(
             common::create_colored_button(i18n.t("settings.clear-path"), BUTTON_COLOR_RED, clear_msg),
             container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
             common::create_colored_button(i18n.t("settings.restore-default"), BUTTON_COLOR_GRAY, restore_msg),
+        ]
+        .width(Length::FillPortion(4))
+        .spacing(0),
+    ]
+    .height(Length::Fixed(INPUT_HEIGHT))
+    .width(Length::Fill)
+    .spacing(ROW_SPACING)
+    .into()
+}
+
+fn create_logs_path_row<'a>(
+    i18n: &crate::i18n::I18n,
+    label: String,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> iced::Element<'a, AppMessage> {
+    let logs_path = common::get_absolute_path("logs");
+
+    row![
+        text(label)
+            .width(Length::FillPortion(1))
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            }),
+        row![
+            iced::widget::text_input("", &logs_path)
+                .width(Length::Fill)
+                .size(TEXT_INPUT_SIZE)
+                .align_x(Alignment::Center)
+                .padding(INPUT_PADDING)
+                .style(move |_theme: &iced::Theme, _status| iced::widget::text_input::Style {
+                    background: iced::Background::Color(theme_colors.text_input_background),
+                    border: iced::border::Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: iced::border::Radius::from(4.0),
+                    },
+                    icon: theme_colors.light_text_sub,
+                    placeholder: theme_colors.light_text_sub,
+                    value: theme_colors.light_text,
+                    selection: theme_colors.text_input_selection_color,
+                }),
+            container(iced::widget::Space::new()).width(Length::Fixed(BUTTON_SPACING)),
+            common::create_colored_button(
+                i18n.t("settings.open-path"),
+                BUTTON_COLOR_GREEN,
+                AppMessage::OpenLogsPath
+            )
+            .width(Length::Fixed(210.0)),
         ]
         .width(Length::FillPortion(4))
         .spacing(0),

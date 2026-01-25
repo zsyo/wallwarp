@@ -15,16 +15,21 @@ pub fn create_colored_button<'a, Message>(label: String, color: Color, message: 
 where
     Message: Clone + 'a,
 {
-    button(text(label).size(BUTTON_TEXT_SIZE))
-        .on_press(message)
-        .style(move |_theme: &iced::Theme, _status| {
-            let base = iced::widget::button::text(_theme, _status);
-            iced::widget::button::Style {
-                background: Some(iced::Background::Color(color)),
-                text_color: iced::Color::WHITE,
-                ..base
-            }
-        })
+    button(
+        text(label)
+            .size(BUTTON_TEXT_SIZE)
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center),
+    )
+    .on_press(message)
+    .style(move |_theme: &iced::Theme, _status| {
+        let base = iced::widget::button::text(_theme, _status);
+        iced::widget::button::Style {
+            background: Some(iced::Background::Color(color)),
+            text_color: iced::Color::WHITE,
+            ..base
+        }
+    })
 }
 
 /// 创建带颜色的按钮（接收 text 控件，可自定义字体和颜色）
