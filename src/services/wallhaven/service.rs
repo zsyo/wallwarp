@@ -18,6 +18,40 @@ pub struct WallhavenService {
 }
 
 impl WallhavenService {
+    /// 对 URL 中的 API key 进行脱敏处理
+    ///
+    /// # 参数
+    /// - `url`: 包含 API key 的 URL
+    ///
+    /// # 返回
+    /// 返回脱敏后的 URL，API key 仅保留前4位和后4位，中间用4个星号表示
+    /// 如果 API key 小于8位，则直接显示4个星号
+    fn mask_api_key_in_url(url: &str) -> String {
+        if let Some(start) = url.find("apikey=") {
+            let key_start = start + 7; // "apikey=" 的长度
+            if let Some(end) = url[key_start..].find('&') {
+                let key_end = key_start + end;
+                let key = &url[key_start..key_end];
+                let masked_key = if key.len() >= 8 {
+                    format!("{}****{}", &key[..4], &key[key.len() - 4..])
+                } else {
+                    "****".to_string()
+                };
+                return format!("{}{}{}", &url[..key_start], masked_key, &url[key_end..]);
+            } else {
+                // API key 是最后一个参数
+                let key = &url[key_start..];
+                let masked_key = if key.len() >= 8 {
+                    format!("{}****{}", &key[..4], &key[key.len() - 4..])
+                } else {
+                    "****".to_string()
+                };
+                return format!("{}{}", &url[..key_start], masked_key);
+            }
+        }
+        url.to_string()
+    }
+
     /// 创建新的 Wallhaven 服务
     ///
     /// # 参数
@@ -98,10 +132,11 @@ impl WallhavenService {
             time_range.value(),
             if query.is_empty() { "empty" } else { &query[..query.len().min(10)] }
         );
-        info!("[Wallhaven API] [{}] 请求URL: {}", search_tag, url);
+        let masked_url = Self::mask_api_key_in_url(&url);
+        info!("[Wallhaven API] [{}] 请求URL: {}", search_tag, masked_url);
 
-        // 执行请求
-        let text = self.client.get(url, search_tag.clone(), context).await?;
+        // 执行请求（设置5秒超时，使用 get_single 不进行重试）
+        let text = self.client.get_single(url, search_tag.clone(), context, Some(5)).await?;
 
         // 解析前检查取消状态
         if let Some(()) = context.check_cancelled() {
@@ -154,8 +189,8 @@ impl WallhavenService {
 
         debug!("[Wallhaven API] [ID:{}] 获取壁纸详情 - URL: {}", id, url);
 
-        // 执行请求
-        let text = self.client.get(url, id.to_string(), context).await?;
+        // 执行请求（不设置超时，因为这是获取壁纸详情，可能需要较长时间）
+        let text = self.client.get(url, id.to_string(), context, None).await?;
 
         // 解析前检查取消状态
         if let Some(()) = context.check_cancelled() {

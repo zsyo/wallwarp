@@ -272,6 +272,12 @@ impl App {
         self.online_state.loading_page = false;
         self.online_state.has_loaded = true; // 标记已加载过数据（虽然失败了）
         error!("[在线壁纸] 加载失败: {}", error);
+
+        // 检查是否是超时或连接错误，显示气泡通知
+        if error.contains("请求超时") || error.contains("连接失败") {
+            return self.show_notification(error, super::NotificationType::Error);
+        }
+
         iced::Task::none()
     }
 
@@ -475,6 +481,12 @@ impl App {
         self.online_state.loading_page = false;
         self.online_state.has_loaded = true; // 标记已加载过数据（虽然失败了）
         error!("[在线壁纸] 加载页面失败: {}", error);
+
+        // 检查是否是超时或连接错误，显示气泡通知
+        if error.contains("请求超时") || error.contains("连接失败") {
+            return self.show_notification(error, super::NotificationType::Error);
+        }
+
         iced::Task::none()
     }
 

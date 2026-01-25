@@ -69,7 +69,12 @@ impl WallhavenClient {
     ///
     /// # 返回
     /// 返回操作结果或错误信息
-    pub async fn retry_with_backoff<F, T, Fut>(identifier: &str, _operation_name: &str, max_retries: usize, mut operation: F) -> Result<T, String>
+    pub async fn retry_with_backoff<F, T, Fut>(
+        identifier: &str,
+        _operation_name: &str,
+        max_retries: usize,
+        mut operation: F,
+    ) -> Result<T, String>
     where
         F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<T, String>>,
@@ -87,10 +92,19 @@ impl WallhavenClient {
                 Err(e) => {
                     last_error = e;
                     if attempt < max_retries {
-                        warn!("[Wallhaven API] [{}] 第 {} 次尝试失败，将在1秒后重试: {}", identifier, attempt + 1, last_error);
+                        warn!(
+                            "[Wallhaven API] [{}] 第 {} 次尝试失败，将在1秒后重试: {}",
+                            identifier,
+                            attempt + 1,
+                            last_error
+                        );
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                     } else {
-                        error!("[Wallhaven API] [{}] 所有重试失败，共尝试 {} 次", identifier, max_retries + 1);
+                        error!(
+                            "[Wallhaven API] [{}] 所有重试失败，共尝试 {} 次",
+                            identifier,
+                            max_retries + 1
+                        );
                     }
                 }
             }
@@ -181,16 +195,81 @@ impl WallhavenClient {
         url
     }
 
-    /// 执行 HTTP GET 请求
+    /// 执行单次 HTTP GET 请求（不重试）
     ///
     /// # 参数
     /// - `url`: 请求 URL
     /// - `identifier`: 请求标识符（用于日志）
     /// - `context`: 请求上下文（用于取消操作）
+    /// - `timeout_secs`: 可选的超时时间（秒），None 表示不设置超时
     ///
     /// # 返回
     /// 返回响应文本或错误信息
-    pub async fn get(&self, url: String, identifier: String, context: &RequestContext) -> Result<String, String> {
+    pub async fn get_single(
+        &self,
+        url: String,
+        identifier: String,
+        context: &RequestContext,
+        timeout_secs: Option<u64>,
+    ) -> Result<String, String> {
+        // 检查取消状态
+        if let Some(()) = context.check_cancelled() {
+            return Err("请求已取消".to_string());
+        }
+
+        // 构建请求
+        let request = self.client.get(&url);
+
+        // 应用超时设置（如果指定）
+        let request = if let Some(timeout) = timeout_secs {
+            request.timeout(std::time::Duration::from_secs(timeout))
+        } else {
+            request
+        };
+
+        let response = request.send().await.map_err(|e| {
+            // 检查是否是超时错误
+            if e.is_timeout() {
+                error!("[Wallhaven API] [{}] 请求超时（{}秒）", identifier, timeout_secs.unwrap_or(0));
+                format!("请求超时，请检查网络连接或设置代理")
+            } else if e.is_connect() {
+                error!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
+                format!("连接失败，请检查网络连接或设置代理")
+            } else {
+                error!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
+                format!("请求失败: {}", e)
+            }
+        })?;
+
+        debug!("[Wallhaven API] [{}] 响应状态: {}", identifier, response.status());
+
+        if !response.status().is_success() {
+            return Err(format!("API返回错误: {}", response.status()));
+        }
+
+        response.text().await.map_err(|e| {
+            error!("[Wallhaven API] [{}] 读取响应失败: {}", identifier, e);
+            format!("读取响应失败: {}", e)
+        })
+    }
+
+    /// 执行 HTTP GET 请求（带重试）
+    ///
+    /// # 参数
+    /// - `url`: 请求 URL
+    /// - `identifier`: 请求标识符（用于日志）
+    /// - `context`: 请求上下文（用于取消操作）
+    /// - `timeout_secs`: 可选的超时时间（秒），None 表示不设置超时
+    ///
+    /// # 返回
+    /// 返回响应文本或错误信息
+    pub async fn get(
+        &self,
+        url: String,
+        identifier: String,
+        context: &RequestContext,
+        timeout_secs: Option<u64>,
+    ) -> Result<String, String> {
         Self::retry_with_backoff(&identifier, "HTTP GET", 3, || {
             let client = self.client.clone();
             let url = url.clone();
@@ -202,9 +281,32 @@ impl WallhavenClient {
                     return Err("请求已取消".to_string());
                 }
 
-                let response = client.get(&url).send().await.map_err(|e| {
-                    error!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
-                    format!("请求失败: {}", e)
+                // 构建请求
+                let request = client.get(&url);
+
+                // 应用超时设置（如果指定）
+                let request = if let Some(timeout) = timeout_secs {
+                    request.timeout(std::time::Duration::from_secs(timeout))
+                } else {
+                    request
+                };
+
+                let response = request.send().await.map_err(|e| {
+                    // 检查是否是超时错误
+                    if e.is_timeout() {
+                        error!(
+                            "[Wallhaven API] [{}] 请求超时（{}秒）",
+                            identifier,
+                            timeout_secs.unwrap_or(0)
+                        );
+                        format!("请求超时，请检查网络连接或设置代理")
+                    } else if e.is_connect() {
+                        error!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
+                        format!("连接失败，请检查网络连接或设置代理")
+                    } else {
+                        error!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
+                        format!("请求失败: {}", e)
+                    }
                 })?;
 
                 debug!("[Wallhaven API] [{}] 响应状态: {}", identifier, response.status());

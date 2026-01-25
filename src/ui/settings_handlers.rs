@@ -95,6 +95,9 @@ impl App {
             self.proxy_protocol = proxy_protocol;
             self.proxy_address = proxy_address;
             self.proxy_port = proxy_port;
+            if proxy_port == 0 {
+                self.proxy_port = 1080;
+            }
 
             // 重置API KEY设置状态
             self.wallhaven_api_key = self.config.wallhaven.api_key.clone();
@@ -227,7 +230,11 @@ impl App {
 
                             // 如果窗口最小化或不在前台，则恢复并置顶
                             if is_minimized || !is_foreground {
-                                tracing::info!("[托盘] [双击图标] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶", is_minimized, is_foreground);
+                                tracing::info!(
+                                    "[托盘] [双击图标] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶",
+                                    is_minimized,
+                                    is_foreground
+                                );
                                 let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
                                 tracing::info!("[托盘] [双击图标] 置顶操作结果: {}", success);
                             } else {
@@ -235,7 +242,8 @@ impl App {
                             }
                         }
                     }
-                }).map(|_| AppMessage::None),
+                })
+                .map(|_| AppMessage::None),
             ])
         })
     }
@@ -260,7 +268,11 @@ impl App {
 
                                     // 如果窗口最小化或不在前台，则恢复并置顶
                                     if is_minimized || !is_foreground {
-                                        tracing::info!("[托盘] [显示窗口] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶", is_minimized, is_foreground);
+                                        tracing::info!(
+                                            "[托盘] [显示窗口] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶",
+                                            is_minimized,
+                                            is_foreground
+                                        );
                                         let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
                                         tracing::info!("[托盘] [显示窗口] 置顶操作结果: {}", success);
                                     } else {
@@ -268,7 +280,8 @@ impl App {
                                     }
                                 }
                             }
-                        }).map(|_| AppMessage::None),
+                        })
+                        .map(|_| AppMessage::None),
                     ])
                 });
             }
@@ -299,7 +312,11 @@ impl App {
 
                                     // 如果窗口最小化或不在前台，则恢复并置顶
                                     if is_minimized || !is_foreground {
-                                        tracing::info!("[托盘] [打开设置] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶", is_minimized, is_foreground);
+                                        tracing::info!(
+                                            "[托盘] [打开设置] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶",
+                                            is_minimized,
+                                            is_foreground
+                                        );
                                         let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
                                         tracing::info!("[托盘] [打开设置] 置顶操作结果: {}", success);
                                     } else {
@@ -307,7 +324,8 @@ impl App {
                                     }
                                 }
                             }
-                        }).map(|_| AppMessage::None),
+                        })
+                        .map(|_| AppMessage::None),
                     ])
                 });
             }
@@ -499,18 +517,22 @@ impl App {
         // 保存API KEY到配置文件
         let old_api_key = self.config.wallhaven.api_key.clone();
         let new_api_key = self.wallhaven_api_key.clone();
+
+        // 对 API key 进行脱敏处理
+        let mask_key = |key: &str| -> String {
+            if key.is_empty() {
+                "(空)".to_string()
+            } else if key.len() >= 8 {
+                format!("{}****{}", &key[..4], &key[key.len() - 4..])
+            } else {
+                "****".to_string()
+            }
+        };
+
         tracing::info!(
             "[设置] [Wallhaven API Key] 保存: {} -> {}",
-            if old_api_key.is_empty() {
-                "(空)"
-            } else {
-                &old_api_key[..8.min(old_api_key.len())]
-            },
-            if new_api_key.is_empty() {
-                "(空)"
-            } else {
-                &new_api_key[..8.min(new_api_key.len())]
-            }
+            mask_key(&old_api_key),
+            mask_key(&new_api_key)
         );
         self.config.set_wallhaven_api_key(new_api_key);
 
@@ -650,7 +672,8 @@ impl App {
                         }
                     }
                 }
-            }).map(|_| AppMessage::None)
+            })
+            .map(|_| AppMessage::None)
         })
     }
 

@@ -19,7 +19,7 @@ impl App {
         i18n.set_language(config.global.language.clone());
 
         // 检查代理配置格式，如果不正确则还原为空字符串
-        let (proxy_protocol, proxy_address, proxy_port) = Self::parse_proxy_string(&config.global.proxy);
+        let (proxy_protocol, proxy_address, mut proxy_port) = Self::parse_proxy_string(&config.global.proxy);
         if proxy_port > 0 {
             let expected_proxy = format!("{}://{}:{}", proxy_protocol, proxy_address, proxy_port);
             if config.global.proxy != expected_proxy {
@@ -27,6 +27,8 @@ impl App {
                 config.global.proxy = String::new();
                 config.save_to_file();
             }
+        } else {
+            proxy_port = 1080;
         }
 
         let tray_manager = super::tray::TrayManager::new(&i18n);
