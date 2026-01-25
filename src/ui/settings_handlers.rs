@@ -211,10 +211,31 @@ impl App {
     }
 
     fn handle_tray_icon_clicked(&mut self) -> iced::Task<AppMessage> {
-        window::oldest().and_then(|id| {
+        window::oldest().and_then(move |window_id| {
             iced::Task::batch(vec![
-                window::set_mode(id, window::Mode::Windowed), // 显示程序窗口
-                window::gain_focus(id),                       // 强制拉回前台
+                // 先设置窗口为 Windowed 模式（从 Hidden 恢复）
+                window::set_mode(window_id, window::Mode::Windowed),
+                // 然后检测窗口状态并置顶
+                window::run(window_id, move |mw| {
+                    if let Ok(handle) = mw.window_handle() {
+                        if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
+                            let hwnd = HWND(win32_handle.hwnd.get() as _);
+
+                            // 使用 Windows API 检测窗口状态并置顶
+                            let is_minimized = crate::utils::window_utils::is_window_minimized(hwnd);
+                            let is_foreground = crate::utils::window_utils::is_window_foreground(hwnd);
+
+                            // 如果窗口最小化或不在前台，则恢复并置顶
+                            if is_minimized || !is_foreground {
+                                tracing::info!("[托盘] [双击图标] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶", is_minimized, is_foreground);
+                                let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
+                                tracing::info!("[托盘] [双击图标] 置顶操作结果: {}", success);
+                            } else {
+                                tracing::info!("[托盘] [双击图标] 窗口已在前台，无需置顶");
+                            }
+                        }
+                    }
+                }).map(|_| AppMessage::None),
             ])
         })
     }
@@ -222,7 +243,34 @@ impl App {
     fn handle_tray_menu_event(&mut self, id: String) -> iced::Task<AppMessage> {
         match id.as_str() {
             "tray_show" => {
-                return window::oldest().and_then(|id| window::set_mode(id, window::Mode::Windowed));
+                // 显示窗口并检测状态，如果最小化或不在前台则置顶
+                return window::oldest().and_then(move |window_id| {
+                    iced::Task::batch(vec![
+                        // 先设置窗口为 Windowed 模式（从 Hidden 恢复）
+                        window::set_mode(window_id, window::Mode::Windowed),
+                        // 然后检测窗口状态并置顶
+                        window::run(window_id, move |mw| {
+                            if let Ok(handle) = mw.window_handle() {
+                                if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
+                                    let hwnd = HWND(win32_handle.hwnd.get() as _);
+
+                                    // 使用 Windows API 检测窗口状态并置顶
+                                    let is_minimized = crate::utils::window_utils::is_window_minimized(hwnd);
+                                    let is_foreground = crate::utils::window_utils::is_window_foreground(hwnd);
+
+                                    // 如果窗口最小化或不在前台，则恢复并置顶
+                                    if is_minimized || !is_foreground {
+                                        tracing::info!("[托盘] [显示窗口] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶", is_minimized, is_foreground);
+                                        let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
+                                        tracing::info!("[托盘] [显示窗口] 置顶操作结果: {}", success);
+                                    } else {
+                                        tracing::info!("[托盘] [显示窗口] 窗口已在前台，无需置顶");
+                                    }
+                                }
+                            }
+                        }).map(|_| AppMessage::None),
+                    ])
+                });
             }
             "tray_switch_previous" => {
                 // 切换上一张壁纸
@@ -235,7 +283,33 @@ impl App {
             "tray_settings" => {
                 // 打开设置窗口
                 self.active_page = super::ActivePage::Settings;
-                return window::oldest().and_then(|id| window::set_mode(id, window::Mode::Windowed));
+                return window::oldest().and_then(move |window_id| {
+                    iced::Task::batch(vec![
+                        // 先设置窗口为 Windowed 模式（从 Hidden 恢复）
+                        window::set_mode(window_id, window::Mode::Windowed),
+                        // 然后检测窗口状态并置顶
+                        window::run(window_id, move |mw| {
+                            if let Ok(handle) = mw.window_handle() {
+                                if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
+                                    let hwnd = HWND(win32_handle.hwnd.get() as _);
+
+                                    // 使用 Windows API 检测窗口状态并置顶
+                                    let is_minimized = crate::utils::window_utils::is_window_minimized(hwnd);
+                                    let is_foreground = crate::utils::window_utils::is_window_foreground(hwnd);
+
+                                    // 如果窗口最小化或不在前台，则恢复并置顶
+                                    if is_minimized || !is_foreground {
+                                        tracing::info!("[托盘] [打开设置] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶", is_minimized, is_foreground);
+                                        let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
+                                        tracing::info!("[托盘] [打开设置] 置顶操作结果: {}", success);
+                                    } else {
+                                        tracing::info!("[托盘] [打开设置] 窗口已在前台，无需置顶");
+                                    }
+                                }
+                            }
+                        }).map(|_| AppMessage::None),
+                    ])
+                });
             }
             "tray_quit" => {
                 // 真正退出程序
