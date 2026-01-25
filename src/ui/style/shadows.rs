@@ -24,6 +24,17 @@ pub const CARD_SHADOW_HOVER: Shadow = Shadow {
     blur_radius: 12.0,
 };
 
+// ============================================================================
+// 筛选栏阴影
+// ============================================================================
+
+/// 筛选栏阴影（更深，更明显）
+pub const FILTER_BAR_SHADOW: Shadow = Shadow {
+    color: Color::from_rgba(0.0, 0.0, 0.0, 0.20),  // 黑色，20% 透明度（更深）
+    offset: Vector { x: 0.0, y: 3.0 },              // 向下偏移 3px（更大）
+    blur_radius: 10.0,                               // 模糊半径 10px（更大）
+};
+
 /// 获取卡片默认阴影
 #[inline]
 pub fn get_card_shadow() -> Shadow {

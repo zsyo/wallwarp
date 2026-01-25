@@ -44,7 +44,7 @@ pub fn create_filter_bar<'a>(
     let search_button = common::create_icon_button_with_size(
         "\u{F52A}",
         BUTTON_COLOR_BLUE,
-        16,
+        17,
         AppMessage::Online(OnlineMessage::Search),
     )
     .style(move |_theme: &iced::Theme, _status| iced::widget::button::Style {
@@ -77,7 +77,7 @@ pub fn create_filter_bar<'a>(
     let refresh_button = common::create_icon_button_with_size(
         "\u{F130}",
         BUTTON_COLOR_GREEN,
-        16,
+        20,
         AppMessage::Online(OnlineMessage::Refresh),
     )
     .style(move |_theme, _status| iced::widget::button::Style {
@@ -106,7 +106,11 @@ pub fn create_filter_bar<'a>(
                 } else {
                     theme_colors.light_button
                 };
-                let text_color = if is_checked { Color::WHITE } else { theme_colors.light_text };
+                let text_color = if is_checked {
+                    Color::WHITE
+                } else {
+                    theme_colors.light_text
+                };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
                     text_color: text_color,
@@ -128,7 +132,11 @@ pub fn create_filter_bar<'a>(
                 } else {
                     theme_colors.light_button
                 };
-                let text_color = if is_checked { Color::WHITE } else { theme_colors.light_text };
+                let text_color = if is_checked {
+                    Color::WHITE
+                } else {
+                    theme_colors.light_text
+                };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
                     text_color: text_color,
@@ -150,7 +158,11 @@ pub fn create_filter_bar<'a>(
                 } else {
                     theme_colors.light_button
                 };
-                let text_color = if is_checked { Color::WHITE } else { theme_colors.light_text };
+                let text_color = if is_checked {
+                    Color::WHITE
+                } else {
+                    theme_colors.light_text
+                };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
                     text_color: text_color,
@@ -263,6 +275,7 @@ pub fn create_filter_bar<'a>(
                     width: 0.0,
                     radius: iced::border::Radius::from(4.0),
                 },
+                shadow: crate::ui::style::shadows::FILTER_BAR_SHADOW,
                 ..Default::default()
             })
     ])
@@ -654,7 +667,11 @@ fn create_resolution_grid_options<'a>(
             } else {
                 theme_colors.light_button
             };
-            let text_color = if is_selected { Color::WHITE } else { theme_colors.light_text };
+            let text_color = if is_selected {
+                Color::WHITE
+            } else {
+                theme_colors.light_text
+            };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 text_color: text_color,
@@ -679,7 +696,11 @@ fn create_resolution_grid_options<'a>(
             } else {
                 theme_colors.light_button
             };
-            let text_color = if is_selected { Color::WHITE } else { theme_colors.light_text };
+            let text_color = if is_selected {
+                Color::WHITE
+            } else {
+                theme_colors.light_text
+            };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 text_color: text_color,
@@ -704,7 +725,11 @@ fn create_resolution_grid_options<'a>(
             } else {
                 theme_colors.light_button
             };
-            let text_color = if is_selected { Color::WHITE } else { theme_colors.light_text };
+            let text_color = if is_selected {
+                Color::WHITE
+            } else {
+                theme_colors.light_text
+            };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 text_color: text_color,
@@ -1053,7 +1078,11 @@ fn create_ratio_grid_options<'a>(
             } else {
                 theme_colors.light_button
             };
-            let text_color = if is_selected { Color::WHITE } else { theme_colors.light_text };
+            let text_color = if is_selected {
+                Color::WHITE
+            } else {
+                theme_colors.light_text
+            };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 text_color: text_color,
@@ -1276,11 +1305,15 @@ fn create_sorting_picker<'a>(
             ..Default::default()
         });
 
-    DropDown::new(sorting_trigger, iced::widget::opaque(picker_content), state.sorting_picker_expanded)
-        .width(Length::Fill)
-        .on_dismiss(AppMessage::Online(OnlineMessage::SortingPickerDismiss))
-        .alignment(drop_down::Alignment::Bottom)
-        .into()
+    DropDown::new(
+        sorting_trigger,
+        iced::widget::opaque(picker_content),
+        state.sorting_picker_expanded,
+    )
+    .width(Length::Fill)
+    .on_dismiss(AppMessage::Online(OnlineMessage::SortingPickerDismiss))
+    .alignment(drop_down::Alignment::Bottom)
+    .into()
 }
 
 /// 创建时间范围选择器
@@ -1380,9 +1413,13 @@ fn create_time_range_picker<'a>(
             ..Default::default()
         });
 
-    DropDown::new(time_range_trigger, iced::widget::opaque(picker_content), state.time_range_picker_expanded)
-        .width(Length::Fill)
-        .on_dismiss(AppMessage::Online(OnlineMessage::TimeRangePickerDismiss))
-        .alignment(drop_down::Alignment::Bottom)
-        .into()
+    DropDown::new(
+        time_range_trigger,
+        iced::widget::opaque(picker_content),
+        state.time_range_picker_expanded,
+    )
+    .width(Length::Fill)
+    .on_dismiss(AppMessage::Online(OnlineMessage::TimeRangePickerDismiss))
+    .alignment(drop_down::Alignment::Bottom)
+    .into()
 }

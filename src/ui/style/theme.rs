@@ -44,9 +44,7 @@ pub struct ThemeConfig {
 
 impl Default for ThemeConfig {
     fn default() -> Self {
-        ThemeConfig {
-            theme: Theme::Light,
-        }
+        ThemeConfig { theme: Theme::Light }
     }
 }
 
@@ -205,8 +203,8 @@ impl ThemeColors {
             overlay_text: Color::from_rgb(1.0, 1.0, 1.0),
 
             // 浅色背景和文字颜色
-            light_bg: Color::from_rgb(0.969, 0.969, 0.969),
-            light_button: Color::from_rgb(0.933, 0.933, 0.933),
+            light_bg: Color::from_rgb(0.92, 0.92, 0.92),
+            light_button: Color::from_rgb(1.0, 1.0, 1.0),
             light_text: Color::from_rgb(0.2, 0.2, 0.2),
             light_text_sub: Color::from_rgb(0.533, 0.533, 0.533),
             settings_dropdown_bg: Color::WHITE,
