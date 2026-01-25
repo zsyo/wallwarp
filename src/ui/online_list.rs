@@ -5,12 +5,17 @@ use crate::services::wallhaven::OnlineWallpaper;
 use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::online::{OnlineMessage, OnlineState, WallpaperLoadStatus};
-use crate::ui::style::*;
+use crate::ui::style::{ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, COLOR_OVERLAY_BG, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE};
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Element, Length};
 
 /// 创建壁纸列表内容
-pub fn create_wallpaper_list<'a>(i18n: &'a I18n, window_width: u32, online_state: &'a OnlineState) -> Element<'a, AppMessage> {
+pub fn create_wallpaper_list<'a>(
+    i18n: &'a I18n,
+    window_width: u32,
+    online_state: &'a OnlineState,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> Element<'a, AppMessage> {
     let content: Element<'a, AppMessage> = if !online_state.has_loaded && !online_state.loading_page {
         // 初始状态，还未开始加载
         column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE)]
@@ -20,19 +25,29 @@ pub fn create_wallpaper_list<'a>(i18n: &'a I18n, window_width: u32, online_state
             .into()
     } else if online_state.wallpapers.is_empty() && online_state.loading_page {
         // 正在加载中
-        column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE)]
+        let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+        column![text(i18n.t("online-wallpapers.loading"))
+            .size(LOADING_TEXT_SIZE)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            })]
             .width(Length::Fill)
             .align_x(Alignment::Center)
             .padding(EMPTY_STATE_PADDING)
             .into()
     } else if online_state.wallpapers.is_empty() && online_state.has_loaded {
         // 已加载但无数据
+        let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
         column![
-            text(i18n.t("online-wallpapers.no-data")).size(EMPTY_STATE_TEXT_SIZE),
+            text(i18n.t("online-wallpapers.no-data"))
+                .size(EMPTY_STATE_TEXT_SIZE)
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.text),
+                }),
             text(i18n.t("online-wallpapers.no-data-hint"))
                 .size(14)
-                .style(|_theme: &iced::Theme| text::Style {
-                    color: Some(COLOR_LIGHT_TEXT_SUB),
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.light_text_sub),
                 }),
         ]
         .width(Length::Fill)
@@ -41,7 +56,7 @@ pub fn create_wallpaper_list<'a>(i18n: &'a I18n, window_width: u32, online_state
         .spacing(10)
         .into()
     } else {
-        create_wallpaper_grid(i18n, window_width, online_state)
+        create_wallpaper_grid(i18n, window_width, online_state, theme_config)
     };
 
     scrollable(content)
@@ -85,7 +100,12 @@ pub fn create_wallpaper_list<'a>(i18n: &'a I18n, window_width: u32, online_state
 }
 
 /// 创建壁纸网格内容
-fn create_wallpaper_grid<'a>(i18n: &'a I18n, window_width: u32, online_state: &'a OnlineState) -> Element<'a, AppMessage> {
+fn create_wallpaper_grid<'a>(
+    i18n: &'a I18n,
+    window_width: u32,
+    online_state: &'a OnlineState,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> Element<'a, AppMessage> {
     let available_width = (window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
     let unit_width = IMAGE_WIDTH + IMAGE_SPACING;
     let items_per_row = (available_width / unit_width).floor() as usize;
@@ -106,14 +126,14 @@ fn create_wallpaper_grid<'a>(i18n: &'a I18n, window_width: u32, online_state: &'
 
             for wallpaper_status in chunk {
                 let image_element = match wallpaper_status {
-                    WallpaperLoadStatus::Loading => create_loading_placeholder(i18n),
+                    WallpaperLoadStatus::Loading => create_loading_placeholder(i18n, theme_config),
                     WallpaperLoadStatus::ThumbLoaded(wallpaper, handle) => {
                         let wallpaper_index = online_state
                             .wallpapers
                             .iter()
                             .position(|w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id))
                             .unwrap_or(0);
-                        create_loaded_wallpaper_with_thumb(i18n, wallpaper, Some(handle.clone()), wallpaper_index)
+                        create_loaded_wallpaper_with_thumb(i18n, wallpaper, Some(handle.clone()), wallpaper_index, theme_config)
                     }
                     WallpaperLoadStatus::Loaded(wallpaper) => {
                         let wallpaper_index = online_state
@@ -121,7 +141,7 @@ fn create_wallpaper_grid<'a>(i18n: &'a I18n, window_width: u32, online_state: &'
                             .iter()
                             .position(|w| matches!(w, WallpaperLoadStatus::Loaded(wp) if wp.id == wallpaper.id))
                             .unwrap_or(0);
-                        create_loaded_wallpaper_with_thumb(i18n, wallpaper, None, wallpaper_index)
+                        create_loaded_wallpaper_with_thumb(i18n, wallpaper, None, wallpaper_index, theme_config)
                     }
                 };
 
@@ -154,21 +174,28 @@ fn create_wallpaper_grid<'a>(i18n: &'a I18n, window_width: u32, online_state: &'
 }
 
 /// 创建加载占位符
-fn create_loading_placeholder<'a>(i18n: &'a I18n) -> Element<'a, AppMessage> {
+fn create_loading_placeholder<'a>(
+    i18n: &'a I18n,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> Element<'a, AppMessage> {
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
     let loading_text = text(i18n.t("online-wallpapers.image-loading"))
         .size(LOADING_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style { color: Some(COLOR_TEXT_DARK) });
+        .style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.text),
+        });
 
     let placeholder_content = container(loading_text)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
-        .style(|theme| {
-            let mut style = common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT);
+        .style(move |_theme| {
+            let mut style = common::create_bordered_container_style_with_bg(theme_config)(_theme);
             // 添加阴影效果
             style.shadow = iced::Shadow {
-                color: COLOR_OVERLAY_BG,
+                color: theme_colors.overlay_bg,
                 offset: iced::Vector { x: 0.0, y: 2.0 },
                 blur_radius: 8.0,
             };
@@ -198,7 +225,10 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     wallpaper: &'a OnlineWallpaper,
     thumb_handle: Option<iced::widget::image::Handle>,
     index: usize,
+    theme_config: &'a crate::ui::style::ThemeConfig,
 ) -> Element<'a, AppMessage> {
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
     // 使用缩略图创建图片
     let image = if let Some(handle) = thumb_handle {
         iced::widget::image(handle)
@@ -209,25 +239,27 @@ fn create_loaded_wallpaper_with_thumb<'a>(
         // 如果没有缩略图，使用占位符
         let placeholder = text(i18n.t("online-wallpapers.loading-placeholder"))
             .size(LOADING_TEXT_SIZE)
-            .style(|_theme: &iced::Theme| text::Style { color: Some(COLOR_TEXT_DARK) });
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            });
 
         return container(placeholder)
             .width(Length::Fixed(IMAGE_WIDTH))
             .height(Length::Fixed(IMAGE_HEIGHT))
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)
-            .style(|theme| common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT))
+            .style(move |_theme| common::create_bordered_container_style_with_bg(theme_config)(_theme))
             .into();
     };
 
     let styled_image = container(image)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(|theme| {
-            let mut style = common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT);
+        .style(move |_theme| {
+            let mut style = common::create_bordered_container_style_with_bg(theme_config)(_theme);
             // 添加阴影效果
             style.shadow = iced::Shadow {
-                color: COLOR_OVERLAY_BG,
+                color: theme_colors.overlay_bg,
                 offset: iced::Vector { x: 0.0, y: 2.0 },
                 blur_radius: 8.0,
             };
@@ -237,13 +269,15 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     // 创建透明遮罩内容
     let file_size_text = text(crate::utils::helpers::format_file_size(wallpaper.file_size))
         .size(OVERLAY_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_OVERLAY_TEXT),
+        .style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.overlay_text),
         });
 
-    let resolution_text = text(&wallpaper.resolution).size(OVERLAY_TEXT_SIZE).style(|_theme: &iced::Theme| text::Style {
-        color: Some(COLOR_OVERLAY_TEXT),
-    });
+    let resolution_text = text(&wallpaper.resolution)
+        .size(OVERLAY_TEXT_SIZE)
+        .style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.overlay_text),
+        });
 
     let set_wallpaper_button = common::create_button_with_tooltip(
         common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, AppMessage::Online(OnlineMessage::SetAsWallpaper(index))),

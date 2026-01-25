@@ -4,8 +4,8 @@ use super::AppMessage;
 use super::common;
 use crate::services::local::Wallpaper;
 use crate::ui::style::{
-    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_BG_LIGHT, COLOR_MODAL_BG, COLOR_OVERLAY_BG,
-    COLOR_OVERLAY_TEXT, COLOR_TEXT_DARK, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, ERROR_ICON_SIZE, ERROR_PATH_SIZE, ERROR_TEXT_SIZE, IMAGE_HEIGHT,
+    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_MODAL_BG, COLOR_OVERLAY_BG,
+    COLOR_OVERLAY_TEXT, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, ERROR_ICON_SIZE, ERROR_PATH_SIZE, ERROR_TEXT_SIZE, IMAGE_HEIGHT,
     IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
 };
 use crate::utils::config::Config;
@@ -89,9 +89,20 @@ impl Default for LocalState {
     }
 }
 
-pub fn local_view<'a>(i18n: &'a crate::i18n::I18n, _config: &'a Config, window_width: u32, local_state: &'a LocalState) -> Element<'a, AppMessage> {
+pub fn local_view<'a>(
+    i18n: &'a crate::i18n::I18n,
+    _config: &'a Config,
+    window_width: u32,
+    local_state: &'a LocalState,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> Element<'a, AppMessage> {
     let content = if local_state.all_paths.is_empty() {
-        column![text(i18n.t("local-list.no-wallpapers")).size(EMPTY_STATE_TEXT_SIZE)]
+        let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+        column![text(i18n.t("local-list.no-wallpapers"))
+            .size(EMPTY_STATE_TEXT_SIZE)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            })]
             .width(Length::Fill)
             .align_x(Alignment::Center)
             .padding(EMPTY_STATE_PADDING)
@@ -108,14 +119,14 @@ pub fn local_view<'a>(i18n: &'a crate::i18n::I18n, _config: &'a Config, window_w
 
             for wallpaper_status in chunk {
                 let image_element = match wallpaper_status {
-                    WallpaperLoadStatus::Loading => create_loading_placeholder(i18n),
+                    WallpaperLoadStatus::Loading => create_loading_placeholder(i18n, theme_config),
                     WallpaperLoadStatus::Loaded(wallpaper) => {
                         let wallpaper_index = local_state.all_paths.iter().position(|p| p == &wallpaper.path).unwrap_or(0);
 
                         if wallpaper.name == "加载失败" {
-                            create_error_placeholder(i18n, wallpaper, wallpaper_index)
+                            create_error_placeholder(i18n, wallpaper, wallpaper_index, theme_config)
                         } else {
-                            create_loaded_wallpaper(i18n, wallpaper, wallpaper_index)
+                            create_loaded_wallpaper(i18n, wallpaper, wallpaper_index, theme_config)
                         }
                     }
                 };
@@ -129,7 +140,12 @@ pub fn local_view<'a>(i18n: &'a crate::i18n::I18n, _config: &'a Config, window_w
 
         // 如果已加载全部，显示提示文本
         if local_state.current_page * local_state.page_size >= local_state.total_count {
-            let all_loaded_text = text(i18n.t("local-list.all-loaded")).size(ALL_LOADED_TEXT_SIZE);
+            let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+            let all_loaded_text = text(i18n.t("local-list.all-loaded"))
+                .size(ALL_LOADED_TEXT_SIZE)
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.text),
+                });
             content = content.push(all_loaded_text)
         }
 
@@ -283,21 +299,28 @@ pub fn local_view<'a>(i18n: &'a crate::i18n::I18n, _config: &'a Config, window_w
     iced::widget::stack(layers).width(Length::Fill).height(Length::Fill).into()
 }
 
-fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> button::Button<'a, AppMessage> {
+fn create_loading_placeholder<'a>(
+    i18n: &'a crate::i18n::I18n,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> button::Button<'a, AppMessage> {
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
     let loading_text = text(i18n.t("local-list.image-loading"))
         .size(LOADING_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style { color: Some(COLOR_TEXT_DARK) });
+        .style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.text),
+        });
 
     let placeholder_content = container(loading_text)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
-        .style(|theme| {
-            let mut style = common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT);
+        .style(move |_theme| {
+            let mut style = common::create_bordered_container_style_with_bg(theme_config)(_theme);
             // 添加阴影效果
             style.shadow = iced::Shadow {
-                color: COLOR_OVERLAY_BG,
+                color: theme_colors.overlay_bg,
                 offset: iced::Vector { x: 0.0, y: 2.0 },
                 blur_radius: 8.0,
             };
@@ -320,7 +343,14 @@ fn create_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> button::Button
         })
 }
 
-fn create_error_placeholder<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wallpaper, index: usize) -> button::Button<'a, AppMessage> {
+fn create_error_placeholder<'a>(
+    i18n: &'a crate::i18n::I18n,
+    wallpaper: &'a Wallpaper,
+    index: usize,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> button::Button<'a, AppMessage> {
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
     let error_image = text("\u{F428}")
         .font(Font::with_name("bootstrap-icons"))
         .color(Color::BLACK)
@@ -328,11 +358,15 @@ fn create_error_placeholder<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wall
 
     let error_text = text(i18n.t("local-list.loading-error"))
         .size(ERROR_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style { color: Some(COLOR_TEXT_DARK) });
+        .style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.text),
+        });
 
     let error_path = text(&wallpaper.path)
         .size(ERROR_PATH_SIZE)
-        .style(|_theme: &iced::Theme| text::Style { color: Some(COLOR_TEXT_DARK) });
+        .style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.text),
+        });
 
     let inner_content = container(column![error_image, error_text, error_path].width(Length::Fill).align_x(Alignment::Center))
         .width(Length::Fixed(IMAGE_WIDTH))
@@ -343,11 +377,11 @@ fn create_error_placeholder<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wall
     let error_content = container(inner_content)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(|theme| {
-            let mut style = common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT);
+        .style(move |_theme| {
+            let mut style = common::create_bordered_container_style_with_bg(theme_config)(_theme);
             // 添加阴影效果
             style.shadow = iced::Shadow {
-                color: COLOR_OVERLAY_BG,
+                color: theme_colors.overlay_bg,
                 offset: iced::Vector { x: 0.0, y: 2.0 },
                 blur_radius: 8.0,
             };
@@ -427,7 +461,14 @@ fn create_error_placeholder<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wall
         })
 }
 
-fn create_loaded_wallpaper<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wallpaper, index: usize) -> button::Button<'a, AppMessage> {
+fn create_loaded_wallpaper<'a>(
+    i18n: &'a crate::i18n::I18n,
+    wallpaper: &'a Wallpaper,
+    index: usize,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> button::Button<'a, AppMessage> {
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
     let image_handle = iced::widget::image::Handle::from_path(&wallpaper.thumbnail_path);
     let image = iced::widget::image(image_handle)
         .width(Length::Fixed(IMAGE_WIDTH))
@@ -437,11 +478,11 @@ fn create_loaded_wallpaper<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wallp
     let styled_image = container(image)
         .width(Length::Fill)
         .height(Length::Fill)
-        .style(|theme| {
-            let mut style = common::create_bordered_container_style_with_bg(theme, COLOR_BG_LIGHT);
+        .style(move |_theme| {
+            let mut style = common::create_bordered_container_style_with_bg(theme_config)(_theme);
             // 添加阴影效果
             style.shadow = iced::Shadow {
-                color: COLOR_OVERLAY_BG,
+                color: theme_colors.overlay_bg,
                 offset: iced::Vector { x: 0.0, y: 2.0 },
                 blur_radius: 8.0,
             };
@@ -451,13 +492,13 @@ fn create_loaded_wallpaper<'a>(i18n: &'a crate::i18n::I18n, wallpaper: &'a Wallp
     // 创建透明遮罩内容
     let file_size_text = text(crate::utils::helpers::format_file_size(wallpaper.file_size))
         .size(OVERLAY_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_OVERLAY_TEXT),
+        .style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.overlay_text),
         });
 
     let resolution_text = text(crate::utils::helpers::format_resolution(wallpaper.width, wallpaper.height))
         .size(OVERLAY_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style {
+        .style(move |_theme: &iced::Theme| text::Style {
             color: Some(COLOR_OVERLAY_TEXT),
         });
 

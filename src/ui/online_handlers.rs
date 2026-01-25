@@ -57,6 +57,10 @@ impl App {
             OnlineMessage::RatioPortraitToggled => self.handle_ratio_portrait_toggled(),
             OnlineMessage::RatioAllToggled => self.handle_ratio_all_toggled(),
             OnlineMessage::RatioToggled(ratio) => self.handle_ratio_toggled(ratio),
+            OnlineMessage::SortingPickerExpanded => self.handle_sorting_picker_expanded(),
+            OnlineMessage::SortingPickerDismiss => self.handle_sorting_picker_dismiss(),
+            OnlineMessage::TimeRangePickerExpanded => self.handle_time_range_picker_expanded(),
+            OnlineMessage::TimeRangePickerDismiss => self.handle_time_range_picker_dismiss(),
         }
     }
 
@@ -1134,8 +1138,8 @@ impl App {
     }
 
     fn handle_ratio_picker_expanded(&mut self) -> iced::Task<AppMessage> {
-        // 展开比例选择器
-        self.online_state.ratio_picker_expanded = true;
+        // 切换比例选择器的展开/收起状态
+        self.online_state.ratio_picker_expanded = !self.online_state.ratio_picker_expanded;
         iced::Task::none()
     }
 
@@ -1426,6 +1430,30 @@ impl App {
             }
         }
 
+        iced::Task::none()
+    }
+
+    fn handle_sorting_picker_expanded(&mut self) -> iced::Task<AppMessage> {
+        // 切换排序方式选择器的展开/收起状态
+        self.online_state.sorting_picker_expanded = !self.online_state.sorting_picker_expanded;
+        iced::Task::none()
+    }
+
+    fn handle_sorting_picker_dismiss(&mut self) -> iced::Task<AppMessage> {
+        // 关闭排序方式选择器
+        self.online_state.sorting_picker_expanded = false;
+        iced::Task::none()
+    }
+
+    fn handle_time_range_picker_expanded(&mut self) -> iced::Task<AppMessage> {
+        // 切换时间范围选择器的展开/收起状态
+        self.online_state.time_range_picker_expanded = !self.online_state.time_range_picker_expanded;
+        iced::Task::none()
+    }
+
+    fn handle_time_range_picker_dismiss(&mut self) -> iced::Task<AppMessage> {
+        // 关闭时间范围选择器
+        self.online_state.time_range_picker_expanded = false;
         iced::Task::none()
     }
 }

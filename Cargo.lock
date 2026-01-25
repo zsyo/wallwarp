@@ -5785,6 +5785,7 @@ dependencies = [
  "unic-langid",
  "urlencoding",
  "wallpaper",
+ "windows 0.62.2",
  "winreg 0.55.0",
  "winresource",
  "xxhash-rust",

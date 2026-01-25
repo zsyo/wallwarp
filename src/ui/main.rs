@@ -10,24 +10,37 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
     let functional_area_width = (app.current_window_width as f32 - SIDEBAR_WIDTH).max(1.0);
 
     let content: Element<'_, AppMessage> = match app.active_page {
-        ActivePage::OnlineWallpapers => {
-            super::online::online_view(&app.i18n, functional_area_width as u32, &app.online_state, &app.config)
-        }
-        ActivePage::LocalList => {
-            super::local::local_view(&app.i18n, &app.config, functional_area_width as u32, &app.local_state)
-        }
-        ActivePage::DownloadProgress => {
-            super::download::download_view(&app.i18n, functional_area_width as u32, &app.download_state)
-        }
+        ActivePage::OnlineWallpapers => super::online::online_view(
+            &app.i18n,
+            functional_area_width as u32,
+            &app.online_state,
+            &app.config,
+            &app.theme_config,
+        ),
+        ActivePage::LocalList => super::local::local_view(
+            &app.i18n,
+            &app.config,
+            functional_area_width as u32,
+            &app.local_state,
+            &app.theme_config,
+        ),
+        ActivePage::DownloadProgress => super::download::download_view(
+            &app.i18n,
+            functional_area_width as u32,
+            &app.download_state,
+            &app.theme_config,
+        ),
         ActivePage::Settings => super::settings::settings_view(app),
     };
 
     let (img, width, height) = assets::get_logo(LOGO_SIZE);
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(app.theme_config.get_theme());
     let sidebar = container(
         column![
             container(iced::widget::Space::new()).height(Length::Fixed(20.0)),
             text(app.i18n.t("app-name"))
                 .size(APP_NAME_SIZE)
+                .color(theme_colors.text)
                 .width(Length::Fill)
                 .align_x(Alignment::Center),
             iced::widget::image(iced::widget::image::Handle::from_rgba(width, height, img))
@@ -37,28 +50,42 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
             create_menu_button(
                 app.i18n.t("online-wallpapers.title"),
                 app.active_page,
-                ActivePage::OnlineWallpapers
+                ActivePage::OnlineWallpapers,
+                &app.theme_config
             ),
-            create_menu_button(app.i18n.t("local-list.title"), app.active_page, ActivePage::LocalList),
+            create_menu_button(
+                app.i18n.t("local-list.title"),
+                app.active_page,
+                ActivePage::LocalList,
+                &app.theme_config
+            ),
             create_menu_button(
                 app.i18n.t("download-tasks.title"),
                 app.active_page,
-                ActivePage::DownloadProgress
+                ActivePage::DownloadProgress,
+                &app.theme_config
             ),
-            create_menu_button(app.i18n.t("settings"), app.active_page, ActivePage::Settings),
+            create_menu_button(
+                app.i18n.t("settings"),
+                app.active_page,
+                ActivePage::Settings,
+                &app.theme_config
+            ),
+            container(iced::widget::Space::new()).height(Length::Fill), // 占位符，将主题按钮推到底部
+            create_theme_toggle_button(app),
         ]
         .spacing(BUTTON_SPACING)
         .align_x(Alignment::Center),
     )
     .width(Length::Fixed(SIDEBAR_WIDTH))
     .height(Length::Fill)
-    .style(create_sidebar_container_style);
+    .style(create_sidebar_container_style(&app.theme_config));
 
     let main_content = container(content)
         .width(Length::FillPortion(4))
         .height(Length::Fill)
         .padding(0)
-        .style(create_main_container_style);
+        .style(create_main_container_style(&app.theme_config));
 
     let layout = row![sidebar, main_content]
         .spacing(0)
@@ -72,11 +99,11 @@ fn create_menu_button<'a>(
     label: String,
     current_page: ActivePage,
     target_page: ActivePage,
+    theme_config: &'a crate::ui::style::ThemeConfig,
 ) -> button::Button<'a, AppMessage> {
-    use crate::ui::style::{
-        COLOR_SIDEBAR_BUTTON_DEFAULT, COLOR_SIDEBAR_BUTTON_HOVER, COLOR_SIDEBAR_BUTTON_SELECTED,
-        COLOR_SIDEBAR_INDICATOR, SIDEBAR_INDICATOR_WIDTH,
-    };
+    use crate::ui::style::{SIDEBAR_INDICATOR_WIDTH, ThemeColors};
+
+    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
 
     let is_selected = current_page == target_page;
     let icon = match target_page {
@@ -94,7 +121,7 @@ fn create_menu_button<'a>(
                 .width(Length::Fixed(SIDEBAR_INDICATOR_WIDTH))
                 .height(Length::Fill)
                 .style(move |_theme| iced::widget::container::Style {
-                    background: Some(iced::Background::Color(COLOR_SIDEBAR_INDICATOR)),
+                    background: Some(iced::Background::Color(theme_colors.sidebar_indicator)),
                     border: iced::border::Border {
                         color: iced::Color::TRANSPARENT,
                         width: 0.0,
@@ -128,17 +155,17 @@ fn create_menu_button<'a>(
         .style(move |_theme: &iced::Theme, status| {
             let base = iced::widget::button::text(_theme, status);
             let bg_color = if is_selected {
-                COLOR_SIDEBAR_BUTTON_SELECTED
+                theme_colors.sidebar_button_selected
             } else {
                 match status {
-                    iced::widget::button::Status::Hovered => COLOR_SIDEBAR_BUTTON_HOVER,
-                    _ => COLOR_SIDEBAR_BUTTON_DEFAULT,
+                    iced::widget::button::Status::Hovered => theme_colors.sidebar_button_hover,
+                    _ => theme_colors.sidebar_button_default,
                 }
             };
 
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
-                text_color: crate::ui::style::COLOR_TEXT_DARK,
+                text_color: theme_colors.text,
                 border: iced::border::Border {
                     color: iced::Color::TRANSPARENT,
                     width: 0.0,
@@ -149,24 +176,23 @@ fn create_menu_button<'a>(
         })
 }
 
-/// 创建侧边栏容器样式（无边框，浅灰色背景）
-fn create_sidebar_container_style(_theme: &iced::Theme) -> iced::widget::container::Style {
-    use crate::ui::style::{COLOR_SIDEBAR_BG, SEPARATOR_SHADOW_BLUR, SEPARATOR_SHADOW_OFFSET};
+/// 创建侧边栏容器样式（无边框，根据主题设置背景色）
+fn create_sidebar_container_style(
+    theme_config: &crate::ui::style::ThemeConfig,
+) -> impl Fn(&iced::Theme) -> iced::widget::container::Style + '_ {
+    use crate::ui::style::{SEPARATOR_SHADOW_BLUR, SEPARATOR_SHADOW_OFFSET, ThemeColors};
 
-    iced::widget::container::Style {
-        background: Some(iced::Background::Color(COLOR_SIDEBAR_BG)),
+    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+
+    move |_theme: &iced::Theme| iced::widget::container::Style {
+        background: Some(iced::Background::Color(theme_colors.sidebar_bg)),
         border: iced::border::Border {
             color: iced::Color::TRANSPARENT,
             width: 0.0,
             radius: iced::border::Radius::from(0.0),
         },
         shadow: iced::Shadow {
-            color: iced::Color {
-                r: 0.0,
-                g: 0.0,
-                b: 0.0,
-                a: 0.1,
-            },
+            color: theme_colors.separator_shadow,
             offset: iced::Vector::new(SEPARATOR_SHADOW_OFFSET, 0.0),
             blur_radius: SEPARATOR_SHADOW_BLUR,
         },
@@ -175,16 +201,58 @@ fn create_sidebar_container_style(_theme: &iced::Theme) -> iced::widget::contain
 }
 
 /// 创建主内容区容器样式（无边框，右侧添加分隔线）
-fn create_main_container_style(_theme: &iced::Theme) -> iced::widget::container::Style {
-    use crate::ui::style::{COLOR_SEPARATOR, SEPARATOR_WIDTH};
+fn create_main_container_style(
+    theme_config: &crate::ui::style::ThemeConfig,
+) -> impl Fn(&iced::Theme) -> iced::widget::container::Style + '_ {
+    use crate::ui::style::{SEPARATOR_WIDTH, ThemeColors};
 
-    iced::widget::container::Style {
-        background: Some(iced::Background::Color(iced::Color::TRANSPARENT)),
+    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+
+    move |_theme: &iced::Theme| iced::widget::container::Style {
+        background: Some(iced::Background::Color(theme_colors.background)),
         border: iced::border::Border {
-            color: COLOR_SEPARATOR,
+            color: theme_colors.separator,
             width: SEPARATOR_WIDTH,
             radius: iced::border::Radius::from(0.0),
         },
         ..Default::default()
     }
+}
+
+/// 创建主题切换按钮
+fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
+    use crate::ui::style::ThemeColors;
+
+    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let is_dark = app.theme_config.is_dark();
+
+    // 使用太阳图标表示浅色主题，月亮图标表示深色主题
+    let icon = if is_dark {
+        "\u{F185}" // 太阳图标（当前是深色，点击切换到浅色）
+    } else {
+        "\u{F186}" // 月亮图标（当前是浅色，点击切换到深色）
+    };
+
+    let tooltip_text = if is_dark {
+        app.i18n.t("theme.switch-to-light")
+    } else {
+        app.i18n.t("theme.switch-to-dark")
+    };
+
+    let btn = button(text(icon).size(20))
+        .on_press(AppMessage::ToggleTheme)
+        .width(Length::Fixed(40.0))
+        .height(Length::Fixed(40.0))
+        .style(move |_theme: &iced::Theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(iced::Color::TRANSPARENT)),
+            text_color: theme_colors.text,
+            border: iced::border::Border {
+                color: iced::Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(20.0),
+            },
+            ..Default::default()
+        });
+
+    super::common::create_button_with_tooltip(btn, tooltip_text)
 }

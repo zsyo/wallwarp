@@ -60,9 +60,12 @@ impl App {
             pending_window_size: None,
             debounce_timer: std::time::Instant::now(),
             tray_manager,
+            theme_config: crate::ui::style::ThemeConfig::default(),
             proxy_protocol,
             proxy_address,
             proxy_port,
+            language_picker_expanded: false,
+            proxy_protocol_picker_expanded: false,
             wallhaven_api_key: config.wallhaven.api_key.clone(), // 初始化API KEY状态
             wallpaper_mode: config.wallpaper.mode,               // 初始化壁纸模式状态
             auto_change_mode: config.wallpaper.auto_change_mode, // 初始化定时切换模式状态

@@ -128,6 +128,10 @@ pub enum OnlineMessage {
     RatioPortraitToggled,      // 切换"全部竖屏"选项
     RatioAllToggled,           // 切换"全部"选项
     RatioToggled(AspectRatio), // 切换比例选择状态
+    SortingPickerExpanded,    // 展开排序方式选择器
+    SortingPickerDismiss,     // 关闭排序方式选择器
+    TimeRangePickerExpanded,  // 展开时间范围选择器
+    TimeRangePickerDismiss,   // 关闭时间范围选择器
 }
 
 /// 壁纸加载状态
@@ -182,6 +186,8 @@ pub struct OnlineState {
     pub ratio_landscape_selected: bool,    // 选中"全部横屏"
     pub ratio_portrait_selected: bool,     // 选中"全部竖屏"
     pub ratio_all_selected: bool,          // 选中"全部"
+    pub sorting_picker_expanded: bool,     // 排序方式选择器展开状态
+    pub time_range_picker_expanded: bool,  // 时间范围选择器展开状态
     // 请求上下文，用于取消正在进行的请求
     pub request_context: crate::services::request_context::RequestContext,
     // 待设置壁纸的文件名（用于在下载完成后自动设置壁纸）
@@ -237,6 +243,8 @@ impl Default for OnlineState {
             ratio_landscape_selected: false,
             ratio_portrait_selected: false,
             ratio_all_selected: false,
+            sorting_picker_expanded: false,
+            time_range_picker_expanded: false,
             request_context: crate::services::request_context::RequestContext::new(),
             pending_set_wallpaper_filename: None,
             modal_download_cancel_token: None,
@@ -543,12 +551,18 @@ impl OnlineState {
 }
 
 /// 在线壁纸页面视图
-pub fn online_view<'a>(i18n: &'a I18n, window_width: u32, online_state: &'a OnlineState, config: &'a Config) -> Element<'a, AppMessage> {
+pub fn online_view<'a>(
+    i18n: &'a I18n,
+    window_width: u32,
+    online_state: &'a OnlineState,
+    config: &'a Config,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> Element<'a, AppMessage> {
     // 创建筛选栏
-    let filter_bar = create_filter_bar(i18n, online_state, config);
+    let filter_bar = create_filter_bar(i18n, online_state, config, theme_config);
 
     // 创建壁纸列表
-    let wallpaper_list = create_wallpaper_list(i18n, window_width, online_state);
+    let wallpaper_list = create_wallpaper_list(i18n, window_width, online_state, theme_config);
 
     let main_content = column![filter_bar, wallpaper_list].width(Length::Fill).height(Length::Fill);
 

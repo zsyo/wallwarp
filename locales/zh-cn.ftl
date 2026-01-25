@@ -223,3 +223,7 @@ menu =
     .tray-switch-next = 切换下一张壁纸
     .tray-settings = 设置
     .tray-quit = 退出程序
+
+theme =
+    .switch-to-light = 切换为浅色主题
+    .switch-to-dark = 切换为深色主题

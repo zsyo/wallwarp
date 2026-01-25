@@ -5,8 +5,12 @@ use super::AppMessage;
 use super::common;
 use crate::utils::config::CloseAction;
 use crate::utils::startup;
+use iced::wgpu::rwh::RawWindowHandle;
 use iced::window;
+use std::ffi::c_void;
 use tracing::error;
+use windows::Win32::Foundation::HWND;
+use windows::Win32::Graphics::Dwm::{DWMWA_USE_IMMERSIVE_DARK_MODE, DwmSetWindowAttribute};
 
 impl App {
     /// 处理设置相关消息
@@ -43,6 +47,10 @@ impl App {
             AppMessage::CustomIntervalMinutesChanged(minutes) => self.handle_custom_interval_minutes_changed(minutes),
             AppMessage::AutoChangeQueryChanged(query) => self.handle_auto_change_query_changed(query),
             AppMessage::SaveAutoChangeQuery => self.handle_save_auto_change_query(),
+            AppMessage::LanguagePickerExpanded => self.handle_language_picker_expanded(),
+            AppMessage::LanguagePickerDismiss => self.handle_language_picker_dismiss(),
+            AppMessage::ProxyProtocolPickerExpanded => self.handle_proxy_protocol_picker_expanded(),
+            AppMessage::ProxyProtocolPickerDismiss => self.handle_proxy_protocol_picker_dismiss(),
             AppMessage::ShowCloseConfirmation => self.handle_show_close_confirmation(),
             AppMessage::CloseConfirmationResponse(action, remember_setting) => {
                 self.handle_close_confirmation_response(action, remember_setting)
@@ -53,10 +61,12 @@ impl App {
                 self.show_notification(message, notification_type)
             }
             AppMessage::HideNotification => self.handle_hide_notification(),
+            AppMessage::ToggleTheme => self.handle_toggle_theme(),
             AppMessage::AddToWallpaperHistory(path) => self.handle_add_to_wallpaper_history(path),
             AppMessage::TraySwitchPreviousWallpaper => self.handle_tray_switch_previous_wallpaper(),
             AppMessage::TraySwitchNextWallpaper => self.handle_tray_switch_next_wallpaper(),
             AppMessage::RemoveLastFromWallpaperHistory => self.handle_remove_last_from_wallpaper_history(),
+            AppMessage::ThemeChanged(is_dark) => self.handle_theme_changed(is_dark),
             _ => iced::Task::none(),
         }
     }
@@ -543,6 +553,33 @@ impl App {
         iced::Task::none()
     }
 
+    fn handle_toggle_theme(&mut self) -> iced::Task<AppMessage> {
+        self.theme_config.toggle();
+        let theme_name = self.theme_config.get_theme().name();
+        tracing::info!("[设置] [主题] 切换到: {}", theme_name);
+
+        // 更新窗口标题栏颜色
+        let is_dark = self.theme_config.is_dark();
+        window::oldest().and_then(move |id| {
+            window::run(id, move |mw| {
+                if let Ok(handle) = mw.window_handle() {
+                    if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
+                        let hwnd = HWND(win32_handle.hwnd.get() as _);
+                        let dark_mode: i32 = if is_dark { 1 } else { 0 };
+                        unsafe {
+                            let _ = DwmSetWindowAttribute(
+                                hwnd,
+                                DWMWA_USE_IMMERSIVE_DARK_MODE,
+                                &dark_mode as *const i32 as *const c_void,
+                                std::mem::size_of::<i32>() as u32,
+                            );
+                        }
+                    }
+                }
+            }).map(|_| AppMessage::None)
+        })
+    }
+
     fn handle_wallpaper_mode_selected(&mut self, mode: crate::utils::config::WallpaperMode) -> iced::Task<AppMessage> {
         let old_mode = self.config.wallpaper.mode;
         tracing::info!("[设置] [壁纸模式] 修改: {:?} -> {:?}", old_mode, mode);
@@ -793,6 +830,34 @@ impl App {
         self.tray_manager
             .update_switch_previous_item(self.wallpaper_history.len());
 
+        iced::Task::none()
+    }
+
+    fn handle_theme_changed(&mut self, _is_dark: bool) -> iced::Task<AppMessage> {
+        iced::Task::none()
+    }
+
+    fn handle_language_picker_expanded(&mut self) -> iced::Task<AppMessage> {
+        // 切换语言选择器的展开/收起状态
+        self.language_picker_expanded = !self.language_picker_expanded;
+        iced::Task::none()
+    }
+
+    fn handle_language_picker_dismiss(&mut self) -> iced::Task<AppMessage> {
+        // 关闭语言选择器
+        self.language_picker_expanded = false;
+        iced::Task::none()
+    }
+
+    fn handle_proxy_protocol_picker_expanded(&mut self) -> iced::Task<AppMessage> {
+        // 切换代理协议选择器的展开/收起状态
+        self.proxy_protocol_picker_expanded = !self.proxy_protocol_picker_expanded;
+        iced::Task::none()
+    }
+
+    fn handle_proxy_protocol_picker_dismiss(&mut self) -> iced::Task<AppMessage> {
+        // 关闭代理协议选择器
+        self.proxy_protocol_picker_expanded = false;
         iced::Task::none()
     }
 }

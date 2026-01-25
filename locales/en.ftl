@@ -224,3 +224,7 @@ menu =
     .tray-switch-next = Switch to next wallpaper
     .tray-settings = Settings
     .tray-quit = Quit program
+
+theme =
+    .switch-to-light = Switch to light theme
+    .switch-to-dark = Switch to dark theme

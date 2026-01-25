@@ -8,30 +8,37 @@ use crate::ui::online::{DisplayableSorting, DisplayableTimeRange, OnlineMessage,
 use crate::ui::style::*;
 use crate::ui::widget::DiagonalLine;
 use crate::utils::config::Config;
-use iced::widget::{button, canvas, column, container, pick_list, row, text};
+use iced::widget::{button, canvas, column, container, row, text};
 use iced::{Alignment, Color, Element, Length};
 use iced_aw::{DropDown, drop_down};
 
 /// 创建筛选栏
-pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a Config) -> Element<'a, AppMessage> {
+pub fn create_filter_bar<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    config: &'a Config,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> Element<'a, AppMessage> {
     // 搜索框（放在最前面）
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
     let search_input = iced::widget::text_input(&i18n.t("online-wallpapers.search-placeholder"), &state.search_text)
         .on_input(|text| AppMessage::Online(OnlineMessage::SearchTextChanged(text)))
         .on_submit(AppMessage::Online(OnlineMessage::Search))
         .padding(6)
         .size(14)
         .width(Length::Fixed(160.0))
-        .style(|_theme: &iced::Theme, _status| iced::widget::text_input::Style {
-            background: iced::Background::Color(COLOR_LIGHT_BUTTON),
+        .style(move |_theme: &iced::Theme, _status| iced::widget::text_input::Style {
+            background: iced::Background::Color(theme_colors.light_button),
             border: iced::border::Border {
                 color: Color::TRANSPARENT,
                 width: 0.0,
                 radius: iced::border::Radius::from(4.0),
             },
-            icon: COLOR_LIGHT_TEXT_SUB,
-            placeholder: COLOR_LIGHT_TEXT_SUB,
-            value: COLOR_LIGHT_TEXT,
-            selection: crate::ui::style::TEXT_INPUT_SELECTION_COLOR,
+            icon: theme_colors.light_text_sub,
+            placeholder: theme_colors.light_text_sub,
+            value: theme_colors.light_text,
+            selection: theme_colors.text_input_selection_color,
         });
 
     let search_button = common::create_icon_button_with_size(
@@ -40,8 +47,9 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
         16,
         AppMessage::Online(OnlineMessage::Search),
     )
-    .style(|_theme: &iced::Theme, _status| iced::widget::button::Style {
-        background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+    .style(move |_theme: &iced::Theme, _status| iced::widget::button::Style {
+        background: Some(iced::Background::Color(theme_colors.light_button)),
+        text_color: theme_colors.light_text,
         border: iced::border::Border {
             color: Color::TRANSPARENT,
             width: 0.0,
@@ -53,73 +61,17 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
     let search_container = row![search_input, search_button].spacing(2).align_y(Alignment::Center);
 
     // 分辨率选择器 - 使用 DropDown 组件
-    let resolution_picker = create_resolution_picker(i18n, state);
+    let resolution_picker = create_resolution_picker(i18n, state, theme_colors);
 
     // 比例选择器 - 使用 DropDown 组件（支持多选）
-    let ratio_picker = create_ratio_picker(i18n, state);
+    let ratio_picker = create_ratio_picker(i18n, state, theme_colors);
 
     // 颜色选择器 - 使用 DropDown 组件
-    let color_picker = create_color_picker(i18n, state);
+    let color_picker = create_color_picker(i18n, state, theme_colors);
 
-    let sorting_options: Vec<DisplayableSorting> = Sorting::all()
-        .iter()
-        .map(|s| DisplayableSorting {
-            value: *s,
-            display: i18n.t(s.display_name()).leak(),
-        })
-        .collect();
-    let current_sorting = DisplayableSorting {
-        value: state.sorting,
-        display: i18n.t(state.sorting.display_name()).leak(),
-    };
+    let sorting_picker = create_sorting_picker(i18n, state, theme_colors);
 
-    let sorting_picker = pick_list(sorting_options.clone(), Some(current_sorting), |sort| {
-        AppMessage::Online(OnlineMessage::SortingChanged(sort.value))
-    })
-    .text_size(14)
-    .padding(6)
-    .width(Length::Fixed(100.0))
-    .style(|_theme, _status| iced::widget::pick_list::Style {
-        text_color: COLOR_LIGHT_TEXT,
-        placeholder_color: COLOR_LIGHT_TEXT_SUB,
-        handle_color: COLOR_LIGHT_TEXT_SUB,
-        background: iced::Background::Color(COLOR_LIGHT_BUTTON),
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(4.0),
-        },
-    });
-
-    let time_range_options: Vec<DisplayableTimeRange> = TimeRange::all()
-        .iter()
-        .map(|t| DisplayableTimeRange {
-            value: *t,
-            display: i18n.t(t.display_name()).leak(),
-        })
-        .collect();
-    let current_time_range = DisplayableTimeRange {
-        value: state.time_range,
-        display: i18n.t(state.time_range.display_name()).leak(),
-    };
-
-    let time_range_picker = pick_list(time_range_options.clone(), Some(current_time_range), |time| {
-        AppMessage::Online(OnlineMessage::TimeRangeChanged(time.value))
-    })
-    .text_size(14)
-    .padding(6)
-    .width(Length::Fixed(130.0))
-    .style(|_theme, _status| iced::widget::pick_list::Style {
-        text_color: COLOR_LIGHT_TEXT,
-        placeholder_color: COLOR_LIGHT_TEXT_SUB,
-        handle_color: COLOR_LIGHT_TEXT_SUB,
-        background: iced::Background::Color(COLOR_LIGHT_BUTTON),
-        border: iced::border::Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(4.0),
-        },
-    });
+    let time_range_picker = create_time_range_picker(i18n, state, theme_colors);
 
     // 功能按钮
     let refresh_button = common::create_icon_button_with_size(
@@ -128,8 +80,9 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
         16,
         AppMessage::Online(OnlineMessage::Refresh),
     )
-    .style(|_theme, _status| iced::widget::button::Style {
-        background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
+    .style(move |_theme, _status| iced::widget::button::Style {
+        background: Some(iced::Background::Color(theme_colors.light_button)),
+        text_color: theme_colors.light_text,
         border: iced::border::Border {
             color: Color::TRANSPARENT,
             width: 0.0,
@@ -151,9 +104,9 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
                 let bg_color = if is_checked {
                     COLOR_SELECTED_BLUE
                 } else {
-                    COLOR_LIGHT_BUTTON
+                    theme_colors.light_button
                 };
-                let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
+                let text_color = if is_checked { Color::WHITE } else { theme_colors.light_text };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
                     text_color: text_color,
@@ -173,9 +126,9 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
                 let bg_color = if is_checked {
                     COLOR_SELECTED_BLUE
                 } else {
-                    COLOR_LIGHT_BUTTON
+                    theme_colors.light_button
                 };
-                let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
+                let text_color = if is_checked { Color::WHITE } else { theme_colors.light_text };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
                     text_color: text_color,
@@ -195,9 +148,9 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
                 let bg_color = if is_checked {
                     COLOR_SELECTED_BLUE
                 } else {
-                    COLOR_LIGHT_BUTTON
+                    theme_colors.light_button
                 };
-                let text_color = if is_checked { Color::WHITE } else { COLOR_LIGHT_TEXT };
+                let text_color = if is_checked { Color::WHITE } else { theme_colors.light_text };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
                     text_color: text_color,
@@ -219,7 +172,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
                 let (bg_color, text_color) = if is_checked {
                     (COLOR_SFW, Color::WHITE)
                 } else {
-                    (COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT)
+                    (theme_colors.light_button, theme_colors.light_text)
                 };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
@@ -240,7 +193,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
                 let (bg_color, text_color) = if is_checked {
                     (COLOR_SKETCHY, Color::BLACK)
                 } else {
-                    (COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT)
+                    (theme_colors.light_button, theme_colors.light_text)
                 };
                 iced::widget::button::Style {
                     background: Some(iced::Background::Color(bg_color)),
@@ -264,7 +217,7 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
                         let (bg_color, text_color) = if is_checked {
                             (COLOR_NSFW, Color::WHITE)
                         } else {
-                            (COLOR_LIGHT_BUTTON, COLOR_LIGHT_TEXT)
+                            (theme_colors.light_button, theme_colors.light_text)
                         };
                         iced::widget::button::Style {
                             background: Some(iced::Background::Color(bg_color)),
@@ -303,8 +256,8 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
             .width(Length::Fill)
             .height(Length::Fixed(50.0))
             .padding(8)
-            .style(|_theme: &iced::Theme| container::Style {
-                background: Some(iced::Background::Color(COLOR_LIGHT_BG)),
+            .style(move |_theme: &iced::Theme| container::Style {
+                background: Some(iced::Background::Color(theme_colors.light_bg)),
                 border: iced::border::Border {
                     color: Color::TRANSPARENT,
                     width: 0.0,
@@ -317,11 +270,15 @@ pub fn create_filter_bar<'a>(i18n: &'a I18n, state: &'a OnlineState, config: &'a
 }
 
 /// 创建颜色选择器
-fn create_color_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+fn create_color_picker<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, AppMessage> {
     let color_button_text = i18n.t("online-wallpapers.color-label");
 
     let color_button_bg = match state.color {
-        ColorOption::Any => COLOR_LIGHT_BUTTON,
+        ColorOption::Any => theme_colors.light_button,
         ColorOption::Color660000 => COLOR_660000,
         ColorOption::Color990000 => COLOR_990000,
         ColorOption::ColorCC0000 => COLOR_CC0000,
@@ -354,13 +311,13 @@ fn create_color_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
     };
 
     // 对于浅色背景（白色、浅灰色等），使用深色文字
-    let color_button_text_color = COLOR_LIGHT_TEXT;
+    let color_button_text_color = theme_colors.light_text;
 
     // 创建颜色选择器的触发按钮（underlay）
     let color_underlay = row![
         text(color_button_text).size(14).color(color_button_text_color),
         iced::widget::Space::new().width(Length::Fill),
-        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB))
+        container(text("⏷").color(theme_colors.light_text_sub))
             .height(Length::Fill)
             .padding(iced::Padding {
                 top: -2.0,
@@ -394,7 +351,7 @@ fn create_color_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
         });
 
     // 创建颜色网格选项（overlay）
-    let color_options = create_color_grid_options(i18n, state);
+    let color_options = create_color_grid_options(i18n, state, theme_colors);
 
     // 使用 DropDown 组件
     DropDown::new(color_trigger, color_options, state.color_picker_expanded)
@@ -405,7 +362,11 @@ fn create_color_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
 }
 
 /// 创建颜色网格选择器内容（5*6 网格，包含29种颜色+1个Any）
-fn create_color_grid_options<'a>(_i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+fn create_color_grid_options<'a>(
+    _i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, AppMessage> {
     // 定义颜色网格（5行6列，共30个位置，前29个为官方颜色，第30个为Any）
     static COLOR_GRID_DATA: [(Color, ColorOption); 30] = [
         // 第1行
@@ -518,8 +479,8 @@ fn create_color_grid_options<'a>(_i18n: &'a I18n, state: &'a OnlineState) -> Ele
     // 创建颜色选择器容器
     let picker_content = container(grid)
         .padding(12)
-        .style(|_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(COLOR_PICKER_BG)),
+        .style(move |_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(theme_colors.light_button)),
             border: iced::border::Border {
                 color: Color::TRANSPARENT,
                 width: 0.0,
@@ -532,7 +493,11 @@ fn create_color_grid_options<'a>(_i18n: &'a I18n, state: &'a OnlineState) -> Ele
 }
 
 /// 创建分辨率选择器
-fn create_resolution_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+fn create_resolution_picker<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, AppMessage> {
     // 计算按钮显示文本和字体大小
     let button_text = match state.resolution_mode {
         crate::ui::online::ResolutionMode::All => i18n.t("online-wallpapers.resolution-label").to_string(),
@@ -571,7 +536,7 @@ fn create_resolution_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Eleme
     let resolution_underlay = row![
         text(button_text).size(font_size),
         iced::widget::Space::new().width(Length::Fill),
-        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB))
+        container(text("⏷").color(theme_colors.light_text_sub))
             .height(Length::Fill)
             .padding(iced::Padding {
                 top: -2.0,
@@ -593,9 +558,9 @@ fn create_resolution_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Eleme
         .padding(6)
         .width(Length::Fixed(110.0))
         .on_press(AppMessage::Online(OnlineMessage::ResolutionPickerExpanded))
-        .style(|_theme, _status| iced::widget::button::Style {
-            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-            text_color: COLOR_LIGHT_TEXT,
+        .style(move |_theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(theme_colors.light_button)),
+            text_color: theme_colors.light_text,
             border: iced::border::Border {
                 color: Color::TRANSPARENT,
                 width: 0.0,
@@ -605,7 +570,7 @@ fn create_resolution_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Eleme
         });
 
     // 创建分辨率选项（overlay）
-    let resolution_options = create_resolution_grid_options(i18n, state);
+    let resolution_options = create_resolution_grid_options(i18n, state, theme_colors);
 
     // 使用 DropDown 组件
     DropDown::new(resolution_trigger, resolution_options, state.resolution_picker_expanded)
@@ -616,7 +581,11 @@ fn create_resolution_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Eleme
 }
 
 /// 创建分辨率网格选择器内容
-fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+fn create_resolution_grid_options<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, AppMessage> {
     // 定义分辨率分组（按尺寸从小到大排序）
     static RESOLUTION_GROUPS: [(&str, &[(Resolution, &str)]); 5] = [
         (
@@ -683,9 +652,9 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
             let bg_color = if is_selected {
                 COLOR_SELECTED_BLUE
             } else {
-                COLOR_LIGHT_BUTTON
+                theme_colors.light_button
             };
-            let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
+            let text_color = if is_selected { Color::WHITE } else { theme_colors.light_text };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 text_color: text_color,
@@ -708,9 +677,9 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
             let bg_color = if is_selected {
                 COLOR_SELECTED_BLUE
             } else {
-                COLOR_LIGHT_BUTTON
+                theme_colors.light_button
             };
-            let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
+            let text_color = if is_selected { Color::WHITE } else { theme_colors.light_text };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 text_color: text_color,
@@ -733,9 +702,9 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
             let bg_color = if is_selected {
                 COLOR_SELECTED_BLUE
             } else {
-                COLOR_LIGHT_BUTTON
+                theme_colors.light_button
             };
-            let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
+            let text_color = if is_selected { Color::WHITE } else { theme_colors.light_text };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 text_color: text_color,
@@ -757,7 +726,7 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
 
     for (group_name, resolutions) in RESOLUTION_GROUPS.iter() {
         // 创建分组标题（水平居中）
-        let group_header = container(text(i18n.t(group_name)).size(14).color(COLOR_LIGHT_TEXT))
+        let group_header = container(text(i18n.t(group_name)).size(14).color(theme_colors.light_text))
             .width(Length::Fill)
             .center_x(Length::Fill);
 
@@ -785,7 +754,7 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
             let text_color = if is_list_disabled {
                 crate::ui::style::DISABLED_COLOR
             } else {
-                COLOR_LIGHT_TEXT
+                theme_colors.light_text
             };
 
             let button_content = container(text(*label).size(13))
@@ -847,8 +816,8 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
     .padding(12)
     .width(Length::Fixed(530.0))
     .align_x(Alignment::Center)
-    .style(|_theme: &iced::Theme| container::Style {
-        background: Some(iced::Background::Color(COLOR_PICKER_BG)),
+    .style(move |_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(theme_colors.light_button)),
         border: iced::border::Border {
             color: Color::TRANSPARENT,
             width: 0.0,
@@ -861,7 +830,11 @@ fn create_resolution_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) ->
 }
 
 /// 创建比例选择器
-fn create_ratio_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+fn create_ratio_picker<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, AppMessage> {
     // 计算按钮显示文本和字体大小
     let button_text = if state.ratio_all_selected {
         i18n.t("online-wallpapers.ratio-label").to_string()
@@ -904,7 +877,7 @@ fn create_ratio_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
     let ratio_underlay = row![
         text(button_text).size(font_size),
         iced::widget::Space::new().width(Length::Fill),
-        container(text("⏷").color(COLOR_LIGHT_TEXT_SUB))
+        container(text("⏷").color(theme_colors.light_text_sub))
             .height(Length::Fill)
             .padding(iced::Padding {
                 top: -2.0,
@@ -926,9 +899,9 @@ fn create_ratio_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
         .padding(6)
         .width(Length::Fixed(120.0))
         .on_press(AppMessage::Online(OnlineMessage::RatioPickerExpanded))
-        .style(|_theme, _status| iced::widget::button::Style {
-            background: Some(iced::Background::Color(COLOR_LIGHT_BUTTON)),
-            text_color: COLOR_LIGHT_TEXT,
+        .style(move |_theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(theme_colors.light_button)),
+            text_color: theme_colors.light_text,
             border: iced::border::Border {
                 color: Color::TRANSPARENT,
                 width: 0.0,
@@ -938,7 +911,7 @@ fn create_ratio_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
         });
 
     // 创建比例选项（overlay）
-    let ratio_options = create_ratio_grid_options(i18n, state);
+    let ratio_options = create_ratio_grid_options(i18n, state, theme_colors);
 
     // 使用 DropDown 组件
     DropDown::new(ratio_trigger, ratio_options, state.ratio_picker_expanded)
@@ -949,7 +922,11 @@ fn create_ratio_picker<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a
 }
 
 /// 创建比例网格选择器内容
-fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Element<'a, AppMessage> {
+fn create_ratio_grid_options<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, AppMessage> {
     // 定义比例分组
     static RATIO_GROUPS: [(&str, &[(AspectRatio, &str)]); 4] = [
         (
@@ -1008,14 +985,14 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
             let bg_color = if is_selected {
                 COLOR_SELECTED_BLUE
             } else {
-                COLOR_LIGHT_BUTTON
+                theme_colors.light_button
             };
             let text_color = if is_landscape_button_disabled {
                 crate::ui::style::DISABLED_COLOR
             } else if is_selected {
                 Color::WHITE
             } else {
-                COLOR_LIGHT_TEXT
+                theme_colors.light_text
             };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
@@ -1041,14 +1018,14 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
             let bg_color = if is_selected {
                 COLOR_SELECTED_BLUE
             } else {
-                COLOR_LIGHT_BUTTON
+                theme_colors.light_button
             };
             let text_color = if is_portrait_button_disabled {
                 crate::ui::style::DISABLED_COLOR
             } else if is_selected {
                 Color::WHITE
             } else {
-                COLOR_LIGHT_TEXT
+                theme_colors.light_text
             };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
@@ -1074,9 +1051,9 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
             let bg_color = if is_selected {
                 COLOR_SELECTED_BLUE
             } else {
-                COLOR_LIGHT_BUTTON
+                theme_colors.light_button
             };
-            let text_color = if is_selected { Color::WHITE } else { COLOR_LIGHT_TEXT };
+            let text_color = if is_selected { Color::WHITE } else { theme_colors.light_text };
             iced::widget::button::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 text_color: text_color,
@@ -1107,7 +1084,7 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
         };
 
         // 创建分组标题（水平居中）
-        let group_header = container(text(i18n.t(group_name)).size(14).color(COLOR_LIGHT_TEXT))
+        let group_header = container(text(i18n.t(group_name)).size(14).color(theme_colors.light_text))
             .width(Length::Fill)
             .center_x(Length::Fill);
 
@@ -1129,7 +1106,7 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
             let text_color = if is_all_disabled || is_group_disabled {
                 crate::ui::style::DISABLED_COLOR
             } else {
-                COLOR_LIGHT_TEXT
+                theme_colors.light_text
             };
 
             let button_content = container(text(*label).size(13))
@@ -1189,8 +1166,8 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
     .padding(6)
     .width(Length::Fixed(460.0))
     .align_x(Alignment::Center)
-    .style(|_theme: &iced::Theme| container::Style {
-        background: Some(iced::Background::Color(COLOR_PICKER_BG)),
+    .style(move |_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(theme_colors.light_button)),
         border: iced::border::Border {
             color: Color::TRANSPARENT,
             width: 0.0,
@@ -1200,4 +1177,212 @@ fn create_ratio_grid_options<'a>(i18n: &'a I18n, state: &'a OnlineState) -> Elem
     });
 
     iced::widget::opaque(picker_content)
+}
+
+/// 创建排序方式选择器
+fn create_sorting_picker<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, AppMessage> {
+    let sorting_options: Vec<DisplayableSorting> = Sorting::all()
+        .iter()
+        .map(|s| DisplayableSorting {
+            value: *s,
+            display: i18n.t(s.display_name()).leak(),
+        })
+        .collect();
+    let current_sorting = DisplayableSorting {
+        value: state.sorting,
+        display: i18n.t(state.sorting.display_name()).leak(),
+    };
+
+    // 创建触发按钮（underlay）
+    let sorting_underlay = row![
+        text(current_sorting.display).size(14),
+        iced::widget::Space::new().width(Length::Fill),
+        container(text("⏷").color(theme_colors.light_text_sub))
+            .height(Length::Fill)
+            .padding(iced::Padding {
+                top: -2.0,
+                bottom: 0.0,
+                left: 0.0,
+                right: 0.0,
+            }),
+    ]
+    .spacing(4)
+    .align_y(Alignment::Center)
+    .padding(iced::Padding {
+        top: 0.0,
+        bottom: 0.0,
+        left: 0.0,
+        right: -2.0,
+    });
+
+    let sorting_trigger = button(sorting_underlay)
+        .padding(6)
+        .width(Length::Fixed(100.0))
+        .on_press(AppMessage::Online(OnlineMessage::SortingPickerExpanded))
+        .style(move |_theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(theme_colors.light_button)),
+            text_color: theme_colors.light_text,
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(4.0),
+            },
+            ..iced::widget::button::text(_theme, _status)
+        });
+
+    // 创建排序选项（overlay）
+    let sorting_options_content = column(sorting_options.iter().map(|option| {
+        let is_selected = state.sorting == option.value;
+        button(text(option.display).size(14))
+            .padding(6)
+            .width(Length::Fill)
+            .on_press(AppMessage::Online(OnlineMessage::SortingChanged(option.value)))
+            .style(move |_theme, _status| iced::widget::button::Style {
+                background: if is_selected {
+                    Some(iced::Background::Color(COLOR_SELECTED_BLUE))
+                } else {
+                    Some(iced::Background::Color(Color::TRANSPARENT))
+                },
+                text_color: if is_selected {
+                    Color::WHITE
+                } else {
+                    theme_colors.light_text
+                },
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            })
+            .into()
+    }))
+    .spacing(2);
+
+    let picker_content = container(sorting_options_content)
+        .padding(8)
+        .width(Length::Fixed(120.0))
+        .style(move |_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(theme_colors.light_button)),
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(8.0),
+            },
+            ..Default::default()
+        });
+
+    DropDown::new(sorting_trigger, iced::widget::opaque(picker_content), state.sorting_picker_expanded)
+        .width(Length::Fill)
+        .on_dismiss(AppMessage::Online(OnlineMessage::SortingPickerDismiss))
+        .alignment(drop_down::Alignment::Bottom)
+        .into()
+}
+
+/// 创建时间范围选择器
+fn create_time_range_picker<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, AppMessage> {
+    let time_range_options: Vec<DisplayableTimeRange> = TimeRange::all()
+        .iter()
+        .map(|t| DisplayableTimeRange {
+            value: *t,
+            display: i18n.t(t.display_name()).leak(),
+        })
+        .collect();
+    let current_time_range = DisplayableTimeRange {
+        value: state.time_range,
+        display: i18n.t(state.time_range.display_name()).leak(),
+    };
+
+    // 创建触发按钮（underlay）
+    let time_range_underlay = row![
+        text(current_time_range.display).size(14),
+        iced::widget::Space::new().width(Length::Fill),
+        container(text("⏷").color(theme_colors.light_text_sub))
+            .height(Length::Fill)
+            .padding(iced::Padding {
+                top: -2.0,
+                bottom: 0.0,
+                left: 0.0,
+                right: 0.0,
+            }),
+    ]
+    .spacing(4)
+    .align_y(Alignment::Center)
+    .padding(iced::Padding {
+        top: 0.0,
+        bottom: 0.0,
+        left: 0.0,
+        right: -2.0,
+    });
+
+    let time_range_trigger = button(time_range_underlay)
+        .padding(6)
+        .width(Length::Fixed(130.0))
+        .on_press(AppMessage::Online(OnlineMessage::TimeRangePickerExpanded))
+        .style(move |_theme, _status| iced::widget::button::Style {
+            background: Some(iced::Background::Color(theme_colors.light_button)),
+            text_color: theme_colors.light_text,
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(4.0),
+            },
+            ..iced::widget::button::text(_theme, _status)
+        });
+
+    // 创建时间范围选项（overlay）
+    let time_range_options_content = column(time_range_options.iter().map(|option| {
+        let is_selected = state.time_range == option.value;
+        button(text(option.display).size(14))
+            .padding(6)
+            .width(Length::Fill)
+            .on_press(AppMessage::Online(OnlineMessage::TimeRangeChanged(option.value)))
+            .style(move |_theme, _status| iced::widget::button::Style {
+                background: if is_selected {
+                    Some(iced::Background::Color(COLOR_SELECTED_BLUE))
+                } else {
+                    Some(iced::Background::Color(Color::TRANSPARENT))
+                },
+                text_color: if is_selected {
+                    Color::WHITE
+                } else {
+                    theme_colors.light_text
+                },
+                border: iced::border::Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: iced::border::Radius::from(4.0),
+                },
+                ..iced::widget::button::text(_theme, _status)
+            })
+            .into()
+    }))
+    .spacing(2);
+
+    let picker_content = container(time_range_options_content)
+        .padding(8)
+        .width(Length::Fixed(150.0))
+        .style(move |_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(theme_colors.light_button)),
+            border: iced::border::Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: iced::border::Radius::from(8.0),
+            },
+            ..Default::default()
+        });
+
+    DropDown::new(time_range_trigger, iced::widget::opaque(picker_content), state.time_range_picker_expanded)
+        .width(Length::Fill)
+        .on_dismiss(AppMessage::Online(OnlineMessage::TimeRangePickerDismiss))
+        .alignment(drop_down::Alignment::Bottom)
+        .into()
 }

@@ -64,9 +64,16 @@ pub enum AppMessage {
     CustomIntervalMinutesChanged(u32),                          // 自定义切换周期分钟数变化
     AutoChangeQueryChanged(String),                             // 定时切换关键词变化
     SaveAutoChangeQuery,                                        // 保存定时切换关键词
+    // 语言和代理协议下拉框相关消息
+    LanguagePickerExpanded,      // 展开语言选择器
+    LanguagePickerDismiss,       // 关闭语言选择器
+    ProxyProtocolPickerExpanded, // 展开代理协议选择器
+    ProxyProtocolPickerDismiss,  // 关闭代理协议选择器
     // 通知相关消息
     ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
     HideNotification,                           // 隐藏通知（用于定时隐藏）
+    // 主题切换消息
+    ToggleTheme, // 切换主题（浅色/深色）
     // 关闭确认对话框相关消息
     ShowCloseConfirmation,
     CloseConfirmationResponse(CloseConfirmationAction, bool), // (动作, 是否记住设置)
@@ -80,6 +87,7 @@ pub enum AppMessage {
     TraySwitchNextWallpaper,
     AddToWallpaperHistory(String),  // 添加壁纸到历史记录
     RemoveLastFromWallpaperHistory, // 从历史记录末尾移除壁纸
+    ThemeChanged(bool),
 }
 
 #[derive(Debug, Clone)]
@@ -104,10 +112,16 @@ pub struct App {
     pending_window_size: Option<(u32, u32)>,
     debounce_timer: std::time::Instant,
     tray_manager: tray::TrayManager,
+    // 主题配置
+    pub theme_config: crate::ui::style::ThemeConfig,
     // 代理设置的临时状态
     pub proxy_protocol: String,
     pub proxy_address: String,
     pub proxy_port: u32,
+    // 语言下拉框展开状态
+    pub language_picker_expanded: bool,
+    // 代理协议下拉框展开状态
+    pub proxy_protocol_picker_expanded: bool,
     // API KEY设置的临时状态
     pub wallhaven_api_key: String,
     // 壁纸模式设置的临时状态

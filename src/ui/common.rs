@@ -1,11 +1,11 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::style::{
-    BORDER_COLOR_GRAY, BORDER_RADIUS, BORDER_WIDTH, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, BUTTON_TEXT_SIZE,
-    DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH,
-    DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE,
-    INPUT_HEIGHT, MASK_ALPHA, ROW_SPACING, SECTION_CONTENT_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE,
-    TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
+    BORDER_COLOR_GRAY, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, BUTTON_TEXT_SIZE, DIALOG_BORDER_RADIUS,
+    DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE,
+    DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE, INPUT_HEIGHT,
+    MASK_ALPHA, ROW_SPACING, SECTION_CONTENT_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE, TOOLTIP_BG_COLOR,
+    TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
 };
 use iced::widget::{button, column, container, row, text, tooltip};
 use iced::{Alignment, Color, Element, Font, Length};
@@ -156,12 +156,21 @@ pub fn create_bordered_container_style(_theme: &iced::Theme) -> iced::widget::co
 /// # 参数
 /// - `title`: 区块标题
 /// - `rows`: 区块内容行
-pub fn create_config_section<'a, Message: 'a>(title: String, rows: Vec<Element<'a, Message>>) -> Element<'a, Message> {
+pub fn create_config_section<'a, Message: 'a>(
+    title: String,
+    rows: Vec<Element<'a, Message>>,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> Element<'a, Message> {
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
     let mut column_content = column!(
         text(title)
             .size(SECTION_TITLE_SIZE)
             .width(Length::Fill)
-            .align_x(Alignment::Center),
+            .align_x(Alignment::Center)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            }),
     )
     .spacing(SECTION_CONTENT_SPACING);
     column_content = column_content.push(iced::widget::Space::new().height(Length::Fixed(20.0)));
@@ -173,7 +182,7 @@ pub fn create_config_section<'a, Message: 'a>(title: String, rows: Vec<Element<'
     container(column_content)
         .padding(SECTION_PADDING)
         .width(Length::Fill)
-        .style(create_bordered_container_style)
+        .style(create_bordered_container_style_with_bg(theme_config))
         .into()
 }
 
@@ -182,16 +191,27 @@ pub fn create_config_section<'a, Message: 'a>(title: String, rows: Vec<Element<'
 /// # 参数
 /// - `label`: 标签文本
 /// - `widget`: 控件
+/// - `theme_config`: 主题配置
 pub fn create_setting_row<'a, Message: 'a>(
     label: String,
     widget: impl Into<Element<'a, Message>>,
+    theme_config: &'a crate::ui::style::ThemeConfig,
 ) -> Element<'a, Message> {
-    row![text(label).width(Length::FillPortion(1)), widget.into(),]
-        .align_y(Alignment::Center)
-        .height(Length::Fixed(INPUT_HEIGHT))
-        .width(Length::Fill)
-        .spacing(ROW_SPACING)
-        .into()
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
+    row![
+        text(label)
+            .width(Length::FillPortion(1))
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            }),
+        widget.into(),
+    ]
+    .align_y(Alignment::Center)
+    .height(Length::Fixed(INPUT_HEIGHT))
+    .width(Length::Fill)
+    .spacing(ROW_SPACING)
+    .into()
 }
 
 /// 创建信息行
@@ -199,11 +219,26 @@ pub fn create_setting_row<'a, Message: 'a>(
 /// # 参数
 /// - `label`: 标签文本
 /// - `value`: 值文本
-pub fn create_info_row<'a, Message: 'a>(label: String, value: String) -> Element<'a, Message> {
-    row![text(label), text(value).width(Length::Fill).align_x(Alignment::Center),]
-        .width(Length::Fill)
-        .spacing(ROW_SPACING)
-        .into()
+/// - `theme_colors`: 主题颜色
+pub fn create_info_row<'a, Message: 'a>(
+    label: String,
+    value: String,
+    theme_colors: crate::ui::style::ThemeColors,
+) -> Element<'a, Message> {
+    row![
+        text(label).style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.text),
+        }),
+        text(value)
+            .width(Length::Fill)
+            .align_x(Alignment::Center)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.light_text),
+            }),
+    ]
+    .width(Length::Fill)
+    .spacing(ROW_SPACING)
+    .into()
 }
 
 /// 获取绝对路径
@@ -361,20 +396,22 @@ where
         .into()
 }
 
-/// 创建带 tooltip 的单选按钮
+/// 创建带提示的单选按钮
 ///
 /// # 参数
-/// - `label`: 选项标签文本
+/// - `label`: 标签文本
 /// - `value`: 选项值
 /// - `selected_value`: 当前选中的值
-/// - `on_selected`: 选中时的闭包
-/// - `tooltip_text`: tooltip 文本
+/// - `on_selected`: 选中时的回调
+/// - `tooltip_text`: 提示文本
+/// - `theme_colors`: 主题颜色
 pub fn create_radio_with_tooltip<'a, Message, V>(
     label: String,
     value: V,
     selected_value: Option<V>,
     on_selected: impl FnOnce(V) -> Message + 'a,
     tooltip_text: String,
+    theme_colors: crate::ui::style::ThemeColors,
 ) -> Element<'a, Message>
 where
     V: Copy + Eq + 'a,
@@ -382,7 +419,12 @@ where
 {
     let radio_button = iced::widget::radio(label, value, selected_value, on_selected)
         .size(16)
-        .spacing(8);
+        .spacing(8)
+        .style(move |theme: &iced::Theme, status| iced::widget::radio::Style {
+            text_color: Some(theme_colors.text),
+            background: iced::Background::Color(Color::TRANSPARENT),
+            ..iced::widget::radio::default(theme, status)
+        });
 
     let content = container(radio_button)
         .height(Length::Fixed(30.0))
@@ -406,14 +448,21 @@ where
 /// # 参数
 /// - `theme`: 主题
 /// - `bg_color`: 背景颜色
-pub fn create_bordered_container_style_with_bg(theme: &iced::Theme, bg_color: Color) -> iced::widget::container::Style {
-    iced::widget::container::Style {
-        background: Some(iced::Background::Color(bg_color)),
+pub fn create_bordered_container_style_with_bg(
+    theme_config: &crate::ui::style::ThemeConfig,
+) -> impl Fn(&iced::Theme) -> iced::widget::container::Style + '_ {
+    use crate::ui::style::{BORDER_RADIUS, BORDER_WIDTH, ThemeColors, shadows::CARD_SHADOW};
+
+    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+
+    move |_theme: &iced::Theme| iced::widget::container::Style {
+        background: Some(iced::Background::Color(theme_colors.sidebar_bg)),
         border: iced::border::Border {
-            color: theme.extended_palette().primary.weak.color,
+            color: theme_colors.border,
             width: BORDER_WIDTH,
             radius: iced::border::Radius::from(BORDER_RADIUS),
         },
+        shadow: CARD_SHADOW,
         ..Default::default()
     }
 }
