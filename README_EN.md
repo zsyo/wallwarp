@@ -12,7 +12,7 @@
 
 ## Introduction
 
-WallWarp is a cross-platform desktop wallpaper management application built with Rust and the modern Iced GUI framework. It provides rich wallpaper management features, including local wallpaper browsing, online wallpaper search, batch downloading, and automatic rotation.
+WallWarp is a desktop wallpaper management application built with Rust and the modern Iced GUI framework. It provides rich wallpaper management features, including local wallpaper browsing, online wallpaper search, batch downloading, and automatic rotation.
 
 ## Key Features
 
