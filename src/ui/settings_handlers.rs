@@ -3,12 +3,16 @@
 use super::App;
 use super::AppMessage;
 use super::common;
-use crate::utils::config::CloseAction;
-use crate::utils::startup;
+use crate::utils::{
+    config::CloseAction,
+    single_instance::{SingleInstanceGuard, WAKE_UP},
+    startup,
+};
 use iced::wgpu::rwh::RawWindowHandle;
 use iced::window;
 use std::ffi::c_void;
 use tracing::error;
+use tracing::info;
 use windows::Win32::Foundation::HWND;
 
 impl App {
@@ -25,7 +29,7 @@ impl App {
             AppMessage::WindowCloseRequested => self.handle_window_close_requested(),
             AppMessage::WindowFocused => self.handle_window_focused(),
             AppMessage::MinimizeToTray => self.handle_minimize_to_tray(),
-            AppMessage::TrayIconClicked => self.handle_tray_icon_clicked(),
+            AppMessage::TrayIconClicked => self.handle_show_window(),
             AppMessage::TrayMenuEvent(id) => self.handle_tray_menu_event(id),
             AppMessage::OpenUrl(url) => self.handle_open_url(url),
             AppMessage::DataPathSelected(path) => self.handle_data_path_selected(path),
@@ -71,6 +75,7 @@ impl App {
             AppMessage::TraySwitchPreviousWallpaper => self.handle_tray_switch_previous_wallpaper(),
             AppMessage::TraySwitchNextWallpaper => self.handle_tray_switch_next_wallpaper(),
             AppMessage::RemoveLastFromWallpaperHistory => self.handle_remove_last_from_wallpaper_history(),
+            AppMessage::ExternalInstanceTriggered(payload) => self.handle_external_instance_triggered(payload),
             _ => iced::Task::none(),
         }
     }
@@ -241,7 +246,37 @@ impl App {
         window::oldest().and_then(|id| window::set_mode(id, window::Mode::Hidden))
     }
 
-    fn handle_tray_icon_clicked(&mut self) -> iced::Task<AppMessage> {
+    fn handle_tray_menu_event(&mut self, id: String) -> iced::Task<AppMessage> {
+        match id.as_str() {
+            "tray_show" => {
+                // 显示窗口并检测状态，如果最小化或不在前台则置顶
+                return self.handle_show_window();
+            }
+            "tray_switch_previous" => {
+                // 切换上一张壁纸
+                return iced::Task::done(AppMessage::TraySwitchPreviousWallpaper);
+            }
+            "tray_switch_next" => {
+                // 切换下一张壁纸
+                return iced::Task::done(AppMessage::TraySwitchNextWallpaper);
+            }
+            "tray_settings" => {
+                // 打开设置窗口
+                self.active_page = super::ActivePage::Settings;
+                return self.handle_show_window();
+            }
+            "tray_quit" => {
+                // 真正退出程序
+                return iced::exit();
+            }
+            _ => {}
+        }
+
+        iced::Task::none()
+    }
+
+    fn handle_show_window(&mut self) -> iced::Task<AppMessage> {
+        // 显示窗口并检测状态，如果最小化或不在前台则置顶
         window::oldest().and_then(move |window_id| {
             iced::Task::batch(vec![
                 // 先设置窗口为 Windowed 模式（从 Hidden 恢复）
@@ -259,14 +294,14 @@ impl App {
                             // 如果窗口最小化或不在前台，则恢复并置顶
                             if is_minimized || !is_foreground {
                                 tracing::info!(
-                                    "[托盘] [双击图标] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶",
+                                    "[显示窗口] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶",
                                     is_minimized,
                                     is_foreground
                                 );
                                 let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
-                                tracing::info!("[托盘] [双击图标] 置顶操作结果: {}", success);
+                                tracing::info!(" [显示窗口] 置顶操作结果: {}", success);
                             } else {
-                                tracing::info!("[托盘] [双击图标] 窗口已在前台，无需置顶");
+                                tracing::info!("[显示窗口] 窗口已在前台，无需置顶");
                             }
                         }
                     }
@@ -274,97 +309,6 @@ impl App {
                 .map(|_| AppMessage::None),
             ])
         })
-    }
-
-    fn handle_tray_menu_event(&mut self, id: String) -> iced::Task<AppMessage> {
-        match id.as_str() {
-            "tray_show" => {
-                // 显示窗口并检测状态，如果最小化或不在前台则置顶
-                return window::oldest().and_then(move |window_id| {
-                    iced::Task::batch(vec![
-                        // 先设置窗口为 Windowed 模式（从 Hidden 恢复）
-                        window::set_mode(window_id, window::Mode::Windowed),
-                        // 然后检测窗口状态并置顶
-                        window::run(window_id, move |mw| {
-                            if let Ok(handle) = mw.window_handle() {
-                                if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
-                                    let hwnd = HWND(win32_handle.hwnd.get() as _);
-
-                                    // 使用 Windows API 检测窗口状态并置顶
-                                    let is_minimized = crate::utils::window_utils::is_window_minimized(hwnd);
-                                    let is_foreground = crate::utils::window_utils::is_window_foreground(hwnd);
-
-                                    // 如果窗口最小化或不在前台，则恢复并置顶
-                                    if is_minimized || !is_foreground {
-                                        tracing::info!(
-                                            "[托盘] [显示窗口] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶",
-                                            is_minimized,
-                                            is_foreground
-                                        );
-                                        let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
-                                        tracing::info!("[托盘] [显示窗口] 置顶操作结果: {}", success);
-                                    } else {
-                                        tracing::info!("[托盘] [显示窗口] 窗口已在前台，无需置顶");
-                                    }
-                                }
-                            }
-                        })
-                        .map(|_| AppMessage::None),
-                    ])
-                });
-            }
-            "tray_switch_previous" => {
-                // 切换上一张壁纸
-                return iced::Task::done(AppMessage::TraySwitchPreviousWallpaper);
-            }
-            "tray_switch_next" => {
-                // 切换下一张壁纸
-                return iced::Task::done(AppMessage::TraySwitchNextWallpaper);
-            }
-            "tray_settings" => {
-                // 打开设置窗口
-                self.active_page = super::ActivePage::Settings;
-                return window::oldest().and_then(move |window_id| {
-                    iced::Task::batch(vec![
-                        // 先设置窗口为 Windowed 模式（从 Hidden 恢复）
-                        window::set_mode(window_id, window::Mode::Windowed),
-                        // 然后检测窗口状态并置顶
-                        window::run(window_id, move |mw| {
-                            if let Ok(handle) = mw.window_handle() {
-                                if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
-                                    let hwnd = HWND(win32_handle.hwnd.get() as _);
-
-                                    // 使用 Windows API 检测窗口状态并置顶
-                                    let is_minimized = crate::utils::window_utils::is_window_minimized(hwnd);
-                                    let is_foreground = crate::utils::window_utils::is_window_foreground(hwnd);
-
-                                    // 如果窗口最小化或不在前台，则恢复并置顶
-                                    if is_minimized || !is_foreground {
-                                        tracing::info!(
-                                            "[托盘] [打开设置] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶",
-                                            is_minimized,
-                                            is_foreground
-                                        );
-                                        let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
-                                        tracing::info!("[托盘] [打开设置] 置顶操作结果: {}", success);
-                                    } else {
-                                        tracing::info!("[托盘] [打开设置] 窗口已在前台，无需置顶");
-                                    }
-                                }
-                            }
-                        })
-                        .map(|_| AppMessage::None),
-                    ])
-                });
-            }
-            "tray_quit" => {
-                // 真正退出程序
-                return iced::exit();
-            }
-            _ => {}
-        }
-
-        iced::Task::none()
     }
 
     fn handle_open_url(&mut self, url: String) -> iced::Task<AppMessage> {
@@ -939,6 +883,20 @@ impl App {
             .update_switch_previous_item(self.wallpaper_history.len());
 
         iced::Task::none()
+    }
+
+    fn handle_external_instance_triggered(&mut self, payload: String) -> iced::Task<AppMessage> {
+        info!("外部实例触发事件: {}", payload);
+
+        let show_window_task = if payload.contains(WAKE_UP) {
+            self.handle_show_window()
+        } else {
+            iced::Task::none()
+        };
+        let next_listen_task =
+            iced::Task::perform(SingleInstanceGuard::listen(), AppMessage::ExternalInstanceTriggered);
+
+        iced::Task::batch(vec![show_window_task, next_listen_task])
     }
 
     fn handle_language_picker_expanded(&mut self) -> iced::Task<AppMessage> {

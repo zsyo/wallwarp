@@ -49,7 +49,7 @@ pub enum AppMessage {
     DataPathSelected(String),
     CachePathSelected(String),
     OpenPath(String),
-    OpenLogsPath, // 打开日志目录
+    OpenLogsPath,                      // 打开日志目录
     ShowPathClearConfirmation(String), // 显示路径清空确认对话框，参数为路径类型 ("data" 或 "cache")
     ConfirmPathClear(String),          // 确认清空路径，参数为路径类型
     CancelPathClear,                   // 取消清空路径
@@ -93,6 +93,7 @@ pub enum AppMessage {
     TraySwitchNextWallpaper,
     AddToWallpaperHistory(String),  // 添加壁纸到历史记录
     RemoveLastFromWallpaperHistory, // 从历史记录末尾移除壁纸
+    ExternalInstanceTriggered(String),
 }
 
 #[derive(Debug, Clone)]

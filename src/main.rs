@@ -3,11 +3,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use iced::{Size, Task, font, window};
+use tracing::info;
 use wallwarp::i18n::I18n;
-use wallwarp::ui::App;
-use wallwarp::utils::assets;
-use wallwarp::utils::config::Config;
-use wallwarp::utils::logger;
+use wallwarp::ui::{App, AppMessage};
+use wallwarp::utils::{assets, config::Config, logger, single_instance::SingleInstanceGuard};
 
 const LOGO_SIZE: u32 = 128;
 const MIN_WINDOW_WIDTH: f32 = 1280.0;
@@ -16,35 +15,25 @@ const MIN_WINDOW_HEIGHT: f32 = 800.0;
 fn main() -> iced::Result {
     // 解析命令行参数，设置工作目录（用于开机自启动）
     let args: Vec<String> = std::env::args().collect();
-    let mut start_hidden = false;
+    let start_hidden = args.iter().any(|arg| arg == "--hidden");
+
+    // 如果 send_args 返回 true，说明已有实例，当前进程直接退出
+    if SingleInstanceGuard::send_args_to_existing_instance(start_hidden) {
+        println!("[启动] 检测到已有实例运行，已发送唤醒信号。");
+        return Ok(());
+    }
 
     if let Ok(exe_path) = std::env::current_exe() {
-        // 判断是否为开发模式（cargo run）
         if !is_running_via_cargo() {
             // 生产模式：使用可执行文件所在目录作为工作目录
             if let Some(parent_dir) = exe_path.parent() {
-                if let Err(e) = std::env::set_current_dir(parent_dir) {
-                    eprintln!("[启动] 设置工作目录失败: {}", e);
-                } else {
-                    println!("[启动] 生产模式，工作目录设置为: {}", parent_dir.display());
-                }
+                let _ = std::env::set_current_dir(parent_dir);
             }
-        }
-    }
-
-    // 检查是否有 --hidden 参数
-    for arg in &args {
-        if arg == "--hidden" {
-            start_hidden = true;
-            break;
         }
     }
 
     let i18n = I18n::new();
     let config = Config::new(&i18n.current_lang);
-
-    // 初始化日志系统，必须保存 guard 直到程序结束
-    // 根据配置中的 enable_logging 参数决定是否启用文件日志
     let _log_guard = logger::init_logger(config.global.enable_logging);
 
     let (rgba, width, height) = assets::get_logo(LOGO_SIZE);
@@ -60,14 +49,18 @@ fn main() -> iced::Result {
         ..window::Settings::default()
     };
 
+    let system_ui_font = get_system_ui_font();
+    info!("系统 UI 字体: {}", system_ui_font);
+
     let init_data = std::cell::RefCell::new(Some((i18n, config)));
     iced::application(
         move || {
             let (i18n, config) = init_data.borrow_mut().take().expect("App can only be initialized once");
             let app = App::new_with_config(i18n, config);
-            let set_title_bar_task = app.update_window_title_bar_color(app.theme_config.is_dark());
             let load_font_task = font::load(assets::ICON_FONT).discard();
-            (app, Task::batch(vec![load_font_task, set_title_bar_task]))
+            let set_title_bar_task = app.update_window_title_bar_color(app.theme_config.is_dark());
+            let listen_task = Task::perform(SingleInstanceGuard::listen(), AppMessage::ExternalInstanceTriggered);
+            (app, Task::batch(vec![load_font_task, set_title_bar_task, listen_task]))
         },
         App::update,
         App::view,
@@ -76,7 +69,7 @@ fn main() -> iced::Result {
     .window(settings)
     .title(|app: &App| app.title())
     .default_font(iced::Font {
-        family: font::Family::Name(get_system_ui_font()),
+        family: font::Family::Name(system_ui_font),
         ..iced::Font::DEFAULT
     })
     .font(iced_aw::ICED_AW_FONT_BYTES)
