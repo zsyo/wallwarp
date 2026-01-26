@@ -110,6 +110,10 @@ pub struct ThemeColors {
     /// 侧边栏选中指示条颜色
     pub sidebar_indicator: Color,
 
+    // 标题栏颜色
+    /// 标题栏背景色（比侧边栏浅一点或深一点）
+    pub title_bar_bg: Color,
+
     // 分隔线颜色
     /// 分隔线颜色
     pub separator: Color,
@@ -123,6 +127,8 @@ pub struct ThemeColors {
     pub overlay_bg: Color,
     /// 遮罩层文字颜色
     pub overlay_text: Color,
+    /// 对话框背景色
+    pub dialog_bg: Color,
 
     // 浅色背景和文字颜色
     /// 浅色背景（筛选栏等）
@@ -193,6 +199,9 @@ impl ThemeColors {
             sidebar_button_selected: Color::from_rgb(0.85, 0.85, 0.85),
             sidebar_indicator: Color::from_rgb(0.13, 0.59, 0.95),
 
+            // 标题栏颜色
+            title_bar_bg: Color::from_rgb(0.95, 0.95, 0.95), // 比侧边栏浅一点
+
             // 分隔线颜色
             separator: Color::from_rgb(0.85, 0.85, 0.85),
             separator_shadow: Color::from_rgba(0.0, 0.0, 0.0, 0.15),
@@ -201,6 +210,7 @@ impl ThemeColors {
             modal_bg: Color::from_rgba(0.0, 0.0, 0.0, 0.85),
             overlay_bg: Color::from_rgba(0.0, 0.0, 0.0, 0.6),
             overlay_text: Color::from_rgb(1.0, 1.0, 1.0),
+            dialog_bg: Color::WHITE,
 
             // 浅色背景和文字颜色
             light_bg: Color::from_rgb(0.92, 0.92, 0.92),
@@ -253,6 +263,9 @@ impl ThemeColors {
             sidebar_button_selected: Color::from_rgb(0.3, 0.3, 0.3),
             sidebar_indicator: Color::from_rgb(0.25, 0.7, 1.0),
 
+            // 标题栏颜色
+            title_bar_bg: Color::from_rgb(0.13, 0.13, 0.13), // 比侧边栏深一点
+
             // 分隔线颜色
             separator: Color::from_rgb(0.3, 0.3, 0.3),
             separator_shadow: Color::from_rgba(0.0, 0.0, 0.0, 0.3),
@@ -261,6 +274,7 @@ impl ThemeColors {
             modal_bg: Color::from_rgba(0.0, 0.0, 0.0, 0.9),
             overlay_bg: Color::from_rgba(0.0, 0.0, 0.0, 0.7),
             overlay_text: Color::from_rgb(1.0, 1.0, 1.0),
+            dialog_bg: Color::from_rgb(0.25, 0.25, 0.25),
 
             // 浅色背景和文字颜色
             light_bg: Color::from_rgb(0.2, 0.2, 0.2),

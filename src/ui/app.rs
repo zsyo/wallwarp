@@ -18,6 +18,9 @@ impl App {
         // 根据配置设置语言
         i18n.set_language(config.global.language.clone());
 
+        // 初始化窗口最大化状态（默认为 false）
+        let is_maximized = false;
+
         // 检查代理配置格式，如果不正确则还原为空字符串
         let (proxy_protocol, proxy_address, mut proxy_port) = Self::parse_proxy_string(&config.global.proxy);
         if proxy_port > 0 {
@@ -129,6 +132,7 @@ impl App {
                 }
                 history
             },
+            is_maximized, // 初始化窗口最大化状态
         }
     }
 

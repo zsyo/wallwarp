@@ -33,6 +33,18 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         ActivePage::Settings => super::settings::settings_view(app),
     };
 
+    // 创建自定义标题栏
+    let title_bar = super::common::create_title_bar(
+        app.title(),
+        app.is_maximized,
+        &app.theme_config,
+        AppMessage::TitleBarDrag,
+        AppMessage::MinimizeToTray,
+        AppMessage::TitleBarMinimize,
+        AppMessage::TitleBarMaximize,
+        AppMessage::TitleBarClose,
+    );
+
     let (img, width, height) = assets::get_logo(LOGO_SIZE);
     let theme_colors = crate::ui::style::ThemeColors::from_theme(app.theme_config.get_theme());
     let sidebar = container(
@@ -87,12 +99,27 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         .padding(0)
         .style(create_main_container_style(&app.theme_config));
 
+    // 创建主布局
     let layout = row![sidebar, main_content]
         .spacing(0)
         .width(Length::Fill)
         .height(Length::Fill);
 
-    layout.into()
+    // 将标题栏和主内容组合
+    let full_layout = column![title_bar, layout]
+        .spacing(0)
+        .width(Length::Fill)
+        .height(Length::Fill);
+
+    // 使用带边缘调整大小功能的容器包裹整个界面
+    // 边缘触发区域大小为 3 像素
+    let resizable_layout = super::common::create_resizable_container(
+        full_layout.into(),
+        5.0, // 边缘触发区域大小
+        |direction| AppMessage::ResizeWindow(direction),
+    );
+
+    resizable_layout
 }
 
 fn create_menu_button<'a>(
@@ -180,7 +207,7 @@ fn create_menu_button<'a>(
 fn create_sidebar_container_style(
     theme_config: &crate::ui::style::ThemeConfig,
 ) -> impl Fn(&iced::Theme) -> iced::widget::container::Style + '_ {
-    use crate::ui::style::{SEPARATOR_SHADOW_BLUR, SEPARATOR_SHADOW_OFFSET, ThemeColors};
+    use crate::ui::style::ThemeColors;
 
     let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
 
@@ -191,11 +218,7 @@ fn create_sidebar_container_style(
             width: 0.0,
             radius: iced::border::Radius::from(0.0),
         },
-        shadow: iced::Shadow {
-            color: theme_colors.separator_shadow,
-            offset: iced::Vector::new(SEPARATOR_SHADOW_OFFSET, 0.0),
-            blur_radius: SEPARATOR_SHADOW_BLUR,
-        },
+        shadow: iced::Shadow::default(),
         ..Default::default()
     }
 }

@@ -10,7 +10,6 @@ use crate::utils::{
 };
 use iced::wgpu::rwh::RawWindowHandle;
 use iced::window;
-use std::ffi::c_void;
 use tracing::error;
 use tracing::info;
 use windows::Win32::Foundation::HWND;
@@ -76,6 +75,13 @@ impl App {
             AppMessage::TraySwitchNextWallpaper => self.handle_tray_switch_next_wallpaper(),
             AppMessage::RemoveLastFromWallpaperHistory => self.handle_remove_last_from_wallpaper_history(),
             AppMessage::ExternalInstanceTriggered(payload) => self.handle_external_instance_triggered(payload),
+            // 自定义标题栏消息
+            AppMessage::TitleBarDrag => self.handle_title_bar_drag(),
+            AppMessage::TitleBarMinimize => self.handle_title_bar_minimize(),
+            AppMessage::TitleBarMaximize => self.handle_title_bar_maximize(),
+            AppMessage::TitleBarClose => self.handle_window_close_requested(),
+            // 窗口边缘调整大小消息
+            AppMessage::ResizeWindow(direction) => self.handle_resize_window(direction),
             _ => iced::Task::none(),
         }
     }
@@ -962,9 +968,6 @@ impl App {
                     self.theme_config.toggle();
                     let theme_name = self.theme_config.get_theme().name();
                     tracing::info!("[设置] [主题] 切换到: {}", theme_name);
-
-                    // 更新窗口标题栏颜色
-                    return self.update_window_title_bar_color(self.theme_config.is_dark());
                 }
             }
             Theme::Light => {
@@ -973,9 +976,6 @@ impl App {
                     self.theme_config.toggle();
                     let theme_name = self.theme_config.get_theme().name();
                     tracing::info!("[设置] [主题] 切换到: {}", theme_name);
-
-                    // 更新窗口标题栏颜色
-                    return self.update_window_title_bar_color(self.theme_config.is_dark());
                 }
             }
             Theme::Auto => {
@@ -991,9 +991,6 @@ impl App {
                     self.theme_config.toggle();
                     let theme_name = self.theme_config.get_theme().name();
                     tracing::info!("[设置] [主题] 切换到: {}", theme_name);
-
-                    // 更新窗口标题栏颜色
-                    return self.update_window_title_bar_color(self.theme_config.is_dark());
                 }
             }
         }
@@ -1012,34 +1009,75 @@ impl App {
         iced::Task::none()
     }
 
-    /// 更新窗口标题栏颜色
-    ///
-    /// # 参数
-    /// - `is_dark`: 是否为深色主题
-    ///
-    /// # 返回
-    /// 返回一个 Task，用于更新窗口标题栏颜色
-    pub fn update_window_title_bar_color(&self, is_dark: bool) -> iced::Task<AppMessage> {
-        use windows::Win32::Graphics::Dwm::{DWMWA_USE_IMMERSIVE_DARK_MODE, DwmSetWindowAttribute};
+    // ============================================================================
+    // 自定义标题栏消息处理方法
+    // ============================================================================
 
+    /// 处理标题栏拖拽消息
+    fn handle_title_bar_drag(&mut self) -> iced::Task<AppMessage> {
+        window::oldest().and_then(move |id| window::drag(id))
+    }
+
+    /// 启用窗口边缘调整大小功能并添加窗口阴影
+    pub fn enable_window_resize(&self) -> iced::Task<AppMessage> {
         window::oldest().and_then(move |id| {
             window::run(id, move |mw| {
                 if let Ok(handle) = mw.window_handle() {
                     if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
                         let hwnd = HWND(win32_handle.hwnd.get() as _);
-                        let dark_mode: i32 = if is_dark { 1 } else { 0 };
+
                         unsafe {
-                            let _ = DwmSetWindowAttribute(
-                                hwnd,
-                                DWMWA_USE_IMMERSIVE_DARK_MODE,
-                                &dark_mode as *const i32 as *const c_void,
-                                std::mem::size_of::<i32>() as u32,
-                            );
+                            use windows::Win32::Graphics::Dwm::DwmExtendFrameIntoClientArea;
+                            use windows::Win32::UI::Controls::MARGINS;
+                            use windows::Win32::UI::WindowsAndMessaging::{
+                                GWL_STYLE, GetWindowLongPtrW, SetWindowLongPtrW, WS_SIZEBOX, WS_THICKFRAME,
+                            };
+
+                            // 获取当前窗口样式
+                            let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+
+                            // 添加 WS_THICKFRAME 和 WS_SIZEBOX 样式以启用窗口边缘调整大小和边框
+                            let new_style = style | WS_THICKFRAME.0 as isize | WS_SIZEBOX.0 as isize;
+
+                            // 设置新的窗口样式
+                            let _ = SetWindowLongPtrW(hwnd, GWL_STYLE, new_style);
+
+                            // 启用窗口阴影效果
+                            // 将边距设置为 -1，表示整个窗口都有阴影
+                            let margins = MARGINS {
+                                cxLeftWidth: -1,
+                                cxRightWidth: -1,
+                                cyTopHeight: -1,
+                                cyBottomHeight: -1,
+                            };
+                            let _ = DwmExtendFrameIntoClientArea(hwnd, &margins);
                         }
                     }
                 }
             })
             .map(|_| AppMessage::None)
         })
+    }
+
+    /// 处理标题栏最小化消息
+    fn handle_title_bar_minimize(&mut self) -> iced::Task<AppMessage> {
+        window::oldest().and_then(|id: iced::window::Id| window::minimize(id, true).map(|_: ()| AppMessage::None))
+    }
+
+    /// 处理标题栏最大化/还原消息
+    fn handle_title_bar_maximize(&mut self) -> iced::Task<AppMessage> {
+        let is_maximized = !self.is_maximized;
+        self.is_maximized = is_maximized;
+        window::oldest()
+            .and_then(move |id: iced::window::Id| window::maximize(id, is_maximized).map(|_: ()| AppMessage::None))
+    }
+
+    // ============================================================================
+    // 窗口边缘调整大小消息处理方法
+    // ============================================================================
+
+    /// 处理窗口边缘调整大小消息
+    fn handle_resize_window(&mut self, direction: iced::window::Direction) -> iced::Task<AppMessage> {
+        window::oldest().and_then(move |id: iced::window::Id| window::drag_resize(id, direction))
     }
 }

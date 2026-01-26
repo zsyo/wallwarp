@@ -7,9 +7,9 @@ use iced::{
 
 use super::common;
 use super::style::{
-    BORDER_COLOR_GRAY, BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING,
-    DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, MASK_ALPHA, TOGGLE_SPACING,
-    TOGGLE_TEXT_SIZE,
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH,
+    DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING,
+    DIALOG_TITLE_SIZE, MASK_ALPHA, TOGGLE_SPACING, TOGGLE_TEXT_SIZE,
 };
 use super::{App, AppMessage, CloseConfirmationAction};
 
@@ -18,20 +18,31 @@ pub fn close_confirmation_view(app: &App) -> iced::Element<'_, AppMessage> {
         return iced::widget::Space::new().into();
     }
 
+    let theme_colors = super::style::ThemeColors::from_theme(app.theme_config.get_theme());
+
     let dialog_content = column![
         text(app.i18n.t("close-confirmation.title"))
             .size(DIALOG_TITLE_SIZE)
             .width(Length::Fill)
-            .align_x(Alignment::Center),
+            .align_x(Alignment::Center)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            }),
         text(app.i18n.t("close-confirmation.message"))
             .size(DIALOG_MESSAGE_SIZE)
             .width(Length::Fill)
-            .align_x(Alignment::Center),
+            .align_x(Alignment::Center)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            }),
         row![
             common::create_colored_button(
                 app.i18n.t("close-confirmation.minimize-to-tray"),
                 BUTTON_COLOR_BLUE,
-                AppMessage::CloseConfirmationResponse(CloseConfirmationAction::MinimizeToTray, app.remember_close_setting)
+                AppMessage::CloseConfirmationResponse(
+                    CloseConfirmationAction::MinimizeToTray,
+                    app.remember_close_setting
+                )
             ),
             common::create_colored_button(
                 app.i18n.t("close-confirmation.exit"),
@@ -48,7 +59,11 @@ pub fn close_confirmation_view(app: &App) -> iced::Element<'_, AppMessage> {
         .align_y(Alignment::Center),
         row![
             toggler(app.remember_close_setting).on_toggle(AppMessage::ToggleRememberSetting),
-            text(app.i18n.t("close-confirmation.remember-setting")).size(TOGGLE_TEXT_SIZE),
+            text(app.i18n.t("close-confirmation.remember-setting"))
+                .size(TOGGLE_TEXT_SIZE)
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.text),
+                }),
         ]
         .align_y(Alignment::Center)
         .spacing(TOGGLE_SPACING)
@@ -62,12 +77,12 @@ pub fn close_confirmation_view(app: &App) -> iced::Element<'_, AppMessage> {
         .height(Length::Shrink)
         .max_width(DIALOG_MAX_WIDTH)
         .padding(DIALOG_INNER_PADDING)
-        .style(|_theme: &iced::Theme| iced::widget::container::Style {
-            background: Some(iced::Background::Color(iced::Color::WHITE)),
+        .style(move |_theme: &iced::Theme| iced::widget::container::Style {
+            background: Some(iced::Background::Color(theme_colors.dialog_bg)),
             border: iced::border::Border {
                 radius: iced::border::Radius::from(DIALOG_BORDER_RADIUS),
                 width: DIALOG_BORDER_WIDTH,
-                color: iced::Color::from_rgb(BORDER_COLOR_GRAY, BORDER_COLOR_GRAY, BORDER_COLOR_GRAY),
+                color: theme_colors.border,
             },
             ..Default::default()
         });

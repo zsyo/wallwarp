@@ -46,6 +46,7 @@ fn main() -> iced::Result {
         icon: Some(icon),
         exit_on_close_request: false,
         visible: !start_hidden, // 如果是隐藏模式，初始不显示窗口
+        decorations: false,     // 隐藏默认标题栏，使用自定义标题栏
         ..window::Settings::default()
     };
 
@@ -58,9 +59,9 @@ fn main() -> iced::Result {
             let (i18n, config) = init_data.borrow_mut().take().expect("App can only be initialized once");
             let app = App::new_with_config(i18n, config);
             let load_font_task = font::load(assets::ICON_FONT).discard();
-            let set_title_bar_task = app.update_window_title_bar_color(app.theme_config.is_dark());
+            let enable_resize_task = app.enable_window_resize();
             let listen_task = Task::perform(SingleInstanceGuard::listen(), AppMessage::ExternalInstanceTriggered);
-            (app, Task::batch(vec![load_font_task, set_title_bar_task, listen_task]))
+            (app, Task::batch(vec![load_font_task, enable_resize_task, listen_task]))
         },
         App::update,
         App::view,
