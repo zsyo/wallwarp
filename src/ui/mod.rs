@@ -3,7 +3,6 @@
 pub mod app;
 pub mod async_tasks;
 pub mod auto_change;
-pub mod auto_change_handlers;
 pub mod close_confirmation;
 pub mod common;
 pub mod download;

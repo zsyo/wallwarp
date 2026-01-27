@@ -1,8 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use super::App;
-use super::AppMessage;
-use super::auto_change::AutoChangeMessage;
+use crate::ui::App;
+use crate::ui::AppMessage;
+use super::AutoChangeMessage;
 
 impl App {
     /// 处理定时切换壁纸相关消息
@@ -43,7 +43,7 @@ impl App {
                 // 本地模式：获取支持的图片文件列表
                 let data_path = self.config.data.data_path.clone();
                 iced::Task::perform(
-                    super::async_tasks::async_get_supported_images(data_path),
+                    crate::ui::async_tasks::async_get_supported_images(data_path),
                     |result| match result {
                         Ok(paths) => {
                             AppMessage::AutoChange(AutoChangeMessage::GetSupportedImagesSuccess(paths))
@@ -92,7 +92,7 @@ impl App {
             crate::utils::config::WallpaperAutoChangeMode::Local => {
                 let data_path = self.config.data.data_path.clone();
                 iced::Task::perform(
-                    super::async_tasks::async_get_supported_images(data_path),
+                    crate::ui::async_tasks::async_get_supported_images(data_path),
                     |result| match result {
                         Ok(paths) => {
                             if paths.is_empty() {
@@ -113,7 +113,7 @@ impl App {
                 let config = self.config.clone();
                 let auto_change_running = self.auto_change_running.clone();
                 iced::Task::perform(
-                    super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
+                    crate::ui::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
                     |result| match result {
                         Ok(path) => AppMessage::AutoChange(AutoChangeMessage::SetRandomWallpaperSuccess(path)),
                         Err(e) => AppMessage::AutoChange(AutoChangeMessage::SetRandomWallpaperFailed(
@@ -135,7 +135,7 @@ impl App {
             let wallpaper_mode = self.config.wallpaper.mode;
 
             iced::Task::perform(
-                super::async_tasks::async_set_random_wallpaper(paths, wallpaper_mode),
+                crate::ui::async_tasks::async_set_random_wallpaper(paths, wallpaper_mode),
                 |result| match result {
                     Ok(path) => AppMessage::AutoChange(AutoChangeMessage::SetRandomWallpaperSuccess(path)),
                     Err(e) => AppMessage::AutoChange(AutoChangeMessage::SetRandomWallpaperFailed(e.to_string())),
@@ -147,7 +147,7 @@ impl App {
             let error_message = self.i18n.t("local-list.no-valid-wallpapers").to_string();
             iced::Task::done(AppMessage::ShowNotification(
                 error_message,
-                super::NotificationType::Error,
+                crate::ui::NotificationType::Error,
             ))
         }
     }
@@ -159,7 +159,7 @@ impl App {
         let error_message = format!("获取壁纸列表失败: {}", error);
         iced::Task::done(AppMessage::ShowNotification(
             error_message,
-            super::NotificationType::Error,
+            crate::ui::NotificationType::Error,
         ))
     }
 
@@ -184,7 +184,7 @@ impl App {
         let error_message = format!("设置壁纸失败: {}", error);
         iced::Task::done(AppMessage::ShowNotification(
             error_message,
-            super::NotificationType::Error,
+            crate::ui::NotificationType::Error,
         ))
     }
 }
