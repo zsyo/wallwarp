@@ -6,7 +6,6 @@ pub mod auto_change;
 pub mod close_confirmation;
 pub mod common;
 pub mod download;
-pub mod download_handlers;
 pub mod local;
 pub mod main;
 pub mod online;

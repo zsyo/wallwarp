@@ -1,8 +1,14 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use super::App;
-use super::AppMessage;
-use super::download::DownloadMessage;
+//! 下载管理事件处理模块
+//!
+//! 定义下载页面的事件处理方法
+
+use crate::ui::App;
+use crate::ui::AppMessage;
+use crate::ui::NotificationType;
+use super::message::{DownloadMessage, generate_file_name};
+use super::state::DownloadStatus;
 use std::path::PathBuf;
 use tracing::error;
 use tracing::info;
@@ -10,7 +16,7 @@ use tracing::info;
 impl App {
     /// 辅助方法：开始下载壁纸（支持并行限制和进度更新）
     pub fn start_download(&mut self, url: String, id: &str, file_type: &str) -> iced::Task<AppMessage> {
-        let file_name = super::download::generate_file_name(id, file_type.split('/').last().unwrap_or("jpg"));
+        let file_name = generate_file_name(id, file_type.split('/').last().unwrap_or("jpg"));
         let data_path = self.config.data.data_path.clone();
         let cache_path = self.config.data.cache_path.clone();
         let proxy = if self.config.global.proxy.is_empty() {
@@ -52,14 +58,14 @@ impl App {
                     let cache_path = cache_path.clone();
 
                     // 更新状态
-                    task_full.task.status = super::download::DownloadStatus::Downloading;
+                    task_full.task.status = DownloadStatus::Downloading;
                     task_full.task.start_time = Some(std::time::Instant::now());
                     self.download_state.increment_downloading();
 
                     // 启动异步下载任务（带进度更新）
                     return iced::Task::perform(
-                        super::async_tasks::async_download_wallpaper_task_with_progress(
-                            url,
+                        crate::ui::async_tasks::async_download_wallpaper_task_with_progress(
+                            url.to_string(),
                             save_path,
                             proxy,
                             task_id,
@@ -71,11 +77,11 @@ impl App {
                         move |result| match result {
                             Ok(size) => {
                                 info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                                AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, size, None))
                             }
                             Err(e) => {
                                 error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                                AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
                             }
                         },
                     );
@@ -86,7 +92,7 @@ impl App {
         // 显示通知
         iced::Task::done(AppMessage::ShowNotification(
             format!("已添加到下载队列 (等待中)"),
-            super::NotificationType::Success,
+            NotificationType::Success,
         ))
     }
 
@@ -133,7 +139,7 @@ impl App {
         // 更新状态为下载中并启动下载
         match self.download_state.get_task(task_id) {
             Some(task_full) => {
-                task_full.task.status = super::download::DownloadStatus::Downloading;
+                task_full.task.status = DownloadStatus::Downloading;
                 task_full.task.start_time = Some(std::time::Instant::now());
 
                 let url = task_full.task.url.clone();
@@ -142,15 +148,15 @@ impl App {
                 let task_id = task_full.task.id;
 
                 return iced::Task::perform(
-                    super::async_tasks::async_download_wallpaper_task(url, save_path, proxy, task_id),
+                    crate::ui::async_tasks::async_download_wallpaper_task(url, save_path, proxy, task_id),
                     move |result| match result {
                         Ok(size) => {
                             info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                            AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, size, None))
                         }
                         Err(e) => {
                             error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                            AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
                         }
                     },
                 );
@@ -175,7 +181,7 @@ impl App {
         }
 
         // 然后设置状态为暂停
-        self.download_state.update_status(id, super::download::DownloadStatus::Paused);
+        self.download_state.update_status(id, DownloadStatus::Paused);
 
         // 最后设置取消标志，终止下载
         self.download_state.cancel_task(id);
@@ -198,21 +204,22 @@ impl App {
             .map(|t| (t.task.url.clone(), PathBuf::from(&t.task.save_path), t.proxy.clone(), t.task.id));
 
         if let Some((url, save_path, proxy, task_id)) = task_data {
-            if current_status == Some(super::download::DownloadStatus::Waiting)
-                || current_status == Some(super::download::DownloadStatus::Paused)
-                || current_status == Some(super::download::DownloadStatus::Cancelled)
-                || matches!(current_status, Some(super::download::DownloadStatus::Failed(_)))
+            if current_status == Some(DownloadStatus::Waiting)
+                || current_status == Some(DownloadStatus::Paused)
+                || current_status == Some(DownloadStatus::Cancelled)
+                || matches!(current_status, Some(DownloadStatus::Failed(_)))
             {
                 if can_start {
                     // 更新状态为下载中
-                    let should_reset = current_status == Some(super::download::DownloadStatus::Cancelled)
-                        || matches!(current_status, Some(super::download::DownloadStatus::Failed(_)));
+                    let should_reset = current_status == Some(DownloadStatus::Cancelled)
+                        || matches!(current_status, Some(DownloadStatus::Failed(_)));
                     if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
-                        task_full.task.status = super::download::DownloadStatus::Downloading;
+                        task_full.task.status = DownloadStatus::Downloading;
                         task_full.task.start_time = Some(std::time::Instant::now());
 
                         // 重置取消令牌
                         if let Some(cancel_token) = &task_full.task.cancel_token {
+                            let cancel_token: &std::sync::Arc<std::sync::atomic::AtomicBool> = cancel_token;
                             cancel_token.store(false, std::sync::atomic::Ordering::Relaxed);
                         }
 
@@ -272,8 +279,8 @@ impl App {
 
                     self.download_state.increment_downloading();
                     return iced::Task::perform(
-                        super::async_tasks::async_download_wallpaper_task_with_progress(
-                            url,
+                        crate::ui::async_tasks::async_download_wallpaper_task_with_progress(
+                            url.to_string(),
                             save_path,
                             proxy,
                             task_id,
@@ -285,12 +292,12 @@ impl App {
                         move |result| match result {
                             Ok(size) => {
                                 info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                                AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, size, None))
                             }
 
                             Err(e) => {
                                 error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                                AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
                             }
                         },
                     );
@@ -315,7 +322,7 @@ impl App {
             if can_start {
                 if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
                     // 重置任务状态和进度
-                    task_full.task.status = super::download::DownloadStatus::Downloading;
+                    task_full.task.status = DownloadStatus::Downloading;
                     task_full.task.start_time = Some(std::time::Instant::now());
                     task_full.task.downloaded_size = 0;
                     task_full.task.progress = 0.0;
@@ -323,6 +330,7 @@ impl App {
 
                     // 重置取消令牌
                     if let Some(cancel_token) = &task_full.task.cancel_token {
+                        let cancel_token: &std::sync::Arc<std::sync::atomic::AtomicBool> = cancel_token;
                         cancel_token.store(false, std::sync::atomic::Ordering::Relaxed);
                     }
 
@@ -355,8 +363,8 @@ impl App {
 
                 let cache_path = self.config.data.cache_path.clone();
                 return iced::Task::perform(
-                    super::async_tasks::async_download_wallpaper_task_with_progress(
-                        url,
+                    crate::ui::async_tasks::async_download_wallpaper_task_with_progress(
+                        url.to_string(),
                         save_path,
                         proxy,
                         task_id,
@@ -368,11 +376,11 @@ impl App {
                     move |result| match result {
                         Ok(size) => {
                             info!("[下载任务] [ID:{}] 重新下载成功, 文件大小: {} bytes", task_id, size);
-                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, size, None))
+                            AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, size, None))
                         }
                         Err(e) => {
                             error!("[下载任务] [ID:{}] 重新下载失败: {}", task_id, e);
-                            AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                            AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
                         }
                     },
                 );
@@ -394,14 +402,14 @@ impl App {
         // 取消任务
         self.download_state.cancel_task(id);
         // 将任务状态设置为已取消
-        self.download_state.update_status(id, crate::ui::download::DownloadStatus::Cancelled);
+        self.download_state.update_status(id, DownloadStatus::Cancelled);
 
         // 清除未完成的下载文件
         if let Some((url, save_path, _file_name, status)) = task_info {
             // 只有在下载中、等待中或暂停时才清除文件
-            if status == crate::ui::download::DownloadStatus::Downloading
-                || status == crate::ui::download::DownloadStatus::Waiting
-                || status == crate::ui::download::DownloadStatus::Paused
+            if status == DownloadStatus::Downloading
+                || status == DownloadStatus::Waiting
+                || status == DownloadStatus::Paused
             {
                 // 1. 删除目标文件（data_path中的文件）
                 if let Ok(_metadata) = std::fs::metadata(&save_path) {
@@ -443,7 +451,7 @@ impl App {
 
     fn handle_open_file_location(&mut self, id: usize) -> iced::Task<AppMessage> {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
-            let full_path = super::common::get_absolute_path(&task.task.save_path);
+            let full_path = crate::ui::common::get_absolute_path(&task.task.save_path);
             crate::utils::helpers::open_file_in_explorer(&full_path);
         }
 
@@ -462,7 +470,7 @@ impl App {
                 // 检查当前状态
                 let current_status = task.task.status.clone();
 
-                if current_status == super::download::DownloadStatus::Paused {
+                if current_status == DownloadStatus::Paused {
                     // 任务已暂停，保持暂停状态
                 } else if error.is_some() {
                     // 下载失败
@@ -472,11 +480,11 @@ impl App {
                         // 检查任务是否在暂停状态被取消
                         // 如果任务原本是暂停状态，则保持暂停，否则设置为已取消
                         // 如果不是暂停状态，设置为已取消
-                        if current_status != super::download::DownloadStatus::Paused {
-                            task.task.status = super::download::DownloadStatus::Cancelled;
+                        if current_status != DownloadStatus::Paused {
+                            task.task.status = DownloadStatus::Cancelled;
                         }
                     } else {
-                        task.task.status = super::download::DownloadStatus::Failed(error_msg.clone());
+                        task.task.status = DownloadStatus::Failed(error_msg.clone());
 
                         // 清除未完成的下载文件
                         let url = task.task.url.clone();
@@ -514,7 +522,7 @@ impl App {
                         size
                     };
 
-                    task.task.status = super::download::DownloadStatus::Completed;
+                    task.task.status = DownloadStatus::Completed;
                     task.task.progress = 1.0;
                     task.task.total_size = actual_size;
                     task.task.downloaded_size = actual_size;
@@ -525,7 +533,7 @@ impl App {
                     if let Some(pending_filename) = self.online_state.pending_set_wallpaper_filename.as_ref() {
                         if pending_filename == file_name {
                             // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
-                            let full_path = super::common::get_absolute_path(&task.task.save_path);
+                            let full_path = crate::ui::common::get_absolute_path(&task.task.save_path);
                             let wallpaper_mode = self.config.wallpaper.mode;
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
@@ -534,10 +542,10 @@ impl App {
 
                             // 异步设置壁纸
                             return iced::Task::perform(
-                                super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                                crate::ui::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                                 move |result| match result {
                                     Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error),
                                 },
                             );
                         }
@@ -560,7 +568,7 @@ impl App {
             let next_downloaded_size = next_task.task.downloaded_size;
             let next_total_size = next_task.task.total_size;
 
-            next_task.task.status = super::download::DownloadStatus::Downloading;
+            next_task.task.status = DownloadStatus::Downloading;
             next_task.task.start_time = Some(std::time::Instant::now());
             self.download_state.increment_downloading();
 
@@ -568,8 +576,8 @@ impl App {
 
             // 启动下一个下载任务
             return iced::Task::perform(
-                super::async_tasks::async_download_wallpaper_task_with_progress(
-                    next_url,
+                crate::ui::async_tasks::async_download_wallpaper_task_with_progress(
+                    next_url.to_string(),
                     next_save_path,
                     next_proxy,
                     next_task_id,
@@ -581,11 +589,11 @@ impl App {
                 move |result| match result {
                     Ok(s) => {
                         info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", next_task_id, s);
-                        AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(next_task_id, s, None))
+                        AppMessage::Download(DownloadMessage::DownloadCompleted(next_task_id, s, None))
                     }
                     Err(e) => {
                         error!("[下载任务] [ID:{}] 下载失败: {}", next_task_id, e);
-                        AppMessage::Download(super::download::DownloadMessage::DownloadCompleted(next_task_id, 0, Some(e)))
+                        AppMessage::Download(DownloadMessage::DownloadCompleted(next_task_id, 0, Some(e)))
                     }
                 },
             );
@@ -602,14 +610,14 @@ impl App {
     fn handle_simulate_progress(&mut self) -> iced::Task<AppMessage> {
         // 模拟进度更新（测试用）
         for task in self.download_state.tasks.iter_mut() {
-            if task.task.status == super::download::DownloadStatus::Downloading {
+            if task.task.status == DownloadStatus::Downloading {
                 let increment = (task.task.total_size as f32 * 0.01).max(1024.0) as u64;
                 task.task.downloaded_size = (task.task.downloaded_size + increment).min(task.task.total_size);
                 if task.task.total_size > 0 {
                     task.task.progress = task.task.downloaded_size as f32 / task.task.total_size as f32;
                 }
                 if task.task.downloaded_size >= task.task.total_size {
-                    task.task.status = super::download::DownloadStatus::Completed;
+                    task.task.status = DownloadStatus::Completed;
                 }
             }
         }
@@ -650,8 +658,8 @@ impl App {
                     }
                 },
                 move |result| match result {
-                    Ok(_) => AppMessage::ShowNotification(success_message, super::NotificationType::Success),
-                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                    Ok(_) => AppMessage::ShowNotification(success_message, NotificationType::Success),
+                    Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error),
                 },
             );
         }
@@ -661,7 +669,7 @@ impl App {
     fn handle_set_as_wallpaper(&mut self, id: usize) -> iced::Task<AppMessage> {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
             let path = task.task.save_path.clone();
-            let full_path = super::common::get_absolute_path(&path);
+            let full_path = crate::ui::common::get_absolute_path(&path);
             let wallpaper_mode = self.config.wallpaper.mode;
 
             // 检查文件是否存在
@@ -671,15 +679,15 @@ impl App {
 
                 // 异步设置壁纸
                 return iced::Task::perform(
-                    super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                    crate::ui::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                     move |result| match result {
                         Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error),
+                        Err(e) => AppMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error),
                     },
                 );
             } else {
                 let error_message = self.i18n.t("download-tasks.set-wallpaper-file-not-found").to_string();
-                return iced::Task::done(AppMessage::ShowNotification(error_message, super::NotificationType::Error));
+                return iced::Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error));
             }
         }
         iced::Task::none()
