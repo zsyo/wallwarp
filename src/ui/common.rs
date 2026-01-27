@@ -484,10 +484,12 @@ pub fn create_bordered_container_style_with_bg(
 /// - `content`: 容器内容
 /// - `edge_size`: 边缘触发区域大小（像素）
 /// - `resize_message`: 生成调整大小消息的函数，接收 Direction 参数
+/// - `is_maximized`: 窗口是否已最大化，最大化时禁用边缘调整大小
 pub fn create_resizable_container<'a, Message>(
     content: Element<'a, Message>,
     edge_size: f32,
     resize_message: impl Fn(iced::window::Direction) -> Message + Clone + 'a,
+    is_maximized: bool,
 ) -> Element<'a, Message>
 where
     Message: Clone + 'a,
@@ -496,10 +498,18 @@ where
     use iced::{Alignment, Length, mouse, window};
 
     // 辅助闭包：创建一个带有明确光标和事件的感应区
+    // 当窗口最大化时，禁用所有边缘调整大小功能
     let make_handle = |dir: window::Direction, cursor: mouse::Interaction, w: Length, h: Length| {
-        mouse_area(Space::new().width(w).height(h))
-            .on_press(resize_message.clone()(dir))
-            .interaction(cursor)
+        if is_maximized {
+            // 最大化时，使用默认光标且不响应任何事件
+            mouse_area(Space::new().width(w).height(h))
+                .interaction(mouse::Interaction::default())
+        } else {
+            // 非最大化时，启用边缘调整大小功能
+            mouse_area(Space::new().width(w).height(h))
+                .on_press(resize_message.clone()(dir))
+                .interaction(cursor)
+        }
     };
 
     // --- 核心逻辑：8个感应层 ---

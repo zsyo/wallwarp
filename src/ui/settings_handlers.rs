@@ -1068,8 +1068,16 @@ impl App {
     fn handle_title_bar_maximize(&mut self) -> iced::Task<AppMessage> {
         let is_maximized = !self.is_maximized;
         self.is_maximized = is_maximized;
+
+        // 当窗口从最大化状态还原时,需要重新应用窗口样式以确保拖拽功能正常
         window::oldest()
             .and_then(move |id: iced::window::Id| window::maximize(id, is_maximized).map(|_: ()| AppMessage::None))
+            .chain(if !is_maximized {
+                // 窗口还原后,重新启用窗口调整大小样式
+                self.enable_window_resize()
+            } else {
+                iced::Task::none()
+            })
     }
 
     // ============================================================================

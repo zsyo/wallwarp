@@ -112,11 +112,13 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         .height(Length::Fill);
 
     // 使用带边缘调整大小功能的容器包裹整个界面
-    // 边缘触发区域大小为 3 像素
+    // 边缘触发区域大小为 5 像素
+    // 当窗口最大化时,禁用边缘调整大小功能
     let resizable_layout = super::common::create_resizable_container(
         full_layout.into(),
         5.0, // 边缘触发区域大小
         |direction| AppMessage::ResizeWindow(direction),
+        app.is_maximized, // 窗口是否已最大化
     );
 
     resizable_layout
