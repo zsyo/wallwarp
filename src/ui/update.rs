@@ -25,7 +25,7 @@ impl App {
         };
 
         // 定时检测系统颜色模式任务
-        let auto_detect_color_mode = if self.auto_change_state.auto_detect_color_mode && self.local_state.is_visible {
+        let auto_detect_color_mode = if self.auto_change_state.auto_detect_color_mode && self.is_visible {
             iced::time::every(std::time::Duration::from_secs(1)).map(|_| AppMessage::AutoDetectColorModeTick)
         } else {
             iced::Subscription::none()

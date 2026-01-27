@@ -130,6 +130,7 @@ impl App {
                 }
                 history
             },
+            is_visible: false,
             is_maximized, // 初始化窗口最大化状态
         }
     }

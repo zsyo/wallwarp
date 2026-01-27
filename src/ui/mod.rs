@@ -97,10 +97,10 @@ pub enum AppMessage {
     RemoveLastFromWallpaperHistory, // 从历史记录末尾移除壁纸
     ExternalInstanceTriggered(String),
     // 自定义标题栏相关消息
-    TitleBarDrag,          // 拖拽标题栏
-    TitleBarMinimize,      // 最小化窗口
-    TitleBarMaximize,      // 最大化/还原窗口
-    TitleBarClose,         // 关闭窗口
+    TitleBarDrag,     // 拖拽标题栏
+    TitleBarMinimize, // 最小化窗口
+    TitleBarMaximize, // 最大化/还原窗口
+    TitleBarClose,    // 关闭窗口
     // 窗口边缘调整大小相关消息
     ResizeWindow(iced::window::Direction), // 调整窗口大小（包含所有方向）
 }
@@ -181,6 +181,7 @@ pub struct App {
     pub auto_change_running: std::sync::Arc<std::sync::atomic::AtomicBool>,
     // 壁纸切换历史记录（最多50条）
     pub wallpaper_history: Vec<String>,
+    pub is_visible: bool,
     // 自定义标题栏状态
     pub is_maximized: bool, // 窗口是否已最大化
 }

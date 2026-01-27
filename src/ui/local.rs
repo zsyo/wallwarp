@@ -43,7 +43,6 @@ pub enum WallpaperLoadStatus {
 
 #[derive(Debug)]
 pub struct LocalState {
-    pub is_visible: bool,
     pub wallpapers: Vec<WallpaperLoadStatus>,
     pub all_paths: Vec<String>,
     pub loading_page: bool,
@@ -60,7 +59,6 @@ pub struct LocalState {
 impl Default for LocalState {
     fn default() -> Self {
         Self {
-            is_visible: false,
             wallpapers: Vec::new(),
             all_paths: Vec::new(),
             loading_page: false,

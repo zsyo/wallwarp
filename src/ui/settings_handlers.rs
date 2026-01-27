@@ -169,7 +169,7 @@ impl App {
         self.current_window_width = width;
         self.current_window_height = height;
         // 如果宽度和高度都为 0，通常意味着窗口被最小化了
-        self.local_state.is_visible = width > 0 && height > 0;
+        self.is_visible = width > 0 && height > 0;
         // 暂存窗口大小，等待防抖处理
         self.pending_window_size = Some((width, height));
         // 在收到调整大小事件时，直接开启一个延迟任务
@@ -242,12 +242,12 @@ impl App {
 
     fn handle_window_focused(&mut self) -> iced::Task<AppMessage> {
         // 更新窗口状态为已聚焦
-        self.local_state.is_visible = true;
+        self.is_visible = true;
         iced::Task::none()
     }
 
     fn handle_minimize_to_tray(&mut self) -> iced::Task<AppMessage> {
-        self.local_state.is_visible = false;
+        self.is_visible = false;
         // 获取 ID 后设置模式为隐藏
         window::oldest().and_then(|id| window::set_mode(id, window::Mode::Hidden))
     }
@@ -845,7 +845,9 @@ impl App {
                                 )
                             } else {
                                 // 发送一个消息来触发设置随机壁纸
-                                AppMessage::AutoChange(super::auto_change::AutoChangeMessage::GetSupportedImagesSuccess(paths))
+                                AppMessage::AutoChange(
+                                    super::auto_change::AutoChangeMessage::GetSupportedImagesSuccess(paths),
+                                )
                             }
                         }
                         Err(e) => {
@@ -862,7 +864,9 @@ impl App {
                 iced::Task::perform(
                     super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
                     |result| match result {
-                        Ok(path) => AppMessage::AutoChange(super::auto_change::AutoChangeMessage::SetRandomWallpaperSuccess(path)),
+                        Ok(path) => AppMessage::AutoChange(
+                            super::auto_change::AutoChangeMessage::SetRandomWallpaperSuccess(path),
+                        ),
                         Err(e) => {
                             let error_message = format!("设置壁纸失败: {}", e);
                             AppMessage::ShowNotification(error_message, super::NotificationType::Error)
