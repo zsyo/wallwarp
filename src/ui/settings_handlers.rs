@@ -673,15 +673,15 @@ impl App {
             crate::utils::config::WallpaperAutoChangeInterval::Off
         ) {
             // 选择关闭，停止定时任务
-            self.local_state.auto_change_enabled = false;
-            self.local_state.auto_change_timer = None;
-            self.local_state.auto_change_last_time = None;
+            self.auto_change_state.auto_change_enabled = false;
+            self.auto_change_state.auto_change_timer = None;
+            self.auto_change_state.auto_change_last_time = None;
             tracing::info!("[定时切换] [停止] 定时任务已停止");
         } else {
             // 选择其他选项，启动定时任务
-            self.local_state.auto_change_enabled = true;
-            self.local_state.auto_change_timer = Some(std::time::Instant::now());
-            self.local_state.auto_change_last_time = Some(std::time::Instant::now());
+            self.auto_change_state.auto_change_enabled = true;
+            self.auto_change_state.auto_change_timer = Some(std::time::Instant::now());
+            self.auto_change_state.auto_change_last_time = Some(std::time::Instant::now());
 
             // 计算并记录下次执行时间
             if let Some(minutes) = self.auto_change_interval.get_minutes() {
@@ -715,8 +715,8 @@ impl App {
             self.config.save_to_file();
 
             // 重置定时任务并记录下次执行时间
-            if self.local_state.auto_change_enabled {
-                self.local_state.auto_change_last_time = Some(std::time::Instant::now());
+            if self.auto_change_state.auto_change_enabled {
+                self.auto_change_state.auto_change_last_time = Some(std::time::Instant::now());
                 let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
                 tracing::info!(
                     "[定时切换] [重置] 自定义间隔: {}分钟, 下次执行时间: {}",
@@ -845,7 +845,7 @@ impl App {
                                 )
                             } else {
                                 // 发送一个消息来触发设置随机壁纸
-                                AppMessage::Local(super::local::LocalMessage::GetSupportedImagesSuccess(paths))
+                                AppMessage::AutoChange(super::auto_change::AutoChangeMessage::GetSupportedImagesSuccess(paths))
                             }
                         }
                         Err(e) => {
@@ -862,7 +862,7 @@ impl App {
                 iced::Task::perform(
                     super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
                     |result| match result {
-                        Ok(path) => AppMessage::Local(super::local::LocalMessage::SetRandomWallpaperSuccess(path)),
+                        Ok(path) => AppMessage::AutoChange(super::auto_change::AutoChangeMessage::SetRandomWallpaperSuccess(path)),
                         Err(e) => {
                             let error_message = format!("设置壁纸失败: {}", e);
                             AppMessage::ShowNotification(error_message, super::NotificationType::Error)
@@ -952,7 +952,7 @@ impl App {
         // 关闭选择器
         self.theme_picker_expanded = false;
 
-        self.local_state.auto_detect_color_mode = theme == crate::utils::config::Theme::Auto;
+        self.auto_change_state.auto_detect_color_mode = theme == crate::utils::config::Theme::Auto;
 
         self.toggle_theme(theme)
     }

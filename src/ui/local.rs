@@ -33,14 +33,6 @@ pub enum LocalMessage {
     CloseDeleteConfirm,
     ConfirmDelete(usize),
     ModalImageLoaded(iced::widget::image::Handle),
-    // 定时切换壁纸相关消息
-    StartAutoChange,
-    StopAutoChange,
-    AutoChangeTick,
-    GetSupportedImagesSuccess(Vec<String>),
-    GetSupportedImagesFailed(String),
-    SetRandomWallpaperSuccess(String),
-    SetRandomWallpaperFailed(String),
 }
 
 #[derive(Debug, Clone)]
@@ -63,11 +55,6 @@ pub struct LocalState {
     pub delete_confirm_visible: bool,
     pub delete_target_index: Option<usize>,
     pub modal_image_handle: Option<iced::widget::image::Handle>,
-    // 定时切换壁纸相关状态
-    pub auto_change_enabled: bool,
-    pub auto_change_timer: Option<std::time::Instant>,
-    pub auto_change_last_time: Option<std::time::Instant>,
-    pub auto_detect_color_mode: bool,
 }
 
 impl Default for LocalState {
@@ -85,10 +72,6 @@ impl Default for LocalState {
             delete_confirm_visible: false,
             delete_target_index: None,
             modal_image_handle: None,
-            auto_change_enabled: false,
-            auto_change_timer: None,
-            auto_change_last_time: None,
-            auto_detect_color_mode: false,
         }
     }
 }

@@ -14,18 +14,18 @@ impl App {
         use iced::window;
 
         // 定时更新壁纸任务
-        let auto_change_background = if self.local_state.auto_change_enabled {
+        let auto_change_background = if self.auto_change_state.auto_change_enabled {
             let minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
             // Iced 的这个定时器非常智能：
             // 如果 minutes 变了，生成的 Subscription ID 就会变，旧的定时器会被自动替换
             iced::time::every(std::time::Duration::from_secs(minutes as u64 * 60))
-                .map(|_| AppMessage::Local(super::local::LocalMessage::AutoChangeTick))
+                .map(|_| AppMessage::AutoChange(super::auto_change::AutoChangeMessage::AutoChangeTick))
         } else {
             iced::Subscription::none()
         };
 
         // 定时检测系统颜色模式任务
-        let auto_detect_color_mode = if self.local_state.auto_detect_color_mode && self.local_state.is_visible {
+        let auto_detect_color_mode = if self.auto_change_state.auto_detect_color_mode && self.local_state.is_visible {
             iced::time::every(std::time::Duration::from_secs(1)).map(|_| AppMessage::AutoDetectColorModeTick)
         } else {
             iced::Subscription::none()
@@ -139,6 +139,9 @@ impl App {
             }
             AppMessage::Download(download_message) => {
                 return self.handle_download_message(download_message);
+            }
+            AppMessage::AutoChange(auto_change_message) => {
+                return self.handle_auto_change_message(auto_change_message);
             }
             _ => {
                 // 其他消息交给 settings_handlers 处理

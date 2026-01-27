@@ -36,8 +36,6 @@ impl App {
 
         let tray_manager = super::tray::TrayManager::new(&i18n);
 
-        let auto_detect_color_mode = config.global.theme == crate::utils::config::Theme::Auto;
-
         // 根据配置文件中的主题配置初始化主题
         let theme_config = match config.global.theme {
             crate::utils::config::Theme::Dark => crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Dark),
@@ -110,14 +108,14 @@ impl App {
             current_window_width: config.display.width,
             current_window_height: config.display.height,
             current_items_per_row: 1, // 初始值为1
-            local_state: super::local::LocalState {
+            local_state: super::local::LocalState::default(),
+            online_state: super::online::OnlineState::load_from_config(&config),
+            auto_change_state: super::auto_change::AutoChangeState {
                 auto_change_enabled,
                 auto_change_timer,
                 auto_change_last_time,
-                auto_detect_color_mode,
-                ..Default::default()
+                auto_detect_color_mode: config.global.theme == crate::utils::config::Theme::Auto,
             },
-            online_state: super::online::OnlineState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
             initial_loaded: false, // 标记是否已加载初始数据
             auto_change_running: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), // 初始化定时切换执行标志

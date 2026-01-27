@@ -2,6 +2,8 @@
 
 pub mod app;
 pub mod async_tasks;
+pub mod auto_change;
+pub mod auto_change_handlers;
 pub mod close_confirmation;
 pub mod common;
 pub mod download;
@@ -88,6 +90,7 @@ pub enum AppMessage {
     Local(crate::ui::local::LocalMessage),
     Online(crate::ui::online::OnlineMessage),
     Download(crate::ui::download::DownloadMessage),
+    AutoChange(crate::ui::auto_change::AutoChangeMessage), // 定时切换壁纸相关消息
     // 托盘菜单切换壁纸相关消息
     TraySwitchPreviousWallpaper,
     TraySwitchNextWallpaper,
@@ -171,6 +174,8 @@ pub struct App {
     pub online_state: crate::ui::online::OnlineState,
     // 下载管理页面状态
     pub download_state: crate::ui::download::DownloadStateFull,
+    // 定时切换壁纸状态
+    pub auto_change_state: crate::ui::auto_change::AutoChangeState,
     // 标记是否已加载初始数据
     pub initial_loaded: bool,
     // 定时切换执行标志，防止任务并行执行
