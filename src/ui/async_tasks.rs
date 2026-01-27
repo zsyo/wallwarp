@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::wallhaven;
 use std::path::PathBuf;
 use tokio::io::AsyncWriteExt;
 use tracing::error;
@@ -7,7 +8,9 @@ use tracing::info;
 use tracing::warn;
 
 /// 异步加载壁纸路径列表函数
-pub async fn async_load_wallpaper_paths(data_path: String) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn async_load_wallpaper_paths(
+    data_path: String,
+) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
     // 在这里调用同步的获取壁纸路径函数
     tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::get_wallpaper_paths(&data_path))
         .await
@@ -19,17 +22,23 @@ pub async fn async_load_single_wallpaper_with_fallback(
     wallpaper_path: String,
     cache_path: String,
 ) -> Result<crate::services::local::Wallpaper, Box<dyn std::error::Error + Send + Sync>> {
-    let full_cache_path = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")).join(&cache_path);
+    let full_cache_path = std::env::current_dir()
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+        .join(&cache_path);
 
     // 使用spawn_blocking在阻塞线程池中运行
     tokio::task::spawn_blocking(move || {
         // 先获取文件大小（这个操作通常不会失败）
-        let file_size = std::fs::metadata(&wallpaper_path).map(|metadata| metadata.len()).unwrap_or(0);
+        let file_size = std::fs::metadata(&wallpaper_path)
+            .map(|metadata| metadata.len())
+            .unwrap_or(0);
 
         // 尝试加载图片
         let result = (|| -> Result<crate::services::local::Wallpaper, Box<dyn std::error::Error + Send + Sync>> {
-            let thumbnail_path =
-                crate::services::local::LocalWallpaperService::generate_thumbnail_for_path(&wallpaper_path, &full_cache_path.to_string_lossy())?;
+            let thumbnail_path = crate::services::local::LocalWallpaperService::generate_thumbnail_for_path(
+                &wallpaper_path,
+                &full_cache_path.to_string_lossy(),
+            )?;
 
             // 获取图片尺寸
             let (width, height) = image::image_dimensions(&wallpaper_path).unwrap_or((0, 0));
@@ -67,17 +76,26 @@ pub async fn async_load_single_wallpaper_with_fallback(
 }
 
 /// 异步设置壁纸函数
-pub async fn async_set_wallpaper(wallpaper_path: String, mode: crate::utils::config::WallpaperMode) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::set_wallpaper(&wallpaper_path, mode))
-        .await
-        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+pub async fn async_set_wallpaper(
+    wallpaper_path: String,
+    mode: crate::utils::config::WallpaperMode,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    tokio::task::spawn_blocking(move || {
+        crate::services::local::LocalWallpaperService::set_wallpaper(&wallpaper_path, mode)
+    })
+    .await
+    .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
 }
 
 /// 异步获取支持的图片文件列表
-pub async fn async_get_supported_images(data_path: String) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
-    tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::get_supported_image_paths(&data_path))
-        .await
-        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+pub async fn async_get_supported_images(
+    data_path: String,
+) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+    tokio::task::spawn_blocking(move || {
+        crate::services::local::LocalWallpaperService::get_supported_image_paths(&data_path)
+    })
+    .await
+    .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
 }
 
 /// 异步随机设置壁纸函数
@@ -85,9 +103,11 @@ pub async fn async_set_random_wallpaper(
     image_paths: Vec<String>,
     mode: crate::utils::config::WallpaperMode,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    tokio::task::spawn_blocking(move || crate::services::local::LocalWallpaperService::set_random_wallpaper(&image_paths, mode))
-        .await
-        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
+    tokio::task::spawn_blocking(move || {
+        crate::services::local::LocalWallpaperService::set_random_wallpaper(&image_paths, mode)
+    })
+    .await
+    .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)?
 }
 
 /// 异步随机设置在线壁纸函数（用于定时切换）
@@ -111,7 +131,10 @@ pub async fn async_set_random_online_wallpaper(
     use tracing::info;
 
     // 尝试设置执行标志，防止定时任务并行执行
-    if !auto_change_running.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+    if !auto_change_running
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_ok()
+    {
         info!("[定时切换] [在线] 已有任务在执行，跳过本次切换");
         return Err("已有任务在执行".into());
     }
@@ -173,7 +196,11 @@ pub async fn async_set_random_online_wallpaper(
     let mut wallpapers = Vec::new();
 
     for page in 1..=max_pages {
-        info!("[定时切换] [在线] 请求第 {} 页壁纸，关键词: {}", page, if query.is_empty() { "(无)" } else { &query });
+        info!(
+            "[定时切换] [在线] 请求第 {} 页壁纸，关键词: {}",
+            page,
+            if query.is_empty() { "(无)" } else { &query }
+        );
 
         match service
             .search_wallpapers(
@@ -206,7 +233,8 @@ pub async fn async_set_random_online_wallpaper(
             }
             Err(e) => {
                 error!("[定时切换] [在线] 第 {} 页请求失败: {}", page, e);
-                return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>);
+                return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e))
+                    as Box<dyn std::error::Error + Send + Sync>);
             }
         }
     }
@@ -219,10 +247,13 @@ pub async fn async_set_random_online_wallpaper(
     // 随机选择一张壁纸
     let selected = wallpapers.choose(&mut rand::rng()).ok_or("随机选择壁纸失败")?;
 
-    info!("[定时切换] [在线] 已选择壁纸: ID={}, URL={}", selected.id, selected.path);
+    info!(
+        "[定时切换] [在线] 已选择壁纸: ID={}, URL={}",
+        selected.id, selected.path
+    );
 
     // 生成目标文件路径（使用原文件名）
-    let file_name = super::download::generate_file_name(&selected.id, selected.file_type.split('/').last().unwrap_or("jpg"));
+    let file_name = wallhaven::generate_file_name(&selected.id, selected.file_type.split('/').last().unwrap_or("jpg"));
     let data_path = config.data.data_path.clone();
     let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
 
@@ -231,17 +262,26 @@ pub async fn async_set_random_online_wallpaper(
         let actual_size = metadata.len();
         if actual_size == selected.file_size {
             // 文件已存在且大小匹配，直接设置壁纸
-            info!("[定时切换] [在线] 文件已存在于data_path，直接设置: {}", target_path.display());
+            info!(
+                "[定时切换] [在线] 文件已存在于data_path，直接设置: {}",
+                target_path.display()
+            );
             let wallpaper_mode = config.wallpaper.mode;
-            crate::services::local::LocalWallpaperService::set_wallpaper(&target_path.to_string_lossy().to_string(), wallpaper_mode)?;
+            crate::services::local::LocalWallpaperService::set_wallpaper(
+                &target_path.to_string_lossy().to_string(),
+                wallpaper_mode,
+            )?;
             return Ok(target_path.to_string_lossy().to_string());
         }
     }
 
     // 2. 检查缓存文件是否存在且大小匹配
     let cache_path = config.data.cache_path.clone();
-    if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &selected.path, selected.file_size)
-    {
+    if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(
+        &cache_path,
+        &selected.path,
+        selected.file_size,
+    ) {
         let cache_file_path_obj = std::path::PathBuf::from(&cache_file_path);
         if let Ok(metadata) = std::fs::metadata(&cache_file_path_obj) {
             let cache_size = metadata.len();
@@ -257,7 +297,10 @@ pub async fn async_set_random_online_wallpaper(
                     Ok(_) => {
                         // 复制成功，设置壁纸
                         let wallpaper_mode = config.wallpaper.mode;
-                        crate::services::local::LocalWallpaperService::set_wallpaper(&target_path.to_string_lossy().to_string(), wallpaper_mode)?;
+                        crate::services::local::LocalWallpaperService::set_wallpaper(
+                            &target_path.to_string_lossy().to_string(),
+                            wallpaper_mode,
+                        )?;
                         return Ok(target_path.to_string_lossy().to_string());
                     }
                     Err(e) => {
@@ -270,10 +313,18 @@ pub async fn async_set_random_online_wallpaper(
     }
 
     // 3. 文件不存在，下载到缓存
-    let cache_file_path = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &selected.path, selected.file_size)?;
+    let cache_file_path = crate::services::download::DownloadService::get_online_image_cache_path(
+        &cache_path,
+        &selected.path,
+        selected.file_size,
+    )?;
     let cache_file_path_obj = std::path::PathBuf::from(&cache_file_path);
-    info!("[定时切换] [在线] 缓存不存在，开始下载: {}", cache_file_path_obj.display());
-    crate::services::download::DownloadService::download_thumb_to_cache(&selected.path, &cache_file_path, proxy).await?;
+    info!(
+        "[定时切换] [在线] 缓存不存在，开始下载: {}",
+        cache_file_path_obj.display()
+    );
+    crate::services::download::DownloadService::download_thumb_to_cache(&selected.path, &cache_file_path, proxy)
+        .await?;
 
     // 下载完成后，复制到 data_path
     info!(
@@ -286,7 +337,10 @@ pub async fn async_set_random_online_wallpaper(
 
     // 设置壁纸
     let wallpaper_mode = config.wallpaper.mode;
-    crate::services::local::LocalWallpaperService::set_wallpaper(&target_path.to_string_lossy().to_string(), wallpaper_mode)?;
+    crate::services::local::LocalWallpaperService::set_wallpaper(
+        &target_path.to_string_lossy().to_string(),
+        wallpaper_mode,
+    )?;
 
     info!("[定时切换] [在线] 壁纸设置成功: {}", target_path.display());
     Ok(target_path.to_string_lossy().to_string())
@@ -406,7 +460,10 @@ pub async fn async_load_online_wallpapers(
     api_key: Option<String>,
     proxy: Option<String>,
     context: crate::services::request_context::RequestContext,
-) -> Result<(Vec<crate::services::wallhaven::OnlineWallpaper>, bool, usize, usize), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<
+    (Vec<crate::services::wallhaven::OnlineWallpaper>, bool, usize, usize),
+    Box<dyn std::error::Error + Send + Sync>,
+> {
     let service = crate::services::wallhaven::WallhavenService::new(api_key, proxy);
     match service
         .search_wallpapers(
@@ -425,7 +482,9 @@ pub async fn async_load_online_wallpapers(
         .await
     {
         Ok(result) => Ok(result),
-        Err(e) => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>),
+        Err(e) => {
+            Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn std::error::Error + Send + Sync>)
+        }
     }
 }
 
@@ -450,18 +509,35 @@ pub async fn async_load_online_wallpaper_thumb_with_cache_with_cancel(
 ) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
     // 在下载前检查取消状态
     if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
-        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+        return Err(
+            Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
+                as Box<dyn std::error::Error + Send + Sync>,
+        );
     }
 
     // 使用DownloadService的智能缓存加载功能
-    crate::services::download::DownloadService::load_thumb_with_cache_with_cancel(url, file_size, cache_base_path, proxy, cancel_token).await
+    crate::services::download::DownloadService::load_thumb_with_cache_with_cancel(
+        url,
+        file_size,
+        cache_base_path,
+        proxy,
+        cancel_token,
+    )
+    .await
 }
 
 /// 异步下载壁纸任务函数
-pub async fn async_download_wallpaper_task(url: String, save_path: PathBuf, proxy: Option<String>, _task_id: usize) -> Result<u64, String> {
+pub async fn async_download_wallpaper_task(
+    url: String,
+    save_path: PathBuf,
+    proxy: Option<String>,
+    _task_id: usize,
+) -> Result<u64, String> {
     // 确保父目录存在
     if let Some(parent_dir) = save_path.parent() {
-        tokio::fs::create_dir_all(parent_dir).await.map_err(|e| format!("创建目录失败: {}", e))?;
+        tokio::fs::create_dir_all(parent_dir)
+            .await
+            .map_err(|e| format!("创建目录失败: {}", e))?;
     }
 
     // 创建HTTP客户端（带代理）
@@ -490,10 +566,14 @@ pub async fn async_download_wallpaper_task(url: String, save_path: PathBuf, prox
     let bytes = response.bytes().await.map_err(|e| format!("读取数据失败: {}", e))?;
 
     // 创建文件并写入
-    let mut file = tokio::fs::File::create(&save_path).await.map_err(|e| format!("创建文件失败: {}", e))?;
+    let mut file = tokio::fs::File::create(&save_path)
+        .await
+        .map_err(|e| format!("创建文件失败: {}", e))?;
 
     use tokio::io::AsyncWriteExt;
-    file.write_all(&bytes).await.map_err(|e| format!("写入文件失败: {}", e))?;
+    file.write_all(&bytes)
+        .await
+        .map_err(|e| format!("写入文件失败: {}", e))?;
 
     file.flush().await.map_err(|e| e.to_string())?;
 
@@ -544,7 +624,10 @@ pub async fn async_download_wallpaper_task_with_progress(
         let client = if let Some(proxy_url) = &proxy {
             if !proxy_url.is_empty() {
                 match reqwest::Proxy::all(proxy_url) {
-                    Ok(p) => reqwest::Client::builder().proxy(p).build().unwrap_or_else(|_| create_client()),
+                    Ok(p) => reqwest::Client::builder()
+                        .proxy(p)
+                        .build()
+                        .unwrap_or_else(|_| create_client()),
                     Err(_) => create_client(),
                 }
             } else {
@@ -554,9 +637,14 @@ pub async fn async_download_wallpaper_task_with_progress(
             create_client()
         };
 
-        let head_response = client.head(&url).send().await.map_err(|e| format!("HEAD请求失败: {}", e))?;
+        let head_response = client
+            .head(&url)
+            .send()
+            .await
+            .map_err(|e| format!("HEAD请求失败: {}", e))?;
         let file_size = head_response.content_length().unwrap_or(0);
-        crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, file_size).map_err(|e| format!("获取缓存路径失败: {}", e))?
+        crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, file_size)
+            .map_err(|e| format!("获取缓存路径失败: {}", e))?
     };
 
     info!("[下载任务] [ID:{}] 缓存路径: {}", task_id, temp_cache_path);
@@ -564,17 +652,31 @@ pub async fn async_download_wallpaper_task_with_progress(
     // 步骤2: 确保缓存目录存在
     let cache_file_path = PathBuf::from(&temp_cache_path);
     if let Some(cache_dir) = cache_file_path.parent() {
-        tokio::fs::create_dir_all(cache_dir).await.map_err(|e| format!("创建缓存目录失败: {}", e))?;
+        tokio::fs::create_dir_all(cache_dir)
+            .await
+            .map_err(|e| format!("创建缓存目录失败: {}", e))?;
     }
 
     // 步骤3: 下载图片到缓存目录
-    let actual_size = download_to_cache(&url, &temp_cache_path, proxy.clone(), task_id, cancel_token.clone(), downloaded_size).await?;
+    let actual_size = download_to_cache(
+        &url,
+        &temp_cache_path,
+        proxy.clone(),
+        task_id,
+        cancel_token.clone(),
+        downloaded_size,
+    )
+    .await?;
 
     // 步骤4: 下载完成后，移除.download后缀
-    let final_cache_path = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, actual_size)
-        .map_err(|e| format!("获取最终缓存路径失败: {}", e))?;
+    let final_cache_path =
+        crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, actual_size)
+            .map_err(|e| format!("获取最终缓存路径失败: {}", e))?;
 
-    info!("[下载任务] [ID:{}] 重命名文件: {} -> {}", task_id, temp_cache_path, final_cache_path);
+    info!(
+        "[下载任务] [ID:{}] 重命名文件: {} -> {}",
+        task_id, temp_cache_path, final_cache_path
+    );
     tokio::fs::rename(&temp_cache_path, &final_cache_path)
         .await
         .map_err(|e| format!("重命名缓存文件失败: {}", e))?;
@@ -582,10 +684,17 @@ pub async fn async_download_wallpaper_task_with_progress(
     // 步骤5: 复制文件到data_path并应用正确的文件名
     // 确保data_path目录存在
     if let Some(parent_dir) = save_path.parent() {
-        tokio::fs::create_dir_all(parent_dir).await.map_err(|e| format!("创建目标目录失败: {}", e))?;
+        tokio::fs::create_dir_all(parent_dir)
+            .await
+            .map_err(|e| format!("创建目标目录失败: {}", e))?;
     }
 
-    info!("[下载任务] [ID:{}] 复制文件: {} -> {}", task_id, final_cache_path, save_path.display());
+    info!(
+        "[下载任务] [ID:{}] 复制文件: {} -> {}",
+        task_id,
+        final_cache_path,
+        save_path.display()
+    );
     tokio::fs::copy(&final_cache_path, &save_path)
         .await
         .map_err(|e| format!("复制文件到目标路径失败: {}", e))?;
@@ -610,12 +719,18 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
     use tracing::info;
     use xxhash_rust::xxh3::xxh3_128;
 
-    debug!("[模态窗口图片下载] [URL:{}] 开始流式下载，文件大小: {} bytes", url, file_size);
+    debug!(
+        "[模态窗口图片下载] [URL:{}] 开始流式下载，文件大小: {} bytes",
+        url, file_size
+    );
 
     // 步骤1: 计算缓存文件路径
     let hash_input = format!("{}{}", url, file_size);
     let hash = xxh3_128(hash_input.as_bytes());
-    let extension = Path::new(&url).extension().and_then(|ext| ext.to_str()).unwrap_or("jpg");
+    let extension = Path::new(&url)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("jpg");
     let cache_dir = std::path::PathBuf::from(&cache_path).join("online");
     let cache_file = cache_dir.join(format!("{:x}.{}", hash, extension));
 
@@ -671,7 +786,10 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
                     {
                         Ok(http_client) => http_client,
                         Err(e) => {
-                            debug!("[模态窗口图片下载] [URL:{}] HTTP客户端创建失败: {}，回退到无代理", url, e);
+                            debug!(
+                                "[模态窗口图片下载] [URL:{}] HTTP客户端创建失败: {}，回退到无代理",
+                                url, e
+                            );
                             create_optimized_client()
                         }
                     }
@@ -697,7 +815,8 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
     if !response.status().is_success() {
         let error_msg = format!("下载失败: {}", response.status());
         error!("[模态窗口图片下载] [URL:{}] {}", url, error_msg);
-        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send + Sync>);
+        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg))
+            as Box<dyn std::error::Error + Send + Sync>);
     }
 
     // 步骤6: 获取总大小
@@ -720,7 +839,10 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
             info!("[模态窗口图片下载] [URL:{}] 下载被取消", url);
             // 删除未完成的文件
             let _ = tokio::fs::remove_file(&cache_file).await;
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+            return Err(
+                Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
+                    as Box<dyn std::error::Error + Send + Sync>,
+            );
         }
 
         let chunk = chunk_result.map_err(|e| {
@@ -782,7 +904,10 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
         }
     }
 
-    info!("[模态窗口图片下载] [URL:{}] 下载完成，文件大小: {} bytes", url, downloaded);
+    info!(
+        "[模态窗口图片下载] [URL:{}] 下载完成，文件大小: {} bytes",
+        url, downloaded
+    );
 
     // 返回图片Handle
     Ok(iced::widget::image::Handle::from_path(&cache_file))
@@ -906,12 +1031,17 @@ async fn download_to_cache(
             .await
             .map_err(|e| format!("移动文件指针失败: {}", e))?;
 
-        info!("[下载任务] [ID:{}] 断点续传：文件指针移动到位置 {} bytes", task_id, downloaded_size);
+        info!(
+            "[下载任务] [ID:{}] 断点续传：文件指针移动到位置 {} bytes",
+            task_id, downloaded_size
+        );
 
         f
     } else {
         // 创建新文件
-        tokio::fs::File::create(&cache_path_buf).await.map_err(|e| format!("创建文件失败: {}", e))?
+        tokio::fs::File::create(&cache_path_buf)
+            .await
+            .map_err(|e| format!("创建文件失败: {}", e))?
     };
 
     let mut downloaded: u64 = downloaded_size;
@@ -943,7 +1073,9 @@ async fn download_to_cache(
 
         // 当缓冲区达到64KB时，批量写入文件
         if buffer.len() >= 64 * 1024 {
-            file.write_all(&buffer).await.map_err(|e| format!("写入文件失败: {}", e))?;
+            file.write_all(&buffer)
+                .await
+                .map_err(|e| format!("写入文件失败: {}", e))?;
             // 立即刷新到磁盘，确保数据不会丢失
             file.flush().await.map_err(|e| format!("刷新文件失败: {}", e))?;
             buffer.clear();
@@ -962,7 +1094,11 @@ async fn download_to_cache(
 
                 // 计算下载速度
                 let elapsed = start_time.elapsed().as_secs_f64();
-                let speed = if elapsed > 0.0 { (downloaded as f64 / elapsed) as u64 } else { 0 };
+                let speed = if elapsed > 0.0 {
+                    (downloaded as f64 / elapsed) as u64
+                } else {
+                    0
+                };
 
                 // 发送进度更新到UI
                 crate::services::send_download_progress(task_id, downloaded, total_size, speed);
@@ -972,7 +1108,9 @@ async fn download_to_cache(
 
     // 写入剩余数据
     if !buffer.is_empty() {
-        file.write_all(&buffer).await.map_err(|e| format!("写入文件失败: {}", e))?;
+        file.write_all(&buffer)
+            .await
+            .map_err(|e| format!("写入文件失败: {}", e))?;
     }
 
     // 确保数据写入磁盘
@@ -990,7 +1128,10 @@ async fn download_to_cache(
                 "[下载任务] [ID:{}] 文件大小不匹配：期望 {} bytes，实际 {} bytes",
                 task_id, total_size, actual_size
             );
-            return Err(format!("文件大小不匹配：期望 {} bytes，实际 {} bytes", total_size, actual_size));
+            return Err(format!(
+                "文件大小不匹配：期望 {} bytes，实际 {} bytes",
+                total_size, actual_size
+            ));
         }
     }
 

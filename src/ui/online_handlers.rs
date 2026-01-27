@@ -3,6 +3,7 @@
 use super::App;
 use super::AppMessage;
 use super::online::OnlineMessage;
+use crate::services::wallhaven;
 use tracing::error;
 
 impl App {
@@ -234,7 +235,13 @@ impl App {
             self.online_state.thumb_load_cancel_tokens.push(cancel_token.clone());
 
             tasks.push(iced::Task::perform(
-                super::async_tasks::async_load_online_wallpaper_thumb_with_cache_with_cancel(url, file_size, cache_path, proxy, cancel_token),
+                super::async_tasks::async_load_online_wallpaper_thumb_with_cache_with_cancel(
+                    url,
+                    file_size,
+                    cache_path,
+                    proxy,
+                    cancel_token,
+                ),
                 move |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
                     Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(
@@ -443,7 +450,13 @@ impl App {
             self.online_state.thumb_load_cancel_tokens.push(cancel_token.clone());
 
             tasks.push(iced::Task::perform(
-                super::async_tasks::async_load_online_wallpaper_thumb_with_cache_with_cancel(url, file_size, cache_path, proxy, cancel_token),
+                super::async_tasks::async_load_online_wallpaper_thumb_with_cache_with_cancel(
+                    url,
+                    file_size,
+                    cache_path,
+                    proxy,
+                    cancel_token,
+                ),
                 move |result| match result {
                     Ok(handle) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(idx, handle)),
                     Err(_) => AppMessage::Online(super::online::OnlineMessage::ThumbLoaded(
@@ -671,7 +684,7 @@ impl App {
             let file_size = wallpaper.file_size;
 
             // 生成目标文件路径
-            let file_name = super::download::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let file_name = wallhaven::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
             let data_path = self.config.data.data_path.clone();
             let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
 
@@ -758,7 +771,7 @@ impl App {
             let file_size = wallpaper.file_size;
 
             // 生成目标文件路径
-            let file_name = super::download::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let file_name = wallhaven::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
             let data_path = self.config.data.data_path.clone();
             let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
 
@@ -885,9 +898,16 @@ impl App {
         self.online_state.current_page = 1;
 
         // 取消所有等待中的下载任务
-        let waiting_tasks: Vec<usize> = self.download_state.tasks
+        let waiting_tasks: Vec<usize> = self
+            .download_state
+            .tasks
             .iter()
-            .filter(|t| matches!(t.task.status, super::download::DownloadStatus::Waiting | super::download::DownloadStatus::Paused))
+            .filter(|t| {
+                matches!(
+                    t.task.status,
+                    super::download::DownloadStatus::Waiting | super::download::DownloadStatus::Paused
+                )
+            })
             .map(|t| t.task.id)
             .collect();
 
@@ -898,12 +918,20 @@ impl App {
                 .tasks
                 .iter()
                 .find(|t| t.task.id == task_id)
-                .map(|t| (t.task.url.clone(), t.task.save_path.clone(), t.task.file_name.clone(), t.task.status.clone()));
+                .map(|t| {
+                    (
+                        t.task.url.clone(),
+                        t.task.save_path.clone(),
+                        t.task.file_name.clone(),
+                        t.task.status.clone(),
+                    )
+                });
 
             // 取消任务
             self.download_state.cancel_task(task_id);
             // 将任务状态设置为已取消
-            self.download_state.update_status(task_id, super::download::DownloadStatus::Cancelled);
+            self.download_state
+                .update_status(task_id, super::download::DownloadStatus::Cancelled);
 
             // 清除未完成的下载文件
             if let Some((url, save_path, _file_name, status)) = task_info {
@@ -920,18 +948,34 @@ impl App {
 
                     // 2. 删除缓存文件
                     let cache_path = self.config.data.cache_path.clone();
-                    if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
+                    if let Ok(cache_file_path) =
+                        crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, 0)
+                    {
                         if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
                             let _ = std::fs::remove_file(&cache_file_path);
-                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", task_id, cache_file_path);
+                            tracing::info!(
+                                "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
+                                task_id,
+                                cache_file_path
+                            );
                         }
                     }
 
                     // 3. 删除缓存文件（不带.download后缀的最终文件）
-                    if let Ok(final_cache_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, 0) {
+                    if let Ok(final_cache_path) =
+                        crate::services::download::DownloadService::get_online_image_cache_final_path(
+                            &cache_path,
+                            &url,
+                            0,
+                        )
+                    {
                         if let Ok(_metadata) = std::fs::metadata(&final_cache_path) {
                             let _ = std::fs::remove_file(&final_cache_path);
-                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}", task_id, final_cache_path);
+                            tracing::info!(
+                                "[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}",
+                                task_id,
+                                final_cache_path
+                            );
                         }
                     }
                 }
@@ -952,9 +996,16 @@ impl App {
         self.online_state.current_page = 1;
 
         // 取消所有等待中的下载任务
-        let waiting_tasks: Vec<usize> = self.download_state.tasks
+        let waiting_tasks: Vec<usize> = self
+            .download_state
+            .tasks
             .iter()
-            .filter(|t| matches!(t.task.status, super::download::DownloadStatus::Waiting | super::download::DownloadStatus::Paused))
+            .filter(|t| {
+                matches!(
+                    t.task.status,
+                    super::download::DownloadStatus::Waiting | super::download::DownloadStatus::Paused
+                )
+            })
             .map(|t| t.task.id)
             .collect();
 
@@ -965,12 +1016,20 @@ impl App {
                 .tasks
                 .iter()
                 .find(|t| t.task.id == task_id)
-                .map(|t| (t.task.url.clone(), t.task.save_path.clone(), t.task.file_name.clone(), t.task.status.clone()));
+                .map(|t| {
+                    (
+                        t.task.url.clone(),
+                        t.task.save_path.clone(),
+                        t.task.file_name.clone(),
+                        t.task.status.clone(),
+                    )
+                });
 
             // 取消任务
             self.download_state.cancel_task(task_id);
             // 将任务状态设置为已取消
-            self.download_state.update_status(task_id, super::download::DownloadStatus::Cancelled);
+            self.download_state
+                .update_status(task_id, super::download::DownloadStatus::Cancelled);
 
             // 清除未完成的下载文件
             if let Some((url, save_path, _file_name, status)) = task_info {
@@ -987,18 +1046,34 @@ impl App {
 
                     // 2. 删除缓存文件
                     let cache_path = self.config.data.cache_path.clone();
-                    if let Ok(cache_file_path) = crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
+                    if let Ok(cache_file_path) =
+                        crate::services::download::DownloadService::get_online_image_cache_path(&cache_path, &url, 0)
+                    {
                         if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
                             let _ = std::fs::remove_file(&cache_file_path);
-                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", task_id, cache_file_path);
+                            tracing::info!(
+                                "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
+                                task_id,
+                                cache_file_path
+                            );
                         }
                     }
 
                     // 3. 删除缓存文件（不带.download后缀的最终文件）
-                    if let Ok(final_cache_path) = crate::services::download::DownloadService::get_online_image_cache_final_path(&cache_path, &url, 0) {
+                    if let Ok(final_cache_path) =
+                        crate::services::download::DownloadService::get_online_image_cache_final_path(
+                            &cache_path,
+                            &url,
+                            0,
+                        )
+                    {
                         if let Ok(_metadata) = std::fs::metadata(&final_cache_path) {
                             let _ = std::fs::remove_file(&final_cache_path);
-                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}", task_id, final_cache_path);
+                            tracing::info!(
+                                "[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}",
+                                task_id,
+                                final_cache_path
+                            );
                         }
                     }
                 }
@@ -1272,7 +1347,7 @@ impl App {
             let file_size = wallpaper.file_size;
 
             // 生成目标文件路径
-            let file_name = super::download::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let file_name = wallhaven::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
             let data_path = self.config.data.data_path.clone();
             let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
 
@@ -1357,7 +1432,7 @@ impl App {
             let file_size = wallpaper.file_size;
 
             // 生成目标文件路径
-            let file_name = super::download::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let file_name = wallhaven::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
             let data_path = self.config.data.data_path.clone();
             let target_path = std::path::PathBuf::from(&data_path).join(&file_name);
 
