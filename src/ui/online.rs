@@ -570,7 +570,7 @@ pub fn online_view<'a>(
 
     // 图片预览模态窗口
     if online_state.modal_visible && !online_state.wallpapers.is_empty() {
-        layers.push(create_modal(i18n, online_state));
+        layers.push(create_modal(i18n, online_state, theme_config));
     }
 
     stack(layers).width(Length::Fill).height(Length::Fill).into()

@@ -282,11 +282,15 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     let set_wallpaper_button = common::create_button_with_tooltip(
         common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, AppMessage::Online(OnlineMessage::SetAsWallpaper(index))),
         i18n.t("online-wallpapers.tooltip-set-wallpaper"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     let download_button = common::create_button_with_tooltip(
         common::create_icon_button("\u{F30A}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::DownloadWallpaper(index))),
         i18n.t("online-wallpapers.tooltip-download"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     // 左侧区域：文件大小

@@ -237,3 +237,6 @@ menu =
 theme =
     .switch-to-light = 切换为浅色主题
     .switch-to-dark = 切换为深色主题
+
+titlebar =
+    .minimize-to-tray = 最小化到托盘

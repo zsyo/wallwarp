@@ -238,3 +238,6 @@ menu =
 theme =
     .switch-to-light = Switch to light theme
     .switch-to-dark = Switch to dark theme
+
+titlebar =
+    .minimize-to-tray = Minimize to tray

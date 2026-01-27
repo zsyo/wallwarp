@@ -382,23 +382,35 @@ where
         .into()
 }
 
-/// 创建带 tooltip 的按钮
+/// 创建带提示的按钮
 ///
 /// # 参数
 /// - `button`: 按钮组件
 /// - `tooltip_text`: tooltip 文本
+/// - `position`: tooltip 显示位置
+/// - `theme_config`: 主题配置
 pub fn create_button_with_tooltip<'a, Message>(
     button: button::Button<'a, Message>,
     tooltip_text: String,
+    position: tooltip::Position,
+    theme_config: &'a crate::ui::style::ThemeConfig,
 ) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
-    tooltip(button, text(tooltip_text), tooltip::Position::Top)
-        .style(|_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(TOOLTIP_BG_COLOR)),
+    let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+
+    // 使用主题的文本颜色创建 tooltip 文本
+    let tooltip_text_element = text(tooltip_text).style(move |_theme: &iced::Theme| text::Style {
+        color: Some(theme_colors.text),
+    });
+
+    tooltip(button, tooltip_text_element, position)
+        .gap(5.0)
+        .style(move |_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
             border: iced::border::Border {
-                color: TOOLTIP_BORDER_COLOR,
+                color: theme_colors.tooltip_border_color,
                 width: TOOLTIP_BORDER_WIDTH,
                 radius: iced::border::Radius::from(TOOLTIP_BORDER_RADIUS),
             },
@@ -441,11 +453,16 @@ where
         .height(Length::Fixed(30.0))
         .align_y(Alignment::Center);
 
-    tooltip(content, text(tooltip_text), tooltip::Position::Top)
-        .style(|_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(TOOLTIP_BG_COLOR)),
+    // 使用主题的文本颜色创建 tooltip 文本
+    let tooltip_text_element = text(tooltip_text).style(move |_theme: &iced::Theme| text::Style {
+        color: Some(theme_colors.text),
+    });
+
+    tooltip(content, tooltip_text_element, tooltip::Position::Top)
+        .style(move |_theme: &iced::Theme| container::Style {
+            background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
             border: iced::border::Border {
-                color: TOOLTIP_BORDER_COLOR,
+                color: theme_colors.tooltip_border_color,
                 width: TOOLTIP_BORDER_WIDTH,
                 radius: iced::border::Radius::from(TOOLTIP_BORDER_RADIUS),
             },
@@ -502,8 +519,7 @@ where
     let make_handle = |dir: window::Direction, cursor: mouse::Interaction, w: Length, h: Length| {
         if is_maximized {
             // 最大化时，使用默认光标且不响应任何事件
-            mouse_area(Space::new().width(w).height(h))
-                .interaction(mouse::Interaction::default())
+            mouse_area(Space::new().width(w).height(h)).interaction(mouse::Interaction::default())
         } else {
             // 非最大化时，启用边缘调整大小功能
             mouse_area(Space::new().width(w).height(h))
@@ -640,6 +656,7 @@ pub fn create_title_bar<'a, Message>(
     theme_config: &'a crate::ui::style::ThemeConfig,
     drag_message: Message,
     minimize_to_tray_message: Message,
+    minimize_to_tray_tooltip: String,
     minimize_message: Message,
     maximize_message: Message,
     close_message: Message,
@@ -670,7 +687,7 @@ where
 
     // 创建最小化到托盘按钮（带悬停效果）
     let minimize_to_tray_btn = button(
-        text("\u{F1B9}") // Bootstrap Icons: box-arrow-down
+        text("\u{F2EA}") // Bootstrap Icons: dash
             .size(TITLE_BAR_ICON_SIZE)
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)
@@ -726,9 +743,17 @@ where
     })
     .on_press(minimize_to_tray_message);
 
+    // 为最小化到托盘按钮添加 tooltip（位于按钮下方）
+    let minimize_to_tray_btn = create_button_with_tooltip(
+        minimize_to_tray_btn,
+        minimize_to_tray_tooltip,
+        tooltip::Position::Bottom,
+        theme_config,
+    );
+
     // 创建最小化按钮（带悬停效果）
     let minimize_btn = button(
-        text("\u{F63B}") // Bootstrap Icons: dash
+        text("\u{F63B}") // Bootstrap Icons: dash-lg
             .size(TITLE_BAR_ICON_SIZE)
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)

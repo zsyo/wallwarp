@@ -9,7 +9,11 @@ use iced::widget::{column, container, row, text};
 use iced::{Alignment, Element, Length};
 
 /// 创建图片预览模态窗口
-pub fn create_modal<'a>(i18n: &'a I18n, online_state: &'a OnlineState) -> Element<'a, AppMessage> {
+pub fn create_modal<'a>(
+    i18n: &'a I18n,
+    online_state: &'a OnlineState,
+    theme_config: &'a crate::ui::style::ThemeConfig,
+) -> Element<'a, AppMessage> {
     let wallpaper_index = online_state.current_image_index;
 
     // 创建背景加载文字（带进度）
@@ -32,11 +36,15 @@ pub fn create_modal<'a>(i18n: &'a I18n, online_state: &'a OnlineState) -> Elemen
     let prev_button = common::create_button_with_tooltip(
         common::create_icon_button("\u{F12E}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::PreviousImage)),
         i18n.t("online-wallpapers.tooltip-prev"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     let next_button = common::create_button_with_tooltip(
         common::create_icon_button("\u{F137}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::NextImage)),
         i18n.t("online-wallpapers.tooltip-next"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     // 设置为壁纸按钮：仅在图片下载完成时可点击
@@ -49,6 +57,8 @@ pub fn create_modal<'a>(i18n: &'a I18n, online_state: &'a OnlineState) -> Elemen
                 AppMessage::Online(OnlineMessage::SetAsWallpaperFromCache(wallpaper_index)),
             ),
             i18n.t("online-wallpapers.tooltip-set-wallpaper"),
+            iced::widget::tooltip::Position::Top,
+            theme_config,
         )
     } else {
         // 禁用状态的设置为壁纸按钮
@@ -76,6 +86,8 @@ pub fn create_modal<'a>(i18n: &'a I18n, online_state: &'a OnlineState) -> Elemen
                 AppMessage::Online(OnlineMessage::DownloadFromCache(wallpaper_index)),
             ),
             i18n.t("online-wallpapers.tooltip-download"),
+            iced::widget::tooltip::Position::Top,
+            theme_config,
         )
     } else {
         // 禁用状态的下载按钮
@@ -91,6 +103,8 @@ pub fn create_modal<'a>(i18n: &'a I18n, online_state: &'a OnlineState) -> Elemen
     let close_button = common::create_button_with_tooltip(
         common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, AppMessage::Online(OnlineMessage::CloseModal)),
         i18n.t("online-wallpapers.tooltip-close"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     // 底部工具栏

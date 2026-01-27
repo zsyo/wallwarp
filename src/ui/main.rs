@@ -40,6 +40,7 @@ pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
         &app.theme_config,
         AppMessage::TitleBarDrag,
         AppMessage::MinimizeToTray,
+        app.i18n.t("titlebar.minimize-to-tray"),
         AppMessage::TitleBarMinimize,
         AppMessage::TitleBarMaximize,
         AppMessage::TitleBarClose,
@@ -284,5 +285,5 @@ fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
         ..Default::default()
     });
 
-    super::common::create_button_with_tooltip(btn, tooltip_text)
+    super::common::create_button_with_tooltip(btn, tooltip_text, iced::widget::tooltip::Position::Top, &app.theme_config)
 }

@@ -230,6 +230,8 @@ pub fn local_view<'a>(
                 AppMessage::Local(LocalMessage::PreviousImage),
             ),
             i18n.t("local-list.tooltip-prev"),
+            iced::widget::tooltip::Position::Top,
+            theme_config,
         );
 
         let next_button = common::create_button_with_tooltip(
@@ -239,6 +241,8 @@ pub fn local_view<'a>(
                 AppMessage::Local(LocalMessage::NextImage),
             ),
             i18n.t("local-list.tooltip-next"),
+            iced::widget::tooltip::Position::Top,
+            theme_config,
         );
 
         let set_wallpaper_button = common::create_button_with_tooltip(
@@ -248,6 +252,8 @@ pub fn local_view<'a>(
                 AppMessage::Local(LocalMessage::SetWallpaper(wallpaper_index)),
             ),
             i18n.t("local-list.tooltip-set-wallpaper"),
+            iced::widget::tooltip::Position::Top,
+            theme_config,
         );
 
         let close_button = common::create_button_with_tooltip(
@@ -257,6 +263,8 @@ pub fn local_view<'a>(
                 AppMessage::Local(LocalMessage::CloseModal),
             ),
             i18n.t("local-list.tooltip-close"),
+            iced::widget::tooltip::Position::Top,
+            theme_config,
         );
 
         // 底部工具栏
@@ -431,6 +439,8 @@ fn create_error_placeholder<'a>(
             super::AppMessage::Local(LocalMessage::ViewInFolder(index)),
         ),
         i18n.t("local-list.tooltip-locate"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     let delete_button = common::create_button_with_tooltip(
@@ -440,6 +450,8 @@ fn create_error_placeholder<'a>(
             super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
         ),
         i18n.t("local-list.tooltip-delete"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     // 左侧区域：文件大小
@@ -550,6 +562,8 @@ fn create_loaded_wallpaper<'a>(
             super::AppMessage::Local(LocalMessage::ViewInFolder(index)),
         ),
         i18n.t("local-list.tooltip-locate"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     let set_wallpaper_button = common::create_button_with_tooltip(
@@ -559,6 +573,8 @@ fn create_loaded_wallpaper<'a>(
             super::AppMessage::Local(LocalMessage::SetWallpaper(index)),
         ),
         i18n.t("local-list.tooltip-set-wallpaper"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     let delete_button = common::create_button_with_tooltip(
@@ -568,6 +584,8 @@ fn create_loaded_wallpaper<'a>(
             super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
         ),
         i18n.t("local-list.tooltip-delete"),
+        iced::widget::tooltip::Position::Top,
+        theme_config,
     );
 
     // 左侧区域：文件大小
