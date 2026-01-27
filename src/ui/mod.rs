@@ -8,7 +8,6 @@ pub mod common;
 pub mod download;
 pub mod download_handlers;
 pub mod local;
-pub mod local_handlers;
 pub mod main;
 pub mod online;
 pub mod online_filter;

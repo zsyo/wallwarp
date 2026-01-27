@@ -1,9 +1,11 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use super::App;
-use super::AppMessage;
-use super::common;
-use super::local::LocalMessage;
+use crate::ui::App;
+use crate::ui::AppMessage;
+use crate::ui::NotificationType;
+use crate::ui::common;
+use crate::ui::async_tasks;
+use super::message::{LocalMessage, WallpaperLoadStatus};
 use tracing::error;
 
 impl App {
@@ -37,10 +39,10 @@ impl App {
     fn handle_load_local_wallpapers(&mut self) -> iced::Task<AppMessage> {
         let data_path = self.config.data.data_path.clone();
         iced::Task::perform(
-            super::async_tasks::async_load_wallpaper_paths(data_path),
+            super::super::async_tasks::async_load_wallpaper_paths(data_path),
             |result| match result {
-                Ok(paths) => AppMessage::Local(super::local::LocalMessage::LoadWallpapersSuccess(paths)),
-                Err(e) => AppMessage::Local(super::local::LocalMessage::LoadWallpapersFailed(e.to_string())),
+                Ok(paths) => AppMessage::Local(LocalMessage::LoadWallpapersSuccess(paths)),
+                Err(e) => AppMessage::Local(LocalMessage::LoadWallpapersFailed(e.to_string())),
             },
         )
     }
@@ -52,10 +54,10 @@ impl App {
 
         // 初始化壁纸状态为Loading，并加载第一页
         let page_end = std::cmp::min(self.local_state.page_size, self.local_state.total_count);
-        self.local_state.wallpapers = vec![super::local::WallpaperLoadStatus::Loading; page_end];
+        self.local_state.wallpapers = vec![WallpaperLoadStatus::Loading; page_end];
 
         // 触发第一页加载
-        iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadPage))
+        iced::Task::perform(async {}, |_| AppMessage::Local(LocalMessage::LoadPage))
     }
 
     fn handle_load_local_wallpapers_failed(&mut self, error: String) -> iced::Task<AppMessage> {
@@ -87,13 +89,10 @@ impl App {
             let absolute_idx = start_idx + i;
 
             tasks.push(iced::Task::perform(
-                super::async_tasks::async_load_single_wallpaper_with_fallback(path.clone(), cache_path),
+                super::super::async_tasks::async_load_single_wallpaper_with_fallback(path.clone(), cache_path),
                 move |result| match result {
-                    Ok(wallpaper) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(
-                        absolute_idx,
-                        wallpaper,
-                    )])),
-                    Err(_) => AppMessage::Local(super::local::LocalMessage::LoadPageSuccess(vec![(
+                    Ok(wallpaper) => AppMessage::Local(LocalMessage::LoadPageSuccess(vec![(absolute_idx, wallpaper)])),
+                    Err(_) => AppMessage::Local(LocalMessage::LoadPageSuccess(vec![(
                         absolute_idx,
                         crate::services::local::Wallpaper::new(path, "加载失败".to_string(), 0, 0, 0),
                     )])), // 创建失败状态
@@ -107,13 +106,11 @@ impl App {
 
         if self.local_state.current_page == 0 {
             // 第一页：初始化wallpapers数组
-            self.local_state.wallpapers = vec![super::local::WallpaperLoadStatus::Loading; page_end];
+            self.local_state.wallpapers = vec![WallpaperLoadStatus::Loading; page_end];
         } else {
             // 后续页面：扩展wallpapers数组
             for _ in 0..(page_end - self.local_state.wallpapers.len()) {
-                self.local_state
-                    .wallpapers
-                    .push(super::local::WallpaperLoadStatus::Loading);
+                self.local_state.wallpapers.push(WallpaperLoadStatus::Loading);
             }
         }
 
@@ -128,7 +125,7 @@ impl App {
         // 为每个加载完成的壁纸更新状态
         for (idx, wallpaper) in wallpapers_with_idx {
             if idx < self.local_state.wallpapers.len() {
-                self.local_state.wallpapers[idx] = super::local::WallpaperLoadStatus::Loaded(wallpaper);
+                self.local_state.wallpapers[idx] = WallpaperLoadStatus::Loaded(wallpaper);
             }
         }
 
@@ -139,18 +136,16 @@ impl App {
         let all_loaded = (page_start..page_end).all(|i| {
             i < self.local_state.wallpapers.len()
                 && matches!(
-                    self.local_state.wallpapers[i],
-                    super::local::WallpaperLoadStatus::Loaded(_)
-                )
+                                    self.local_state.wallpapers[i],
+                                    WallpaperLoadStatus::Loaded(_)
+                                )
         });
 
         if all_loaded {
             self.local_state.loading_page = false;
 
             // 添加检查是否需要自动加载下一页的任务
-            let check_task = iced::Task::perform(async {}, |_| {
-                AppMessage::Local(super::local::LocalMessage::CheckAndLoadNextPage)
-            });
+            let check_task = iced::Task::perform(async {}, |_| AppMessage::Local(LocalMessage::CheckAndLoadNextPage));
             return check_task;
         }
 
@@ -176,7 +171,7 @@ impl App {
     fn handle_show_local_modal(&mut self, index: usize) -> iced::Task<AppMessage> {
         // 检查要显示的图片是否为失败状态
         if let Some(wallpaper_status) = self.local_state.wallpapers.get(index) {
-            if let super::local::WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
+            if let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
                 if wallpaper.name == "加载失败" {
                     // 如果是失败的图片，不显示模态窗口
                     return iced::Task::none();
@@ -198,7 +193,7 @@ impl App {
                     // 异步加载图片数据
                     iced::widget::image::Handle::from_path(&path)
                 },
-                |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
+                |handle| AppMessage::Local(LocalMessage::ModalImageLoaded(handle)),
             );
         }
 
@@ -242,7 +237,7 @@ impl App {
                         // 异步加载图片数据
                         iced::widget::image::Handle::from_path(&path)
                     },
-                    |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
+                    |handle| AppMessage::Local(LocalMessage::ModalImageLoaded(handle)),
                 );
             }
         }
@@ -268,7 +263,7 @@ impl App {
                         // 异步加载图片数据
                         iced::widget::image::Handle::from_path(&path)
                     },
-                    |handle| AppMessage::Local(super::local::LocalMessage::ModalImageLoaded(handle)),
+                    |handle| AppMessage::Local(LocalMessage::ModalImageLoaded(handle)),
                 );
             }
         }
@@ -281,7 +276,7 @@ impl App {
         if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count
             && !self.local_state.loading_page
         {
-            return iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadPage));
+            return iced::Task::perform(async {}, |_| AppMessage::Local(LocalMessage::LoadPage));
         }
 
         iced::Task::none()
@@ -310,7 +305,7 @@ impl App {
 
             // 如果估算的内容高度小于窗口高度，说明没有滚动条，需要加载下一页
             if estimated_content_height < self.current_window_height as f32 {
-                return iced::Task::perform(async {}, |_| AppMessage::Local(super::local::LocalMessage::LoadPage));
+                return iced::Task::perform(async {}, |_| AppMessage::Local(LocalMessage::LoadPage));
             }
         }
 
@@ -367,16 +362,13 @@ impl App {
                     }
 
                     // 显示成功通知
-                    return self.show_notification(
-                        self.i18n.t("local-list.delete-success"),
-                        super::NotificationType::Success,
-                    );
+                    return self.show_notification(self.i18n.t("local-list.delete-success"), NotificationType::Success);
                 }
                 Err(e) => {
                     // 删除失败，显示错误通知
                     return self.show_notification(
                         format!("{}: {}", self.i18n.t("local-list.delete-failed"), e),
-                        super::NotificationType::Error,
+                        NotificationType::Error,
                     );
                 }
             }
@@ -396,18 +388,16 @@ impl App {
 
             // 异步设置壁纸
             return iced::Task::perform(
-                super::async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                 move |result| match result {
                     Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                    Err(e) => AppMessage::ShowNotification(
-                        format!("{}: {}", failed_message, e),
-                        super::NotificationType::Error,
-                    ),
+                    Err(e) => {
+                        AppMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error)
+                    }
                 },
             );
         }
 
         iced::Task::none()
     }
-
-    }
+}

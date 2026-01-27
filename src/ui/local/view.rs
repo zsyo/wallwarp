@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use super::AppMessage;
-use super::common;
+use crate::ui::AppMessage;
+use crate::ui::common;
 use crate::services::local::Wallpaper;
 use crate::ui::style::{
     ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_MODAL_BG,
@@ -12,67 +12,8 @@ use crate::utils::config::Config;
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Color, Element, Font, Length};
 
-#[derive(Debug, Clone)]
-pub enum LocalMessage {
-    LoadWallpapers,
-    LoadWallpapersSuccess(Vec<String>),
-    LoadWallpapersFailed(String),
-    LoadPage,
-    LoadPageSuccess(Vec<(usize, Wallpaper)>),
-    LoadPageFailed(String),
-    WallpaperSelected(Wallpaper),
-    ScrollToBottom,
-    CheckAndLoadNextPage, // 检查是否需要自动加载下一页
-    ShowModal(usize),
-    CloseModal,
-    NextImage,
-    PreviousImage,
-    ViewInFolder(usize),
-    SetWallpaper(usize),
-    ShowDeleteConfirm(usize),
-    CloseDeleteConfirm,
-    ConfirmDelete(usize),
-    ModalImageLoaded(iced::widget::image::Handle),
-}
-
-#[derive(Debug, Clone)]
-pub enum WallpaperLoadStatus {
-    Loading,
-    Loaded(Wallpaper),
-}
-
-#[derive(Debug)]
-pub struct LocalState {
-    pub wallpapers: Vec<WallpaperLoadStatus>,
-    pub all_paths: Vec<String>,
-    pub loading_page: bool,
-    pub current_page: usize,
-    pub page_size: usize,
-    pub total_count: usize,
-    pub modal_visible: bool,
-    pub current_image_index: usize,
-    pub delete_confirm_visible: bool,
-    pub delete_target_index: Option<usize>,
-    pub modal_image_handle: Option<iced::widget::image::Handle>,
-}
-
-impl Default for LocalState {
-    fn default() -> Self {
-        Self {
-            wallpapers: Vec::new(),
-            all_paths: Vec::new(),
-            loading_page: false,
-            current_page: 0,
-            page_size: 20,
-            total_count: 0,
-            modal_visible: false,
-            current_image_index: 0,
-            delete_confirm_visible: false,
-            delete_target_index: None,
-            modal_image_handle: None,
-        }
-    }
-}
+use super::message::{LocalMessage, WallpaperLoadStatus};
+use super::state::LocalState;
 
 pub fn local_view<'a>(
     i18n: &'a crate::i18n::I18n,
@@ -173,9 +114,9 @@ pub fn local_view<'a>(
                 let is_near_bottom = scroll_percentage >= 0.95;
 
                 if is_near_bottom {
-                    super::AppMessage::Local(LocalMessage::ScrollToBottom)
+                    AppMessage::Local(LocalMessage::ScrollToBottom)
                 } else {
-                    super::AppMessage::None
+                    AppMessage::None
                 }
             } else {
                 // 没有滚动条的情况：检测是否有滚轮事件
@@ -185,9 +126,9 @@ pub fn local_view<'a>(
 
                 // 只有当向下滚动（relative_offset > 0）且在底部时才触发加载
                 if relative_offset > 0.0 {
-                    super::AppMessage::Local(LocalMessage::ScrollToBottom)
+                    AppMessage::Local(LocalMessage::ScrollToBottom)
                 } else {
-                    super::AppMessage::None
+                    AppMessage::None
                 }
             }
         });
@@ -434,7 +375,7 @@ fn create_error_placeholder<'a>(
         common::create_icon_button(
             "\u{F341}",
             BUTTON_COLOR_YELLOW,
-            super::AppMessage::Local(LocalMessage::ViewInFolder(index)),
+            AppMessage::Local(LocalMessage::ViewInFolder(index)),
         ),
         i18n.t("local-list.tooltip-locate"),
         iced::widget::tooltip::Position::Top,
@@ -445,7 +386,7 @@ fn create_error_placeholder<'a>(
         common::create_icon_button(
             "\u{F78B}",
             BUTTON_COLOR_RED,
-            super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
+            AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
         ),
         i18n.t("local-list.tooltip-delete"),
         iced::widget::tooltip::Position::Top,
@@ -557,7 +498,7 @@ fn create_loaded_wallpaper<'a>(
         common::create_icon_button(
             "\u{F341}",
             BUTTON_COLOR_YELLOW,
-            super::AppMessage::Local(LocalMessage::ViewInFolder(index)),
+            AppMessage::Local(LocalMessage::ViewInFolder(index)),
         ),
         i18n.t("local-list.tooltip-locate"),
         iced::widget::tooltip::Position::Top,
@@ -568,7 +509,7 @@ fn create_loaded_wallpaper<'a>(
         common::create_icon_button(
             "\u{F429}",
             BUTTON_COLOR_GREEN,
-            super::AppMessage::Local(LocalMessage::SetWallpaper(index)),
+            AppMessage::Local(LocalMessage::SetWallpaper(index)),
         ),
         i18n.t("local-list.tooltip-set-wallpaper"),
         iced::widget::tooltip::Position::Top,
@@ -579,7 +520,7 @@ fn create_loaded_wallpaper<'a>(
         common::create_icon_button(
             "\u{F78B}",
             BUTTON_COLOR_RED,
-            super::AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
+            AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
         ),
         i18n.t("local-list.tooltip-delete"),
         iced::widget::tooltip::Position::Top,
@@ -660,55 +601,7 @@ fn create_loaded_wallpaper<'a>(
             };
             iced::widget::button::Style { shadow, ..base_style }
         })
-        .on_press(super::AppMessage::Local(LocalMessage::ShowModal(index)))
-}
-
-impl LocalState {
-    /// 查找下一个有效的图片索引
-    pub fn find_next_valid_image_index(&self, start_index: usize, direction: i32) -> Option<usize> {
-        if self.all_paths.is_empty() {
-            return None;
-        }
-
-        let total = self.all_paths.len();
-        let mut current_index = start_index;
-        let loop_count = total; // 防止无限循环
-
-        for _ in 0..loop_count {
-            // 根据方向更新索引
-            if direction > 0 {
-                // 向前查找
-                current_index = if current_index < total - 1 {
-                    current_index + 1
-                } else {
-                    0
-                };
-            } else {
-                // 向后查找
-                current_index = if current_index > 0 {
-                    current_index - 1
-                } else {
-                    total - 1
-                };
-            }
-
-            // 检查是否回到起始位置
-            if current_index == start_index {
-                return None;
-            }
-
-            // 检查当前索引是否有效
-            if let Some(wallpaper_status) = self.wallpapers.get(current_index) {
-                if let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
-                    if wallpaper.name != "加载失败" {
-                        return Some(current_index);
-                    }
-                }
-            }
-        }
-
-        None
-    }
+        .on_press(AppMessage::Local(LocalMessage::ShowModal(index)))
 }
 
 // 创建模态窗口加载占位符，静态文字显示
@@ -725,10 +618,4 @@ fn create_modal_loading_placeholder<'a>(i18n: &'a crate::i18n::I18n) -> Element<
         .center_x(Length::Fill)
         .center_y(Length::Fill)
         .into()
-}
-
-impl From<LocalMessage> for AppMessage {
-    fn from(local_message: LocalMessage) -> AppMessage {
-        AppMessage::Local(local_message)
-    }
 }
