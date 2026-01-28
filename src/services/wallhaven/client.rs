@@ -5,10 +5,7 @@
 //! 处理 HTTP 请求和重试逻辑
 
 use crate::services::request_context::RequestContext;
-use tracing::debug;
-use tracing::error;
-use tracing::info;
-use tracing::warn;
+use tracing::{debug, error, info, warn};
 
 const BASE_URL: &str = "https://wallhaven.cc/api/v1";
 
@@ -230,7 +227,11 @@ impl WallhavenClient {
         let response = request.send().await.map_err(|e| {
             // 检查是否是超时错误
             if e.is_timeout() {
-                error!("[Wallhaven API] [{}] 请求超时（{}秒）", identifier, timeout_secs.unwrap_or(0));
+                error!(
+                    "[Wallhaven API] [{}] 请求超时（{}秒）",
+                    identifier,
+                    timeout_secs.unwrap_or(0)
+                );
                 format!("请求超时，请检查网络连接或设置代理")
             } else if e.is_connect() {
                 error!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);

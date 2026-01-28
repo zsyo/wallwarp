@@ -5,7 +5,12 @@ use crate::services::wallhaven::OnlineWallpaper;
 use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::online::{OnlineMessage, OnlineState, WallpaperLoadStatus};
-use crate::ui::style::{ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, COLOR_OVERLAY_BG, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE};
+use crate::ui::style::{
+    ALL_LOADED_TEXT_SIZE, BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, COLOR_OVERLAY_BG, EMPTY_STATE_PADDING,
+    EMPTY_STATE_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_SPACING, IMAGE_WIDTH, LOADING_TEXT_SIZE, OVERLAY_HEIGHT,
+    OVERLAY_TEXT_SIZE, PAGE_SEPARATOR_HEIGHT, PAGE_SEPARATOR_TEXT_COLOR, PAGE_SEPARATOR_TEXT_SIZE,
+};
+use crate::utils::helpers;
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{Alignment, Element, Length};
 
@@ -16,48 +21,49 @@ pub fn create_wallpaper_list<'a>(
     online_state: &'a OnlineState,
     theme_config: &'a crate::ui::style::ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let content: Element<'a, AppMessage> = if !online_state.has_loaded && !online_state.loading_page {
-        // 初始状态，还未开始加载
-        column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE)]
-            .width(Length::Fill)
-            .align_x(Alignment::Center)
-            .padding(EMPTY_STATE_PADDING)
-            .into()
-    } else if online_state.wallpapers.is_empty() && online_state.loading_page {
-        // 正在加载中
-        let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
-        column![text(i18n.t("online-wallpapers.loading"))
-            .size(LOADING_TEXT_SIZE)
-            .style(move |_theme: &iced::Theme| text::Style {
-                color: Some(theme_colors.text),
-            })]
-            .width(Length::Fill)
-            .align_x(Alignment::Center)
-            .padding(EMPTY_STATE_PADDING)
-            .into()
-    } else if online_state.wallpapers.is_empty() && online_state.has_loaded {
-        // 已加载但无数据
-        let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
-        column![
-            text(i18n.t("online-wallpapers.no-data"))
-                .size(EMPTY_STATE_TEXT_SIZE)
-                .style(move |_theme: &iced::Theme| text::Style {
+    let content: Element<'a, AppMessage> =
+        if !online_state.has_loaded && !online_state.loading_page {
+            // 初始状态，还未开始加载
+            column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE)]
+                .width(Length::Fill)
+                .align_x(Alignment::Center)
+                .padding(EMPTY_STATE_PADDING)
+                .into()
+        } else if online_state.wallpapers.is_empty() && online_state.loading_page {
+            // 正在加载中
+            let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+            column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE).style(
+                move |_theme: &iced::Theme| text::Style {
                     color: Some(theme_colors.text),
-                }),
-            text(i18n.t("online-wallpapers.no-data-hint"))
-                .size(14)
-                .style(move |_theme: &iced::Theme| text::Style {
-                    color: Some(theme_colors.light_text_sub),
-                }),
-        ]
-        .width(Length::Fill)
-        .align_x(Alignment::Center)
-        .padding(EMPTY_STATE_PADDING)
-        .spacing(10)
-        .into()
-    } else {
-        create_wallpaper_grid(i18n, window_width, online_state, theme_config)
-    };
+                }
+            )]
+            .width(Length::Fill)
+            .align_x(Alignment::Center)
+            .padding(EMPTY_STATE_PADDING)
+            .into()
+        } else if online_state.wallpapers.is_empty() && online_state.has_loaded {
+            // 已加载但无数据
+            let theme_colors = crate::ui::style::ThemeColors::from_theme(theme_config.get_theme());
+            column![
+                text(i18n.t("online-wallpapers.no-data"))
+                    .size(EMPTY_STATE_TEXT_SIZE)
+                    .style(move |_theme: &iced::Theme| text::Style {
+                        color: Some(theme_colors.text),
+                    }),
+                text(i18n.t("online-wallpapers.no-data-hint"))
+                    .size(14)
+                    .style(move |_theme: &iced::Theme| text::Style {
+                        color: Some(theme_colors.light_text_sub),
+                    }),
+            ]
+            .width(Length::Fill)
+            .align_x(Alignment::Center)
+            .padding(EMPTY_STATE_PADDING)
+            .spacing(10)
+            .into()
+        } else {
+            create_wallpaper_grid(i18n, window_width, online_state, theme_config)
+        };
 
     scrollable(content)
         .width(Length::Fill)
@@ -111,7 +117,10 @@ fn create_wallpaper_grid<'a>(
     let items_per_row = (available_width / unit_width).floor() as usize;
     let items_per_row = items_per_row.max(1);
 
-    let mut content = column![].spacing(IMAGE_SPACING).width(Length::Fill).align_x(Alignment::Center);
+    let mut content = column![]
+        .spacing(IMAGE_SPACING)
+        .width(Length::Fill)
+        .align_x(Alignment::Center);
 
     // 按页渲染数据，实现类似PDF的分页效果
     let mut start_index = 0;
@@ -133,7 +142,13 @@ fn create_wallpaper_grid<'a>(
                             .iter()
                             .position(|w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id))
                             .unwrap_or(0);
-                        create_loaded_wallpaper_with_thumb(i18n, wallpaper, Some(handle.clone()), wallpaper_index, theme_config)
+                        create_loaded_wallpaper_with_thumb(
+                            i18n,
+                            wallpaper,
+                            Some(handle.clone()),
+                            wallpaper_index,
+                            theme_config,
+                        )
                     }
                     WallpaperLoadStatus::Loaded(wallpaper) => {
                         let wallpaper_index = online_state
@@ -153,7 +168,11 @@ fn create_wallpaper_grid<'a>(
         }
 
         // 在当前页数据后添加分页分隔线
-        content = content.push(create_page_separator(i18n, page_info.page_num, online_state.total_pages));
+        content = content.push(create_page_separator(
+            i18n,
+            page_info.page_num,
+            online_state.total_pages,
+        ));
 
         // 更新下一页的起始索引
         start_index = end_index;
@@ -208,13 +227,9 @@ fn create_loading_placeholder<'a>(
         .height(Length::Fixed(IMAGE_HEIGHT))
         .style(|_theme, status| {
             let base_style = iced::widget::button::text(_theme, status);
-            let shadow = crate::ui::style::get_card_shadow_by_status(
-                matches!(status, iced::widget::button::Status::Hovered),
-            );
-            iced::widget::button::Style {
-                shadow,
-                ..base_style
-            }
+            let shadow =
+                crate::ui::style::get_card_shadow_by_status(matches!(status, iced::widget::button::Status::Hovered));
+            iced::widget::button::Style { shadow, ..base_style }
         })
         .into()
 }
@@ -267,7 +282,7 @@ fn create_loaded_wallpaper_with_thumb<'a>(
         });
 
     // 创建透明遮罩内容
-    let file_size_text = text(crate::utils::helpers::format_file_size(wallpaper.file_size))
+    let file_size_text = text(helpers::format_file_size(wallpaper.file_size))
         .size(OVERLAY_TEXT_SIZE)
         .style(move |_theme: &iced::Theme| text::Style {
             color: Some(theme_colors.overlay_text),
@@ -280,14 +295,22 @@ fn create_loaded_wallpaper_with_thumb<'a>(
         });
 
     let set_wallpaper_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, AppMessage::Online(OnlineMessage::SetAsWallpaper(index))),
+        common::create_icon_button(
+            "\u{F429}",
+            BUTTON_COLOR_GREEN,
+            AppMessage::Online(OnlineMessage::SetAsWallpaper(index)),
+        ),
         i18n.t("online-wallpapers.tooltip-set-wallpaper"),
         iced::widget::tooltip::Position::Top,
         theme_config,
     );
 
     let download_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F30A}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::DownloadWallpaper(index))),
+        common::create_icon_button(
+            "\u{F30A}",
+            BUTTON_COLOR_BLUE,
+            AppMessage::Online(OnlineMessage::DownloadWallpaper(index)),
+        ),
         i18n.t("online-wallpapers.tooltip-download"),
         iced::widget::tooltip::Position::Top,
         theme_config,
@@ -297,7 +320,9 @@ fn create_loaded_wallpaper_with_thumb<'a>(
     let left_area = container(file_size_text).align_y(Alignment::Center);
 
     // 右侧区域：设为壁纸按钮 + 下载按钮
-    let right_area = row![set_wallpaper_button, download_button].spacing(4).align_y(Alignment::Center);
+    let right_area = row![set_wallpaper_button, download_button]
+        .spacing(4)
+        .align_y(Alignment::Center);
 
     // 使用 stack 确保分辨率永远居中，不受两侧内容影响
     let overlay_content = iced::widget::stack(vec![
@@ -352,13 +377,9 @@ fn create_loaded_wallpaper_with_thumb<'a>(
         .on_press(AppMessage::Online(OnlineMessage::ShowModal(index)))
         .style(|_theme, status| {
             let base_style = iced::widget::button::text(_theme, status);
-            let shadow = crate::ui::style::get_card_shadow_by_status(
-                matches!(status, iced::widget::button::Status::Hovered),
-            );
-            iced::widget::button::Style {
-                shadow,
-                ..base_style
-            }
+            let shadow =
+                crate::ui::style::get_card_shadow_by_status(matches!(status, iced::widget::button::Status::Hovered));
+            iced::widget::button::Style { shadow, ..base_style }
         })
         .into()
 }
@@ -370,9 +391,13 @@ fn create_page_separator<'a>(i18n: &'a I18n, current_page: usize, total_pages: u
         .replace("{current}", &current_page.to_string())
         .replace("{total}", &total_pages.to_string());
 
-    let separator = container(text(page_text).size(PAGE_SEPARATOR_TEXT_SIZE).style(|_theme: &iced::Theme| text::Style {
-        color: Some(PAGE_SEPARATOR_TEXT_COLOR),
-    }))
+    let separator = container(
+        text(page_text)
+            .size(PAGE_SEPARATOR_TEXT_SIZE)
+            .style(|_theme: &iced::Theme| text::Style {
+                color: Some(PAGE_SEPARATOR_TEXT_COLOR),
+            }),
+    )
     .width(Length::Fill)
     .height(Length::Fixed(PAGE_SEPARATOR_HEIGHT))
     .align_x(Alignment::Center)

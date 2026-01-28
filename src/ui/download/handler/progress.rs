@@ -1,11 +1,10 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::App;
-use crate::ui::AppMessage;
+use crate::ui::{App, AppMessage};
 use iced::Task;
 
 impl App {
-    pub(in crate::ui::download) fn progress(
+    pub(in crate::ui::download) fn update_download_progress(
         &mut self,
         id: usize,
         downloaded: u64,

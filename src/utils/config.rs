@@ -6,10 +6,10 @@ use std::path::Path;
 use tracing::error;
 
 const CONFIG_FILE: &str = "config.toml";
-const MIN_WINDOW_WIDTH: u32 = 1280;
-const MIN_WINDOW_HEIGHT: u32 = 800;
 const DEFAULT_DATA_PATH: &str = "data";
 const DEFAULT_CACHE_PATH: &str = "cache";
+pub const MIN_WINDOW_WIDTH: u32 = 1280;
+pub const MIN_WINDOW_HEIGHT: u32 = 800;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Config {

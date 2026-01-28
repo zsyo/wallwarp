@@ -246,18 +246,6 @@ pub fn create_info_row<'a, Message: 'a>(
     .into()
 }
 
-/// 获取绝对路径
-pub fn get_absolute_path(path: &str) -> String {
-    let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-    let path_buf = std::path::PathBuf::from(path);
-
-    if path_buf.is_absolute() {
-        path.to_string()
-    } else {
-        current_dir.join(path_buf).to_string_lossy().to_string()
-    }
-}
-
 /// 创建带图标的操作按钮
 ///
 /// # 参数

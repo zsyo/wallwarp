@@ -2,8 +2,7 @@
 
 use crate::ui::AppMessage;
 use crate::ui::style::TABLE_SEPARATOR_WIDTH;
-use crate::ui::style::ThemeColors;
-use crate::ui::style::ThemeConfig;
+use crate::ui::style::{ThemeColors, ThemeConfig};
 use iced::widget::{Space, container};
 use iced::{Element, Length};
 

@@ -1,17 +1,15 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::download::DownloadService;
-use crate::ui::App;
-use crate::ui::AppMessage;
-use crate::ui::NotificationType;
 use crate::ui::async_tasks;
 use crate::ui::download::{DownloadMessage, DownloadStatus};
+use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 use std::path::PathBuf;
 use std::time::Instant;
 
 impl App {
-    pub(in crate::ui::download) fn completed(
+    pub(in crate::ui::download) fn download_completed(
         &mut self,
         id: usize,
         size: u64,
@@ -97,7 +95,7 @@ impl App {
                     if let Some(pending_filename) = self.online_state.pending_set_wallpaper_filename.as_ref() {
                         if pending_filename == file_name {
                             // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
-                            let full_path = crate::ui::common::get_absolute_path(&task.task.save_path);
+                            let full_path = crate::utils::helpers::get_absolute_path(&task.task.save_path);
                             let wallpaper_mode = self.config.wallpaper.mode;
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
@@ -165,7 +163,6 @@ impl App {
                 },
             );
         }
-
         Task::none()
     }
 }

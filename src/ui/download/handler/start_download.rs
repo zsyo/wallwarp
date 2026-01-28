@@ -1,11 +1,9 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::wallhaven;
-use crate::ui::App;
-use crate::ui::AppMessage;
-use crate::ui::NotificationType;
 use crate::ui::async_tasks;
 use crate::ui::download::{DownloadMessage, DownloadStatus};
+use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 use std::path::PathBuf;
 use std::time::Instant;

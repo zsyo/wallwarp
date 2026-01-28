@@ -8,9 +8,7 @@ use super::client::WallhavenClient;
 use super::models::{ColorOption, Sorting, TimeRange};
 use super::types::{OnlineWallpaper, WallhavenResponse, WallpaperData};
 use crate::services::request_context::RequestContext;
-use tracing::debug;
-use tracing::error;
-use tracing::info;
+use tracing::{debug, error, info};
 
 /// Wallhaven 服务
 pub struct WallhavenService {
@@ -130,13 +128,20 @@ impl WallhavenService {
             purities,
             color.value(),
             time_range.value(),
-            if query.is_empty() { "empty" } else { &query[..query.len().min(10)] }
+            if query.is_empty() {
+                "empty"
+            } else {
+                &query[..query.len().min(10)]
+            }
         );
         let masked_url = Self::mask_api_key_in_url(&url);
         info!("[Wallhaven API] [{}] 请求URL: {}", search_tag, masked_url);
 
         // 执行请求（设置5秒超时，使用 get_single 不进行重试）
-        let text = self.client.get_single(url, search_tag.clone(), context, Some(5)).await?;
+        let text = self
+            .client
+            .get_single(url, search_tag.clone(), context, Some(5))
+            .await?;
 
         // 解析前检查取消状态
         if let Some(()) = context.check_cancelled() {
@@ -150,15 +155,31 @@ impl WallhavenService {
         })?;
 
         // 打印解析结果
-        info!("[Wallhaven API] [{}] 解析成功，获取到 {} 张壁纸", search_tag, wallhaven_response.data.len());
+        info!(
+            "[Wallhaven API] [{}] 解析成功，获取到 {} 张壁纸",
+            search_tag,
+            wallhaven_response.data.len()
+        );
 
         let wallpapers: Vec<OnlineWallpaper> = wallhaven_response.data.into_iter().map(OnlineWallpaper::from).collect();
 
-        let last_page = wallhaven_response.meta.as_ref().map(|m| page as u64 >= m.last_page).unwrap_or(false);
+        let last_page = wallhaven_response
+            .meta
+            .as_ref()
+            .map(|m| page as u64 >= m.last_page)
+            .unwrap_or(false);
 
-        let total_pages = wallhaven_response.meta.as_ref().map(|m| m.last_page as usize).unwrap_or(0);
+        let total_pages = wallhaven_response
+            .meta
+            .as_ref()
+            .map(|m| m.last_page as usize)
+            .unwrap_or(0);
 
-        let current_page = wallhaven_response.meta.as_ref().map(|m| m.current_page as usize).unwrap_or(page);
+        let current_page = wallhaven_response
+            .meta
+            .as_ref()
+            .map(|m| m.current_page as usize)
+            .unwrap_or(page);
 
         Ok((wallpapers, last_page, total_pages, current_page))
     }
@@ -203,7 +224,10 @@ impl WallhavenService {
             format!("解析JSON失败: {}", e)
         })?;
 
-        info!("[Wallhaven API] [ID:{}] 解析成功，获取壁纸: {}", id, wallhaven_response.data.path);
+        info!(
+            "[Wallhaven API] [ID:{}] 解析成功，获取壁纸: {}",
+            id, wallhaven_response.data.path
+        );
 
         Ok(OnlineWallpaper::from(wallhaven_response.data))
     }

@@ -1,13 +1,12 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::download::DownloadService;
-use crate::ui::App;
-use crate::ui::AppMessage;
 use crate::ui::download::DownloadStatus;
+use crate::ui::{App, AppMessage};
 use iced::Task;
 
 impl App {
-    pub(in crate::ui::download) fn cancel_task(&mut self, id: usize) -> Task<AppMessage> {
+    pub(in crate::ui::download) fn cancel_download_task(&mut self, id: usize) -> Task<AppMessage> {
         // 先保存任务信息，因为取消后可能无法访问
         let task_info = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| {
             (
@@ -61,7 +60,6 @@ impl App {
                 }
             }
         }
-
         Task::none()
     }
 }

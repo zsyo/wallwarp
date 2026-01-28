@@ -1,12 +1,10 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::App;
-use crate::ui::AppMessage;
-use crate::ui::NotificationType;
+use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 
 impl App {
-    pub(in crate::ui::download) fn copy_link(&mut self, id: usize) -> Task<AppMessage> {
+    pub(in crate::ui::download) fn copy_download_link(&mut self, id: usize) -> Task<AppMessage> {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
             let url = task.task.url.clone();
             let success_message = self.i18n.t("download-tasks.copy-link-success").to_string();

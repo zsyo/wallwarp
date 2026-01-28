@@ -2,10 +2,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use tracing::debug;
-use tracing::error;
-use tracing::info;
-use tracing::warn;
+use tracing::{debug, error, info, warn};
 use xxhash_rust::xxh3::xxh3_128;
 
 /// 下载服务，处理在线壁纸的缓存和下载
@@ -48,7 +45,12 @@ impl DownloadService {
                         );
                         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                     } else {
-                        error!("[{}] [URL:{}] 所有重试失败，共尝试 {} 次", operation_name, url, max_retries + 1);
+                        error!(
+                            "[{}] [URL:{}] 所有重试失败，共尝试 {} 次",
+                            operation_name,
+                            url,
+                            max_retries + 1
+                        );
                     }
                 }
             }
@@ -59,7 +61,11 @@ impl DownloadService {
 
     /// 获取在线缩略图缓存路径
     /// 根据URL和文件大小生成hash值，用于缓存文件命名
-    pub fn get_online_thumb_cache_path(cache_base_path: &str, url: &str, file_size: u64) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn get_online_thumb_cache_path(
+        cache_base_path: &str,
+        url: &str,
+        file_size: u64,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         // 计算hash值：使用URL + file_size
         let hash_input = format!("{}{}", url, file_size);
         let hash = xxh3_128(hash_input.as_bytes());
@@ -83,7 +89,11 @@ impl DownloadService {
 
     /// 获取在线原图缓存路径
     /// 根据URL和文件大小生成hash值，用于缓存文件命名
-    pub fn get_online_image_cache_path(cache_base_path: &str, url: &str, file_size: u64) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn get_online_image_cache_path(
+        cache_base_path: &str,
+        url: &str,
+        file_size: u64,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         // 计算hash值：使用URL + file_size
         let hash_input = format!("{}{}", url, file_size);
         let hash = xxh3_128(hash_input.as_bytes());
@@ -101,7 +111,11 @@ impl DownloadService {
     }
 
     /// 获取在线原图缓存路径（下载完成后的最终路径，不带.download后缀）
-    pub fn get_online_image_cache_final_path(cache_base_path: &str, url: &str, file_size: u64) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn get_online_image_cache_final_path(
+        cache_base_path: &str,
+        url: &str,
+        file_size: u64,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         // 计算hash值：使用URL + file_size
         let hash_input = format!("{}{}", url, file_size);
         let hash = xxh3_128(hash_input.as_bytes());
@@ -119,7 +133,11 @@ impl DownloadService {
     }
 
     /// 下载缩略图到缓存目录（带重试机制，最多重试3次）
-    pub async fn download_thumb_to_cache(url: &str, cache_path: &str, proxy: Option<String>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn download_thumb_to_cache(
+        url: &str,
+        cache_path: &str,
+        proxy: Option<String>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // 获取并发控制许可
         let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER.acquire().await;
 
@@ -288,7 +306,10 @@ impl DownloadService {
     ) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
         // 在下载前检查取消状态
         if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+            return Err(
+                Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
+                    as Box<dyn std::error::Error + Send + Sync>,
+            );
         }
 
         // 计算缓存路径
@@ -307,7 +328,10 @@ impl DownloadService {
 
         // 再次检查取消状态（下载完成后）
         if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+            return Err(
+                Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
+                    as Box<dyn std::error::Error + Send + Sync>,
+            );
         }
 
         // 返回缓存的图片Handle
@@ -406,7 +430,10 @@ impl DownloadService {
             async move {
                 // 检查取消状态
                 if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
-                    return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+                    return Err(
+                        Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
+                            as Box<dyn std::error::Error + Send + Sync>,
+                    );
                 }
 
                 let response = client.get(&url).send().await.map_err(|e| {
@@ -421,7 +448,8 @@ impl DownloadService {
                     let error_msg = format!("下载失败: {}", status);
                     error!("[缩略图缓存] [URL:{}] {}", url, error_msg);
                     // 手动构造错误
-                    return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn std::error::Error + Send + Sync>);
+                    return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg))
+                        as Box<dyn std::error::Error + Send + Sync>);
                 }
 
                 // 流式读取数据，定期检查取消状态
@@ -432,7 +460,10 @@ impl DownloadService {
                 while let Some(chunk_result) = stream.next().await {
                     // 检查取消状态
                     if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
-                        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+                        return Err(
+                            Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
+                                as Box<dyn std::error::Error + Send + Sync>,
+                        );
                     }
 
                     let chunk = chunk_result.map_err(|e| {
@@ -445,11 +476,15 @@ impl DownloadService {
 
                 Ok(buffer)
             }
-        }.await?;
+        }
+        .await?;
 
         // 再次检查取消状态（下载完成后）
         if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消")) as Box<dyn std::error::Error + Send + Sync>);
+            return Err(
+                Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
+                    as Box<dyn std::error::Error + Send + Sync>,
+            );
         }
 
         debug!("[缩略图缓存] [URL:{}] 下载成功，数据大小: {} bytes", url, bytes.len());

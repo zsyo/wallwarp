@@ -1,17 +1,15 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::App;
-use crate::ui::AppMessage;
-use crate::ui::NotificationType;
 use crate::ui::async_tasks;
+use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 use std::path::Path;
 
 impl App {
-    pub(in crate::ui::download) fn set_as_wallpaper(&mut self, id: usize) -> Task<AppMessage> {
+    pub(in crate::ui::download) fn set_downloaded_as_wallpaper(&mut self, id: usize) -> Task<AppMessage> {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
             let path = task.task.save_path.clone();
-            let full_path = crate::ui::common::get_absolute_path(&path);
+            let full_path = crate::utils::helpers::get_absolute_path(&path);
             let wallpaper_mode = self.config.wallpaper.mode;
 
             // 检查文件是否存在

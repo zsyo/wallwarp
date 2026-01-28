@@ -1,12 +1,11 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::App;
-use crate::ui::AppMessage;
 use crate::ui::download::DownloadStatus;
+use crate::ui::{App, AppMessage};
 use iced::Task;
 
 impl App {
-    pub(in crate::ui::download) fn pause_task(&mut self, id: usize) -> Task<AppMessage> {
+    pub(in crate::ui::download) fn pause_download_task(&mut self, id: usize) -> Task<AppMessage> {
         // 记录暂停时的下载进度
         if let Some(index) = self.download_state.find_task_index(id) {
             if let Some(task) = self.download_state.get_task_by_index(index) {

@@ -5,6 +5,7 @@ use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::online::{OnlineMessage, OnlineState};
 use crate::ui::style::*;
+use crate::utils::helpers;
 use iced::widget::{column, container, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -27,21 +28,32 @@ pub fn create_modal<'a>(
             .height(Length::Fill);
         modal_image.into()
     } else {
-        container(iced::widget::Space::new()).width(Length::Fill).height(Length::Fill).into()
+        container(iced::widget::Space::new())
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     };
 
     let modal_image_content = iced::widget::stack(vec![loading_text, image_layer]);
 
     // 创建底部工具栏按钮
     let prev_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F12E}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::PreviousImage)),
+        common::create_icon_button(
+            "\u{F12E}",
+            BUTTON_COLOR_BLUE,
+            AppMessage::Online(OnlineMessage::PreviousImage),
+        ),
         i18n.t("online-wallpapers.tooltip-prev"),
         iced::widget::tooltip::Position::Top,
         theme_config,
     );
 
     let next_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F137}", BUTTON_COLOR_BLUE, AppMessage::Online(OnlineMessage::NextImage)),
+        common::create_icon_button(
+            "\u{F137}",
+            BUTTON_COLOR_BLUE,
+            AppMessage::Online(OnlineMessage::NextImage),
+        ),
         i18n.t("online-wallpapers.tooltip-next"),
         iced::widget::tooltip::Position::Top,
         theme_config,
@@ -101,7 +113,11 @@ pub fn create_modal<'a>(
     };
 
     let close_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, AppMessage::Online(OnlineMessage::CloseModal)),
+        common::create_icon_button(
+            "\u{F659}",
+            BUTTON_COLOR_RED,
+            AppMessage::Online(OnlineMessage::CloseModal),
+        ),
         i18n.t("online-wallpapers.tooltip-close"),
         iced::widget::tooltip::Position::Top,
         theme_config,
@@ -136,9 +152,15 @@ pub fn create_modal<'a>(
     });
 
     let modal_content = container(
-        column![container(modal_image_content).width(Length::Fill).height(Length::Fill).padding(20), toolbar,]
-            .width(Length::Fill)
-            .height(Length::Fill),
+        column![
+            container(modal_image_content)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .padding(20),
+            toolbar,
+        ]
+        .width(Length::Fill)
+        .height(Length::Fill),
     )
     .style(|_theme: &iced::Theme| container::Style {
         background: Some(iced::Background::Color(COLOR_MODAL_BG)),
@@ -157,8 +179,8 @@ fn create_modal_loading_placeholder<'a>(i18n: &'a I18n, online_state: &'a Online
             "{}: {}% ({}/{})",
             i18n.t("online-wallpapers.image-loading"),
             progress_percent,
-            crate::utils::helpers::format_file_size(online_state.modal_downloaded_bytes),
-            crate::utils::helpers::format_file_size(online_state.modal_total_bytes)
+            helpers::format_file_size(online_state.modal_downloaded_bytes),
+            helpers::format_file_size(online_state.modal_total_bytes)
         );
 
         let loading_text = text(progress_text).size(18).style(|_theme: &iced::Theme| text::Style {

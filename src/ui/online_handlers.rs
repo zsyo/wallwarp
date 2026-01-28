@@ -4,6 +4,7 @@ use super::App;
 use super::AppMessage;
 use super::online::OnlineMessage;
 use crate::services::wallhaven;
+use crate::utils::helpers;
 use tracing::error;
 
 impl App {
@@ -780,7 +781,7 @@ impl App {
                 let actual_size = metadata.len();
                 if actual_size == file_size {
                     // 文件已存在且大小匹配，直接设置壁纸
-                    let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                    let full_path = helpers::get_absolute_path(&target_path.to_string_lossy().to_string());
                     let wallpaper_mode = self.config.wallpaper.mode;
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
@@ -812,8 +813,7 @@ impl App {
                         match std::fs::copy(&cache_file_path, &target_path) {
                             Ok(_) => {
                                 // 复制成功，设置壁纸
-                                let full_path =
-                                    super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                                let full_path = helpers::get_absolute_path(&target_path.to_string_lossy().to_string());
                                 let wallpaper_mode = self.config.wallpaper.mode;
                                 let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
@@ -1441,7 +1441,7 @@ impl App {
                 let actual_size = metadata.len();
                 if actual_size == file_size {
                     // 文件已存在且大小匹配，直接设置壁纸
-                    let full_path = super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                    let full_path = helpers::get_absolute_path(&target_path.to_string_lossy().to_string());
                     let wallpaper_mode = self.config.wallpaper.mode;
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
@@ -1473,8 +1473,7 @@ impl App {
                     match std::fs::copy(&cache_path_buf, &target_path) {
                         Ok(_) => {
                             // 复制成功，设置壁纸
-                            let full_path =
-                                super::common::get_absolute_path(&target_path.to_string_lossy().to_string());
+                            let full_path = helpers::get_absolute_path(&target_path.to_string_lossy().to_string());
                             let wallpaper_mode = self.config.wallpaper.mode;
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 

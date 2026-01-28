@@ -4,10 +4,10 @@
 //!
 //! 定义下载页面的界面渲染逻辑
 
-use super::super::AppMessage;
 use super::state::DownloadStateFull;
 use super::widget;
 use crate::i18n::I18n;
+use crate::ui::AppMessage;
 use crate::ui::style::ThemeConfig;
 use iced::widget::{container, scrollable};
 use iced::{Element, Length};

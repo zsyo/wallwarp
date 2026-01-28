@@ -3,11 +3,10 @@
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::download::state::{DownloadStatus, DownloadTask};
-use crate::ui::style::ThemeColors;
-use crate::ui::style::ThemeConfig;
 use crate::ui::style::{
     BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW,
 };
+use crate::ui::style::{ThemeColors, ThemeConfig};
 use iced::widget::{container, progress_bar, row, text};
 use iced::{Alignment, Element, Length};
 

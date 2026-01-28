@@ -1,16 +1,15 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::App;
-use crate::ui::AppMessage;
 use crate::ui::async_tasks;
 use crate::ui::auto_change::AutoChangeMessage;
+use crate::ui::{App, AppMessage};
 use crate::utils::config::WallpaperAutoChangeMode;
 use iced::Task;
 use std::time::Instant;
 
 impl App {
     /// 处理定时切换壁纸的定时器事件
-    pub(in crate::ui::auto_change) fn tick(&mut self) -> Task<AppMessage> {
+    pub(in crate::ui::auto_change) fn auto_change_tick(&mut self) -> Task<AppMessage> {
         if !self.auto_change_state.auto_change_enabled {
             return Task::none();
         }

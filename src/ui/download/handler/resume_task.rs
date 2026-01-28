@@ -1,17 +1,16 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::download::DownloadService;
-use crate::ui::App;
-use crate::ui::AppMessage;
 use crate::ui::async_tasks;
 use crate::ui::download::{DownloadMessage, DownloadStatus};
+use crate::ui::{App, AppMessage};
 use iced::Task;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 impl App {
-    pub(in crate::ui::download) fn resume_task(&mut self, id: usize) -> Task<AppMessage> {
+    pub(in crate::ui::download) fn resume_download_task(&mut self, id: usize) -> Task<AppMessage> {
         // 使用索引查找任务
         // 先检查是否可以开始下载并保存所有需要的数据
         let can_start = self.download_state.can_start_download();

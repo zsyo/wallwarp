@@ -12,6 +12,7 @@ use crate::ui::style::{
 };
 use crate::utils::assets;
 use crate::utils::config::CloseAction;
+use crate::utils::helpers;
 use iced::widget::{button, column, container, row, scrollable, text, text_input, toggler, tooltip};
 use iced::{Alignment, Color, Length};
 use iced_aw::{DropDown, drop_down};
@@ -185,7 +186,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
             create_path_config_row(
                 &app.i18n,
                 app.i18n.t("settings.data-path"),
-                &common::get_absolute_path(&app.config.data.data_path),
+                &helpers::get_absolute_path(&app.config.data.data_path),
                 AppMessage::DataPathSelected("SELECT_DATA_PATH".to_string()),
                 AppMessage::OpenPath("data".to_string()),
                 AppMessage::ShowPathClearConfirmation("data".to_string()),
@@ -195,7 +196,7 @@ pub fn settings_view(app: &App) -> iced::Element<'_, AppMessage> {
             create_path_config_row(
                 &app.i18n,
                 app.i18n.t("settings.cache-path"),
-                &common::get_absolute_path(&app.config.data.cache_path),
+                &helpers::get_absolute_path(&app.config.data.cache_path),
                 AppMessage::CachePathSelected("SELECT_CACHE_PATH".to_string()),
                 AppMessage::OpenPath("cache".to_string()),
                 AppMessage::ShowPathClearConfirmation("cache".to_string()),
@@ -613,7 +614,7 @@ fn create_logs_path_row<'a>(
     label: String,
     theme_colors: crate::ui::style::ThemeColors,
 ) -> iced::Element<'a, AppMessage> {
-    let logs_path = common::get_absolute_path("logs");
+    let logs_path = helpers::get_absolute_path("logs");
 
     row![
         text(label)

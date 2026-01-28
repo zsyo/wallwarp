@@ -1,16 +1,15 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::App;
-use crate::ui::AppMessage;
 use crate::ui::async_tasks;
 use crate::ui::auto_change::AutoChangeMessage;
+use crate::ui::{App, AppMessage};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode};
 use iced::Task;
 use std::time::Instant;
 
 impl App {
     /// 启动定时切换壁纸
-    pub(in crate::ui::auto_change) fn start(&mut self) -> Task<AppMessage> {
+    pub(in crate::ui::auto_change) fn start_auto_change(&mut self) -> Task<AppMessage> {
         // 检查定时切换间隔是否为关闭状态
         if matches!(
             self.config.wallpaper.auto_change_interval,

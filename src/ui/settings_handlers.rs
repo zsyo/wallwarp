@@ -2,9 +2,9 @@
 
 use super::App;
 use super::AppMessage;
-use super::common;
 use crate::utils::{
     config::CloseAction,
+    helpers,
     single_instance::{SingleInstanceGuard, WAKE_UP},
     startup,
 };
@@ -380,7 +380,7 @@ impl App {
             _ => return iced::Task::none(),
         };
 
-        let full_path = common::get_absolute_path(path_to_open);
+        let full_path = helpers::get_absolute_path(path_to_open);
 
         if let Err(e) = open::that(&full_path) {
             error!("Failed to open path {}: {}", full_path, e);
@@ -391,7 +391,7 @@ impl App {
 
     fn handle_open_logs_path(&mut self) -> iced::Task<AppMessage> {
         let logs_path = "logs";
-        let full_path = common::get_absolute_path(logs_path);
+        let full_path = helpers::get_absolute_path(logs_path);
 
         if let Err(e) = open::that(&full_path) {
             error!("Failed to open logs path {}: {}", full_path, e);
@@ -419,7 +419,7 @@ impl App {
         };
 
         // 获取绝对路径
-        let full_path = common::get_absolute_path(path_to_clear);
+        let full_path = helpers::get_absolute_path(path_to_clear);
 
         // 尝试清空目录内容
         let result = if let Ok(entries) = std::fs::read_dir(&full_path) {

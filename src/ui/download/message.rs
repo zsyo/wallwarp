@@ -4,8 +4,7 @@
 //!
 //! 定义下载页面的消息类型
 
-use crate::ui::App;
-use crate::ui::AppMessage;
+use crate::ui::{App, AppMessage};
 
 /// 下载页面消息
 #[derive(Debug, Clone)]
@@ -49,22 +48,22 @@ impl App {
     pub fn handle_download_message(&mut self, msg: DownloadMessage) -> iced::Task<AppMessage> {
         match msg {
             DownloadMessage::AddTask(url, save_path, file_name, _proxy, file_type) => {
-                self.add_task(url, save_path, file_name, file_type)
+                self.add_download_task(url, save_path, file_name, file_type)
             }
-            DownloadMessage::PauseTask(id) => self.pause_task(id),
-            DownloadMessage::ResumeTask(id) => self.resume_task(id),
-            DownloadMessage::RetryTask(id) => self.retry_task(id),
-            DownloadMessage::CancelTask(id) => self.cancel_task(id),
-            DownloadMessage::DeleteTask(id) => self.delete_task(id),
-            DownloadMessage::OpenFileLocation(id) => self.locate_file(id),
-            DownloadMessage::ClearCompleted => self.clear_completed_tasks(),
-            DownloadMessage::DownloadCompleted(id, size, error) => self.completed(id, size, error),
+            DownloadMessage::PauseTask(id) => self.pause_download_task(id),
+            DownloadMessage::ResumeTask(id) => self.resume_download_task(id),
+            DownloadMessage::RetryTask(id) => self.retry_download_task(id),
+            DownloadMessage::CancelTask(id) => self.cancel_download_task(id),
+            DownloadMessage::DeleteTask(id) => self.delete_download_task(id),
+            DownloadMessage::OpenFileLocation(id) => self.view_downloaded_file(id),
+            DownloadMessage::ClearCompleted => self.clear_download_completed_tasks(),
+            DownloadMessage::DownloadCompleted(id, size, error) => self.download_completed(id, size, error),
             DownloadMessage::DownloadProgress(id, downloaded, total, speed) => {
-                self.progress(id, downloaded, total, speed)
+                self.update_download_progress(id, downloaded, total, speed)
             }
-            DownloadMessage::UpdateSpeed => self.update_speed(),
-            DownloadMessage::CopyDownloadLink(id) => self.copy_link(id),
-            DownloadMessage::SetAsWallpaper(id) => self.set_as_wallpaper(id),
+            DownloadMessage::UpdateSpeed => self.update_download_speed(),
+            DownloadMessage::CopyDownloadLink(id) => self.copy_download_link(id),
+            DownloadMessage::SetAsWallpaper(id) => self.set_downloaded_as_wallpaper(id),
         }
     }
 }

@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use super::message::WallpaperLoadStatus;
+use iced::widget::image::Handle;
 
 #[derive(Debug)]
 pub struct LocalState {
@@ -14,7 +15,7 @@ pub struct LocalState {
     pub current_image_index: usize,
     pub delete_confirm_visible: bool,
     pub delete_target_index: Option<usize>,
-    pub modal_image_handle: Option<iced::widget::image::Handle>,
+    pub modal_image_handle: Option<Handle>,
 }
 
 impl Default for LocalState {
@@ -78,7 +79,6 @@ impl LocalState {
                 }
             }
         }
-
         None
     }
 }

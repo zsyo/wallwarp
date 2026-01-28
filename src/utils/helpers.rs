@@ -24,7 +24,9 @@ pub fn open_file_in_explorer(path: &str) {
 
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("explorer").args(["/select,", &full_path]).spawn();
+        let _ = std::process::Command::new("explorer")
+            .args(["/select,", &full_path])
+            .spawn();
     }
 
     #[cfg(target_os = "macos")]
@@ -47,7 +49,11 @@ pub fn is_valid_image_path(path: &str) -> bool {
         return false;
     }
 
-    let extension = path.extension().and_then(|ext| ext.to_str()).map(|ext| ext.to_lowercase()).unwrap_or_default();
+    let extension = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_lowercase())
+        .unwrap_or_default();
 
     matches!(extension.as_str(), "jpg" | "jpeg" | "png" | "bmp" | "webp")
 }
@@ -70,4 +76,33 @@ pub fn format_file_size(bytes: u64) -> String {
     } else {
         format!("{} B", bytes)
     }
+}
+
+/// 获取绝对路径
+pub fn get_absolute_path(path: &str) -> String {
+    let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    let path_buf = std::path::PathBuf::from(path);
+
+    if path_buf.is_absolute() {
+        path.to_string()
+    } else {
+        current_dir.join(path_buf).to_string_lossy().to_string()
+    }
+}
+
+/// 根据平台返回最通用的系统 UI 字体名称
+pub fn get_system_ui_font() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "Microsoft YaHei" // 微软雅黑
+    } else if cfg!(target_os = "macos") {
+        "Helvetica Neue" // 或使用 ".AppleSystemUIFont"
+    } else {
+        "Noto Sans CJK SC" // Linux 常用中文字体
+    }
+}
+
+/// 检测运行环境
+pub fn is_running_via_cargo() -> bool {
+    // 只要是 cargo 启动的，这个环境变量一定存在
+    std::env::var("CARGO").is_ok()
 }
