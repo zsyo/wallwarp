@@ -11,7 +11,7 @@ use iced::widget::{Space, column, container, row, tooltip};
 use iced::{Alignment, Element, Length};
 
 /// 创建模态展示区
-pub fn create_model<'a>(
+pub fn create_modal<'a>(
     i18n: &'a I18n,
     local_state: &'a LocalState,
     theme_config: &'a ThemeConfig,

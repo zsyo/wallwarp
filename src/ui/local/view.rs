@@ -74,7 +74,7 @@ pub fn local_view<'a>(
 
     // 图片预览模态窗口
     if local_state.modal_visible && !local_state.all_paths.is_empty() {
-        let modal_content = widget::create_model(i18n, local_state, theme_config);
+        let modal_content = widget::create_modal(i18n, local_state, theme_config);
         layers.push(container(iced::widget::opaque(modal_content)).into());
     }
 

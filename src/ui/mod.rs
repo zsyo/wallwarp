@@ -9,16 +9,11 @@ pub mod download;
 pub mod local;
 pub mod main;
 pub mod online;
-pub mod online_filter;
-pub mod online_handlers;
-pub mod online_list;
-pub mod online_modal;
 pub mod settings;
 pub mod settings_handlers;
 pub mod style;
 pub mod tray;
 pub mod update;
-pub mod widget;
 
 use crate::i18n::I18n;
 use crate::utils::config::CloseAction;

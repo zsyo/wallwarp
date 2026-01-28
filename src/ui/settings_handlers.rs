@@ -2,6 +2,7 @@
 
 use super::App;
 use super::AppMessage;
+use crate::services::wallhaven;
 use crate::utils::{
     config::CloseAction,
     helpers,
@@ -528,7 +529,7 @@ impl App {
         // 如果 API Key 被清空，移除 NSFW 选项
         if self.wallhaven_api_key.is_empty() {
             // 移除 NSFW 位（第0位）
-            self.online_state.purities &= !super::online::Purity::NSFW.bit_value();
+            self.online_state.purities &= !wallhaven::Purity::NSFW.bit_value();
             // 保存到配置文件
             self.online_state.save_to_config(&mut self.config);
         }
