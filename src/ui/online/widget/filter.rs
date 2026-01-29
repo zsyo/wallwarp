@@ -22,8 +22,8 @@ pub fn create_filter_bar<'a>(
     let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
 
     let search_input = text_input(&i18n.t("online-wallpapers.search-placeholder"), &state.search_text)
-        .on_input(|text| AppMessage::Online(OnlineMessage::SearchTextChanged(text)))
-        .on_submit(AppMessage::Online(OnlineMessage::Search))
+        .on_input(|text| OnlineMessage::SearchTextChanged(text).into())
+        .on_submit(OnlineMessage::Search.into())
         .padding(6)
         .size(14)
         .width(Length::Fixed(160.0))
@@ -40,22 +40,19 @@ pub fn create_filter_bar<'a>(
             selection: theme_colors.text_input_selection_color,
         });
 
-    let search_button = common::create_icon_button_with_size(
-        "\u{F52A}",
-        BUTTON_COLOR_BLUE,
-        17,
-        AppMessage::Online(OnlineMessage::Search),
-    )
-    .style(move |_theme: &iced::Theme, _status| button::Style {
-        background: Some(iced::Background::Color(theme_colors.light_button)),
-        text_color: theme_colors.light_text,
-        border: Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(4.0),
-        },
-        ..button::text(_theme, _status)
-    });
+    let search_button =
+        common::create_icon_button_with_size("\u{F52A}", BUTTON_COLOR_BLUE, 17, OnlineMessage::Search.into()).style(
+            move |_theme: &iced::Theme, _status| button::Style {
+                background: Some(iced::Background::Color(theme_colors.light_button)),
+                text_color: theme_colors.light_text,
+                border: Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: Radius::from(4.0),
+                },
+                ..button::text(_theme, _status)
+            },
+        );
 
     let search_container = row![search_input, search_button].spacing(2).align_y(Alignment::Center);
 
@@ -73,22 +70,19 @@ pub fn create_filter_bar<'a>(
     let time_range_picker = super::create_time_range_picker(i18n, state, theme_colors);
 
     // 功能按钮
-    let refresh_button = common::create_icon_button_with_size(
-        "\u{F130}",
-        BUTTON_COLOR_GREEN,
-        20,
-        AppMessage::Online(OnlineMessage::Refresh),
-    )
-    .style(move |_theme, _status| button::Style {
-        background: Some(iced::Background::Color(theme_colors.light_button)),
-        text_color: theme_colors.light_text,
-        border: Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(4.0),
-        },
-        ..button::text(_theme, _status)
-    });
+    let refresh_button =
+        common::create_icon_button_with_size("\u{F130}", BUTTON_COLOR_GREEN, 20, OnlineMessage::Refresh.into()).style(
+            move |_theme, _status| button::Style {
+                background: Some(iced::Background::Color(theme_colors.light_button)),
+                text_color: theme_colors.light_text,
+                border: Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: Radius::from(4.0),
+                },
+                ..button::text(_theme, _status)
+            },
+        );
 
     // 组合所有元素
     let filter_row = row![
@@ -96,7 +90,7 @@ pub fn create_filter_bar<'a>(
         Space::new().width(2),
         // 分类按钮（选中状态为蓝色）
         button(text(i18n.t("online-wallpapers.category-general")).size(14))
-            .on_press(AppMessage::Online(OnlineMessage::CategoryToggled(Category::General)))
+            .on_press(OnlineMessage::CategoryToggled(Category::General).into())
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::General.bit_value()) != 0;
@@ -122,7 +116,7 @@ pub fn create_filter_bar<'a>(
                 }
             }),
         button(text(i18n.t("online-wallpapers.category-anime")).size(14))
-            .on_press(AppMessage::Online(OnlineMessage::CategoryToggled(Category::Anime)))
+            .on_press(OnlineMessage::CategoryToggled(Category::Anime).into())
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::Anime.bit_value()) != 0;
@@ -148,7 +142,7 @@ pub fn create_filter_bar<'a>(
                 }
             }),
         button(text(i18n.t("online-wallpapers.category-people")).size(14))
-            .on_press(AppMessage::Online(OnlineMessage::CategoryToggled(Category::People)))
+            .on_press(OnlineMessage::CategoryToggled(Category::People).into())
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.categories & Category::People.bit_value()) != 0;
@@ -176,7 +170,7 @@ pub fn create_filter_bar<'a>(
         Space::new().width(2),
         // 纯净度按钮（带颜色）
         button(text(i18n.t("online-wallpapers.purity-sfw")).size(14))
-            .on_press(AppMessage::Online(OnlineMessage::PurityToggled(Purity::SFW)))
+            .on_press(OnlineMessage::PurityToggled(Purity::SFW).into())
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.purities & Purity::SFW.bit_value()) != 0;
@@ -197,7 +191,7 @@ pub fn create_filter_bar<'a>(
                 }
             }),
         button(text(i18n.t("online-wallpapers.purity-sketchy")).size(14))
-            .on_press(AppMessage::Online(OnlineMessage::PurityToggled(Purity::Sketchy)))
+            .on_press(OnlineMessage::PurityToggled(Purity::Sketchy).into())
             .padding(6)
             .style(move |_theme, _status| {
                 let is_checked = (state.purities & Purity::Sketchy.bit_value()) != 0;
@@ -221,7 +215,7 @@ pub fn create_filter_bar<'a>(
         if !config.wallhaven.api_key.is_empty() {
             Some(
                 button(text(i18n.t("online-wallpapers.purity-nsfw")).size(14))
-                    .on_press(AppMessage::Online(OnlineMessage::PurityToggled(Purity::NSFW)))
+                    .on_press(OnlineMessage::PurityToggled(Purity::NSFW).into())
                     .padding(6)
                     .style(move |_theme, _status| {
                         let is_checked = (state.purities & Purity::NSFW.bit_value()) != 0;

@@ -31,7 +31,7 @@ impl App {
                         self.i18n.t("download-tasks.file-already-exists").to_string(),
                         file_name
                     );
-                    return Task::done(AppMessage::ShowNotification(success_message, NotificationType::Info));
+                    return self.show_notification(success_message, NotificationType::Info);
                 }
             }
 
@@ -52,27 +52,24 @@ impl App {
                                 self.i18n.t("download-tasks.copied-from-cache").to_string(),
                                 file_name
                             );
-                            return Task::done(AppMessage::ShowNotification(
-                                success_message,
-                                NotificationType::Success,
-                            ));
+                            return self.show_notification(success_message, NotificationType::Success);
                         }
                         Err(e) => {
                             error!("[模态窗口下载] [ID:{}] 从缓存复制失败: {}", id, e);
                             let error_message =
                                 format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
-                            return Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error));
+                            return self.show_notification(error_message, NotificationType::Error);
                         }
                     }
                 } else {
                     // 缓存文件不存在
                     let error_message = self.i18n.t("download-tasks.cache-file-not-found").to_string();
-                    return Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error));
+                    return self.show_notification(error_message, NotificationType::Error);
                 }
             } else {
                 // 获取缓存路径失败
                 let error_message = self.i18n.t("download-tasks.get-cache-path-failed").to_string();
-                return Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error));
+                return self.show_notification(error_message, NotificationType::Error);
             }
         }
 

@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::async_tasks;
+use crate::services::async_task;
 use crate::ui::local::{LocalMessage, WallpaperLoadStatus};
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -11,9 +11,9 @@ impl App {
     pub(in crate::ui::local) fn load_local_wallpapers(&mut self) -> Task<AppMessage> {
         let data_path = self.config.data.data_path.clone();
         Task::perform(
-            async_tasks::async_load_wallpaper_paths(data_path),
+            async_task::async_load_wallpaper_paths(data_path),
             |result| match result {
-                Ok(paths) => AppMessage::Local(LocalMessage::LoadWallpapersSuccess(paths)),
+                Ok(paths) => LocalMessage::LoadWallpapersSuccess(paths).into(),
                 Err(e) => {
                     error!("[本地壁纸] 加载列表失败: {}", e);
                     AppMessage::None
@@ -33,6 +33,6 @@ impl App {
         self.local_state.wallpapers = vec![WallpaperLoadStatus::Loading; page_end];
 
         // 触发第一页加载
-        Task::perform(async {}, |_| AppMessage::Local(LocalMessage::LoadPage))
+        Task::done(LocalMessage::LoadPage.into())
     }
 }

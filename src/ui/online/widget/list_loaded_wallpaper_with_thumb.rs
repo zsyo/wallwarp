@@ -75,7 +75,7 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
         common::create_icon_button(
             "\u{F429}",
             BUTTON_COLOR_GREEN,
-            AppMessage::Online(OnlineMessage::SetAsWallpaper(index)),
+            OnlineMessage::SetAsWallpaper(index).into(),
         ),
         i18n.t("online-wallpapers.tooltip-set-wallpaper"),
         tooltip::Position::Top,
@@ -86,7 +86,7 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
         common::create_icon_button(
             "\u{F30A}",
             BUTTON_COLOR_BLUE,
-            AppMessage::Online(OnlineMessage::DownloadWallpaper(index)),
+            OnlineMessage::DownloadWallpaper(index).into(),
         ),
         i18n.t("online-wallpapers.tooltip-download"),
         tooltip::Position::Top,
@@ -151,7 +151,7 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
         .padding(0)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .on_press(AppMessage::Online(OnlineMessage::ShowModal(index)))
+        .on_press(OnlineMessage::ShowModal(index).into())
         .style(|_theme, status| {
             let base_style = button::text(_theme, status);
             let shadow = get_card_shadow_by_status(matches!(status, button::Status::Hovered));

@@ -2,6 +2,7 @@
 
 use crate::services::download::DownloadService;
 use crate::ui::download::DownloadStatus;
+use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage};
 use iced::Task;
 use tracing::info;
@@ -84,7 +85,7 @@ impl App {
         }
 
         // 滚动到顶部，避免触发自动加载下一页
-        let scroll_to_top_task = Task::perform(async {}, |_| AppMessage::ScrollToTop("online_wallpapers".to_string()));
+        let scroll_to_top_task = Task::done(MainMessage::ScrollToTop("online_wallpapers".to_string()).into());
 
         // 执行刷新和滚动到顶部
         Task::batch([self.load_online_wallpapers(), scroll_to_top_task])

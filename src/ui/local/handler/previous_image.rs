@@ -25,7 +25,7 @@ impl App {
                         // 异步加载图片数据
                         Handle::from_path(&path)
                     },
-                    |handle| AppMessage::Local(LocalMessage::ModalImageLoaded(handle)),
+                    |handle| LocalMessage::ModalImageLoaded(handle).into(),
                 );
             }
         }

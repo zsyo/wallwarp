@@ -66,7 +66,7 @@ pub fn create_ratio_grid_options<'a>(
         .on_press(if is_landscape_button_disabled {
             AppMessage::None
         } else {
-            AppMessage::Online(OnlineMessage::RatioLandscapeToggled)
+            OnlineMessage::RatioLandscapeToggled.into()
         })
         .style(move |_theme, _status| {
             let is_selected = state.ratio_landscape_selected;
@@ -99,7 +99,7 @@ pub fn create_ratio_grid_options<'a>(
         .on_press(if is_portrait_button_disabled {
             AppMessage::None
         } else {
-            AppMessage::Online(OnlineMessage::RatioPortraitToggled)
+            OnlineMessage::RatioPortraitToggled.into()
         })
         .style(move |_theme, _status| {
             let is_selected = state.ratio_portrait_selected;
@@ -132,7 +132,7 @@ pub fn create_ratio_grid_options<'a>(
         .on_press(if is_all_button_disabled {
             AppMessage::None
         } else {
-            AppMessage::Online(OnlineMessage::RatioAllToggled)
+            OnlineMessage::RatioAllToggled.into()
         })
         .style(move |_theme, _status| {
             let is_selected = state.ratio_all_selected;
@@ -221,7 +221,7 @@ pub fn create_ratio_grid_options<'a>(
                 .on_press(if is_all_disabled || is_group_disabled {
                     AppMessage::None
                 } else {
-                    AppMessage::Online(OnlineMessage::RatioToggled(*ratio))
+                    OnlineMessage::RatioToggled(*ratio).into()
                 })
                 .into();
 

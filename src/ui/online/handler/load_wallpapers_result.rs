@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::async_task;
 use crate::services::wallhaven;
-use crate::ui::async_tasks;
 use crate::ui::online::{OnlineMessage, PageInfo, WallpaperLoadStatus};
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
@@ -39,7 +39,7 @@ impl App {
         if is_empty_data && !last_page && current_page < total_pages {
             // 空数据但还有后续页面，继续加载下一页
             self.online_state.loading_page = false; // 先设置为 false，避免重复加载
-            return Task::done(AppMessage::Online(OnlineMessage::LoadPage));
+            return Task::done(OnlineMessage::LoadPage.into());
         }
 
         let proxy = if self.config.global.proxy.is_empty() {
@@ -62,7 +62,7 @@ impl App {
             self.online_state.thumb_load_cancel_tokens.push(cancel_token.clone());
 
             tasks.push(Task::perform(
-                async_tasks::async_load_online_wallpaper_thumb_with_cache_with_cancel(
+                async_task::async_load_online_wallpaper_thumb_with_cache_with_cancel(
                     url,
                     file_size,
                     cache_path,
@@ -70,8 +70,8 @@ impl App {
                     cancel_token,
                 ),
                 move |result| match result {
-                    Ok(handle) => AppMessage::Online(OnlineMessage::ThumbLoaded(idx, handle)),
-                    Err(_) => AppMessage::Online(OnlineMessage::ThumbLoaded(idx, Handle::from_bytes(vec![]))),
+                    Ok(handle) => OnlineMessage::ThumbLoaded(idx, handle).into(),
+                    Err(_) => OnlineMessage::ThumbLoaded(idx, Handle::from_bytes(vec![])).into(),
                 },
             ));
         }

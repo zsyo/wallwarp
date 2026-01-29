@@ -21,6 +21,12 @@ pub enum AutoChangeMessage {
     SetRandomWallpaperFailed(String),
 }
 
+impl From<AutoChangeMessage> for AppMessage {
+    fn from(auto_change_message: AutoChangeMessage) -> AppMessage {
+        AppMessage::AutoChange(auto_change_message)
+    }
+}
+
 impl App {
     /// 处理定时切换壁纸相关消息
     pub fn handle_auto_change_message(&mut self, msg: AutoChangeMessage) -> iced::Task<AppMessage> {

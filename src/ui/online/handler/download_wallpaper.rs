@@ -32,7 +32,7 @@ impl App {
                         self.i18n.t("download-tasks.file-already-exists").to_string(),
                         file_name
                     );
-                    return Task::done(AppMessage::ShowNotification(success_message, NotificationType::Info));
+                    return self.show_notification(success_message, NotificationType::Info);
                 }
             }
 
@@ -53,10 +53,7 @@ impl App {
                                     self.i18n.t("download-tasks.copied-from-cache").to_string(),
                                     file_name
                                 );
-                                return Task::done(AppMessage::ShowNotification(
-                                    success_message,
-                                    NotificationType::Success,
-                                ));
+                                return self.show_notification(success_message, NotificationType::Success);
                             }
                             Err(e) => {
                                 error!("[在线壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
@@ -78,7 +75,7 @@ impl App {
             if has_duplicate {
                 // 任务已在下载队列中
                 let info_message = self.i18n.t("download-tasks.task-already-in-queue").to_string();
-                return Task::done(AppMessage::ShowNotification(info_message, NotificationType::Info));
+                return self.show_notification(info_message, NotificationType::Info);
             }
 
             // 4. 开始下载

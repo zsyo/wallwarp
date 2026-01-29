@@ -39,22 +39,14 @@ pub fn create_modal<'a>(
 
     // 创建底部工具栏按钮
     let prev_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F12E}",
-            BUTTON_COLOR_BLUE,
-            AppMessage::Local(LocalMessage::PreviousImage),
-        ),
+        common::create_icon_button("\u{F12E}", BUTTON_COLOR_BLUE, LocalMessage::PreviousImage.into()),
         i18n.t("local-list.tooltip-prev"),
         tooltip::Position::Top,
         theme_config,
     );
 
     let next_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F137}",
-            BUTTON_COLOR_BLUE,
-            AppMessage::Local(LocalMessage::NextImage),
-        ),
+        common::create_icon_button("\u{F137}", BUTTON_COLOR_BLUE, LocalMessage::NextImage.into()),
         i18n.t("local-list.tooltip-next"),
         tooltip::Position::Top,
         theme_config,
@@ -64,7 +56,7 @@ pub fn create_modal<'a>(
         common::create_icon_button(
             "\u{F429}",
             BUTTON_COLOR_GREEN,
-            AppMessage::Local(LocalMessage::SetWallpaper(wallpaper_index)),
+            LocalMessage::SetWallpaper(wallpaper_index).into(),
         ),
         i18n.t("local-list.tooltip-set-wallpaper"),
         tooltip::Position::Top,
@@ -72,11 +64,7 @@ pub fn create_modal<'a>(
     );
 
     let close_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F659}",
-            BUTTON_COLOR_RED,
-            AppMessage::Local(LocalMessage::CloseModal),
-        ),
+        common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, LocalMessage::CloseModal.into()),
         i18n.t("local-list.tooltip-close"),
         tooltip::Position::Top,
         theme_config,

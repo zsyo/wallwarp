@@ -4,8 +4,14 @@ use super::App;
 use super::AppMessage;
 use super::common;
 use crate::i18n::I18n;
-use crate::utils::config::Config;
-use iced;
+use crate::ui::main::MainMessage;
+use crate::ui::main::TrayManager;
+use crate::ui::main::close_confirm_view;
+use crate::ui::style;
+use crate::utils::config::{Config, Theme};
+use iced::Task;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 impl App {
     pub fn new() -> Self {
@@ -34,13 +40,13 @@ impl App {
             proxy_port = 1080;
         }
 
-        let tray_manager = super::tray::TrayManager::new(&i18n);
+        let tray_manager = TrayManager::new(&i18n);
 
         // 根据配置文件中的主题配置初始化主题
         let theme_config = match config.global.theme {
-            crate::utils::config::Theme::Dark => crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Dark),
-            crate::utils::config::Theme::Light => crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Light),
-            crate::utils::config::Theme::Auto => {
+            Theme::Dark => style::ThemeConfig::new(style::Theme::Dark),
+            Theme::Light => style::ThemeConfig::new(style::Theme::Light),
+            Theme::Auto => {
                 // 自动模式：根据系统主题判断
                 let is_system_dark = crate::utils::window_utils::get_system_color_mode();
                 tracing::info!(
@@ -49,9 +55,9 @@ impl App {
                 );
 
                 if is_system_dark {
-                    crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Dark)
+                    style::ThemeConfig::new(style::Theme::Dark)
                 } else {
-                    crate::ui::style::ThemeConfig::new(crate::ui::style::Theme::Light)
+                    style::ThemeConfig::new(style::Theme::Light)
                 }
             }
         };
@@ -117,8 +123,8 @@ impl App {
                 auto_detect_color_mode: config.global.theme == crate::utils::config::Theme::Auto,
             },
             download_state: super::download::DownloadStateFull::new(),
-            initial_loaded: false, // 标记是否已加载初始数据
-            auto_change_running: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)), // 初始化定时切换执行标志
+            initial_loaded: false,                                 // 标记是否已加载初始数据
+            auto_change_running: Arc::new(AtomicBool::new(false)), // 初始化定时切换执行标志
             wallpaper_history: {
                 // 初始化壁纸切换历史记录，获取当前壁纸路径并添加到记录中
                 let mut history = Vec::new();
@@ -171,16 +177,16 @@ impl App {
         &mut self,
         message: String,
         notification_type: super::NotificationType,
-    ) -> iced::Task<AppMessage> {
+    ) -> Task<AppMessage> {
         self.notification_message = message;
         self.notification_type = notification_type;
         self.show_notification = true;
 
-        iced::Task::perform(
+        Task::perform(
             async {
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             },
-            |_| AppMessage::HideNotification,
+            |_| MainMessage::HideNotification.into(),
         )
     }
 
@@ -274,7 +280,7 @@ impl App {
 
         // 如果显示任何确认对话框，则将对话框叠加在底层内容上
         let main_content = if self.show_close_confirmation {
-            Self::create_stack(base_content, super::close_confirmation::close_confirmation_view(self))
+            Self::create_stack(base_content, close_confirm_view(self))
         } else if self.show_path_clear_confirmation {
             Self::create_stack(base_content, self.path_clear_confirmation_view())
         } else {

@@ -11,7 +11,7 @@ impl App {
         if self.local_state.current_page * self.local_state.page_size < self.local_state.total_count
             && !self.local_state.loading_page
         {
-            return Task::perform(async {}, |_| AppMessage::Local(LocalMessage::LoadPage));
+            return Task::done(LocalMessage::LoadPage.into());
         }
         Task::none()
     }

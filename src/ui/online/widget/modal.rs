@@ -34,22 +34,14 @@ pub fn create_modal<'a>(
 
     // 创建底部工具栏按钮
     let prev_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F12E}",
-            BUTTON_COLOR_BLUE,
-            AppMessage::Online(OnlineMessage::PreviousImage),
-        ),
+        common::create_icon_button("\u{F12E}", BUTTON_COLOR_BLUE, OnlineMessage::PreviousImage.into()),
         i18n.t("online-wallpapers.tooltip-prev"),
         tooltip::Position::Top,
         theme_config,
     );
 
     let next_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F137}",
-            BUTTON_COLOR_BLUE,
-            AppMessage::Online(OnlineMessage::NextImage),
-        ),
+        common::create_icon_button("\u{F137}", BUTTON_COLOR_BLUE, OnlineMessage::NextImage.into()),
         i18n.t("online-wallpapers.tooltip-next"),
         tooltip::Position::Top,
         theme_config,
@@ -62,7 +54,7 @@ pub fn create_modal<'a>(
             common::create_icon_button(
                 "\u{F429}",
                 BUTTON_COLOR_GREEN,
-                AppMessage::Online(OnlineMessage::SetAsWallpaperFromCache(wallpaper_index)),
+                OnlineMessage::SetAsWallpaperFromCache(wallpaper_index).into(),
             ),
             i18n.t("online-wallpapers.tooltip-set-wallpaper"),
             tooltip::Position::Top,
@@ -91,7 +83,7 @@ pub fn create_modal<'a>(
             common::create_icon_button(
                 "\u{F30A}",
                 BUTTON_COLOR_BLUE,
-                AppMessage::Online(OnlineMessage::DownloadFromCache(wallpaper_index)),
+                OnlineMessage::DownloadFromCache(wallpaper_index).into(),
             ),
             i18n.t("online-wallpapers.tooltip-download"),
             tooltip::Position::Top,
@@ -109,11 +101,7 @@ pub fn create_modal<'a>(
     };
 
     let close_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F659}",
-            BUTTON_COLOR_RED,
-            AppMessage::Online(OnlineMessage::CloseModal),
-        ),
+        common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, OnlineMessage::CloseModal.into()),
         i18n.t("online-wallpapers.tooltip-close"),
         tooltip::Position::Top,
         theme_config,

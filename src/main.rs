@@ -5,7 +5,8 @@
 use iced::{Size, Task, font, window};
 use tracing::info;
 use wallwarp::i18n::I18n;
-use wallwarp::ui::{App, AppMessage};
+use wallwarp::ui::App;
+use wallwarp::ui::main::MainMessage;
 use wallwarp::utils::{assets, config, helpers, logger, single_instance::SingleInstanceGuard};
 
 const LOGO_SIZE: u32 = 128;
@@ -60,8 +61,10 @@ fn main() -> iced::Result {
             let (i18n, cfg) = init_data.borrow_mut().take().expect("App can only be initialized once");
             let app = App::new_with_config(i18n, cfg);
             let load_font_task = font::load(assets::ICON_FONT).discard();
-            let enable_resize_task = app.enable_window_resize();
-            let listen_task = Task::perform(SingleInstanceGuard::listen(), AppMessage::ExternalInstanceTriggered);
+            let enable_resize_task = app.enable_window_drag_resize();
+            let listen_task = Task::perform(SingleInstanceGuard::listen(), |payload| {
+                MainMessage::ExternalInstanceTriggered(payload).into()
+            });
             (app, Task::batch(vec![load_font_task, enable_resize_task, listen_task]))
         },
         App::update,

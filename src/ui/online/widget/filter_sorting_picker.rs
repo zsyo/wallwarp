@@ -53,7 +53,7 @@ pub fn create_sorting_picker<'a>(
     let sorting_trigger = button(sorting_underlay)
         .padding(6)
         .width(Length::Fixed(100.0))
-        .on_press(AppMessage::Online(OnlineMessage::SortingPickerExpanded))
+        .on_press(OnlineMessage::SortingPickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(theme_colors.light_button)),
             text_color: theme_colors.light_text,
@@ -71,7 +71,7 @@ pub fn create_sorting_picker<'a>(
         button(text(option.display).size(14))
             .padding(6)
             .width(Length::Fill)
-            .on_press(AppMessage::Online(OnlineMessage::SortingChanged(option.value)))
+            .on_press(OnlineMessage::SortingChanged(option.value).into())
             .style(move |_theme, _status| button::Style {
                 background: if is_selected {
                     Some(iced::Background::Color(COLOR_SELECTED_BLUE))
@@ -109,7 +109,7 @@ pub fn create_sorting_picker<'a>(
 
     DropDown::new(sorting_trigger, opaque(picker_content), state.sorting_picker_expanded)
         .width(Length::Fill)
-        .on_dismiss(AppMessage::Online(OnlineMessage::SortingPickerDismiss))
+        .on_dismiss(OnlineMessage::SortingPickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
         .into()
 }

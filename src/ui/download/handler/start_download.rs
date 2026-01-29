@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::async_task;
 use crate::services::wallhaven;
-use crate::ui::async_tasks;
 use crate::ui::download::{DownloadMessage, DownloadStatus};
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
@@ -59,7 +59,7 @@ impl App {
 
                     // 启动异步下载任务（带进度更新）
                     return Task::perform(
-                        async_tasks::async_download_wallpaper_task_with_progress(
+                        async_task::async_download_wallpaper_task_with_progress(
                             url.to_string(),
                             save_path,
                             proxy,
@@ -72,11 +72,11 @@ impl App {
                         move |result| match result {
                             Ok(size) => {
                                 tracing::info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                                AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, size, None))
+                                DownloadMessage::DownloadCompleted(task_id, size, None).into()
                             }
                             Err(e) => {
                                 tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                                DownloadMessage::DownloadCompleted(task_id, 0, Some(e)).into()
                             }
                         },
                     );
@@ -85,9 +85,6 @@ impl App {
         }
 
         // 显示通知
-        Task::done(AppMessage::ShowNotification(
-            format!("已添加到下载队列 (等待中)"),
-            NotificationType::Success,
-        ))
+        self.show_notification(format!("已添加到下载队列 (等待中)"), NotificationType::Success)
     }
 }

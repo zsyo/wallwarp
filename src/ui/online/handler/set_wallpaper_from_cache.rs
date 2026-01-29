@@ -1,8 +1,9 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::async_task;
 use crate::services::download::DownloadService;
 use crate::services::wallhaven;
-use crate::ui::async_tasks;
+use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::helpers;
 use iced::Task;
@@ -33,13 +34,14 @@ impl App {
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                     return Task::perform(
-                        async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                        async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                         move |result| match result {
-                            Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                            Err(e) => AppMessage::ShowNotification(
+                            Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
+                            Err(e) => MainMessage::ShowNotification(
                                 format!("{}: {}", failed_message, e),
                                 NotificationType::Error,
-                            ),
+                            )
+                            .into(),
                         },
                     );
                 }
@@ -63,13 +65,14 @@ impl App {
                             let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                             return Task::perform(
-                                async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                                async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                                 move |result| match result {
-                                    Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                                    Err(e) => AppMessage::ShowNotification(
+                                    Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
+                                    Err(e) => MainMessage::ShowNotification(
                                         format!("{}: {}", failed_message, e),
                                         NotificationType::Error,
-                                    ),
+                                    )
+                                    .into(),
                                 },
                             );
                         }
@@ -77,21 +80,20 @@ impl App {
                             error!("[模态窗口设置壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
                             let error_message =
                                 format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
-                            return Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error));
+                            return self.show_notification(error_message, NotificationType::Error);
                         }
                     }
                 } else {
                     // 缓存文件不存在
                     let error_message = self.i18n.t("download-tasks.cache-file-not-found").to_string();
-                    return Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error));
+                    return self.show_notification(error_message, NotificationType::Error);
                 }
             } else {
                 // 获取缓存路径失败
                 let error_message = self.i18n.t("download-tasks.get-cache-path-failed").to_string();
-                return Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error));
+                return self.show_notification(error_message, NotificationType::Error);
             }
         }
-
         Task::none()
     }
 }

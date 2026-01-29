@@ -1,9 +1,10 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::async_task;
 use crate::services::download::DownloadService;
 use crate::services::wallhaven;
-use crate::ui::async_tasks;
 use crate::ui::download::DownloadStatus;
+use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::helpers;
 use iced::Task;
@@ -34,13 +35,14 @@ impl App {
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                     return Task::perform(
-                        async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                        async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                         move |result| match result {
-                            Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                            Err(e) => AppMessage::ShowNotification(
+                            Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
+                            Err(e) => MainMessage::ShowNotification(
                                 format!("{}: {}", failed_message, e),
                                 NotificationType::Error,
-                            ),
+                            )
+                            .into(),
                         },
                     );
                 }
@@ -64,13 +66,14 @@ impl App {
                                 let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                                 return Task::perform(
-                                    async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                                    async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                                     move |result| match result {
-                                        Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                                        Err(e) => AppMessage::ShowNotification(
+                                        Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
+                                        Err(e) => MainMessage::ShowNotification(
                                             format!("{}: {}", failed_message, e),
                                             NotificationType::Error,
-                                        ),
+                                        )
+                                        .into(),
                                     },
                                 );
                             }
@@ -98,7 +101,7 @@ impl App {
             if has_duplicate {
                 // 任务已在下载队列中，只更新待设置壁纸的文件名
                 let info_message = self.i18n.t("download-tasks.task-already-in-queue").to_string();
-                return Task::done(AppMessage::ShowNotification(info_message, NotificationType::Info));
+                return self.show_notification(info_message, NotificationType::Info);
             }
 
             // 开始下载

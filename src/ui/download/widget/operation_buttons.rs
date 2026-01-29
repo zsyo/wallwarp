@@ -14,49 +14,49 @@ pub fn create_operation_buttons<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> E
     let pause_button = common::create_icon_button_with_tooltip(
         "\u{F4C3}", // pause-fill
         BUTTON_COLOR_YELLOW,
-        AppMessage::Download(DownloadMessage::PauseTask(task.id)),
+        DownloadMessage::PauseTask(task.id).into(),
         i18n.t("download-tasks.tooltip-pause"),
     );
     let resume_button = common::create_icon_button_with_tooltip(
         "\u{F4F4}", // play-fill
         BUTTON_COLOR_GREEN,
-        AppMessage::Download(DownloadMessage::ResumeTask(task.id)),
+        DownloadMessage::ResumeTask(task.id).into(),
         i18n.t("download-tasks.tooltip-resume"),
     );
     let retry_button = common::create_icon_button_with_tooltip(
         "\u{F130}", // play-fill (重新下载)
         BUTTON_COLOR_BLUE,
-        AppMessage::Download(DownloadMessage::RetryTask(task.id)),
+        DownloadMessage::RetryTask(task.id).into(),
         i18n.t("download-tasks.tooltip-retry"),
     );
     let copy_button = common::create_icon_button_with_tooltip(
         "\u{F759}", // link-45deg
         BUTTON_COLOR_BLUE,
-        AppMessage::Download(DownloadMessage::CopyDownloadLink(task.id)),
+        DownloadMessage::CopyDownloadLink(task.id).into(),
         i18n.t("download-tasks.tooltip-copy-url"),
     );
     let cancel_button = common::create_icon_button_with_tooltip(
         "\u{F117}", // x-circle-fill
         BUTTON_COLOR_RED,
-        AppMessage::Download(DownloadMessage::CancelTask(task.id)),
+        DownloadMessage::CancelTask(task.id).into(),
         i18n.t("download-tasks.tooltip-cancel"),
     );
     let delete_button = common::create_icon_button_with_tooltip(
         "\u{F78B}", // trash-fill (删除任务)
         BUTTON_COLOR_RED,
-        AppMessage::Download(DownloadMessage::DeleteTask(task.id)),
+        DownloadMessage::DeleteTask(task.id).into(),
         i18n.t("download-tasks.tooltip-delete"),
     );
     let view_button = common::create_icon_button_with_tooltip(
         "\u{F341}", // folder-fill (查看文件)
         BUTTON_COLOR_YELLOW,
-        AppMessage::Download(DownloadMessage::OpenFileLocation(task.id)),
+        DownloadMessage::OpenFileLocation(task.id).into(),
         i18n.t("download-tasks.tooltip-open"),
     );
     let set_wallpaper_button = common::create_icon_button_with_tooltip(
         "\u{F429}", // image-fill (设为壁纸)
         BUTTON_COLOR_GREEN,
-        AppMessage::Download(DownloadMessage::SetAsWallpaper(task.id)),
+        DownloadMessage::SetAsWallpaper(task.id).into(),
         i18n.t("local-list.tooltip-set-wallpaper"),
     );
 

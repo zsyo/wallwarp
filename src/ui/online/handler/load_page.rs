@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::async_tasks;
+use crate::services::async_task;
 use crate::ui::online::{OnlineMessage, ResolutionMode};
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -83,7 +83,7 @@ impl App {
         };
 
         Task::perform(
-            async_tasks::async_load_online_wallpapers(
+            async_task::async_load_online_wallpapers(
                 categories,
                 sorting,
                 purities,
@@ -99,10 +99,10 @@ impl App {
                 context,
             ),
             |result| match result {
-                Ok((wallpapers, last_page, total_pages, current_page)) => AppMessage::Online(
-                    OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page),
-                ),
-                Err(e) => AppMessage::Online(OnlineMessage::LoadPageFailed(e.to_string())),
+                Ok((wallpapers, last_page, total_pages, current_page)) => {
+                    OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page).into()
+                }
+                Err(e) => OnlineMessage::LoadPageFailed(e.to_string()).into(),
             },
         )
     }

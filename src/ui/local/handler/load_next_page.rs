@@ -28,7 +28,7 @@ impl App {
 
             // 如果估算的内容高度小于窗口高度，说明没有滚动条，需要加载下一页
             if estimated_content_height < self.current_window_height as f32 {
-                return Task::perform(async {}, |_| AppMessage::Local(LocalMessage::LoadPage));
+                return Task::done(LocalMessage::LoadPage.into());
             }
         }
         Task::none()

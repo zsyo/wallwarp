@@ -90,7 +90,7 @@ pub fn create_color_grid_options<'a>(
                     },
                     ..button::text(_theme, _status)
                 })
-                .on_press(AppMessage::Online(OnlineMessage::ColorChanged(*color_option)))
+                .on_press(OnlineMessage::ColorChanged(*color_option).into())
                 .into()
             } else {
                 button(
@@ -108,7 +108,7 @@ pub fn create_color_grid_options<'a>(
                     },
                     ..button::text(_theme, _status)
                 })
-                .on_press(AppMessage::Online(OnlineMessage::ColorChanged(*color_option)))
+                .on_press(OnlineMessage::ColorChanged(*color_option).into())
                 .into()
             };
 

@@ -61,7 +61,7 @@ pub fn create_loaded_wallpaper<'a>(
         common::create_icon_button(
             "\u{F341}",
             BUTTON_COLOR_YELLOW,
-            AppMessage::Local(LocalMessage::ViewInFolder(index)),
+            LocalMessage::ViewInFolder(index).into(),
         ),
         i18n.t("local-list.tooltip-locate"),
         tooltip::Position::Top,
@@ -69,11 +69,7 @@ pub fn create_loaded_wallpaper<'a>(
     );
 
     let set_wallpaper_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F429}",
-            BUTTON_COLOR_GREEN,
-            AppMessage::Local(LocalMessage::SetWallpaper(index)),
-        ),
+        common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, LocalMessage::SetWallpaper(index).into()),
         i18n.t("local-list.tooltip-set-wallpaper"),
         tooltip::Position::Top,
         theme_config,
@@ -83,7 +79,7 @@ pub fn create_loaded_wallpaper<'a>(
         common::create_icon_button(
             "\u{F78B}",
             BUTTON_COLOR_RED,
-            AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
+            LocalMessage::ShowDeleteConfirm(index).into(),
         ),
         i18n.t("local-list.tooltip-delete"),
         tooltip::Position::Top,
@@ -164,5 +160,5 @@ pub fn create_loaded_wallpaper<'a>(
             };
             button::Style { shadow, ..base_style }
         })
-        .on_press(AppMessage::Local(LocalMessage::ShowModal(index)))
+        .on_press(LocalMessage::ShowModal(index).into())
 }

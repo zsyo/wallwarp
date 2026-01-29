@@ -73,9 +73,7 @@ pub fn create_resolution_grid_options<'a>(
     // 创建顶部模式切换按钮（水平居中）
     let atleast_button = button(text(i18n.t("online-wallpapers.resolution-mode-atleast")).size(14))
         .padding(6)
-        .on_press(AppMessage::Online(OnlineMessage::ResolutionModeChanged(
-            ResolutionMode::AtLeast,
-        )))
+        .on_press(OnlineMessage::ResolutionModeChanged(ResolutionMode::AtLeast).into())
         .style(move |_theme, _status| {
             let is_selected = state.resolution_mode == ResolutionMode::AtLeast;
             let bg_color = if is_selected {
@@ -102,9 +100,7 @@ pub fn create_resolution_grid_options<'a>(
 
     let exactly_button = button(text(i18n.t("online-wallpapers.resolution-mode-exactly")).size(14))
         .padding(6)
-        .on_press(AppMessage::Online(OnlineMessage::ResolutionModeChanged(
-            ResolutionMode::Exactly,
-        )))
+        .on_press(OnlineMessage::ResolutionModeChanged(ResolutionMode::Exactly).into())
         .style(move |_theme, _status| {
             let is_selected = state.resolution_mode == ResolutionMode::Exactly;
             let bg_color = if is_selected {
@@ -131,9 +127,7 @@ pub fn create_resolution_grid_options<'a>(
 
     let all_button = button(text(i18n.t("online-wallpapers.resolution-mode-all")).size(14))
         .padding(6)
-        .on_press(AppMessage::Online(OnlineMessage::ResolutionModeChanged(
-            ResolutionMode::All,
-        )))
+        .on_press(OnlineMessage::ResolutionModeChanged(ResolutionMode::All).into())
         .style(move |_theme, _status| {
             let is_selected = state.resolution_mode == ResolutionMode::All;
             let bg_color = if is_selected {
@@ -218,9 +212,9 @@ pub fn create_resolution_grid_options<'a>(
                 .on_press(if is_list_disabled {
                     AppMessage::None
                 } else if state.resolution_mode == ResolutionMode::AtLeast {
-                    AppMessage::Online(OnlineMessage::ResolutionAtLeastSelected(*resolution))
+                    OnlineMessage::ResolutionAtLeastSelected(*resolution).into()
                 } else {
-                    AppMessage::Online(OnlineMessage::ResolutionToggled(*resolution))
+                    OnlineMessage::ResolutionToggled(*resolution).into()
                 })
                 .into();
 

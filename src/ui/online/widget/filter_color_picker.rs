@@ -79,7 +79,7 @@ pub fn create_color_picker<'a>(
     let color_trigger = button(color_underlay)
         .padding(6)
         .width(Length::Fixed(80.0))
-        .on_press(AppMessage::Online(OnlineMessage::ColorPickerExpanded))
+        .on_press(OnlineMessage::ColorPickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(color_button_bg)),
             text_color: color_button_text_color,
@@ -97,7 +97,7 @@ pub fn create_color_picker<'a>(
     // 使用 DropDown 组件
     DropDown::new(color_trigger, color_options, state.color_picker_expanded)
         .width(Length::Fill)
-        .on_dismiss(AppMessage::Online(OnlineMessage::ColorPickerDismiss))
+        .on_dismiss(OnlineMessage::ColorPickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
         .into()
 }

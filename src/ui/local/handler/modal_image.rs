@@ -28,7 +28,7 @@ impl App {
         // 异步加载图片数据
         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
             return Task::perform(async move { Handle::from_path(&path) }, |handle| {
-                AppMessage::Local(LocalMessage::ModalImageLoaded(handle))
+                LocalMessage::ModalImageLoaded(handle).into()
             });
         }
         Task::none()

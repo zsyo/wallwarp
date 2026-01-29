@@ -1,7 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::async_tasks;
+use crate::services::async_task;
 use crate::ui::auto_change::AutoChangeMessage;
+use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 
@@ -16,17 +17,17 @@ impl App {
             let wallpaper_mode = self.config.wallpaper.mode;
 
             Task::perform(
-                async_tasks::async_set_random_wallpaper(paths, wallpaper_mode),
+                async_task::async_set_random_wallpaper(paths, wallpaper_mode),
                 |result| match result {
-                    Ok(path) => AppMessage::AutoChange(AutoChangeMessage::SetRandomWallpaperSuccess(path)),
-                    Err(e) => AppMessage::AutoChange(AutoChangeMessage::SetRandomWallpaperFailed(e.to_string())),
+                    Ok(path) => AutoChangeMessage::SetRandomWallpaperSuccess(path).into(),
+                    Err(e) => AutoChangeMessage::SetRandomWallpaperFailed(e.to_string()).into(),
                 },
             )
         } else {
             // 没有找到支持的壁纸
             tracing::warn!("[定时切换] [获取] 没有找到支持的壁纸文件");
             let error_message = self.i18n.t("local-list.no-valid-wallpapers").to_string();
-            Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error))
+            self.show_notification(error_message, NotificationType::Error)
         }
     }
 
@@ -35,7 +36,7 @@ impl App {
         tracing::error!("[定时切换] [失败] 获取壁纸列表失败: {}", error);
         self.auto_change_state.auto_change_enabled = false;
         let error_message = format!("获取壁纸列表失败: {}", error);
-        Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error))
+        self.show_notification(error_message, NotificationType::Error)
     }
 
     /// 处理随机设置壁纸成功
@@ -43,13 +44,13 @@ impl App {
         tracing::info!("[定时切换] [成功] 已设置壁纸: {}", path);
 
         // 将壁纸路径添加到历史记录
-        Task::done(AppMessage::AddToWallpaperHistory(path))
+        Task::done(MainMessage::AddToWallpaperHistory(path).into())
     }
 
     /// 处理随机设置壁纸失败
     pub(in crate::ui::auto_change) fn set_random_wallpaper_failed(&mut self, error: String) -> Task<AppMessage> {
         tracing::error!("[定时切换] [失败] 设置壁纸失败: {}", error);
         let error_message = format!("设置壁纸失败: {}", error);
-        Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error))
+        self.show_notification(error_message, NotificationType::Error)
     }
 }

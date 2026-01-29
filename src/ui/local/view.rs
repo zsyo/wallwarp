@@ -51,7 +51,7 @@ pub fn local_view<'a>(
                 let is_near_bottom = scroll_percentage >= 0.95;
 
                 if is_near_bottom {
-                    AppMessage::Local(LocalMessage::ScrollToBottom)
+                    LocalMessage::ScrollToBottom.into()
                 } else {
                     AppMessage::None
                 }
@@ -63,7 +63,7 @@ pub fn local_view<'a>(
 
                 // 只有当向下滚动（relative_offset > 0）且在底部时才触发加载
                 if relative_offset > 0.0 {
-                    AppMessage::Local(LocalMessage::ScrollToBottom)
+                    LocalMessage::ScrollToBottom.into()
                 } else {
                     AppMessage::None
                 }
@@ -85,10 +85,8 @@ pub fn local_view<'a>(
             i18n.t("local-list.delete-confirm-message"),
             i18n.t("local-list.delete-confirm-confirm"),
             i18n.t("local-list.delete-confirm-cancel"),
-            AppMessage::Local(LocalMessage::ConfirmDelete(
-                local_state.delete_target_index.unwrap_or(0),
-            )),
-            AppMessage::Local(LocalMessage::CloseDeleteConfirm),
+            LocalMessage::ConfirmDelete(local_state.delete_target_index.unwrap_or(0)).into(),
+            LocalMessage::CloseDeleteConfirm.into(),
         );
         layers.push(delete_confirm_dialog);
     }

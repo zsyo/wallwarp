@@ -1,8 +1,9 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::async_task;
 use crate::services::download::DownloadService;
-use crate::ui::async_tasks;
 use crate::ui::download::{DownloadMessage, DownloadStatus};
+use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 use std::path::PathBuf;
@@ -104,13 +105,14 @@ impl App {
 
                             // 异步设置壁纸
                             return Task::perform(
-                                async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                                async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                                 move |result| match result {
-                                    Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
-                                    Err(e) => AppMessage::ShowNotification(
+                                    Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
+                                    Err(e) => MainMessage::ShowNotification(
                                         format!("{}: {}", failed_message, e),
                                         NotificationType::Error,
-                                    ),
+                                    )
+                                    .into(),
                                 },
                             );
                         }
@@ -141,7 +143,7 @@ impl App {
 
             // 启动下一个下载任务
             return Task::perform(
-                async_tasks::async_download_wallpaper_task_with_progress(
+                async_task::async_download_wallpaper_task_with_progress(
                     next_url.to_string(),
                     next_save_path,
                     next_proxy,
@@ -154,11 +156,11 @@ impl App {
                 move |result| match result {
                     Ok(s) => {
                         tracing::info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", next_task_id, s);
-                        AppMessage::Download(DownloadMessage::DownloadCompleted(next_task_id, s, None))
+                        DownloadMessage::DownloadCompleted(next_task_id, s, None).into()
                     }
                     Err(e) => {
                         tracing::error!("[下载任务] [ID:{}] 下载失败: {}", next_task_id, e);
-                        AppMessage::Download(DownloadMessage::DownloadCompleted(next_task_id, 0, Some(e)))
+                        DownloadMessage::DownloadCompleted(next_task_id, 0, Some(e)).into()
                     }
                 },
             );

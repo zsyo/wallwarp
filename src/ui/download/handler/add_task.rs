@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::async_tasks;
+use crate::services::async_task;
 use crate::ui::download::{DownloadMessage, DownloadStatus};
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -49,15 +49,15 @@ impl App {
                 let task_id = task_full.task.id;
 
                 return Task::perform(
-                    async_tasks::async_download_wallpaper_task(url, save_path, proxy, task_id),
+                    async_task::async_download_wallpaper_task(url, save_path, proxy, task_id),
                     move |result| match result {
                         Ok(size) => {
                             tracing::info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                            AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, size, None))
+                            DownloadMessage::DownloadCompleted(task_id, size, None).into()
                         }
                         Err(e) => {
                             tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                            AppMessage::Download(DownloadMessage::DownloadCompleted(task_id, 0, Some(e)))
+                            DownloadMessage::DownloadCompleted(task_id, 0, Some(e)).into()
                         }
                     },
                 );

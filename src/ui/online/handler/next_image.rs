@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::async_tasks;
+use crate::services::async_task;
 use crate::ui::online::OnlineMessage;
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -36,7 +36,7 @@ impl App {
 
                 // 启动下载任务
                 return Task::perform(
-                    async_tasks::async_load_online_wallpaper_image_with_streaming(
+                    async_task::async_load_online_wallpaper_image_with_streaming(
                         url,
                         file_size,
                         cache_path,
@@ -44,8 +44,8 @@ impl App {
                         cancel_token.clone(),
                     ),
                     |result| match result {
-                        Ok(handle) => AppMessage::Online(OnlineMessage::ModalImageDownloaded(handle)),
-                        Err(e) => AppMessage::Online(OnlineMessage::ModalImageDownloadFailed(e.to_string())),
+                        Ok(handle) => OnlineMessage::ModalImageDownloaded(handle).into(),
+                        Err(e) => OnlineMessage::ModalImageDownloadFailed(e.to_string()).into(),
                     },
                 );
             }

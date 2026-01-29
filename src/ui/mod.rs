@@ -1,9 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 pub mod app;
-pub mod async_tasks;
 pub mod auto_change;
-pub mod close_confirmation;
 pub mod common;
 pub mod download;
 pub mod local;
@@ -12,11 +10,11 @@ pub mod online;
 pub mod settings;
 pub mod settings_handlers;
 pub mod style;
-pub mod tray;
 pub mod update;
 
 use crate::i18n::I18n;
-use crate::utils::config::CloseAction;
+use crate::ui::main::TrayManager;
+use crate::utils::config::{CloseAction, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 
 #[derive(Debug, Clone)]
 pub enum CloseConfirmationAction {
@@ -28,17 +26,9 @@ pub enum CloseConfirmationAction {
 pub enum AppMessage {
     None, // 空消息，用于某些不需要实际操作的情况
     LanguageSelected(String),
-    WindowResized(u32, u32), // 窗口大小改变事件
-    ExecutePendingSave,
-    PageSelected(ActivePage),
     AutoStartupToggled(bool),
     LoggingToggled(bool),
     CloseActionSelected(CloseAction),
-    WindowCloseRequested,
-    WindowFocused,
-    MinimizeToTray,
-    TrayIconClicked,
-    TrayMenuEvent(String),
     OpenUrl(String),
     DataPathSelected(String),
     CachePathSelected(String),
@@ -50,52 +40,27 @@ pub enum AppMessage {
     RestoreDefaultPath(String),
     WallhavenApiKeyChanged(String),
     SaveWallhavenApiKey,
-    ScrollToTop(String), // 滚动到顶部，参数为滚动组件ID
     ProxyProtocolChanged(String),
     ProxyAddressChanged(String),
     ProxyPortChanged(u32),
     SaveProxy,
-    WallpaperModeSelected(crate::utils::config::WallpaperMode), // 壁纸模式选择
-    AutoChangeModeSelected(crate::utils::config::WallpaperAutoChangeMode), // 定时切换模式选择
-    AutoChangeIntervalSelected(crate::utils::config::WallpaperAutoChangeInterval), // 定时切换周期选择
-    CustomIntervalMinutesChanged(u32),                          // 自定义切换周期分钟数变化
-    AutoChangeQueryChanged(String),                             // 定时切换关键词变化
-    SaveAutoChangeQuery,                                        // 保存定时切换关键词
-    // 语言和代理协议下拉框相关消息
-    LanguagePickerExpanded,      // 展开语言选择器
-    LanguagePickerDismiss,       // 关闭语言选择器
-    ProxyProtocolPickerExpanded, // 展开代理协议选择器
-    ProxyProtocolPickerDismiss,  // 关闭代理协议选择器
-    // 主题下拉框相关消息
-    ThemePickerExpanded,                        // 展开主题选择器
-    ThemePickerDismiss,                         // 关闭主题选择器
-    ThemeSelected(crate::utils::config::Theme), // 主题选择
-    AutoDetectColorModeTick,                    // 自动检测颜色模式
-    // 通知相关消息
-    ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
-    HideNotification,                           // 隐藏通知（用于定时隐藏）
-    // 关闭确认对话框相关消息
-    ShowCloseConfirmation,
-    CloseConfirmationResponse(CloseConfirmationAction, bool), // (动作, 是否记住设置)
-    CloseConfirmationCancelled,
-    ToggleRememberSetting(bool),
+    WallpaperModeSelected(WallpaperMode),                    // 壁纸模式选择
+    AutoChangeModeSelected(WallpaperAutoChangeMode),         // 定时切换模式选择
+    AutoChangeIntervalSelected(WallpaperAutoChangeInterval), // 定时切换周期选择
+    CustomIntervalMinutesChanged(u32),                       // 自定义切换周期分钟数变化
+    AutoChangeQueryChanged(String),                          // 定时切换关键词变化
+    SaveAutoChangeQuery,                                     // 保存定时切换关键词
+    LanguagePickerExpanded,                                  // 展开语言选择器
+    LanguagePickerDismiss,                                   // 关闭语言选择器
+    ProxyProtocolPickerExpanded,                             // 展开代理协议选择器
+    ProxyProtocolPickerDismiss,                              // 关闭代理协议选择器
+    ThemePickerExpanded,                                     // 展开主题选择器
+    ThemePickerDismiss,                                      // 关闭主题选择器
+    Main(crate::ui::main::MainMessage),
     Local(crate::ui::local::LocalMessage),
     Online(crate::ui::online::OnlineMessage),
     Download(crate::ui::download::DownloadMessage),
-    AutoChange(crate::ui::auto_change::AutoChangeMessage), // 定时切换壁纸相关消息
-    // 托盘菜单切换壁纸相关消息
-    TraySwitchPreviousWallpaper,
-    TraySwitchNextWallpaper,
-    AddToWallpaperHistory(String),  // 添加壁纸到历史记录
-    RemoveLastFromWallpaperHistory, // 从历史记录末尾移除壁纸
-    ExternalInstanceTriggered(String),
-    // 自定义标题栏相关消息
-    TitleBarDrag,     // 拖拽标题栏
-    TitleBarMinimize, // 最小化窗口
-    TitleBarMaximize, // 最大化/还原窗口
-    TitleBarClose,    // 关闭窗口
-    // 窗口边缘调整大小相关消息
-    ResizeWindow(iced::window::Direction), // 调整窗口大小（包含所有方向）
+    AutoChange(crate::ui::auto_change::AutoChangeMessage),
 }
 
 #[derive(Debug, Clone)]
@@ -119,7 +84,7 @@ pub struct App {
     active_page: ActivePage,
     pending_window_size: Option<(u32, u32)>,
     debounce_timer: std::time::Instant,
-    tray_manager: tray::TrayManager,
+    tray_manager: TrayManager,
     // 主题配置
     pub theme_config: crate::ui::style::ThemeConfig,
     // 代理设置的临时状态

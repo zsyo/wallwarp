@@ -10,12 +10,12 @@
 
 pub mod client;
 pub mod helper;
-pub mod models;
+pub mod model;
 pub mod service;
 pub mod types;
 
 // 重新导出常用类型
-pub use helper::generate_file_name;
-pub use models::{AspectRatio, AspectRatioGroup, Category, ColorOption, Purity, Ratio, Resolution, Sorting, TimeRange};
+pub use helper::*;
+pub use model::*;
 pub use service::WallhavenService;
 pub use types::{OnlineWallpaper, WallpaperData};

@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::async_tasks;
+use crate::services::async_task;
+use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 use std::path::Path;
@@ -19,17 +20,18 @@ impl App {
 
                 // 异步设置壁纸
                 return Task::perform(
-                    async_tasks::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                    async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                     move |result| match result {
-                        Ok(_) => AppMessage::AddToWallpaperHistory(full_path),
+                        Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
                         Err(e) => {
-                            AppMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error)
+                            MainMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error)
+                                .into()
                         }
                     },
                 );
             } else {
                 let error_message = self.i18n.t("download-tasks.set-wallpaper-file-not-found").to_string();
-                return Task::done(AppMessage::ShowNotification(error_message, NotificationType::Error));
+                return self.show_notification(error_message, NotificationType::Error);
             }
         }
         Task::none()

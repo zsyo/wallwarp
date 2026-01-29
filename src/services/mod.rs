@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+pub mod async_task;
 pub mod download;
 pub mod local;
 pub mod request_context;
@@ -43,7 +44,8 @@ impl Default for ConcurrencyController {
 
 /// 全局并发控制器实例
 /// 使用LazyLock实现线程安全的延迟初始化
-pub static GLOBAL_CONCURRENCY_CONTROLLER: std::sync::LazyLock<ConcurrencyController> = std::sync::LazyLock::new(|| ConcurrencyController::new(5));
+pub static GLOBAL_CONCURRENCY_CONTROLLER: std::sync::LazyLock<ConcurrencyController> =
+    std::sync::LazyLock::new(|| ConcurrencyController::new(5));
 
 /// 下载进度更新消息
 #[derive(Debug, Clone)]
@@ -55,7 +57,8 @@ pub struct DownloadProgressUpdate {
 }
 
 /// 全局下载进度channel发送器
-pub static DOWNLOAD_PROGRESS_TX: std::sync::OnceLock<tokio::sync::broadcast::Sender<DownloadProgressUpdate>> = std::sync::OnceLock::new();
+pub static DOWNLOAD_PROGRESS_TX: std::sync::OnceLock<tokio::sync::broadcast::Sender<DownloadProgressUpdate>> =
+    std::sync::OnceLock::new();
 
 /// 初始化全局下载进度channel
 pub fn init_download_progress_channel() {

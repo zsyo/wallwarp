@@ -2,35 +2,19 @@
 
 use super::App;
 use super::AppMessage;
+use crate::services::async_task;
 use crate::services::wallhaven;
-use crate::utils::{
-    config::CloseAction,
-    helpers,
-    single_instance::{SingleInstanceGuard, WAKE_UP},
-    startup,
-};
-use iced::wgpu::rwh::RawWindowHandle;
-use iced::window;
+use crate::utils::{config::CloseAction, helpers, startup};
 use tracing::error;
-use tracing::info;
-use windows::Win32::Foundation::HWND;
 
 impl App {
     /// 处理设置相关消息
     pub fn handle_settings_message(&mut self, msg: AppMessage) -> iced::Task<AppMessage> {
         match msg {
             AppMessage::LanguageSelected(lang) => self.handle_language_selected(lang),
-            AppMessage::PageSelected(page) => self.handle_page_selected(page),
-            AppMessage::WindowResized(width, height) => self.handle_window_resized(width, height),
-            AppMessage::ExecutePendingSave => self.execute_pending_save(),
             AppMessage::AutoStartupToggled(enabled) => self.handle_auto_startup_toggled(enabled),
             AppMessage::LoggingToggled(enabled) => self.handle_logging_toggled(enabled),
             AppMessage::CloseActionSelected(action) => self.handle_close_action_selected(action),
-            AppMessage::WindowCloseRequested => self.handle_window_close_requested(),
-            AppMessage::WindowFocused => self.handle_window_focused(),
-            AppMessage::MinimizeToTray => self.handle_minimize_to_tray(),
-            AppMessage::TrayIconClicked => self.handle_show_window(),
-            AppMessage::TrayMenuEvent(id) => self.handle_tray_menu_event(id),
             AppMessage::OpenUrl(url) => self.handle_open_url(url),
             AppMessage::DataPathSelected(path) => self.handle_data_path_selected(path),
             AppMessage::CachePathSelected(path) => self.handle_cache_path_selected(path),
@@ -42,7 +26,6 @@ impl App {
             AppMessage::RestoreDefaultPath(path_type) => self.handle_restore_default_path(path_type),
             AppMessage::WallhavenApiKeyChanged(api_key) => self.handle_wallhaven_api_key_changed(api_key),
             AppMessage::SaveWallhavenApiKey => self.handle_save_wallhaven_api_key(),
-            AppMessage::ScrollToTop(scrollable_id) => self.handle_scroll_to_top(scrollable_id),
             AppMessage::ProxyProtocolChanged(protocol) => self.handle_proxy_protocol_changed(protocol),
             AppMessage::ProxyAddressChanged(address) => self.handle_proxy_address_changed(address),
             AppMessage::ProxyPortChanged(port) => self.handle_proxy_port_changed(port),
@@ -59,30 +42,6 @@ impl App {
             AppMessage::ProxyProtocolPickerDismiss => self.handle_proxy_protocol_picker_dismiss(),
             AppMessage::ThemePickerExpanded => self.handle_theme_picker_expanded(),
             AppMessage::ThemePickerDismiss => self.handle_theme_picker_dismiss(),
-            AppMessage::ThemeSelected(theme) => self.handle_theme_selected(theme),
-            AppMessage::AutoDetectColorModeTick => self.handle_detect_color_mode(),
-            AppMessage::ShowCloseConfirmation => self.handle_show_close_confirmation(),
-            AppMessage::CloseConfirmationResponse(action, remember_setting) => {
-                self.handle_close_confirmation_response(action, remember_setting)
-            }
-            AppMessage::CloseConfirmationCancelled => self.handle_close_confirmation_cancelled(),
-            AppMessage::ToggleRememberSetting(checked) => self.handle_toggle_remember_setting(checked),
-            AppMessage::ShowNotification(message, notification_type) => {
-                self.show_notification(message, notification_type)
-            }
-            AppMessage::HideNotification => self.handle_hide_notification(),
-            AppMessage::AddToWallpaperHistory(path) => self.handle_add_to_wallpaper_history(path),
-            AppMessage::TraySwitchPreviousWallpaper => self.handle_tray_switch_previous_wallpaper(),
-            AppMessage::TraySwitchNextWallpaper => self.handle_tray_switch_next_wallpaper(),
-            AppMessage::RemoveLastFromWallpaperHistory => self.handle_remove_last_from_wallpaper_history(),
-            AppMessage::ExternalInstanceTriggered(payload) => self.handle_external_instance_triggered(payload),
-            // 自定义标题栏消息
-            AppMessage::TitleBarDrag => self.handle_title_bar_drag(),
-            AppMessage::TitleBarMinimize => self.handle_title_bar_minimize(),
-            AppMessage::TitleBarMaximize => self.handle_title_bar_maximize(),
-            AppMessage::TitleBarClose => self.handle_window_close_requested(),
-            // 窗口边缘调整大小消息
-            AppMessage::ResizeWindow(direction) => self.handle_resize_window(direction),
             _ => iced::Task::none(),
         }
     }
@@ -93,106 +52,6 @@ impl App {
         self.i18n.set_language(lang.clone());
         // 同时更新配置
         self.config.set_language(lang);
-        iced::Task::none()
-    }
-
-    fn handle_page_selected(&mut self, page: super::ActivePage) -> iced::Task<AppMessage> {
-        // 当切换离开在线壁纸页面时，取消正在进行的请求
-        if self.active_page == super::ActivePage::OnlineWallpapers && page != super::ActivePage::OnlineWallpapers {
-            self.online_state.cancel_and_new_context();
-        }
-
-        self.active_page = page;
-
-        // 当切换到设置页面时，重置设置相关的临时状态
-        if page == super::ActivePage::Settings {
-            // 重置代理设置相关状态
-            let (proxy_protocol, proxy_address, proxy_port) = App::parse_proxy_string(&self.config.global.proxy);
-            self.proxy_protocol = proxy_protocol;
-            self.proxy_address = proxy_address;
-            self.proxy_port = proxy_port;
-            if proxy_port == 0 {
-                self.proxy_port = 1080;
-            }
-
-            // 重置API KEY设置状态
-            self.wallhaven_api_key = self.config.wallhaven.api_key.clone();
-
-            // 重置壁纸模式状态
-            self.wallpaper_mode = self.config.wallpaper.mode;
-
-            // 重置定时切换模式状态
-            self.auto_change_mode = self.config.wallpaper.auto_change_mode;
-
-            // 重置定时切换周期状态
-            self.auto_change_interval = self.config.wallpaper.auto_change_interval;
-
-            // 重置自定义分钟数状态
-            self.custom_interval_minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
-
-            // 重置定时切换关键词状态
-            self.auto_change_query = self.config.wallpaper.auto_change_query.clone();
-
-            // 滚动到顶部
-            return iced::Task::perform(async {}, |_| AppMessage::ScrollToTop("settings_scroll".to_string()));
-        }
-
-        // 每次切换到本地列表页面时，都重新加载壁纸
-        if page == super::ActivePage::LocalList {
-            // 重置本地状态，以便重新加载壁纸
-            self.local_state = super::local::LocalState::default();
-            return iced::Task::batch(vec![
-                iced::Task::perform(async {}, |_| {
-                    AppMessage::Local(super::local::LocalMessage::LoadWallpapers)
-                }),
-                iced::Task::perform(async {}, |_| {
-                    AppMessage::ScrollToTop("local_wallpapers_scroll".to_string())
-                }),
-            ]);
-        }
-
-        // 每次切换到在线壁纸页面时，不重新加载数据
-        // 仅在首次启动时通过 get_initial_tasks() 自动加载数据
-        // 后续通过搜索按钮和刷新按钮手动重载
-        if page == super::ActivePage::OnlineWallpapers {
-            // 滚动到顶部
-            return iced::Task::perform(async {}, |_| {
-                AppMessage::ScrollToTop("online_wallpapers_scroll".to_string())
-            });
-        }
-
-        // 对于其他页面切换，返回无任务
-        iced::Task::none()
-    }
-
-    fn handle_window_resized(&mut self, width: u32, height: u32) -> iced::Task<AppMessage> {
-        // 更新当前窗口宽度和高度，用于响应式布局和判断是否需要自动加载下一页
-        self.current_window_width = width;
-        self.current_window_height = height;
-        // 如果宽度和高度都为 0，通常意味着窗口被最小化了
-        self.is_visible = width > 0 && height > 0;
-        // 暂存窗口大小，等待防抖处理
-        self.pending_window_size = Some((width, height));
-        // 在收到调整大小事件时，直接开启一个延迟任务
-        self.debounce_timer = std::time::Instant::now();
-        // 这个 Task 会在 300ms 后发出一条“执行保存”的消息
-        return iced::Task::perform(tokio::time::sleep(std::time::Duration::from_millis(300)), |_| {
-            AppMessage::ExecutePendingSave
-        });
-    }
-
-    /// 处理延迟保存
-    fn execute_pending_save(&mut self) -> iced::Task<AppMessage> {
-        let elapsed = self.debounce_timer.elapsed();
-        if elapsed >= std::time::Duration::from_millis(300) {
-            // 只有当存在 pending 数据时才保存，保存完立即 take() 掉
-            if let Some((width, height)) = self.pending_window_size.take() {
-                if width > 0 && height > 0 {
-                    // 同步窗口大小到配置文件
-                    self.config.update_window_size(width, height);
-                }
-            }
-        }
         iced::Task::none()
     }
 
@@ -223,101 +82,6 @@ impl App {
         iced::Task::none()
     }
 
-    fn handle_window_close_requested(&mut self) -> iced::Task<AppMessage> {
-        // 根据配置处理关闭请求
-        match self.config.global.close_action {
-            CloseAction::MinimizeToTray => {
-                // 最小化到托盘 - 发送一个MinimizeToTray消息到主函数
-                return iced::Task::perform(async {}, |_| AppMessage::MinimizeToTray);
-            }
-            CloseAction::CloseApp => {
-                // 直接关闭应用
-                return iced::exit();
-            }
-            CloseAction::Ask => {
-                // 显示关闭确认对话框
-                return iced::Task::perform(async {}, |_| AppMessage::ShowCloseConfirmation);
-            }
-        }
-    }
-
-    fn handle_window_focused(&mut self) -> iced::Task<AppMessage> {
-        // 更新窗口状态为已聚焦
-        self.is_visible = true;
-        iced::Task::none()
-    }
-
-    fn handle_minimize_to_tray(&mut self) -> iced::Task<AppMessage> {
-        self.is_visible = false;
-        // 获取 ID 后设置模式为隐藏
-        window::oldest().and_then(|id| window::set_mode(id, window::Mode::Hidden))
-    }
-
-    fn handle_tray_menu_event(&mut self, id: String) -> iced::Task<AppMessage> {
-        match id.as_str() {
-            "tray_show" => {
-                // 显示窗口并检测状态，如果最小化或不在前台则置顶
-                return self.handle_show_window();
-            }
-            "tray_switch_previous" => {
-                // 切换上一张壁纸
-                return iced::Task::done(AppMessage::TraySwitchPreviousWallpaper);
-            }
-            "tray_switch_next" => {
-                // 切换下一张壁纸
-                return iced::Task::done(AppMessage::TraySwitchNextWallpaper);
-            }
-            "tray_settings" => {
-                // 打开设置窗口
-                self.active_page = super::ActivePage::Settings;
-                return self.handle_show_window();
-            }
-            "tray_quit" => {
-                // 真正退出程序
-                return iced::exit();
-            }
-            _ => {}
-        }
-
-        iced::Task::none()
-    }
-
-    fn handle_show_window(&mut self) -> iced::Task<AppMessage> {
-        // 显示窗口并检测状态，如果最小化或不在前台则置顶
-        window::oldest().and_then(move |window_id| {
-            iced::Task::batch(vec![
-                // 先设置窗口为 Windowed 模式（从 Hidden 恢复）
-                window::set_mode(window_id, window::Mode::Windowed),
-                // 然后检测窗口状态并置顶
-                window::run(window_id, move |mw| {
-                    if let Ok(handle) = mw.window_handle() {
-                        if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
-                            let hwnd = HWND(win32_handle.hwnd.get() as _);
-
-                            // 使用 Windows API 检测窗口状态并置顶
-                            let is_minimized = crate::utils::window_utils::is_window_minimized(hwnd);
-                            let is_foreground = crate::utils::window_utils::is_window_foreground(hwnd);
-
-                            // 如果窗口最小化或不在前台，则恢复并置顶
-                            if is_minimized || !is_foreground {
-                                tracing::info!(
-                                    "[显示窗口] 窗口状态 - 最小化: {}, 前台: {}, 执行恢复和置顶",
-                                    is_minimized,
-                                    is_foreground
-                                );
-                                let success = crate::utils::window_utils::restore_and_bring_to_front(hwnd);
-                                tracing::info!(" [显示窗口] 置顶操作结果: {}", success);
-                            } else {
-                                tracing::info!("[显示窗口] 窗口已在前台，无需置顶");
-                            }
-                        }
-                    }
-                })
-                .map(|_| AppMessage::None),
-            ])
-        })
-    }
-
     fn handle_open_url(&mut self, url: String) -> iced::Task<AppMessage> {
         if let Err(e) = open::that(&url) {
             error!("Failed to open URL {}: {}", url, e);
@@ -333,7 +97,7 @@ impl App {
             self.config.set_data_path(path);
         } else if path == "SELECT_DATA_PATH" {
             // 这是用户点击按钮时的原始消息，触发异步任务
-            return iced::Task::perform(super::async_tasks::select_folder_async(), |selected_path| {
+            return iced::Task::perform(async_task::select_folder_async(), |selected_path| {
                 if !selected_path.is_empty() {
                     AppMessage::DataPathSelected(selected_path)
                 } else {
@@ -353,7 +117,7 @@ impl App {
             self.config.set_cache_path(path);
         } else if path == "SELECT_CACHE_PATH" {
             // 这是用户点击按钮时的原始消息，触发异步任务
-            return iced::Task::perform(super::async_tasks::select_folder_async(), |selected_path| {
+            return iced::Task::perform(async_task::select_folder_async(), |selected_path| {
                 if !selected_path.is_empty() {
                     AppMessage::CachePathSelected(selected_path)
                 } else {
@@ -362,7 +126,7 @@ impl App {
             });
         } else if path == "SELECT_DATA_PATH" {
             // 这是用户点击数据路径输入框时的原始消息，触发异步任务
-            return iced::Task::perform(super::async_tasks::select_folder_async(), |selected_path| {
+            return iced::Task::perform(async_task::select_folder_async(), |selected_path| {
                 if !selected_path.is_empty() {
                     AppMessage::DataPathSelected(selected_path)
                 } else {
@@ -541,15 +305,6 @@ impl App {
         )
     }
 
-    fn handle_scroll_to_top(&mut self, scrollable_id: String) -> iced::Task<AppMessage> {
-        // 滚动到指定滚动组件的顶部
-        use iced::widget::operation;
-        operation::scroll_by(
-            scrollable_id,
-            iced::widget::scrollable::AbsoluteOffset { x: 0.0, y: 0.0 },
-        )
-    }
-
     fn handle_proxy_protocol_changed(&mut self, protocol: String) -> iced::Task<AppMessage> {
         self.proxy_protocol = protocol;
         iced::Task::none()
@@ -588,55 +343,6 @@ impl App {
             // 显示错误通知
             self.show_notification("格式错误，代理设置保存失败".to_string(), super::NotificationType::Error)
         }
-    }
-
-    fn handle_show_close_confirmation(&mut self) -> iced::Task<AppMessage> {
-        self.show_close_confirmation = true;
-        iced::Task::none()
-    }
-
-    fn handle_close_confirmation_response(
-        &mut self,
-        action: super::CloseConfirmationAction,
-        remember_setting: bool,
-    ) -> iced::Task<AppMessage> {
-        // 隐藏对话框
-        self.show_close_confirmation = false;
-
-        // 如果勾选了记住设置，则更新配置
-        if remember_setting {
-            let new_close_action = match action {
-                super::CloseConfirmationAction::MinimizeToTray => CloseAction::MinimizeToTray,
-                super::CloseConfirmationAction::CloseApp => CloseAction::CloseApp,
-            };
-            self.config.set_close_action(new_close_action);
-        }
-
-        // 根据选择执行相应操作
-        match action {
-            super::CloseConfirmationAction::MinimizeToTray => {
-                return iced::Task::perform(async {}, |_| AppMessage::MinimizeToTray);
-            }
-            super::CloseConfirmationAction::CloseApp => {
-                return iced::exit();
-            }
-        }
-    }
-
-    fn handle_close_confirmation_cancelled(&mut self) -> iced::Task<AppMessage> {
-        // 隐藏对话框，不执行任何操作
-        self.show_close_confirmation = false;
-        iced::Task::none()
-    }
-
-    fn handle_toggle_remember_setting(&mut self, checked: bool) -> iced::Task<AppMessage> {
-        self.remember_close_setting = checked;
-        iced::Task::none()
-    }
-
-    fn handle_hide_notification(&mut self) -> iced::Task<AppMessage> {
-        self.show_notification = false;
-        iced::Task::none()
     }
 
     fn handle_wallpaper_mode_selected(&mut self, mode: crate::utils::config::WallpaperMode) -> iced::Task<AppMessage> {
@@ -749,165 +455,7 @@ impl App {
 
         // 显示保存成功通知
         let success_message = self.i18n.t("settings.save-success").to_string();
-        iced::Task::done(AppMessage::ShowNotification(
-            success_message,
-            super::NotificationType::Success,
-        ))
-    }
-
-    /// 处理添加壁纸到历史记录
-    fn handle_add_to_wallpaper_history(&mut self, path: String) -> iced::Task<AppMessage> {
-        // 检查历史记录中是否已存在该路径，如果存在则先移除
-        if let Some(pos) = self.wallpaper_history.iter().position(|p| p == &path) {
-            self.wallpaper_history.remove(pos);
-        }
-
-        // 记录路径用于日志输出
-        let path_for_log = path.clone();
-
-        // 添加到历史记录末尾
-        self.wallpaper_history.push(path);
-
-        // 限制历史记录最多50条
-        if self.wallpaper_history.len() > 50 {
-            self.wallpaper_history.remove(0);
-        }
-
-        tracing::info!(
-            "[壁纸历史] 添加记录: {}, 当前记录数: {}",
-            path_for_log,
-            self.wallpaper_history.len()
-        );
-
-        // 更新托盘菜单项的启用状态
-        self.tray_manager
-            .update_switch_previous_item(self.wallpaper_history.len());
-
-        iced::Task::none()
-    }
-
-    /// 处理托盘菜单切换上一张壁纸
-    fn handle_tray_switch_previous_wallpaper(&mut self) -> iced::Task<AppMessage> {
-        // 检查历史记录是否为空
-        if self.wallpaper_history.is_empty() {
-            tracing::warn!("[托盘菜单] 壁纸历史记录为空，无法切换上一张");
-            return iced::Task::none();
-        }
-
-        // 查找上一张壁纸（历史记录中的倒数第二条）
-        if self.wallpaper_history.len() < 2 {
-            tracing::warn!("[托盘菜单] 壁纸历史记录不足2条，无法切换上一张");
-            return iced::Task::none();
-        }
-
-        let previous_wallpaper = self.wallpaper_history[self.wallpaper_history.len() - 2].clone();
-
-        // 设置壁纸
-        let wallpaper_mode = self.config.wallpaper.mode;
-
-        tracing::info!("[托盘菜单] 切换上一张壁纸: {}", previous_wallpaper);
-
-        // 提前获取翻译文本，避免线程安全问题
-        let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
-
-        iced::Task::perform(
-            super::async_tasks::async_set_wallpaper(previous_wallpaper.clone(), wallpaper_mode),
-            move |result| match result {
-                Ok(_) => {
-                    // 切换成功，将当前壁纸从历史记录末尾移除
-                    AppMessage::RemoveLastFromWallpaperHistory
-                }
-                Err(e) => {
-                    AppMessage::ShowNotification(format!("{}: {}", failed_message, e), super::NotificationType::Error)
-                }
-            },
-        )
-    }
-
-    /// 处理托盘菜单切换下一张壁纸
-    fn handle_tray_switch_next_wallpaper(&mut self) -> iced::Task<AppMessage> {
-        // 提前获取翻译文本，避免线程安全问题
-        let no_valid_wallpapers_message = self.i18n.t("local-list.no-valid-wallpapers").to_string();
-
-        // 根据定时切换模式执行不同的逻辑
-        match self.config.wallpaper.auto_change_mode {
-            crate::utils::config::WallpaperAutoChangeMode::Local => {
-                // 本地模式：获取支持的图片文件列表
-                let data_path = self.config.data.data_path.clone();
-                iced::Task::perform(
-                    super::async_tasks::async_get_supported_images(data_path),
-                    |result| match result {
-                        Ok(paths) => {
-                            // 获取到图片列表后，立即尝试设置随机壁纸
-                            if paths.is_empty() {
-                                AppMessage::ShowNotification(
-                                    no_valid_wallpapers_message,
-                                    super::NotificationType::Error,
-                                )
-                            } else {
-                                // 发送一个消息来触发设置随机壁纸
-                                AppMessage::AutoChange(
-                                    super::auto_change::AutoChangeMessage::GetSupportedImagesSuccess(paths),
-                                )
-                            }
-                        }
-                        Err(e) => {
-                            let error_message = format!("获取壁纸列表失败: {}", e);
-                            AppMessage::ShowNotification(error_message, super::NotificationType::Error)
-                        }
-                    },
-                )
-            }
-            crate::utils::config::WallpaperAutoChangeMode::Online => {
-                // 在线模式：从Wallhaven获取随机壁纸
-                let config = self.config.clone();
-                let auto_change_running = self.auto_change_running.clone();
-                iced::Task::perform(
-                    super::async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
-                    |result| match result {
-                        Ok(path) => AppMessage::AutoChange(
-                            super::auto_change::AutoChangeMessage::SetRandomWallpaperSuccess(path),
-                        ),
-                        Err(e) => {
-                            let error_message = format!("设置壁纸失败: {}", e);
-                            AppMessage::ShowNotification(error_message, super::NotificationType::Error)
-                        }
-                    },
-                )
-            }
-        }
-    }
-
-    /// 处理从历史记录末尾移除壁纸
-    fn handle_remove_last_from_wallpaper_history(&mut self) -> iced::Task<AppMessage> {
-        // 从历史记录末尾移除壁纸
-        if let Some(removed) = self.wallpaper_history.pop() {
-            tracing::info!(
-                "[壁纸历史] 移除记录: {}, 当前记录数: {}",
-                removed,
-                self.wallpaper_history.len()
-            );
-        }
-
-        // 更新托盘菜单项的启用状态
-        self.tray_manager
-            .update_switch_previous_item(self.wallpaper_history.len());
-
-        iced::Task::none()
-    }
-
-    fn handle_external_instance_triggered(&mut self, payload: String) -> iced::Task<AppMessage> {
-        info!("外部实例触发事件: {}", payload);
-
-        let show_window_task = if payload.contains(WAKE_UP) {
-            self.handle_show_window()
-        } else {
-            iced::Task::none()
-        };
-        let next_listen_task =
-            iced::Task::perform(SingleInstanceGuard::listen(), AppMessage::ExternalInstanceTriggered);
-
-        iced::Task::batch(vec![show_window_task, next_listen_task])
+        self.show_notification(success_message, super::NotificationType::Success)
     }
 
     fn handle_language_picker_expanded(&mut self) -> iced::Task<AppMessage> {
@@ -944,153 +492,5 @@ impl App {
         // 关闭主题选择器
         self.theme_picker_expanded = false;
         iced::Task::none()
-    }
-
-    fn handle_theme_selected(&mut self, theme: crate::utils::config::Theme) -> iced::Task<AppMessage> {
-        let old_theme = self.config.global.theme;
-        tracing::info!("[设置] [主题] 修改: {:?} -> {:?}", old_theme, theme);
-
-        // 更新配置
-        self.config.global.theme = theme;
-        self.config.save_to_file();
-
-        // 关闭选择器
-        self.theme_picker_expanded = false;
-
-        self.auto_change_state.auto_detect_color_mode = theme == crate::utils::config::Theme::Auto;
-
-        self.toggle_theme(theme)
-    }
-
-    fn toggle_theme(&mut self, theme: crate::utils::config::Theme) -> iced::Task<AppMessage> {
-        use crate::utils::config::Theme;
-
-        // 根据主题类型决定是否需要切换
-        match theme {
-            Theme::Dark => {
-                // 暗色主题：如果当前不是暗色，则切换
-                if !self.theme_config.is_dark() {
-                    self.theme_config.toggle();
-                    let theme_name = self.theme_config.get_theme().name();
-                    tracing::info!("[设置] [主题] 切换到: {}", theme_name);
-                }
-            }
-            Theme::Light => {
-                // 亮色主题：如果当前是暗色，则切换
-                if self.theme_config.is_dark() {
-                    self.theme_config.toggle();
-                    let theme_name = self.theme_config.get_theme().name();
-                    tracing::info!("[设置] [主题] 切换到: {}", theme_name);
-                }
-            }
-            Theme::Auto => {
-                // 自动模式：根据系统主题判断
-                let is_system_dark = crate::utils::window_utils::get_system_color_mode();
-                tracing::info!(
-                    "[设置] [主题] 自动模式，系统主题: {}",
-                    if is_system_dark { "深色" } else { "浅色" }
-                );
-
-                // 如果当前主题与系统主题不一致，则切换
-                if self.theme_config.is_dark() != is_system_dark {
-                    self.theme_config.toggle();
-                    let theme_name = self.theme_config.get_theme().name();
-                    tracing::info!("[设置] [主题] 切换到: {}", theme_name);
-                }
-            }
-        }
-        iced::Task::none()
-    }
-
-    fn handle_detect_color_mode(&mut self) -> iced::Task<AppMessage> {
-        let system_is_dark = crate::utils::window_utils::get_system_color_mode();
-        if system_is_dark != self.theme_config.is_dark() {
-            if system_is_dark {
-                return self.toggle_theme(crate::utils::config::Theme::Dark);
-            } else {
-                return self.toggle_theme(crate::utils::config::Theme::Light);
-            }
-        }
-        iced::Task::none()
-    }
-
-    // ============================================================================
-    // 自定义标题栏消息处理方法
-    // ============================================================================
-
-    /// 处理标题栏拖拽消息
-    fn handle_title_bar_drag(&mut self) -> iced::Task<AppMessage> {
-        window::oldest().and_then(move |id| window::drag(id))
-    }
-
-    /// 启用窗口边缘调整大小功能并添加窗口阴影
-    pub fn enable_window_resize(&self) -> iced::Task<AppMessage> {
-        window::oldest().and_then(move |id| {
-            window::run(id, move |mw| {
-                if let Ok(handle) = mw.window_handle() {
-                    if let RawWindowHandle::Win32(win32_handle) = handle.as_raw() {
-                        let hwnd = HWND(win32_handle.hwnd.get() as _);
-
-                        unsafe {
-                            use windows::Win32::Graphics::Dwm::DwmExtendFrameIntoClientArea;
-                            use windows::Win32::UI::Controls::MARGINS;
-                            use windows::Win32::UI::WindowsAndMessaging::{
-                                GWL_STYLE, GetWindowLongPtrW, SetWindowLongPtrW, WS_SIZEBOX, WS_THICKFRAME,
-                            };
-
-                            // 获取当前窗口样式
-                            let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
-
-                            // 添加 WS_THICKFRAME 和 WS_SIZEBOX 样式以启用窗口边缘调整大小和边框
-                            let new_style = style | WS_THICKFRAME.0 as isize | WS_SIZEBOX.0 as isize;
-
-                            // 设置新的窗口样式
-                            let _ = SetWindowLongPtrW(hwnd, GWL_STYLE, new_style);
-
-                            // 启用窗口阴影效果
-                            // 将边距设置为 -1，表示整个窗口都有阴影
-                            let margins = MARGINS {
-                                cxLeftWidth: -1,
-                                cxRightWidth: -1,
-                                cyTopHeight: -1,
-                                cyBottomHeight: -1,
-                            };
-                            let _ = DwmExtendFrameIntoClientArea(hwnd, &margins);
-                        }
-                    }
-                }
-            })
-            .map(|_| AppMessage::None)
-        })
-    }
-
-    /// 处理标题栏最小化消息
-    fn handle_title_bar_minimize(&mut self) -> iced::Task<AppMessage> {
-        window::oldest().and_then(|id: iced::window::Id| window::minimize(id, true).map(|_: ()| AppMessage::None))
-    }
-
-    /// 处理标题栏最大化/还原消息
-    fn handle_title_bar_maximize(&mut self) -> iced::Task<AppMessage> {
-        let is_maximized = !self.is_maximized;
-        self.is_maximized = is_maximized;
-
-        // 当窗口从最大化状态还原时,需要重新应用窗口样式以确保拖拽功能正常
-        window::oldest()
-            .and_then(move |id: iced::window::Id| window::maximize(id, is_maximized).map(|_: ()| AppMessage::None))
-            .chain(if !is_maximized {
-                // 窗口还原后,重新启用窗口调整大小样式
-                self.enable_window_resize()
-            } else {
-                iced::Task::none()
-            })
-    }
-
-    // ============================================================================
-    // 窗口边缘调整大小消息处理方法
-    // ============================================================================
-
-    /// 处理窗口边缘调整大小消息
-    fn handle_resize_window(&mut self, direction: iced::window::Direction) -> iced::Task<AppMessage> {
-        window::oldest().and_then(move |id: iced::window::Id| window::drag_resize(id, direction))
     }
 }

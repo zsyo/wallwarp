@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::async_task;
 use crate::services::local::Wallpaper;
-use crate::ui::async_tasks;
 use crate::ui::local::{LocalMessage, WallpaperLoadStatus};
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -30,13 +30,14 @@ impl App {
             let absolute_idx = start_idx + i;
 
             tasks.push(Task::perform(
-                async_tasks::async_load_single_wallpaper_with_fallback(path.clone(), cache_path),
+                async_task::async_load_single_wallpaper_with_fallback(path.clone(), cache_path),
                 move |result| match result {
-                    Ok(wallpaper) => AppMessage::Local(LocalMessage::LoadPageSuccess(vec![(absolute_idx, wallpaper)])),
-                    Err(_) => AppMessage::Local(LocalMessage::LoadPageSuccess(vec![(
+                    Ok(wallpaper) => LocalMessage::LoadPageSuccess(vec![(absolute_idx, wallpaper)]).into(),
+                    Err(_) => LocalMessage::LoadPageSuccess(vec![(
                         absolute_idx,
                         Wallpaper::new(path, "加载失败".to_string(), 0, 0, 0),
-                    )])), // 创建失败状态
+                    )])
+                    .into(), // 创建失败状态
                 },
             ));
         }
@@ -84,7 +85,7 @@ impl App {
             self.local_state.loading_page = false;
 
             // 添加检查是否需要自动加载下一页的任务
-            let check_task = Task::perform(async {}, |_| AppMessage::Local(LocalMessage::CheckAndLoadNextPage));
+            let check_task = Task::done(LocalMessage::CheckAndLoadNextPage.into());
             return check_task;
         }
         Task::none()

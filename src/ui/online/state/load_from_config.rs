@@ -1,8 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use super::OnlineState;
-use crate::services::wallhaven::{AspectRatio, Purity, Resolution};
-use crate::ui::async_tasks;
+use crate::services::wallhaven::{AspectRatio, Purity, Resolution, helper};
 use crate::ui::online::ResolutionMode;
 use crate::utils::config::Config;
 
@@ -12,10 +11,10 @@ impl OnlineState {
         let mut state = Self::default();
 
         // 加载分类（从字符串解析位掩码）
-        state.categories = async_tasks::parse_category_bitmask(&config.wallhaven.category);
+        state.categories = helper::parse_category_bitmask(&config.wallhaven.category);
 
         // 加载纯净度（从字符串解析位掩码）
-        state.purities = async_tasks::parse_purity_bitmask(&config.wallhaven.purity);
+        state.purities = helper::parse_purity_bitmask(&config.wallhaven.purity);
 
         // 如果 API Key 为空，移除 NSFW 选项
         if config.wallhaven.api_key.is_empty() {
@@ -23,13 +22,13 @@ impl OnlineState {
         }
 
         // 加载排序
-        state.sorting = async_tasks::parse_sorting(&config.wallhaven.sorting);
+        state.sorting = helper::parse_sorting(&config.wallhaven.sorting);
 
         // 加载颜色
-        state.color = async_tasks::parse_color(&config.wallhaven.color);
+        state.color = helper::parse_color(&config.wallhaven.color);
 
         // 加载时间范围
-        state.time_range = async_tasks::parse_time_range(&config.wallhaven.top_range);
+        state.time_range = helper::parse_time_range(&config.wallhaven.top_range);
 
         // 加载分辨率模式
         state.resolution_mode = match config.wallhaven.resolution_mode.as_str() {

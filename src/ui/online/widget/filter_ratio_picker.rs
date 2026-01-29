@@ -78,7 +78,7 @@ pub fn create_ratio_picker<'a>(
     let ratio_trigger = button(ratio_underlay)
         .padding(6)
         .width(Length::Fixed(120.0))
-        .on_press(AppMessage::Online(OnlineMessage::RatioPickerExpanded))
+        .on_press(OnlineMessage::RatioPickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(theme_colors.light_button)),
             text_color: theme_colors.light_text,
@@ -96,7 +96,7 @@ pub fn create_ratio_picker<'a>(
     // 使用 DropDown 组件
     DropDown::new(ratio_trigger, ratio_options, state.ratio_picker_expanded)
         .width(Length::Fill)
-        .on_dismiss(AppMessage::Online(OnlineMessage::RatioPickerDismiss))
+        .on_dismiss(OnlineMessage::RatioPickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
         .into()
 }

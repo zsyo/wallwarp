@@ -5,7 +5,7 @@
 //! 提供 Wallhaven API 的高级接口
 
 use super::client::WallhavenClient;
-use super::models::{ColorOption, Sorting, TimeRange};
+use super::model::{ColorOption, Sorting, TimeRange};
 use super::types::{OnlineWallpaper, WallhavenResponse, WallpaperData};
 use crate::services::request_context::RequestContext;
 use tracing::{debug, error, info};

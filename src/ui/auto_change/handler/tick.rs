@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::async_tasks;
+use crate::services::async_task;
 use crate::ui::auto_change::AutoChangeMessage;
 use crate::ui::{App, AppMessage};
 use crate::utils::config::WallpaperAutoChangeMode;
@@ -31,18 +31,16 @@ impl App {
             WallpaperAutoChangeMode::Local => {
                 let data_path = self.config.data.data_path.clone();
                 Task::perform(
-                    async_tasks::async_get_supported_images(data_path),
+                    async_task::async_get_supported_images(data_path),
                     |result| match result {
                         Ok(paths) => {
                             if paths.is_empty() {
-                                AppMessage::AutoChange(AutoChangeMessage::GetSupportedImagesFailed(
-                                    "没有找到支持的壁纸文件".to_string(),
-                                ))
+                                AutoChangeMessage::GetSupportedImagesFailed("没有找到支持的壁纸文件".to_string()).into()
                             } else {
-                                AppMessage::AutoChange(AutoChangeMessage::GetSupportedImagesSuccess(paths))
+                                AutoChangeMessage::GetSupportedImagesSuccess(paths).into()
                             }
                         }
-                        Err(e) => AppMessage::AutoChange(AutoChangeMessage::GetSupportedImagesFailed(e.to_string())),
+                        Err(e) => AutoChangeMessage::GetSupportedImagesFailed(e.to_string()).into(),
                     },
                 )
             }
@@ -50,10 +48,10 @@ impl App {
                 let config = self.config.clone();
                 let auto_change_running = self.auto_change_running.clone();
                 Task::perform(
-                    async_tasks::async_set_random_online_wallpaper(config, auto_change_running),
+                    async_task::async_set_random_online_wallpaper(config, auto_change_running),
                     |result| match result {
-                        Ok(path) => AppMessage::AutoChange(AutoChangeMessage::SetRandomWallpaperSuccess(path)),
-                        Err(e) => AppMessage::AutoChange(AutoChangeMessage::SetRandomWallpaperFailed(e.to_string())),
+                        Ok(path) => AutoChangeMessage::SetRandomWallpaperSuccess(path).into(),
+                        Err(e) => AutoChangeMessage::SetRandomWallpaperFailed(e.to_string()).into(),
                     },
                 )
             }

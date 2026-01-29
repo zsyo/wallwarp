@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 
@@ -36,9 +37,10 @@ impl App {
                     }
                 },
                 move |result| match result {
-                    Ok(_) => AppMessage::ShowNotification(success_message, NotificationType::Success),
+                    Ok(_) => MainMessage::ShowNotification(success_message, NotificationType::Success).into(),
                     Err(e) => {
-                        AppMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error)
+                        MainMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error)
+                            .into()
                     }
                 },
             );

@@ -74,7 +74,7 @@ pub fn create_resolution_picker<'a>(
     let resolution_trigger = button(resolution_underlay)
         .padding(6)
         .width(Length::Fixed(110.0))
-        .on_press(AppMessage::Online(OnlineMessage::ResolutionPickerExpanded))
+        .on_press(OnlineMessage::ResolutionPickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(theme_colors.light_button)),
             text_color: theme_colors.light_text,
@@ -92,7 +92,7 @@ pub fn create_resolution_picker<'a>(
     // 使用 DropDown 组件
     DropDown::new(resolution_trigger, resolution_options, state.resolution_picker_expanded)
         .width(Length::Fill)
-        .on_dismiss(AppMessage::Online(OnlineMessage::ResolutionPickerDismiss))
+        .on_dismiss(OnlineMessage::ResolutionPickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
         .into()
 }

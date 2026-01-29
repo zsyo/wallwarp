@@ -53,7 +53,7 @@ pub fn create_time_range_picker<'a>(
     let time_range_trigger = button(time_range_underlay)
         .padding(6)
         .width(Length::Fixed(130.0))
-        .on_press(AppMessage::Online(OnlineMessage::TimeRangePickerExpanded))
+        .on_press(OnlineMessage::TimeRangePickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(theme_colors.light_button)),
             text_color: theme_colors.light_text,
@@ -71,7 +71,7 @@ pub fn create_time_range_picker<'a>(
         button(text(option.display).size(14))
             .padding(6)
             .width(Length::Fill)
-            .on_press(AppMessage::Online(OnlineMessage::TimeRangeChanged(option.value)))
+            .on_press(OnlineMessage::TimeRangeChanged(option.value).into())
             .style(move |_theme, _status| button::Style {
                 background: if is_selected {
                     Some(iced::Background::Color(COLOR_SELECTED_BLUE))
@@ -113,7 +113,7 @@ pub fn create_time_range_picker<'a>(
         state.time_range_picker_expanded,
     )
     .width(Length::Fill)
-    .on_dismiss(AppMessage::Online(OnlineMessage::TimeRangePickerDismiss))
+    .on_dismiss(OnlineMessage::TimeRangePickerDismiss.into())
     .alignment(drop_down::Alignment::Bottom)
     .into()
 }

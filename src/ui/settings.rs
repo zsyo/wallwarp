@@ -3,6 +3,7 @@
 use super::App;
 use super::AppMessage;
 use super::common;
+use crate::ui::main::MainMessage;
 use crate::ui::style::{
     ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, ABOUT_ROW_HEIGHT, BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN,
     BUTTON_COLOR_RED, BUTTON_SPACING, COLOR_SELECTED_BLUE, INPUT_HEIGHT, INPUT_PADDING, LOGO_DISPLAY_SIZE, LOGO_SIZE,
@@ -838,7 +839,7 @@ fn create_theme_picker<'a>(app: &'a super::App) -> iced::Element<'a, super::AppM
             button(text(app.i18n.t("theme-options.dark")).size(14))
                 .padding(6)
                 .width(Length::Fill)
-                .on_press(super::AppMessage::ThemeSelected(crate::utils::config::Theme::Dark))
+                .on_press(MainMessage::ThemeSelected(crate::utils::config::Theme::Dark).into())
                 .style(move |_theme, _status| iced::widget::button::Style {
                     background: if current_theme == crate::utils::config::Theme::Dark {
                         Some(iced::Background::Color(COLOR_SELECTED_BLUE))
@@ -861,7 +862,7 @@ fn create_theme_picker<'a>(app: &'a super::App) -> iced::Element<'a, super::AppM
             button(text(app.i18n.t("theme-options.light")).size(14))
                 .padding(6)
                 .width(Length::Fill)
-                .on_press(super::AppMessage::ThemeSelected(crate::utils::config::Theme::Light))
+                .on_press(MainMessage::ThemeSelected(crate::utils::config::Theme::Light).into())
                 .style(move |_theme, _status| iced::widget::button::Style {
                     background: if current_theme == crate::utils::config::Theme::Light {
                         Some(iced::Background::Color(COLOR_SELECTED_BLUE))
@@ -884,7 +885,7 @@ fn create_theme_picker<'a>(app: &'a super::App) -> iced::Element<'a, super::AppM
             button(text(app.i18n.t("theme-options.auto")).size(14))
                 .padding(6)
                 .width(Length::Fill)
-                .on_press(super::AppMessage::ThemeSelected(crate::utils::config::Theme::Auto))
+                .on_press(MainMessage::ThemeSelected(crate::utils::config::Theme::Auto).into())
                 .style(move |_theme, _status| iced::widget::button::Style {
                     background: if current_theme == crate::utils::config::Theme::Auto {
                         Some(iced::Background::Color(COLOR_SELECTED_BLUE))

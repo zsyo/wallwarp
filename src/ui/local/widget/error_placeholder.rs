@@ -76,7 +76,7 @@ pub fn create_error_placeholder<'a>(
         common::create_icon_button(
             "\u{F341}",
             BUTTON_COLOR_YELLOW,
-            AppMessage::Local(LocalMessage::ViewInFolder(index)),
+            LocalMessage::ViewInFolder(index).into(),
         ),
         i18n.t("local-list.tooltip-locate"),
         tooltip::Position::Top,
@@ -87,7 +87,7 @@ pub fn create_error_placeholder<'a>(
         common::create_icon_button(
             "\u{F78B}",
             BUTTON_COLOR_RED,
-            AppMessage::Local(LocalMessage::ShowDeleteConfirm(index)),
+            LocalMessage::ShowDeleteConfirm(index).into(),
         ),
         i18n.t("local-list.tooltip-delete"),
         tooltip::Position::Top,

@@ -46,6 +46,12 @@ pub enum LocalMessage {
     ModalImageLoaded(Handle),
 }
 
+impl From<LocalMessage> for AppMessage {
+    fn from(local_message: LocalMessage) -> AppMessage {
+        AppMessage::Local(local_message)
+    }
+}
+
 /// 壁纸加载状态
 #[derive(Debug, Clone)]
 pub enum WallpaperLoadStatus {
@@ -53,12 +59,6 @@ pub enum WallpaperLoadStatus {
     Loading,
     /// 已加载
     Loaded(Wallpaper),
-}
-
-impl From<LocalMessage> for AppMessage {
-    fn from(local_message: LocalMessage) -> AppMessage {
-        AppMessage::Local(local_message)
-    }
 }
 
 impl App {

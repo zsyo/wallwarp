@@ -79,7 +79,7 @@ pub fn create_wallpaper_list<'a>(
                 let is_near_bottom = scroll_percentage >= 0.95;
 
                 if is_near_bottom {
-                    AppMessage::Online(OnlineMessage::ScrollToBottom)
+                    OnlineMessage::ScrollToBottom.into()
                 } else {
                     AppMessage::None
                 }
@@ -89,7 +89,7 @@ pub fn create_wallpaper_list<'a>(
 
                 // 只有当向下滚动（relative_offset > 0）且在底部时才触发加载
                 if relative_offset > 0.0 {
-                    AppMessage::Online(OnlineMessage::ScrollToBottom)
+                    OnlineMessage::ScrollToBottom.into()
                 } else {
                     AppMessage::None
                 }

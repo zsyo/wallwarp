@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::async_tasks;
+use crate::services::async_task;
 use crate::ui::auto_change::AutoChangeMessage;
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode};
@@ -29,10 +29,10 @@ impl App {
                 // 本地模式：获取支持的图片文件列表
                 let data_path = self.config.data.data_path.clone();
                 Task::perform(
-                    async_tasks::async_get_supported_images(data_path),
+                    async_task::async_get_supported_images(data_path),
                     |result| match result {
-                        Ok(paths) => AppMessage::AutoChange(AutoChangeMessage::GetSupportedImagesSuccess(paths)),
-                        Err(e) => AppMessage::AutoChange(AutoChangeMessage::GetSupportedImagesFailed(e.to_string())),
+                        Ok(paths) => AutoChangeMessage::GetSupportedImagesSuccess(paths).into(),
+                        Err(e) => AutoChangeMessage::GetSupportedImagesFailed(e.to_string()).into(),
                     },
                 )
             }
