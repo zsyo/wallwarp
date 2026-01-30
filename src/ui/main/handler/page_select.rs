@@ -28,31 +28,31 @@ impl App {
             }
             ActivePage::Settings => {
                 // 当切换到设置页面时，重置设置相关的临时状态
-                let (proxy_protocol, proxy_address, proxy_port) = App::parse_proxy_string(&self.config.global.proxy);
-                self.proxy_protocol = proxy_protocol;
-                self.proxy_address = proxy_address;
-                self.proxy_port = proxy_port;
+                let (proxy_protocol, proxy_address, proxy_port) = crate::ui::settings::SettingsState::parse_proxy_string(&self.config.global.proxy);
+                self.settings_state.proxy_protocol = proxy_protocol;
+                self.settings_state.proxy_address = proxy_address;
+                self.settings_state.proxy_port = proxy_port;
                 if proxy_port == 0 {
-                    self.proxy_port = 1080;
+                    self.settings_state.proxy_port = 1080;
                 }
 
                 // 重置API KEY设置状态
-                self.wallhaven_api_key = self.config.wallhaven.api_key.clone();
+                self.settings_state.wallhaven_api_key = self.config.wallhaven.api_key.clone();
 
                 // 重置壁纸模式状态
-                self.wallpaper_mode = self.config.wallpaper.mode;
+                self.settings_state.wallpaper_mode = self.config.wallpaper.mode;
 
                 // 重置定时切换模式状态
-                self.auto_change_mode = self.config.wallpaper.auto_change_mode;
+                self.settings_state.auto_change_mode = self.config.wallpaper.auto_change_mode;
 
                 // 重置定时切换周期状态
-                self.auto_change_interval = self.config.wallpaper.auto_change_interval;
+                self.settings_state.auto_change_interval = self.config.wallpaper.auto_change_interval;
 
                 // 重置自定义分钟数状态
-                self.custom_interval_minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
+                self.settings_state.custom_interval_minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
 
                 // 重置定时切换关键词状态
-                self.auto_change_query = self.config.wallpaper.auto_change_query.clone();
+                self.settings_state.auto_change_query = self.config.wallpaper.auto_change_query.clone();
 
                 // 滚动到顶部
                 Task::done(MainMessage::ScrollToTop("settings_scroll".to_string()).into())

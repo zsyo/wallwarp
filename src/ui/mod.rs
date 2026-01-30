@@ -58,34 +58,8 @@ pub struct App {
     tray_manager: TrayManager,
     // 主题配置
     pub theme_config: crate::ui::style::ThemeConfig,
-    // 代理设置的临时状态
-    pub proxy_protocol: String,
-    pub proxy_address: String,
-    pub proxy_port: u32,
-    // 语言下拉框展开状态
-    pub language_picker_expanded: bool,
-    // 代理协议下拉框展开状态
-    pub proxy_protocol_picker_expanded: bool,
-    // 主题下拉框展开状态
-    pub theme_picker_expanded: bool,
-    // API KEY设置的临时状态
-    pub wallhaven_api_key: String,
-    // 壁纸模式设置的临时状态
-    pub wallpaper_mode: crate::utils::config::WallpaperMode,
-    // 定时切换模式设置的临时状态
-    pub auto_change_mode: crate::utils::config::WallpaperAutoChangeMode,
-    // 定时切换周期设置的临时状态
-    pub auto_change_interval: crate::utils::config::WallpaperAutoChangeInterval,
-    // 自定义切换周期分钟数
-    pub custom_interval_minutes: u32,
-    // 定时切换关键词
-    pub auto_change_query: String,
     // 关闭确认对话框状态
     pub show_close_confirmation: bool,
-    pub remember_close_setting: bool,
-    // 路径清空确认对话框状态
-    pub show_path_clear_confirmation: bool,
-    pub path_to_clear: String, // "data" 或 "cache"
     // 通知状态
     pub show_notification: bool,
     pub notification_message: String,
@@ -100,6 +74,8 @@ pub struct App {
     pub local_state: crate::ui::local::LocalState,
     // 在线壁纸页面状态
     pub online_state: crate::ui::online::OnlineState,
+    // 设置页面状态
+    pub settings_state: crate::ui::settings::SettingsState,
     // 下载管理页面状态
     pub download_state: crate::ui::download::DownloadStateFull,
     // 定时切换壁纸状态

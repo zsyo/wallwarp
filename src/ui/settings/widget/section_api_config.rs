@@ -19,7 +19,7 @@ pub fn create_api_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
             row![
                 text_input(
                     &app.i18n.t("settings.wallhaven-api-key-placeholder"),
-                    &app.wallhaven_api_key
+                    &app.settings_state.wallhaven_api_key
                 )
                 .width(Length::Fill)
                 .size(TEXT_INPUT_SIZE)

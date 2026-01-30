@@ -14,7 +14,7 @@ use std::str::FromStr;
 /// 创建代理协议选择器
 pub fn create_proxy_protocol_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
     let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
-    let current_protocol = ProxyProtocol::from_str(&app.proxy_protocol).ok();
+    let current_protocol = ProxyProtocol::from_str(&app.settings_state.proxy_protocol).ok();
 
     // 创建触发按钮（underlay）
     let protocol_text = current_protocol
@@ -101,7 +101,7 @@ pub fn create_proxy_protocol_picker<'a>(app: &'a App) -> Element<'a, AppMessage>
     DropDown::new(
         protocol_trigger,
         opaque(picker_content),
-        app.proxy_protocol_picker_expanded,
+        app.settings_state.proxy_protocol_picker_expanded,
     )
     .width(Length::Fill)
     .on_dismiss(SettingsMessage::ProxyProtocolPickerDismiss.into())

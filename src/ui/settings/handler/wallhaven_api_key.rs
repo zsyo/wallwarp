@@ -7,14 +7,14 @@ use tracing::info;
 
 impl App {
     pub(in crate::ui::settings) fn settings_wallhaven_api_key_changed(&mut self, api_key: String) -> Task<AppMessage> {
-        self.wallhaven_api_key = api_key;
+        self.settings_state.wallhaven_api_key = api_key;
         Task::none()
     }
 
     pub(in crate::ui::settings) fn settings_save_wallhaven_api_key(&mut self) -> Task<AppMessage> {
         // 保存API KEY到配置文件
         let old_api_key = self.config.wallhaven.api_key.clone();
-        let new_api_key = self.wallhaven_api_key.clone();
+        let new_api_key = self.settings_state.wallhaven_api_key.clone();
 
         // 对 API key 进行脱敏处理
         let mask_key = |key: &str| -> String {
@@ -35,7 +35,7 @@ impl App {
         self.config.set_wallhaven_api_key(new_api_key);
 
         // 如果 API Key 被清空，移除 NSFW 选项
-        if self.wallhaven_api_key.is_empty() {
+        if self.settings_state.wallhaven_api_key.is_empty() {
             // 移除 NSFW 位（第0位）
             self.online_state.purities &= !wallhaven::Purity::NSFW.bit_value();
             // 保存到配置文件

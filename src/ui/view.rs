@@ -16,7 +16,7 @@ impl App {
         // 如果显示任何确认对话框，则将对话框叠加在底层内容上
         let main_content = if self.show_close_confirmation {
             Self::create_stack(base_content, close_confirm_view(self))
-        } else if self.show_path_clear_confirmation {
+        } else if self.settings_state.show_path_clear_confirmation {
             Self::create_stack(base_content, self.path_clear_confirmation_view())
         } else {
             base_content
@@ -32,7 +32,7 @@ impl App {
 
     // 渲染路径清空确认对话框
     fn path_clear_confirmation_view(&self) -> iced::Element<'_, AppMessage> {
-        let path_display = self.get_path_display(&self.path_to_clear);
+        let path_display = self.get_path_display(&self.settings_state.path_to_clear);
 
         // 将消息转换为字符串（简化处理）
         let message_text = format!("{}\n{}", self.i18n.t("path-clear-confirmation.message"), path_display);
@@ -42,7 +42,7 @@ impl App {
             message_text,
             self.i18n.t("path-clear-confirmation.confirm"),
             self.i18n.t("path-clear-confirmation.cancel"),
-            SettingsMessage::ConfirmPathClear(self.path_to_clear.clone()).into(),
+            SettingsMessage::ConfirmPathClear(self.settings_state.path_to_clear.clone()).into(),
             SettingsMessage::CancelPathClear.into(),
         )
     }

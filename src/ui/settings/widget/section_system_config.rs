@@ -83,7 +83,7 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                 row![
                     super::create_proxy_protocol_picker(app),
                     container(Space::new()).width(Length::Fixed(ROW_SPACING)),
-                    text_input(&app.i18n.t("settings.proxy-address-placeholder"), &app.proxy_address)
+                    text_input(&app.i18n.t("settings.proxy-address-placeholder"), &app.settings_state.proxy_address)
                         .width(Length::FillPortion(2))
                         .align_x(Alignment::Center)
                         .padding(INPUT_PADDING)
@@ -102,7 +102,7 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                         }),
                     container(Space::new()).width(Length::Fixed(ROW_SPACING)),
                     container(
-                        iced_aw::NumberInput::new(&app.proxy_port, 1..=65535, |n| SettingsMessage::ProxyPortChanged(n)
+                        iced_aw::NumberInput::new(&app.settings_state.proxy_port, 1..=65535, |n| SettingsMessage::ProxyPortChanged(n)
                             .into())
                         .width(Length::Fill)
                         .align_x(Alignment::Start)

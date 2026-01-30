@@ -41,7 +41,7 @@ impl App {
     }
 
     pub(in crate::ui::main) fn toggle_remember_setting(&mut self, checked: bool) -> Task<AppMessage> {
-        self.remember_close_setting = checked;
+        self.settings_state.remember_close_setting = checked;
         Task::none()
     }
 }

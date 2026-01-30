@@ -8,5 +8,6 @@ mod view;
 mod widget;
 
 pub use message::*;
+pub use state::SettingsState;
 pub use types::*;
 pub use view::settings_view;

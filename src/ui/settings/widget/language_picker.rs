@@ -93,7 +93,7 @@ pub fn create_language_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
             ..Default::default()
         });
 
-    DropDown::new(lang_trigger, opaque(picker_content), app.language_picker_expanded)
+    DropDown::new(lang_trigger, opaque(picker_content), app.settings_state.language_picker_expanded)
         .width(Length::Fill)
         .on_dismiss(SettingsMessage::LanguagePickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)

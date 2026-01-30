@@ -25,7 +25,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("wallpaper-mode-options.crop"),
                         WallpaperMode::Crop,
-                        Some(app.wallpaper_mode),
+                        Some(app.settings_state.wallpaper_mode),
                         |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
                         app.i18n.t("wallpaper-mode-options.crop-tooltip"),
                         theme_colors
@@ -33,7 +33,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("wallpaper-mode-options.fit"),
                         WallpaperMode::Fit,
-                        Some(app.wallpaper_mode),
+                        Some(app.settings_state.wallpaper_mode),
                         |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
                         app.i18n.t("wallpaper-mode-options.fit-tooltip"),
                         theme_colors
@@ -41,7 +41,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("wallpaper-mode-options.stretch"),
                         WallpaperMode::Stretch,
-                        Some(app.wallpaper_mode),
+                        Some(app.settings_state.wallpaper_mode),
                         |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
                         app.i18n.t("wallpaper-mode-options.stretch-tooltip"),
                         theme_colors
@@ -49,7 +49,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("wallpaper-mode-options.tile"),
                         WallpaperMode::Tile,
-                        Some(app.wallpaper_mode),
+                        Some(app.settings_state.wallpaper_mode),
                         |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
                         app.i18n.t("wallpaper-mode-options.tile-tooltip"),
                         theme_colors
@@ -57,7 +57,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("wallpaper-mode-options.center"),
                         WallpaperMode::Center,
-                        Some(app.wallpaper_mode),
+                        Some(app.settings_state.wallpaper_mode),
                         |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
                         app.i18n.t("wallpaper-mode-options.center-tooltip"),
                         theme_colors
@@ -65,7 +65,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("wallpaper-mode-options.span"),
                         WallpaperMode::Span,
-                        Some(app.wallpaper_mode),
+                        Some(app.settings_state.wallpaper_mode),
                         |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
                         app.i18n.t("wallpaper-mode-options.span-tooltip"),
                         theme_colors
@@ -80,7 +80,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-mode-options.online"),
                         WallpaperAutoChangeMode::Online,
-                        Some(app.auto_change_mode),
+                        Some(app.settings_state.auto_change_mode),
                         |mode| SettingsMessage::AutoChangeModeSelected(mode).into(),
                         app.i18n.t("auto-change-mode-options.online-tooltip"),
                         theme_colors
@@ -88,7 +88,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-mode-options.local"),
                         WallpaperAutoChangeMode::Local,
-                        Some(app.auto_change_mode),
+                        Some(app.settings_state.auto_change_mode),
                         |mode| SettingsMessage::AutoChangeModeSelected(mode).into(),
                         app.i18n.t("auto-change-mode-options.local-tooltip"),
                         theme_colors
@@ -103,7 +103,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.off"),
                         WallpaperAutoChangeInterval::Off,
-                        Some(app.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval.clone()),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.off-tooltip"),
                         theme_colors
@@ -111,7 +111,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.ten-min"),
                         WallpaperAutoChangeInterval::Minutes(10),
-                        Some(app.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval.clone()),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.ten-min-tooltip"),
                         theme_colors
@@ -119,7 +119,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.thirty-min"),
                         WallpaperAutoChangeInterval::Minutes(30),
-                        Some(app.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval.clone()),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.thirty-min-tooltip"),
                         theme_colors
@@ -127,7 +127,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.one-hour"),
                         WallpaperAutoChangeInterval::Minutes(60),
-                        Some(app.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval.clone()),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.one-hour-tooltip"),
                         theme_colors
@@ -135,7 +135,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.two-hour"),
                         WallpaperAutoChangeInterval::Minutes(120),
-                        Some(app.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval.clone()),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.two-hour-tooltip"),
                         theme_colors
@@ -145,8 +145,8 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                             row![
                                 iced::widget::radio(
                                     app.i18n.t("auto-change-interval-options.custom"),
-                                    WallpaperAutoChangeInterval::Custom(app.custom_interval_minutes),
-                                    Some(app.auto_change_interval.clone()),
+                                    WallpaperAutoChangeInterval::Custom(app.settings_state.custom_interval_minutes),
+                                    Some(app.settings_state.auto_change_interval.clone()),
                                     |interval| {
                                         if let WallpaperAutoChangeInterval::Custom(minutes) = interval {
                                             SettingsMessage::AutoChangeIntervalSelected(
@@ -166,7 +166,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                                     }
                                 }),
                                 container(
-                                    iced_aw::NumberInput::new(&app.custom_interval_minutes, 1..=1440, |minutes| {
+                                    iced_aw::NumberInput::new(&app.settings_state.custom_interval_minutes, 1..=1440, |minutes| {
                                         SettingsMessage::CustomIntervalMinutesChanged(minutes).into()
                                     })
                                     .width(Length::Fill)
@@ -218,7 +218,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                 row![
                     text_input(
                         &app.i18n.t("settings.auto-change-query-placeholder"),
-                        &app.auto_change_query
+                        &app.settings_state.auto_change_query
                     )
                     .width(Length::Fixed(400.0))
                     .align_x(Alignment::Center)

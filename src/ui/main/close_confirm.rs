@@ -40,14 +40,14 @@ pub fn close_confirm_view(app: &App) -> iced::Element<'_, AppMessage> {
                 BUTTON_COLOR_BLUE,
                 MainMessage::CloseConfirmationResponse(
                     CloseConfirmationAction::MinimizeToTray,
-                    app.remember_close_setting
+                    app.settings_state.remember_close_setting
                 )
                 .into()
             ),
             common::create_colored_button(
                 app.i18n.t("close-confirmation.exit"),
                 BUTTON_COLOR_RED,
-                MainMessage::CloseConfirmationResponse(CloseConfirmationAction::CloseApp, app.remember_close_setting)
+                MainMessage::CloseConfirmationResponse(CloseConfirmationAction::CloseApp, app.settings_state.remember_close_setting)
                     .into()
             ),
             common::create_colored_button(
@@ -59,7 +59,7 @@ pub fn close_confirm_view(app: &App) -> iced::Element<'_, AppMessage> {
         .spacing(DIALOG_BUTTON_SPACING)
         .align_y(Alignment::Center),
         row![
-            toggler(app.remember_close_setting).on_toggle(|state| MainMessage::ToggleRememberSetting(state).into()),
+            toggler(app.settings_state.remember_close_setting).on_toggle(|state| MainMessage::ToggleRememberSetting(state).into()),
             text(app.i18n.t("close-confirmation.remember-setting"))
                 .size(TOGGLE_TEXT_SIZE)
                 .style(move |_theme: &iced::Theme| text::Style {

@@ -7,14 +7,14 @@ use iced::Task;
 impl App {
     pub(in crate::ui::settings) fn settings_show_path_clear_confirm(&mut self, path_type: String) -> Task<AppMessage> {
         // 显示路径清空确认对话框
-        self.show_path_clear_confirmation = true;
-        self.path_to_clear = path_type;
+        self.settings_state.show_path_clear_confirmation = true;
+        self.settings_state.path_to_clear = path_type;
         Task::none()
     }
 
     pub(in crate::ui::settings) fn settings_confirm_path_clear(&mut self, path_type: String) -> Task<AppMessage> {
         // 隐藏确认对话框
-        self.show_path_clear_confirmation = false;
+        self.settings_state.show_path_clear_confirmation = false;
 
         // 执行清空操作
         let path_to_clear = match path_type.as_str() {
@@ -82,7 +82,7 @@ impl App {
 
     pub(in crate::ui::settings) fn settings_cancel_path_clear(&mut self) -> Task<AppMessage> {
         // 隐藏确认对话框，不执行清空操作
-        self.show_path_clear_confirmation = false;
+        self.settings_state.show_path_clear_confirmation = false;
         Task::none()
     }
 }

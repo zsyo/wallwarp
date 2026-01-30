@@ -15,25 +15,12 @@ impl App {
         Self::new_with_config(i18n, config)
     }
 
-    pub fn new_with_config(mut i18n: I18n, mut config: Config) -> Self {
+    pub fn new_with_config(mut i18n: I18n, config: Config) -> Self {
         // 根据配置设置语言
         i18n.set_language(config.global.language.clone());
 
         // 初始化窗口最大化状态（默认为 false）
         let is_maximized = false;
-
-        // 检查代理配置格式，如果不正确则还原为空字符串
-        let (proxy_protocol, proxy_address, mut proxy_port) = Self::parse_proxy_string(&config.global.proxy);
-        if proxy_port > 0 {
-            let expected_proxy = format!("{}://{}:{}", proxy_protocol, proxy_address, proxy_port);
-            if config.global.proxy != expected_proxy {
-                // 代理格式不正确，还原为空字符串
-                config.global.proxy = String::new();
-                config.save_to_file();
-            }
-        } else {
-            proxy_port = 1080;
-        }
 
         let tray_manager = TrayManager::new(&i18n);
 
@@ -65,22 +52,7 @@ impl App {
             debounce_timer: std::time::Instant::now(),
             tray_manager,
             theme_config,
-            proxy_protocol,
-            proxy_address,
-            proxy_port,
-            language_picker_expanded: false,
-            proxy_protocol_picker_expanded: false,
-            theme_picker_expanded: false,
-            wallhaven_api_key: config.wallhaven.api_key.clone(), // 初始化API KEY状态
-            wallpaper_mode: config.wallpaper.mode,               // 初始化壁纸模式状态
-            auto_change_mode: config.wallpaper.auto_change_mode, // 初始化定时切换模式状态
-            auto_change_interval: config.wallpaper.auto_change_interval, // 初始化定时切换周期状态
-            custom_interval_minutes: config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30), // 初始化自定义分钟数，默认为30
-            auto_change_query: config.wallpaper.auto_change_query.clone(), // 初始化定时切换关键词
             show_close_confirmation: false,
-            remember_close_setting: false,
-            show_path_clear_confirmation: false,
-            path_to_clear: String::new(),
             show_notification: false,
             notification_message: String::new(),
             notification_type: NotificationType::Success,
@@ -89,6 +61,7 @@ impl App {
             current_items_per_row: 1, // 初始值为1
             local_state: super::local::LocalState::default(),
             online_state: super::online::OnlineState::load_from_config(&config),
+            settings_state: super::settings::SettingsState::load_from_config(&config),
             auto_change_state: super::auto_change::AutoChangeState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
             initial_loaded: false,                                 // 标记是否已加载初始数据
@@ -107,33 +80,6 @@ impl App {
             is_visible: false,
             is_maximized, // 初始化窗口最大化状态
         }
-    }
-
-    // 解析代理字符串为协议、地址和端口
-    pub fn parse_proxy_string(proxy: &str) -> (String, String, u32) {
-        if proxy.is_empty() {
-            return ("http".to_string(), "".to_string(), 0);
-        }
-
-        if let Some(at) = proxy.find("://") {
-            let protocol = &proxy[..at];
-            let remaining = &proxy[at + 3..];
-
-            if let Some(colon_index) = remaining.rfind(':') {
-                let address = &remaining[..colon_index];
-                let port_str = &remaining[colon_index + 1..];
-
-                // 验证端口号是否为有效数字
-                if let Ok(port) = port_str.parse::<u32>() {
-                    if port >= 1 && port <= 65535 {
-                        return (protocol.to_string(), address.to_string(), port);
-                    }
-                }
-            }
-        }
-
-        // 如果格式不正确，返回默认值（端口显示为 1080，但实际代理为空）
-        ("http".to_string(), "".to_string(), 1080)
     }
 
     pub fn title(&self) -> String {

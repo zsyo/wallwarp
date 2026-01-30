@@ -16,7 +16,7 @@ impl App {
         self.config.save_to_file();
 
         // 关闭选择器
-        self.theme_picker_expanded = false;
+        self.settings_state.theme_picker_expanded = false;
 
         self.auto_change_state.auto_detect_color_mode = theme == Theme::Auto;
 

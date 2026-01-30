@@ -152,7 +152,7 @@ pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
             ..Default::default()
         });
 
-    DropDown::new(theme_trigger, opaque(picker_content), app.theme_picker_expanded)
+    DropDown::new(theme_trigger, opaque(picker_content), app.settings_state.theme_picker_expanded)
         .width(Length::Fill)
         .on_dismiss(SettingsMessage::ThemePickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
