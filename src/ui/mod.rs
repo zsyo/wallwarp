@@ -9,7 +9,9 @@ pub mod main;
 pub mod online;
 pub mod settings;
 pub mod style;
+pub mod subscription;
 pub mod update;
+pub mod view;
 
 use crate::i18n::I18n;
 use crate::ui::main::TrayManager;
