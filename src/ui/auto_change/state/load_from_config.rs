@@ -7,6 +7,9 @@ use std::time::Instant;
 impl AutoChangeState {
     /// 从配置文件加载定时切换状态
     pub fn load_from_config(config: &Config) -> Self {
+        use std::sync::atomic::AtomicBool;
+        use std::sync::Arc;
+
         // 根据配置文件中的定时切换周期初始化定时任务状态
         let (auto_change_enabled, auto_change_timer, auto_change_last_time) =
             if matches!(config.wallpaper.auto_change_interval, WallpaperAutoChangeInterval::Off) {
@@ -32,6 +35,7 @@ impl AutoChangeState {
             auto_change_timer,
             auto_change_last_time,
             auto_detect_color_mode: config.global.theme == Theme::Auto,
+            auto_change_running: Arc::new(AtomicBool::new(false)),
         }
     }
 }

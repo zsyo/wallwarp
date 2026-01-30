@@ -115,31 +115,127 @@ height = 800
 ```
 wallwarp/
 ├── src/
-│   ├── main.rs           # 应用入口
-│   ├── lib.rs            # 库入口
-│   ├── ui/               # 用户界面模块
-│   │   ├── app.rs        # 主应用逻辑
-│   │   ├── common.rs     # 公共UI组件
-│   │   ├── local.rs      # 本地壁纸页面
-│   │   ├── online.rs     # 在线壁纸页面
-│   │   ├── settings.rs   # 设置页面
-│   │   └── ...
-│   ├── services/         # 业务逻辑服务
-│   │   ├── local.rs      # 本地壁纸服务
-│   │   ├── download.rs   # 下载服务
-│   │   └── wallhaven/    # Wallhaven API 集成
-│   ├── utils/            # 工具函数
-│   │   ├── config.rs     # 配置管理
-│   │   ├── logger.rs     # 日志系统
-│   │   └── ...
-│   └── i18n.rs           # 国际化
-├── locales/              # 语言文件
-│   ├── zh-cn.ftl
-│   └── en.ftl
-├── assets/               # 资源文件
-│   ├── icons.ttf
-│   └── logo.ico
-└── Cargo.toml
+│   ├── main.rs                      # 应用入口点
+│   ├── lib.rs                       # 库入口，声明所有模块
+│   ├── i18n.rs                      # 国际化支持模块
+│   ├── ui/                          # 用户界面模块
+│   │   ├── app.rs                   # 主应用逻辑
+│   │   ├── mod.rs                   # UI模块声明
+│   │   ├── types.rs                 # UI类型定义
+│   │   ├── update.rs                # UI更新逻辑
+│   │   ├── view.rs                  # 界面渲染逻辑
+│   │   ├── subscription.rs          # 订阅管理
+│   │   ├── auto_change/             # 自动轮换功能模块
+│   │   │   ├── message.rs           # 消息定义
+│   │   │   ├── mod.rs               # 模块声明
+│   │   │   ├── handler/             # 消息处理器
+│   │   │   │   ├── mod.rs           # 处理器模块声明
+│   │   │   │   └── ...
+│   │   │   └── state/               # 状态管理
+│   │   │       ├── mod.rs           # 状态模块声明
+│   │   │       └── ...
+│   │   ├── common/                  # 公共UI组件
+│   │   │   ├── mod.rs               # 公共组件模块声明
+│   │   │   └── ...
+│   │   ├── download/                # 下载管理模块
+│   │   │   ├── message.rs           # 消息定义
+│   │   │   ├── mod.rs               # 模块声明
+│   │   │   ├── view.rs              # 界面渲染
+│   │   │   ├── handler/             # 消息处理器
+│   │   │   │   ├── mod.rs           # 处理器模块声明
+│   │   │   │   └── ...
+│   │   │   ├── state/               # 状态管理
+│   │   │   │   ├── mod.rs           # 状态模块声明
+│   │   │   │   └── ...
+│   │   │   └── widget/              # 自定义组件
+│   │   │       ├── mod.rs           # 组件模块声明
+│   │   │       └── ...
+│   │   ├── local/                    # 本地壁纸模块
+│   │   │   ├── message.rs           # 消息定义
+│   │   │   ├── mod.rs               # 模块声明
+│   │   │   ├── state.rs             # 状态定义
+│   │   │   ├── view.rs              # 界面渲染
+│   │   │   ├── handler/             # 消息处理器
+│   │   │   │   ├── mod.rs           # 处理器模块声明
+│   │   │   │   └── ...
+│   │   │   └── widget/              # 自定义组件
+│   │   │       ├── mod.rs           # 组件模块声明
+│   │   │       └── ...
+│   │   ├── main/                     # 主界面模块
+│   │   │   ├── close_confirm.rs
+│   │   │   ├── message.rs           # 消息定义
+│   │   │   ├── mod.rs               # 模块声明
+│   │   │   ├── state.rs             # 状态定义
+│   │   │   ├── tray.rs              # 托盘图标
+│   │   │   ├── view.rs              # 界面渲染
+│   │   │   ├── handler/             # 消息处理器
+│   │   │   │   ├── mod.rs           # 处理器模块声明
+│   │   │   │   └── ...
+│   │   │   └── widget/              # 自定义组件
+│   │   │       ├── mod.rs           # 组件模块声明
+│   │   │       └── ...
+│   │   ├── online/                   # 在线壁纸模块
+│   │   │   ├── message.rs           # 消息定义
+│   │   │   ├── mod.rs               # 模块声明
+│   │   │   ├── types.rs             # 类型定义
+│   │   │   ├── view.rs              # 界面渲染
+│   │   │   ├── handler/             # 消息处理器
+│   │   │   ├── state/               # 状态管理
+│   │   │   └── widget/              # 自定义组件
+│   │   ├── settings/                # 设置页面模块
+│   │   │   ├── message.rs           # 消息定义
+│   │   │   ├── mod.rs               # 模块声明
+│   │   │   ├── types.rs             # 类型定义
+│   │   │   ├── view.rs              # 界面渲染
+│   │   │   ├── handler/             # 消息处理器
+│   │   │   ├── state/               # 状态管理
+│   │   │   └── widget/              # 自定义组件
+│   │   └── style/                   # 样式定义模块
+│   │       ├── colors.rs            # 颜色定义
+│   │       ├── dimensions.rs        # 尺寸定义
+│   │       ├── mod.rs               # 样式模块声明
+│   │       ├── shadows.rs           # 阴影定义
+│   │       └── theme.rs             # 主题定义
+│   ├── services/                    # 业务逻辑服务
+│   │   ├── mod.rs                   # 服务模块声明
+│   │   ├── local.rs                 # 本地壁纸服务
+│   │   ├── download.rs              # 下载服务
+│   │   ├── request_context.rs       # 请求上下文
+│   │   ├── async_task/              # 异步任务模块
+│   │   │   ├── mod.rs               # 异步任务模块声明
+│   │   │   └── ...
+│   │   └── wallhaven/               # Wallhaven API 集成
+│   │       ├── mod.rs               # Wallhaven模块声明
+│   │       ├── client.rs            # API客户端
+│   │       ├── helper.rs            # 辅助函数
+│   │       ├── service.rs           # 服务实现
+│   │       ├── types.rs             # 类型定义
+│   │       └── model/               # 数据模型
+│   │           ├── mod.rs           # 模型模块声明
+│   │           └── ...
+│   └── utils/                        # 工具函数
+│       ├── mod.rs                   # 工具模块声明
+│       ├── assets.rs                # 资源管理
+│       ├── config.rs                # 配置管理
+│       ├── helpers.rs               # 辅助函数
+│       ├── logger.rs                # 日志系统
+│       ├── single_instance.rs       # 单实例控制
+│       ├── startup.rs               # 启动管理
+│       └── window_utils.rs          # 窗口工具
+├── locales/                         # 语言文件
+│   ├── zh-cn.ftl                    # 中文翻译
+│   └── en.ftl                       # 英文翻译
+├── assets/                          # 资源文件
+│   ├── icons.ttf                    # 图标字体
+│   └── logo.ico                     # 应用图标
+├── .github/                         # GitHub 配置
+│   └── workflows/
+│       └── release.yml              # 发布工作流
+├── Cargo.toml                       # 项目依赖配置
+├── build.rs                         # 构建脚本
+├── README.md                        # 项目说明（中文）
+├── README_EN.md                     # 项目说明（英文）
+└── LICENSE                          # 许可证
 ```
 
 ## 开发

@@ -115,31 +115,127 @@ height = 800
 ```
 wallwarp/
 ├── src/
-│   ├── main.rs           # Application entry
-│   ├── lib.rs            # Library entry
-│   ├── ui/               # User interface modules
-│   │   ├── app.rs        # Main application logic
-│   │   ├── common.rs     # Common UI components
-│   │   ├── local.rs      # Local wallpaper page
-│   │   ├── online.rs     # Online wallpaper page
-│   │   ├── settings.rs   # Settings page
-│   │   └── ...
-│   ├── services/         # Business logic services
-│   │   ├── local.rs      # Local wallpaper service
-│   │   ├── download.rs   # Download service
-│   │   └── wallhaven/    # Wallhaven API integration
-│   ├── utils/            # Utility functions
-│   │   ├── config.rs     # Configuration management
-│   │   ├── logger.rs     # Logging system
-│   │   └── ...
-│   └── i18n.rs           # Internationalization
-├── locales/              # Language files
-│   ├── zh-cn.ftl
-│   └── en.ftl
-├── assets/               # Resource files
-│   ├── icons.ttf
-│   └── logo.ico
-└── Cargo.toml
+│   ├── main.rs                      # Application entry point
+│   ├── lib.rs                       # Library entry, declares all modules
+│   ├── i18n.rs                      # Internationalization support module
+│   ├── ui/                          # User interface modules
+│   │   ├── app.rs                   # Main application logic
+│   │   ├── mod.rs                   # UI module declaration
+│   │   ├── types.rs                 # UI type definitions
+│   │   ├── update.rs                # UI update logic
+│   │   ├── view.rs                  # Interface rendering logic
+│   │   ├── subscription.rs          # Subscription management
+│   │   ├── auto_change/             # Auto rotation feature module
+│   │   │   ├── message.rs           # Message definitions
+│   │   │   ├── mod.rs               # Module declaration
+│   │   │   ├── handler/             # Message handlers
+│   │   │   │   ├── mod.rs           # Handler module declaration
+│   │   │   │   └── ...
+│   │   │   └── state/               # State management
+│   │   │       ├── mod.rs           # State module declaration
+│   │   │       └── ...
+│   │   ├── common/                  # Common UI components
+│   │   │   ├── mod.rs               # Common components module declaration
+│   │   │   └── ...
+│   │   ├── download/                # Download management module
+│   │   │   ├── message.rs           # Message definitions
+│   │   │   ├── mod.rs               # Module declaration
+│   │   │   ├── view.rs              # Interface rendering
+│   │   │   ├── handler/             # Message handlers
+│   │   │   │   ├── mod.rs           # Handler module declaration
+│   │   │   │   └── ...
+│   │   │   ├── state/               # State management
+│   │   │   │   ├── mod.rs           # State module declaration
+│   │   │   │   └── ...
+│   │   │   └── widget/              # Custom components
+│   │   │       ├── mod.rs           # Component module declaration
+│   │   │       └── ...
+│   │   ├── local/                    # Local wallpaper module
+│   │   │   ├── message.rs           # Message definitions
+│   │   │   ├── mod.rs               # Module declaration
+│   │   │   ├── state.rs             # State definitions
+│   │   │   ├── view.rs              # Interface rendering
+│   │   │   ├── handler/             # Message handlers
+│   │   │   │   ├── mod.rs           # Handler module declaration
+│   │   │   │   └── ...
+│   │   │   └── widget/              # Custom components
+│   │   │       ├── mod.rs           # Component module declaration
+│   │   │       └── ...
+│   │   ├── main/                     # Main interface module
+│   │   │   ├── close_confirm.rs
+│   │   │   ├── message.rs           # Message definitions
+│   │   │   ├── mod.rs               # Module declaration
+│   │   │   ├── state.rs             # State definitions
+│   │   │   ├── tray.rs              # Tray icon
+│   │   │   ├── view.rs              # Interface rendering
+│   │   │   ├── handler/             # Message handlers
+│   │   │   │   ├── mod.rs           # Handler module declaration
+│   │   │   │   └── ...
+│   │   │   └── widget/              # Custom components
+│   │   │       ├── mod.rs           # Component module declaration
+│   │   │       └── ...
+│   │   ├── online/                   # Online wallpaper module
+│   │   │   ├── message.rs           # Message definitions
+│   │   │   ├── mod.rs               # Module declaration
+│   │   │   ├── types.rs             # Type definitions
+│   │   │   ├── view.rs              # Interface rendering
+│   │   │   ├── handler/             # Message handlers
+│   │   │   ├── state/               # State management
+│   │   │   └── widget/              # Custom components
+│   │   ├── settings/                # Settings page module
+│   │   │   ├── message.rs           # Message definitions
+│   │   │   ├── mod.rs               # Module declaration
+│   │   │   ├── types.rs             # Type definitions
+│   │   │   ├── view.rs              # Interface rendering
+│   │   │   ├── handler/             # Message handlers
+│   │   │   ├── state/               # State management
+│   │   │   └── widget/              # Custom components
+│   │   └── style/                   # Style definition module
+│   │       ├── colors.rs            # Color definitions
+│   │       ├── dimensions.rs        # Dimension definitions
+│   │       ├── mod.rs               # Style module declaration
+│   │       ├── shadows.rs           # Shadow definitions
+│   │       └── theme.rs             # Theme definitions
+│   ├── services/                    # Business logic services
+│   │   ├── mod.rs                   # Service module declaration
+│   │   ├── local.rs                 # Local wallpaper service
+│   │   ├── download.rs              # Download service
+│   │   ├── request_context.rs       # Request context
+│   │   ├── async_task/              # Async task module
+│   │   │   ├── mod.rs               # Async task module declaration
+│   │   │   └── ...
+│   │   └── wallhaven/               # Wallhaven API integration
+│   │       ├── mod.rs               # Wallhaven module declaration
+│   │       ├── client.rs            # API client
+│   │       ├── helper.rs            # Helper functions
+│   │       ├── service.rs           # Service implementation
+│   │       ├── types.rs             # Type definitions
+│   │       └── model/               # Data models
+│   │           ├── mod.rs           # Model module declaration
+│   │           └── ...
+│   └── utils/                        # Utility functions
+│       ├── mod.rs                   # Utility module declaration
+│       ├── assets.rs                # Asset management
+│       ├── config.rs                # Configuration management
+│       ├── helpers.rs               # Helper functions
+│       ├── logger.rs                # Logging system
+│       ├── single_instance.rs       # Single instance control
+│       ├── startup.rs               # Startup management
+│       └── window_utils.rs          # Window utilities
+├── locales/                         # Language files
+│   ├── zh-cn.ftl                    # Chinese translation
+│   └── en.ftl                       # English translation
+├── assets/                          # Resource files
+│   ├── icons.ttf                    # Icon font
+│   └── logo.ico                     # Application icon
+├── .github/                         # GitHub configuration
+│   └── workflows/
+│       └── release.yml              # Release workflow
+├── Cargo.toml                       # Project dependency configuration
+├── build.rs                         # Build script
+├── README.md                        # Project documentation (Chinese)
+├── README_EN.md                     # Project documentation (English)
+└── LICENSE                          # License
 ```
 
 ## Development

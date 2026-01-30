@@ -1,5 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+
 /// 定时切换壁纸相关状态
 #[derive(Debug)]
 pub struct AutoChangeState {
@@ -11,6 +14,8 @@ pub struct AutoChangeState {
     pub auto_change_last_time: Option<std::time::Instant>,
     /// 是否自动检测颜色模式
     pub auto_detect_color_mode: bool,
+    /// 定时切换执行标志，防止任务并行执行
+    pub auto_change_running: Arc<AtomicBool>,
 }
 
 impl Default for AutoChangeState {
@@ -20,6 +25,7 @@ impl Default for AutoChangeState {
             auto_change_timer: None,
             auto_change_last_time: None,
             auto_detect_color_mode: false,
+            auto_change_running: Arc::new(AtomicBool::new(false)),
         }
     }
 }

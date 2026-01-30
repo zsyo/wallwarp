@@ -2,8 +2,6 @@
 
 use crate::ui::NotificationType;
 use crate::utils::config::Config;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 
 /// 主窗口相关状态
 #[derive(Debug, Clone)]
@@ -27,7 +25,6 @@ pub struct MainState {
 
     // 其他
     pub initial_loaded: bool,
-    pub auto_change_running: Arc<AtomicBool>,
 }
 
 impl Default for MainState {
@@ -45,7 +42,6 @@ impl Default for MainState {
             notification_message: String::new(),
             notification_type: NotificationType::Success,
             initial_loaded: false,
-            auto_change_running: Arc::new(AtomicBool::new(false)),
         }
     }
 }

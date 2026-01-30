@@ -78,7 +78,7 @@ impl App {
             WallpaperAutoChangeMode::Online => {
                 // 在线模式：从Wallhaven获取随机壁纸
                 let config = self.config.clone();
-                let auto_change_running = self.main_state.auto_change_running.clone();
+                let auto_change_running = self.auto_change_state.auto_change_running.clone();
                 Task::perform(
                     async_task::async_set_random_online_wallpaper(config, auto_change_running),
                     |result| match result {
