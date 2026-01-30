@@ -97,6 +97,6 @@ impl App {
     }
 
     pub fn title(&self) -> String {
-        self.i18n.t("wallwarp")
+        self.i18n.t("app-title")
     }
 }

@@ -7,15 +7,20 @@ use tracing::error;
 
 impl App {
     pub(in crate::ui::settings) fn settings_open_path(&mut self, path_type: String) -> Task<AppMessage> {
-        let path_to_open = match path_type.as_str() {
-            "data" => &self.config.data.data_path,
-            "cache" => &self.config.data.cache_path,
+        let (path_to_open, dir_name) = match path_type.as_str() {
+            "data" => (&self.config.data.data_path, "数据目录"),
+            "cache" => (&self.config.data.cache_path, "缓存目录"),
             _ => return Task::none(),
         };
+
         let full_path = helpers::get_absolute_path(path_to_open);
 
+        // 检查并创建目录
+        helpers::ensure_directory_exists(&full_path, dir_name);
+
+        // 打开目录
         if let Err(e) = open::that(&full_path) {
-            error!("打开目录失败 {}: {}", full_path, e);
+            error!("[设置] [{}] 打开目录失败 {}: {}", dir_name, full_path, e);
         }
 
         Task::none()
@@ -25,8 +30,12 @@ impl App {
         let logs_path = "logs";
         let full_path = helpers::get_absolute_path(logs_path);
 
+        // 检查并创建日志目录
+        helpers::ensure_directory_exists(&full_path, "日志目录");
+
+        // 打开日志目录
         if let Err(e) = open::that(&full_path) {
-            error!("打开日志目录失败 {}: {}", full_path, e);
+            error!("[设置] [日志目录] 打开目录失败 {}: {}", full_path, e);
         }
 
         Task::none()

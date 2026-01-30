@@ -166,33 +166,40 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                                     }
                                 }),
                                 container(
-                                    iced_aw::NumberInput::new(&app.settings_state.custom_interval_minutes, 1..=1440, |minutes| {
-                                        SettingsMessage::CustomIntervalMinutesChanged(minutes).into()
-                                    })
-                                    .width(Length::Fill)
-                                    .padding(INPUT_PADDING)
-                                    .input_style(move |_theme: &iced::Theme, _status| text_input::Style {
-                                        background: iced::Background::Color(theme_colors.text_input_background),
-                                        border: Border {
-                                            color: Color::TRANSPARENT,
-                                            width: 0.0,
-                                            radius: Radius::from(4.0),
-                                        },
-                                        icon: theme_colors.light_text_sub,
-                                        placeholder: theme_colors.light_text_sub,
-                                        value: theme_colors.light_text,
-                                        selection: theme_colors.text_input_selection_color,
-                                    })
-                                    .style(
-                                        move |_theme: &iced::Theme, _status| iced_aw::number_input::Style {
-                                            button_background: Some(iced::Background::Color(
-                                                theme_colors.text_input_background
-                                            )),
-                                            icon_color: theme_colors.light_text_sub,
-                                        }
-                                    )
+                                    row![
+                                        iced_aw::NumberInput::new(&app.settings_state.custom_interval_minutes, 1..=1440, |minutes| {
+                                            SettingsMessage::CustomIntervalMinutesChanged(minutes).into()
+                                        })
+                                        .width(Length::Fill)
+                                        .padding(INPUT_PADDING)
+                                        .input_style(move |_theme: &iced::Theme, _status| text_input::Style {
+                                            background: iced::Background::Color(theme_colors.text_input_background),
+                                            border: Border {
+                                                color: Color::TRANSPARENT,
+                                                width: 0.0,
+                                                radius: Radius::from(4.0),
+                                            },
+                                            icon: theme_colors.light_text_sub,
+                                            placeholder: theme_colors.light_text_sub,
+                                            value: theme_colors.light_text,
+                                            selection: theme_colors.text_input_selection_color,
+                                        })
+                                        .style(
+                                            move |_theme: &iced::Theme, _status| iced_aw::number_input::Style {
+                                                button_background: Some(iced::Background::Color(
+                                                    theme_colors.text_input_background
+                                                )),
+                                                icon_color: theme_colors.light_text_sub,
+                                            }
+                                        ),
+                                        text(app.i18n.t("settings.minutes"))
+                                            .size(14)
+                                            .color(theme_colors.light_text),
+                                    ]
+                                    .spacing(4)
+                                    .align_y(Alignment::Center)
                                 )
-                                .width(Length::Fixed(80.0)),
+                                .width(Length::Fixed(120.0)),
                             ]
                             .spacing(ROW_SPACING)
                             .align_y(Alignment::Center)

@@ -153,6 +153,7 @@ settings = 设置
     .auto-change-mode = 定时切换模式:
     .auto-change-interval = 定时切换周期:
     .auto-change-query = 定时切换关键词:
+    .minutes = 分钟
     .auto-change-query-placeholder = 输入搜索关键词（仅支持英文）...
     .auto-change-control = 定时切换控制:
     .start-auto-change = 启动定时切换

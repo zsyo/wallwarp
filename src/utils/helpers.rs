@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use std::path::Path;
+use tracing::{error, info};
 
 /// 在文件管理器中打开并选中指定文件
 ///
@@ -105,4 +106,27 @@ pub fn get_system_ui_font() -> &'static str {
 pub fn is_running_via_cargo() -> bool {
     // 只要是 cargo 启动的，这个环境变量一定存在
     std::env::var("CARGO").is_ok()
+}
+
+/// 确保目录存在，如果不存在则创建
+///
+/// # 参数
+/// - `path`: 目录路径
+/// - `dir_name`: 目录名称（用于日志记录）
+///
+/// # 行为
+/// - 如果目录已存在，记录信息日志
+/// - 如果目录不存在，创建目录并记录信息日志
+/// - 如果创建失败，记录错误日志
+pub fn ensure_directory_exists(path: &str, dir_name: &str) {
+    let dir_path = Path::new(path);
+    if !dir_path.exists() {
+        if let Err(e) = std::fs::create_dir_all(dir_path) {
+            error!("[{}] 创建目录失败: {}", dir_name, e);
+        } else {
+            info!("[{}] 目录已创建: {}", dir_name, path);
+        }
+    } else {
+        info!("[{}] 目录已存在: {}", dir_name, path);
+    }
 }

@@ -6,7 +6,7 @@ use crate::ui::common;
 use crate::ui::local::message::LocalMessage;
 use crate::ui::local::state::LocalState;
 use crate::ui::style::ThemeConfig;
-use crate::ui::style::{BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, COLOR_MODAL_BG};
+use crate::ui::style::{BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_MODAL_BG};
 use iced::widget::{Space, column, container, row, tooltip};
 use iced::{Alignment, Element, Length};
 
@@ -63,6 +63,17 @@ pub fn create_modal<'a>(
         theme_config,
     );
 
+    let locate_button = common::create_button_with_tooltip(
+        common::create_icon_button(
+            "\u{F341}",
+            BUTTON_COLOR_YELLOW,
+            LocalMessage::ViewInFolder(wallpaper_index).into(),
+        ),
+        i18n.t("local-list.tooltip-locate"),
+        tooltip::Position::Top,
+        theme_config,
+    );
+
     let close_button = common::create_button_with_tooltip(
         common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, LocalMessage::CloseModal.into()),
         i18n.t("local-list.tooltip-close"),
@@ -77,6 +88,7 @@ pub fn create_modal<'a>(
             prev_button,
             next_button,
             set_wallpaper_button,
+            locate_button,
             close_button,
             container(Space::new()).width(Length::Fill),
         ]

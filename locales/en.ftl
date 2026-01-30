@@ -154,6 +154,7 @@ settings = Settings
     .auto-change-mode = Auto Change Mode:
     .auto-change-interval = Auto Change Interval:
     .auto-change-query = Auto Change Query:
+    .minutes = minutes
     .auto-change-query-placeholder = Enter search keywords (English only)...
     .auto-change-control = Auto Change Control:
     .start-auto-change = Start Auto Change
