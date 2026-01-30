@@ -6,7 +6,7 @@ use iced::window;
 
 impl App {
     pub(in crate::ui::main) fn minimize_to_tray(&mut self) -> Task<AppMessage> {
-        self.is_visible = false;
+        self.main_state.is_visible = false;
         // 获取 ID 后设置模式为隐藏
         window::oldest().and_then(|id| window::set_mode(id, window::Mode::Hidden))
     }

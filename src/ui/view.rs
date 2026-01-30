@@ -14,7 +14,7 @@ impl App {
         let base_content = main_view(self);
 
         // 如果显示任何确认对话框，则将对话框叠加在底层内容上
-        let main_content = if self.show_close_confirmation {
+        let main_content = if self.main_state.show_close_confirmation {
             Self::create_stack(base_content, close_confirm_view(self))
         } else if self.settings_state.show_path_clear_confirmation {
             Self::create_stack(base_content, self.path_clear_confirmation_view())
@@ -23,7 +23,7 @@ impl App {
         };
 
         // 如果显示通知，则将通知叠加在主要内容之上
-        if self.show_notification {
+        if self.main_state.show_notification {
             Self::create_stack(main_content, self.notification_view())
         } else {
             main_content
@@ -50,7 +50,7 @@ impl App {
     // 渲染通知组件
     fn notification_view(&self) -> iced::Element<'_, AppMessage> {
         // 根据通知类型设置颜色
-        let (bg_color, text_color) = match self.notification_type {
+        let (bg_color, text_color) = match self.main_state.notification_type {
             NotificationType::Success => (style::NOTIFICATION_SUCCESS_BG, style::NOTIFICATION_TEXT_COLOR),
             NotificationType::Error => (style::NOTIFICATION_ERROR_BG, style::NOTIFICATION_TEXT_COLOR),
             NotificationType::Info => (style::NOTIFICATION_INFO_BG, style::NOTIFICATION_TEXT_COLOR),
@@ -58,7 +58,7 @@ impl App {
 
         let notification_content =
             container(
-                text(&self.notification_message)
+                text(&self.main_state.notification_message)
                     .size(14)
                     .style(move |_theme| text::Style {
                         color: Some(text_color),
@@ -110,9 +110,9 @@ impl App {
 
     // 辅助方法：显示通知
     pub fn show_notification(&mut self, message: String, notification_type: NotificationType) -> Task<AppMessage> {
-        self.notification_message = message;
-        self.notification_type = notification_type;
-        self.show_notification = true;
+        self.main_state.notification_message = message;
+        self.main_state.notification_type = notification_type;
+        self.main_state.show_notification = true;
 
         Task::perform(
             async {

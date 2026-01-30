@@ -14,8 +14,8 @@ impl App {
     }
 
     pub(in crate::ui::main) fn title_bar_maximize(&mut self) -> Task<AppMessage> {
-        let is_maximized = !self.is_maximized;
-        self.is_maximized = is_maximized;
+        let is_maximized = !self.main_state.is_maximized;
+        self.main_state.is_maximized = is_maximized;
 
         // 当窗口从最大化状态还原时,需要重新应用窗口样式以确保拖拽功能正常
         window::oldest()

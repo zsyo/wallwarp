@@ -4,7 +4,8 @@ use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::ThemeColors;
 use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, PORT_INPUT_WIDTH, ROW_SPACING};
-use crate::ui::{App, AppMessage, CloseAction};
+use crate::ui::{App, AppMessage};
+use crate::utils::config::CloseAction;
 use crate::utils::startup;
 use iced::border::{Border, Radius};
 use iced::widget::{Space, container, radio, row, text_input, toggler};
@@ -83,27 +84,31 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                 row![
                     super::create_proxy_protocol_picker(app),
                     container(Space::new()).width(Length::Fixed(ROW_SPACING)),
-                    text_input(&app.i18n.t("settings.proxy-address-placeholder"), &app.settings_state.proxy_address)
-                        .width(Length::FillPortion(2))
-                        .align_x(Alignment::Center)
-                        .padding(INPUT_PADDING)
-                        .on_input(|s| SettingsMessage::ProxyAddressChanged(s).into())
-                        .style(move |_theme: &iced::Theme, _status| text_input::Style {
-                            background: iced::Background::Color(theme_colors.text_input_background),
-                            border: Border {
-                                color: Color::TRANSPARENT,
-                                width: 0.0,
-                                radius: Radius::from(4.0),
-                            },
-                            icon: theme_colors.light_text_sub,
-                            placeholder: theme_colors.light_text_sub,
-                            value: theme_colors.light_text,
-                            selection: theme_colors.text_input_selection_color,
-                        }),
+                    text_input(
+                        &app.i18n.t("settings.proxy-address-placeholder"),
+                        &app.settings_state.proxy_address
+                    )
+                    .width(Length::FillPortion(2))
+                    .align_x(Alignment::Center)
+                    .padding(INPUT_PADDING)
+                    .on_input(|s| SettingsMessage::ProxyAddressChanged(s).into())
+                    .style(move |_theme: &iced::Theme, _status| text_input::Style {
+                        background: iced::Background::Color(theme_colors.text_input_background),
+                        border: Border {
+                            color: Color::TRANSPARENT,
+                            width: 0.0,
+                            radius: Radius::from(4.0),
+                        },
+                        icon: theme_colors.light_text_sub,
+                        placeholder: theme_colors.light_text_sub,
+                        value: theme_colors.light_text,
+                        selection: theme_colors.text_input_selection_color,
+                    }),
                     container(Space::new()).width(Length::Fixed(ROW_SPACING)),
                     container(
-                        iced_aw::NumberInput::new(&app.settings_state.proxy_port, 1..=65535, |n| SettingsMessage::ProxyPortChanged(n)
-                            .into())
+                        iced_aw::NumberInput::new(&app.settings_state.proxy_port, 1..=65535, |n| {
+                            SettingsMessage::ProxyPortChanged(n).into()
+                        })
                         .width(Length::Fill)
                         .align_x(Alignment::Start)
                         .padding(INPUT_PADDING)
@@ -119,9 +124,11 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                             value: theme_colors.light_text,
                             selection: theme_colors.text_input_selection_color,
                         })
-                        .style(move |_theme: &iced::Theme, _status| iced_aw::number_input::Style {
-                            button_background: Some(iced::Background::Color(theme_colors.text_input_background)),
-                            icon_color: theme_colors.light_text_sub,
+                        .style(move |_theme: &iced::Theme, _status| {
+                            iced_aw::number_input::Style {
+                                button_background: Some(iced::Background::Color(theme_colors.text_input_background)),
+                                icon_color: theme_colors.light_text_sub,
+                            }
                         })
                     )
                     .width(Length::Fixed(PORT_INPUT_WIDTH)),

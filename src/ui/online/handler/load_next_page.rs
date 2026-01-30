@@ -14,7 +14,7 @@ impl App {
             }
 
             // 计算每行可以显示多少张图
-            let available_width = (self.current_window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
+            let available_width = (self.main_state.current_window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
             let unit_width = IMAGE_WIDTH + IMAGE_SPACING;
             let items_per_row = (available_width / unit_width).floor() as usize;
             let items_per_row = items_per_row.max(1);
@@ -28,7 +28,7 @@ impl App {
 
             // 如果估算的内容高度小于窗口高度，需要加载下一页
             // 这样可以确保内容足够多，能够显示滚动条
-            if estimated_content_height < self.current_window_height as f32 {
+            if estimated_content_height < self.main_state.current_window_height as f32 {
                 self.load_online_page()
             } else {
                 Task::none()

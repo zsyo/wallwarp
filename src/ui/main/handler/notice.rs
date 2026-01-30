@@ -5,7 +5,7 @@ use iced::Task;
 
 impl App {
     pub(in crate::ui::main) fn hide_notification(&mut self) -> Task<AppMessage> {
-        self.show_notification = false;
+        self.main_state.show_notification = false;
         Task::none()
     }
 }

@@ -14,7 +14,7 @@ impl App {
             && !self.local_state.loading_page
         {
             // 计算每行可以显示多少张图
-            let available_width = (self.current_window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
+            let available_width = (self.main_state.current_window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
             let unit_width = IMAGE_WIDTH + IMAGE_SPACING;
             let items_per_row = (available_width / unit_width).floor() as usize;
             let items_per_row = items_per_row.max(1);
@@ -27,7 +27,7 @@ impl App {
             let estimated_content_height = num_rows as f32 * (IMAGE_HEIGHT + IMAGE_SPACING);
 
             // 如果估算的内容高度小于窗口高度，说明没有滚动条，需要加载下一页
-            if estimated_content_height < self.current_window_height as f32 {
+            if estimated_content_height < self.main_state.current_window_height as f32 {
                 return Task::done(LocalMessage::LoadPage.into());
             }
         }

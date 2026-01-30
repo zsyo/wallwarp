@@ -10,7 +10,7 @@ use iced::widget::{Space, column, container, image, row, text};
 use iced::{Alignment, Element, Length};
 
 pub fn main_view(app: &App) -> Element<'_, AppMessage> {
-    let functional_area_width = (app.current_window_width as f32 - SIDEBAR_WIDTH).max(1.0);
+    let functional_area_width = (app.main_state.current_window_width as f32 - SIDEBAR_WIDTH).max(1.0);
 
     let content: Element<'_, AppMessage> = match app.active_page {
         ActivePage::OnlineWallpapers => online::online_view(
@@ -39,7 +39,7 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
     // 创建自定义标题栏
     let title_bar = widget::create_title_bar(
         app.title(),
-        app.is_maximized,
+        app.main_state.is_maximized,
         &app.theme_config,
         MainMessage::TitleBarDrag.into(),
         MainMessage::MinimizeToTray.into(),
@@ -122,7 +122,7 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
         full_layout.into(),
         5.0, // 边缘触发区域大小
         |direction| MainMessage::ResizeWindow(direction).into(),
-        app.is_maximized, // 窗口是否已最大化
+        app.main_state.is_maximized, // 窗口是否已最大化
     );
 
     resizable_layout

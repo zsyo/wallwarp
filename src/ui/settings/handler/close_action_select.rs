@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::{App, AppMessage, CloseAction};
+use crate::ui::{App, AppMessage};
+use crate::utils::config::CloseAction;
 use iced::Task;
 use tracing::info;
 

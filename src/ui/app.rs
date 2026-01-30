@@ -1,12 +1,41 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use super::{App, NotificationType};
+use super::ActivePage;
 use crate::i18n::I18n;
 use crate::ui::main::TrayManager;
 use crate::ui::style;
 use crate::utils::config::{Config, Theme};
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use crate::utils::window_utils;
+use tracing::info;
+
+pub struct App {
+    pub i18n: I18n,
+    pub config: Config,
+    pub active_page: ActivePage,
+    pub tray_manager: TrayManager,
+    // 主题配置
+    pub theme_config: crate::ui::style::ThemeConfig,
+    // 主窗口状态
+    pub main_state: crate::ui::main::MainState,
+    // 本地壁纸页面状态
+    pub local_state: crate::ui::local::LocalState,
+    // 在线壁纸页面状态
+    pub online_state: crate::ui::online::OnlineState,
+    // 设置页面状态
+    pub settings_state: crate::ui::settings::SettingsState,
+    // 下载管理页面状态
+    pub download_state: crate::ui::download::DownloadStateFull,
+    // 定时切换壁纸状态
+    pub auto_change_state: crate::ui::auto_change::AutoChangeState,
+    // 壁纸切换历史记录（最多50条）
+    pub wallpaper_history: Vec<String>,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl App {
     pub fn new() -> Self {
@@ -19,9 +48,6 @@ impl App {
         // 根据配置设置语言
         i18n.set_language(config.global.language.clone());
 
-        // 初始化窗口最大化状态（默认为 false）
-        let is_maximized = false;
-
         let tray_manager = TrayManager::new(&i18n);
 
         // 根据配置文件中的主题配置初始化主题
@@ -30,8 +56,8 @@ impl App {
             Theme::Light => style::ThemeConfig::new(style::Theme::Light),
             Theme::Auto => {
                 // 自动模式：根据系统主题判断
-                let is_system_dark = crate::utils::window_utils::get_system_color_mode();
-                tracing::info!(
+                let is_system_dark = window_utils::get_system_color_mode();
+                info!(
                     "[启动] [主题] 自动模式，系统主题: {}",
                     if is_system_dark { "深色" } else { "浅色" }
                 );
@@ -47,25 +73,15 @@ impl App {
         Self {
             i18n,
             config: config.clone(),
-            active_page: super::ActivePage::OnlineWallpapers,
-            pending_window_size: None,
-            debounce_timer: std::time::Instant::now(),
+            active_page: ActivePage::OnlineWallpapers,
             tray_manager,
             theme_config,
-            show_close_confirmation: false,
-            show_notification: false,
-            notification_message: String::new(),
-            notification_type: NotificationType::Success,
-            current_window_width: config.display.width,
-            current_window_height: config.display.height,
-            current_items_per_row: 1, // 初始值为1
+            main_state: super::main::MainState::load_from_config(&config),
             local_state: super::local::LocalState::default(),
             online_state: super::online::OnlineState::load_from_config(&config),
             settings_state: super::settings::SettingsState::load_from_config(&config),
             auto_change_state: super::auto_change::AutoChangeState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
-            initial_loaded: false,                                 // 标记是否已加载初始数据
-            auto_change_running: Arc::new(AtomicBool::new(false)), // 初始化定时切换执行标志
             wallpaper_history: {
                 // 初始化壁纸切换历史记录，获取当前壁纸路径并添加到记录中
                 let mut history = Vec::new();
@@ -77,8 +93,6 @@ impl App {
                 }
                 history
             },
-            is_visible: false,
-            is_maximized, // 初始化窗口最大化状态
         }
     }
 

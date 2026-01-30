@@ -6,7 +6,7 @@ use iced::Task;
 impl App {
     pub(in crate::ui::main) fn window_focused(&mut self) -> Task<AppMessage> {
         // 更新窗口状态为已聚焦
-        self.is_visible = true;
+        self.main_state.is_visible = true;
         Task::none()
     }
 }
