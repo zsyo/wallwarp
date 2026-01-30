@@ -22,8 +22,8 @@ pub enum AutoChangeMessage {
 }
 
 impl From<AutoChangeMessage> for AppMessage {
-    fn from(auto_change_message: AutoChangeMessage) -> AppMessage {
-        AppMessage::AutoChange(auto_change_message)
+    fn from(msg: AutoChangeMessage) -> AppMessage {
+        AppMessage::AutoChange(msg)
     }
 }
 

@@ -2,14 +2,15 @@
 
 use super::App;
 use super::AppMessage;
+use super::NotificationType;
 use super::common;
 use crate::i18n::I18n;
-use crate::ui::main::MainMessage;
-use crate::ui::main::TrayManager;
-use crate::ui::main::close_confirm_view;
+use crate::ui::main::{MainMessage, TrayManager, close_confirm_view, main_view};
+use crate::ui::settings::SettingsMessage;
 use crate::ui::style;
-use crate::utils::config::{Config, Theme};
-use iced::Task;
+use crate::utils::config::{Config, Theme, WallpaperAutoChangeInterval};
+use iced::widget::{container, stack, text};
+use iced::{Element, Length, Task};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
@@ -63,26 +64,24 @@ impl App {
         };
 
         // 根据配置文件中的定时切换周期初始化定时任务状态
-        let (auto_change_enabled, auto_change_timer, auto_change_last_time) = if matches!(
-            config.wallpaper.auto_change_interval,
-            crate::utils::config::WallpaperAutoChangeInterval::Off
-        ) {
-            // 配置为关闭状态，不启动定时任务
-            tracing::info!("[定时切换] [启动] 配置为关闭状态，定时任务未启动");
-            (false, None, None)
-        } else {
-            // 配置为开启状态，自动启动定时任务
-            let now = std::time::Instant::now();
-            if let Some(minutes) = config.wallpaper.auto_change_interval.get_minutes() {
-                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
-                tracing::info!(
-                    "[定时切换] [启动] 配置为开启状态，间隔: {}分钟, 下次执行时间: {}",
-                    minutes,
-                    next_time.format("%Y-%m-%d %H:%M:%S")
-                );
-            }
-            (true, Some(now), Some(now))
-        };
+        let (auto_change_enabled, auto_change_timer, auto_change_last_time) =
+            if matches!(config.wallpaper.auto_change_interval, WallpaperAutoChangeInterval::Off) {
+                // 配置为关闭状态，不启动定时任务
+                tracing::info!("[定时切换] [启动] 配置为关闭状态，定时任务未启动");
+                (false, None, None)
+            } else {
+                // 配置为开启状态，自动启动定时任务
+                let now = std::time::Instant::now();
+                if let Some(minutes) = config.wallpaper.auto_change_interval.get_minutes() {
+                    let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+                    tracing::info!(
+                        "[定时切换] [启动] 配置为开启状态，间隔: {}分钟, 下次执行时间: {}",
+                        minutes,
+                        next_time.format("%Y-%m-%d %H:%M:%S")
+                    );
+                }
+                (true, Some(now), Some(now))
+            };
 
         Self {
             i18n,
@@ -110,7 +109,7 @@ impl App {
             path_to_clear: String::new(),
             show_notification: false,
             notification_message: String::new(),
-            notification_type: super::NotificationType::Success,
+            notification_type: NotificationType::Success,
             current_window_width: config.display.width,
             current_window_height: config.display.height,
             current_items_per_row: 1, // 初始值为1
@@ -169,15 +168,11 @@ impl App {
     }
 
     pub fn title(&self) -> String {
-        self.i18n.t("app-title")
+        self.i18n.t("wallwarp")
     }
 
     // 辅助方法：显示通知
-    pub fn show_notification(
-        &mut self,
-        message: String,
-        notification_type: super::NotificationType,
-    ) -> Task<AppMessage> {
+    pub fn show_notification(&mut self, message: String, notification_type: NotificationType) -> Task<AppMessage> {
         self.notification_message = message;
         self.notification_type = notification_type;
         self.show_notification = true;
@@ -211,46 +206,32 @@ impl App {
             message_text,
             self.i18n.t("path-clear-confirmation.confirm"),
             self.i18n.t("path-clear-confirmation.cancel"),
-            AppMessage::ConfirmPathClear(self.path_to_clear.clone()),
-            AppMessage::CancelPathClear,
+            SettingsMessage::ConfirmPathClear(self.path_to_clear.clone()).into(),
+            SettingsMessage::CancelPathClear.into(),
         )
     }
 
     // 渲染通知组件
     fn notification_view(&self) -> iced::Element<'_, AppMessage> {
-        use iced::{
-            Length,
-            widget::{container, text},
-        };
-
         // 根据通知类型设置颜色
         let (bg_color, text_color) = match self.notification_type {
-            super::NotificationType::Success => (
-                super::style::NOTIFICATION_SUCCESS_BG,
-                super::style::NOTIFICATION_TEXT_COLOR,
-            ),
-            super::NotificationType::Error => (
-                super::style::NOTIFICATION_ERROR_BG,
-                super::style::NOTIFICATION_TEXT_COLOR,
-            ),
-            super::NotificationType::Info => (
-                super::style::NOTIFICATION_INFO_BG,
-                super::style::NOTIFICATION_TEXT_COLOR,
-            ),
+            NotificationType::Success => (style::NOTIFICATION_SUCCESS_BG, style::NOTIFICATION_TEXT_COLOR),
+            NotificationType::Error => (style::NOTIFICATION_ERROR_BG, style::NOTIFICATION_TEXT_COLOR),
+            NotificationType::Info => (style::NOTIFICATION_INFO_BG, style::NOTIFICATION_TEXT_COLOR),
         };
 
         let notification_content =
             container(
                 text(&self.notification_message)
                     .size(14)
-                    .style(move |_theme| iced::widget::text::Style {
+                    .style(move |_theme| text::Style {
                         color: Some(text_color),
                     }),
             )
             .padding(10)
             .width(Length::Shrink)
             .height(Length::Shrink)
-            .style(move |_theme| iced::widget::container::Style {
+            .style(move |_theme| container::Style {
                 background: Some(iced::Background::Color(bg_color)),
                 border: iced::border::Border {
                     radius: iced::border::Radius::from(8.0),
@@ -274,9 +255,9 @@ impl App {
         .into()
     }
 
-    pub fn view(&self) -> iced::Element<'_, AppMessage> {
+    pub fn view(&self) -> Element<'_, AppMessage> {
         // 先渲染底层内容
-        let base_content = super::main::view_internal(self);
+        let base_content = main_view(self);
 
         // 如果显示任何确认对话框，则将对话框叠加在底层内容上
         let main_content = if self.show_close_confirmation {
@@ -296,13 +277,10 @@ impl App {
     }
 
     // 辅助方法：创建叠加层（底层内容 + 覆盖内容）
-    fn create_stack<'a>(
-        base: iced::Element<'a, AppMessage>,
-        overlay: iced::Element<'a, AppMessage>,
-    ) -> iced::Element<'a, AppMessage> {
-        iced::widget::stack(vec![base, overlay])
-            .width(iced::Length::Fill)
-            .height(iced::Length::Fill)
+    fn create_stack<'a>(base: Element<'a, AppMessage>, overlay: Element<'a, AppMessage>) -> Element<'a, AppMessage> {
+        stack(vec![base, overlay])
+            .width(Length::Fill)
+            .height(Length::Fill)
             .into()
     }
 }

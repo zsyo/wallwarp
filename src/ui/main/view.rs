@@ -15,7 +15,7 @@ use iced::border::{Border, Radius};
 use iced::widget::{Space, button, column, container, image, row, text, tooltip};
 use iced::{Alignment, Element, Length, Padding};
 
-pub fn view_internal(app: &App) -> Element<'_, AppMessage> {
+pub fn main_view(app: &App) -> Element<'_, AppMessage> {
     let functional_area_width = (app.current_window_width as f32 - SIDEBAR_WIDTH).max(1.0);
 
     let content: Element<'_, AppMessage> = match app.active_page {

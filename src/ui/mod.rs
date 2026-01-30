@@ -8,13 +8,12 @@ pub mod local;
 pub mod main;
 pub mod online;
 pub mod settings;
-pub mod settings_handlers;
 pub mod style;
 pub mod update;
 
 use crate::i18n::I18n;
 use crate::ui::main::TrayManager;
-use crate::utils::config::{CloseAction, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
+use crate::utils::config::CloseAction;
 
 #[derive(Debug, Clone)]
 pub enum CloseConfirmationAction {
@@ -25,41 +24,11 @@ pub enum CloseConfirmationAction {
 #[derive(Debug, Clone)]
 pub enum AppMessage {
     None, // 空消息，用于某些不需要实际操作的情况
-    LanguageSelected(String),
-    AutoStartupToggled(bool),
-    LoggingToggled(bool),
-    CloseActionSelected(CloseAction),
-    OpenUrl(String),
-    DataPathSelected(String),
-    CachePathSelected(String),
-    OpenPath(String),
-    OpenLogsPath,                      // 打开日志目录
-    ShowPathClearConfirmation(String), // 显示路径清空确认对话框，参数为路径类型 ("data" 或 "cache")
-    ConfirmPathClear(String),          // 确认清空路径，参数为路径类型
-    CancelPathClear,                   // 取消清空路径
-    RestoreDefaultPath(String),
-    WallhavenApiKeyChanged(String),
-    SaveWallhavenApiKey,
-    ProxyProtocolChanged(String),
-    ProxyAddressChanged(String),
-    ProxyPortChanged(u32),
-    SaveProxy,
-    WallpaperModeSelected(WallpaperMode),                    // 壁纸模式选择
-    AutoChangeModeSelected(WallpaperAutoChangeMode),         // 定时切换模式选择
-    AutoChangeIntervalSelected(WallpaperAutoChangeInterval), // 定时切换周期选择
-    CustomIntervalMinutesChanged(u32),                       // 自定义切换周期分钟数变化
-    AutoChangeQueryChanged(String),                          // 定时切换关键词变化
-    SaveAutoChangeQuery,                                     // 保存定时切换关键词
-    LanguagePickerExpanded,                                  // 展开语言选择器
-    LanguagePickerDismiss,                                   // 关闭语言选择器
-    ProxyProtocolPickerExpanded,                             // 展开代理协议选择器
-    ProxyProtocolPickerDismiss,                              // 关闭代理协议选择器
-    ThemePickerExpanded,                                     // 展开主题选择器
-    ThemePickerDismiss,                                      // 关闭主题选择器
     Main(crate::ui::main::MainMessage),
     Local(crate::ui::local::LocalMessage),
     Online(crate::ui::online::OnlineMessage),
     Download(crate::ui::download::DownloadMessage),
+    Settings(crate::ui::settings::SettingsMessage),
     AutoChange(crate::ui::auto_change::AutoChangeMessage),
 }
 

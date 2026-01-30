@@ -38,8 +38,8 @@ pub enum DownloadMessage {
 }
 
 impl From<DownloadMessage> for AppMessage {
-    fn from(download_message: DownloadMessage) -> AppMessage {
-        AppMessage::Download(download_message)
+    fn from(msg: DownloadMessage) -> AppMessage {
+        AppMessage::Download(msg)
     }
 }
 

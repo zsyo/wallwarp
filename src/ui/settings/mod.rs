@@ -7,7 +7,6 @@ mod types;
 mod view;
 mod widget;
 
-pub use message::OnlineMessage;
-pub use state::*;
-use types::*;
-pub use view::online_view;
+pub use message::*;
+pub use types::*;
+pub use view::settings_view;

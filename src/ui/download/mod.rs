@@ -10,6 +10,6 @@ mod state;
 mod view;
 mod widget;
 
-pub use message::*;
+pub use message::DownloadMessage;
 pub use state::*;
 pub use view::download_view;

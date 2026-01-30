@@ -2,12 +2,12 @@
 
 mod close_confirm;
 mod handler;
-mod main;
 mod message;
 mod tray;
+mod view;
 mod widget;
 
-pub use close_confirm::*;
-pub use main::*;
-pub use message::*;
-pub use tray::*;
+pub use close_confirm::close_confirm_view;
+pub use message::MainMessage;
+pub use tray::TrayManager;
+pub use view::main_view;

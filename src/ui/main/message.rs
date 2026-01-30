@@ -6,38 +6,65 @@ use iced::Task;
 /// 主界面页面消息
 #[derive(Debug, Clone)]
 pub enum MainMessage {
-    WindowResized(u32, u32), // 窗口大小改变事件
+    /// 窗口大小改变事件
+    WindowResized(u32, u32),
+    /// 执行延迟保存事件
     ExecutePendingSave,
+    /// 页面选择事件
     PageSelected(ActivePage),
+    /// 窗口关闭请求事件
     WindowCloseRequested,
+    /// 窗口聚焦事件
     WindowFocused,
+    /// 窗口最小化到托盘事件
     MinimizeToTray,
+    /// 托盘图标点击事件
     TrayIconClicked,
+    /// 托盘菜单事件
     TrayMenuEvent(String),
-    ScrollToTop(String),                        // 滚动到顶部，参数为滚动组件ID
-    ThemeSelected(crate::utils::config::Theme), // 主题选择
-    AutoDetectColorModeTick,                    // 自动检测颜色模式
+    /// 滚动到顶部，参数为滚动组件ID
+    ScrollToTop(String),
+    /// 主题选择
+    ThemeSelected(crate::utils::config::Theme),
+    /// 自动检测颜色模式
+    AutoDetectColorModeTick,
+    /// 显示关闭确认弹窗
     ShowCloseConfirmation,
-    CloseConfirmationResponse(CloseConfirmationAction, bool), // (动作, 是否记住设置)
+    /// 关闭确认弹窗事件(动作, 是否记住设置)
+    CloseConfirmationResponse(CloseConfirmationAction, bool),
+    /// 关闭确认弹窗取消事件
     CloseConfirmationCancelled,
+    /// 关闭确认弹窗记住设置开关事件
     ToggleRememberSetting(bool),
-    ShowNotification(String, NotificationType), // 显示通知，参数：消息内容，通知类型
-    HideNotification,                           // 隐藏通知（用于定时隐藏）
+    /// 显示通知，参数：消息内容，通知类型
+    ShowNotification(String, NotificationType),
+    /// 隐藏通知（用于定时隐藏）
+    HideNotification,
+    /// 托盘切换上一张壁纸事件
     TraySwitchPreviousWallpaper,
+    /// 托盘切换下一张壁纸事件
     TraySwitchNextWallpaper,
-    AddToWallpaperHistory(String),  // 添加壁纸到历史记录
-    RemoveLastFromWallpaperHistory, // 从历史记录末尾移除壁纸
+    /// 添加壁纸到历史记录
+    AddToWallpaperHistory(String),
+    /// 从历史记录末尾移除壁纸
+    RemoveLastFromWallpaperHistory,
+    /// 外部实例触发事件
     ExternalInstanceTriggered(String),
-    TitleBarDrag,                          // 拖拽标题栏
-    TitleBarMinimize,                      // 最小化窗口
-    TitleBarMaximize,                      // 最大化/还原窗口
-    TitleBarClose,                         // 关闭窗口
-    ResizeWindow(iced::window::Direction), // 调整窗口大小（包含所有方向）
+    /// 拖拽自定义标题栏事件
+    TitleBarDrag,
+    /// 自定义标题栏最小化窗口按钮事件
+    TitleBarMinimize,
+    /// 自定义标题栏最大化/还原窗口按钮事件
+    TitleBarMaximize,
+    /// 自定义标题栏关闭窗口按钮事件
+    TitleBarClose,
+    /// 调整窗口大小（包含所有方向）
+    ResizeWindow(iced::window::Direction),
 }
 
 impl From<MainMessage> for AppMessage {
-    fn from(main_message: MainMessage) -> AppMessage {
-        AppMessage::Main(main_message)
+    fn from(msg: MainMessage) -> AppMessage {
+        AppMessage::Main(msg)
     }
 }
 

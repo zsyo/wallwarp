@@ -47,8 +47,8 @@ pub enum LocalMessage {
 }
 
 impl From<LocalMessage> for AppMessage {
-    fn from(local_message: LocalMessage) -> AppMessage {
-        AppMessage::Local(local_message)
+    fn from(msg: LocalMessage) -> AppMessage {
+        AppMessage::Local(msg)
     }
 }
 

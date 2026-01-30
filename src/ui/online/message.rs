@@ -107,8 +107,8 @@ pub enum OnlineMessage {
 }
 
 impl From<OnlineMessage> for AppMessage {
-    fn from(online_message: OnlineMessage) -> AppMessage {
-        AppMessage::Online(online_message)
+    fn from(msg: OnlineMessage) -> AppMessage {
+        AppMessage::Online(msg)
     }
 }
 
