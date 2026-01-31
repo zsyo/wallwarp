@@ -70,7 +70,19 @@ impl App {
             }
         };
 
-        Self {
+        // 初始化壁纸切换历史记录，获取当前壁纸路径并添加到记录中
+        let mut wallpaper_history = Vec::new();
+        if let Ok(current_wallpaper) = wallpaper::get() {
+            if !current_wallpaper.is_empty() {
+                tracing::info!(
+                    "[壁纸历史] 初始化，添加当前壁纸: {}",
+                    crate::utils::helpers::normalize_path(&current_wallpaper)
+                );
+                wallpaper_history.push(current_wallpaper);
+            }
+        }
+
+        let mut app = Self {
             i18n,
             config: config.clone(),
             active_page: ActivePage::OnlineWallpapers,
@@ -82,21 +94,24 @@ impl App {
             settings_state: super::settings::SettingsState::load_from_config(&config),
             auto_change_state: super::auto_change::AutoChangeState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
-            wallpaper_history: {
-                // 初始化壁纸切换历史记录，获取当前壁纸路径并添加到记录中
-                let mut history = Vec::new();
-                if let Ok(current_wallpaper) = wallpaper::get() {
-                    if !current_wallpaper.is_empty() {
-                        tracing::info!("[壁纸历史] 初始化，添加当前壁纸: {}", current_wallpaper);
-                        history.push(current_wallpaper);
-                    }
-                }
-                history
-            },
-        }
+            wallpaper_history,
+        };
+
+        // 初始化托盘菜单项的状态
+        app.update_tray_menu_items();
+
+        app
     }
 
     pub fn title(&self) -> String {
         self.i18n.t("app-title")
+    }
+
+    /// 更新托盘菜单项的状态
+    fn update_tray_menu_items(&mut self) {
+        self.tray_manager
+            .update_switch_previous_item(self.wallpaper_history.len());
+        self.tray_manager
+            .update_save_current_item(self.can_save_current_wallpaper());
     }
 }

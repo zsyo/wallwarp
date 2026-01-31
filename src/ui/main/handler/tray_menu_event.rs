@@ -19,6 +19,10 @@ impl App {
                 // 切换下一张壁纸
                 return Task::done(MainMessage::TraySwitchNextWallpaper.into());
             }
+            "tray_save_current" => {
+                // 保存当前壁纸到库
+                return Task::done(MainMessage::TraySaveCurrentWallpaper.into());
+            }
             "tray_settings" => {
                 // 打开设置窗口
                 self.active_page = ActivePage::Settings;

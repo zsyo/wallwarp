@@ -46,6 +46,8 @@ pub enum MainMessage {
     TraySwitchPreviousWallpaper,
     /// 托盘切换下一张壁纸事件
     TraySwitchNextWallpaper,
+    /// 托盘保存当前壁纸到库事件
+    TraySaveCurrentWallpaper,
     /// 添加壁纸到历史记录
     AddToWallpaperHistory(String),
     /// 从历史记录末尾移除壁纸
@@ -98,6 +100,7 @@ impl App {
             MainMessage::HideNotificationWithVersion(version) => self.hide_notification_with_version(version),
             MainMessage::TraySwitchPreviousWallpaper => self.tray_switch_previous_wallpaper(),
             MainMessage::TraySwitchNextWallpaper => self.tray_switch_next_wallpaper(),
+            MainMessage::TraySaveCurrentWallpaper => self.tray_save_current_wallpaper(),
             MainMessage::AddToWallpaperHistory(path) => self.add_to_wallpaper_history(path),
             MainMessage::RemoveLastFromWallpaperHistory => self.remove_last_from_wallpaper_history(),
             MainMessage::ExternalInstanceTriggered(payload) => self.external_instance_triggered(payload),

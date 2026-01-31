@@ -19,16 +19,21 @@ impl TrayManager {
 
         let tray_menu = Menu::new();
         let show_item = MenuItem::with_id("tray_show", i18n.t("menu.tray-show"), true, None);
-        let switch_previous_item_id = "tray_switch_previous".to_string();
-        let switch_previous_item = MenuItem::with_id(&switch_previous_item_id, i18n.t("menu.tray-switch-previous"), false, None);
-        items.insert(switch_previous_item_id, switch_previous_item.clone());
+        let switch_previous_id = "tray_switch_previous".to_string();
+        let switch_previous_item =
+            MenuItem::with_id(&switch_previous_id, i18n.t("menu.tray-switch-previous"), false, None);
+        items.insert(switch_previous_id, switch_previous_item.clone());
         let switch_next_item = MenuItem::with_id("tray_switch_next", i18n.t("menu.tray-switch-next"), true, None);
+        let save_current_id = "tray_save_current".to_string();
+        let save_current_item = MenuItem::with_id(&save_current_id, i18n.t("menu.tray-save-current"), false, None);
+        items.insert(save_current_id, save_current_item.clone());
         let show_settings_item = MenuItem::with_id("tray_settings", i18n.t("menu.tray-settings"), true, None);
         let quit_item = MenuItem::with_id("tray_quit", i18n.t("menu.tray-quit"), true, None);
 
         tray_menu.append(&show_item).unwrap();
         tray_menu.append(&switch_previous_item).unwrap();
         tray_menu.append(&switch_next_item).unwrap();
+        tray_menu.append(&save_current_item).unwrap();
         tray_menu.append(&show_settings_item).unwrap();
         tray_menu.append(&quit_item).unwrap();
 
@@ -46,6 +51,13 @@ impl TrayManager {
     }
 
     pub fn update_switch_previous_item(&mut self, history_count: usize) {
-        self.items.get_mut("tray_switch_previous").unwrap().set_enabled(history_count >= 2);
+        self.items
+            .get_mut("tray_switch_previous")
+            .unwrap()
+            .set_enabled(history_count >= 2);
+    }
+
+    pub fn update_save_current_item(&mut self, can_save: bool) {
+        self.items.get_mut("tray_save_current").unwrap().set_enabled(can_save);
     }
 }

@@ -89,6 +89,12 @@ local-list = 本地列表
     .tooltip-prev = 上一张
     .tooltip-next = 下一张
     .tooltip-close = 关闭
+    .save-success = 保存成功
+    .save-failed = 保存失败
+    .file-not-found = 文件不存在
+    .no-wallpaper-to-save = 没有可保存的壁纸
+    .wallpaper-not-in-cache = 当前壁纸已在壁纸库中，无需保存
+    .target-file-exists = 目标文件已存在
 
 download-tasks = 下载任务
     .title = 下载管理
@@ -233,6 +239,7 @@ menu =
     .tray-switch-previous = 切换上一张壁纸
     .tray-switch-next = 切换下一张壁纸
     .tray-settings = 设置
+    .tray-save-current = 保存当前壁纸到库
     .tray-quit = 退出程序
 
 theme =

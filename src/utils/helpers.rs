@@ -130,3 +130,24 @@ pub fn ensure_directory_exists(path: &str, dir_name: &str) {
         info!("[{}] 目录已存在: {}", dir_name, path);
     }
 }
+
+/// 标准化路径，去除 Windows 扩展路径前缀
+///
+/// # 参数
+/// - `path`: 原始路径
+///
+/// # 返回
+/// 标准化后的路径（去除 `\\?\` 前缀）
+///
+/// # 说明
+/// Windows API 有时会返回带有 `\\?\` 前缀的扩展长度路径，
+/// 该函数去除此前缀以提高可读性。文件操作可以正常使用原始路径，
+/// 但显示给用户时建议使用标准化后的路径。
+pub fn normalize_path(path: &str) -> String {
+    // Windows 扩展路径前缀: \\?\
+    if path.starts_with("\\\\?\\") {
+        path[4..].to_string()
+    } else {
+        path.to_string()
+    }
+}

@@ -2,9 +2,32 @@
 
 use crate::ui::{App, AppMessage};
 use iced::Task;
+use std::path::Path;
 use tracing::info;
 
 impl App {
+    /// 检查当前壁纸是否可以保存到库（即当前壁纸不存在于data_path目录中）
+    pub(in crate::ui) fn can_save_current_wallpaper(&self) -> bool {
+        if self.wallpaper_history.is_empty() {
+            return false;
+        }
+
+        let current_wallpaper = self.wallpaper_history.last().unwrap();
+
+        // 获取当前壁纸的绝对路径（标准化去除\\?\前缀）
+        let normalized_wallpaper = crate::utils::helpers::normalize_path(current_wallpaper);
+        let absolute_wallpaper = crate::utils::helpers::get_absolute_path(&normalized_wallpaper);
+        let wallpaper_path = Path::new(&absolute_wallpaper);
+
+        // 获取data_path的绝对路径
+        let data_path = &self.config.data.data_path;
+        let absolute_data_path = crate::utils::helpers::get_absolute_path(data_path);
+        let data_dir = Path::new(&absolute_data_path);
+
+        // 判断当前壁纸是否不在data_path目录中
+        !wallpaper_path.starts_with(data_dir)
+    }
+
     pub(in crate::ui::main) fn add_to_wallpaper_history(&mut self, path: String) -> Task<AppMessage> {
         // 检查历史记录中是否已存在该路径，如果存在则先移除
         if let Some(pos) = self.wallpaper_history.iter().position(|p| p == &path) {
@@ -41,6 +64,8 @@ impl App {
         // 更新托盘菜单项的启用状态
         self.tray_manager
             .update_switch_previous_item(self.wallpaper_history.len());
+        self.tray_manager
+            .update_save_current_item(self.can_save_current_wallpaper());
 
         Task::none()
     }
@@ -68,6 +93,8 @@ impl App {
         // 更新托盘菜单项的启用状态
         self.tray_manager
             .update_switch_previous_item(self.wallpaper_history.len());
+        self.tray_manager
+            .update_save_current_item(self.can_save_current_wallpaper());
 
         Task::none()
     }

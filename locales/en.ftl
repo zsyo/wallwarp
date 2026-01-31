@@ -90,6 +90,12 @@ local-list = Local List
     .tooltip-prev = Previous
     .tooltip-next = Next
     .tooltip-close = Close
+    .save-success = Saved successfully
+    .save-failed = Save failed
+    .file-not-found = File not found
+    .no-wallpaper-to-save = No wallpaper to save
+    .wallpaper-not-in-cache = Current wallpaper is already in library, no need to save
+    .target-file-exists = Target file already exists
 
 download-tasks = Download Tasks
     .title = Download Tasks
@@ -234,6 +240,7 @@ menu =
     .tray-switch-previous = Switch to previous wallpaper
     .tray-switch-next = Switch to next wallpaper
     .tray-settings = Settings
+    .tray-save-current = Save current wallpaper to library
     .tray-quit = Quit program
 
 theme =

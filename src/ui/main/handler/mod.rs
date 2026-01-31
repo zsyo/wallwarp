@@ -9,6 +9,7 @@ mod notice;
 mod page_select;
 mod pending_save;
 mod resize_window;
+mod save_current_wallpaper;
 mod scroll_to_top;
 mod show_window;
 mod theme_select;
