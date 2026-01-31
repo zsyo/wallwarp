@@ -41,9 +41,12 @@ pub async fn async_set_random_wallpaper(
 /// 3. 直到返回的data不是空数组或者current_page=last_page
 /// 4. 从返回的列表中随机选择一张图片
 /// 5. 按照在线壁纸列表项的设置壁纸逻辑来设置壁纸：
-///    - 先判断壁纸是否在config.data.data_path中，如果有则直接设置壁纸
-///    - 否则判断壁纸是否在config.data.cache_path/online中，如果有则将该缓存图移动至config.data.data_path中并且设置为正确的文件名
-///    - 否则下载壁纸到缓存，然后复制到data_path中并设置壁纸
+///    - 先判断壁纸是否在config.data.cache_path/auto_change中，如果有则直接设置壁纸
+///    - 否则判断壁纸是否在config.data.cache_path/online中，如果有则将该缓存图复制到config.data.cache_path/auto_change中
+///    - 否则下载壁纸到缓存，然后复制到cache_path/auto_change中并设置壁纸
+///
+/// # 注意事项
+/// 定时切换的壁纸统一存储在 cache_path/auto_change 目录中，避免污染本地壁纸库
 pub async fn async_set_random_online_wallpaper(
     config: Config,
     auto_change_running: Arc<AtomicBool>,
@@ -169,18 +172,19 @@ pub async fn async_set_random_online_wallpaper(
         selected.id, selected.path
     );
 
-    // 生成目标文件路径（使用原文件名）
+    // 生成目标文件路径（使用原文件名，存储在 cache_path/auto_change 目录中）
     let file_name = wallhaven::generate_file_name(&selected.id, selected.file_type.split('/').last().unwrap_or("jpg"));
-    let data_path = config.data.data_path.clone();
-    let target_path = PathBuf::from(&data_path).join(&file_name);
+    let cache_path = config.data.cache_path.clone();
+    let auto_change_dir = PathBuf::from(&cache_path).join("auto_change");
+    let target_path = auto_change_dir.join(&file_name);
 
-    // 1. 检查目标文件是否已存在于 data_path 中
+    // 1. 检查目标文件是否已存在于 cache_path/auto_change 中
     if let Ok(metadata) = std::fs::metadata(&target_path) {
         let actual_size = metadata.len();
         if actual_size == selected.file_size {
             // 文件已存在且大小匹配，直接设置壁纸
             info!(
-                "[定时切换] [在线] 文件已存在于data_path，直接设置: {}",
+                "[定时切换] [在线] 文件已存在于auto_change目录，直接设置: {}",
                 target_path.display()
             );
             let wallpaper_mode = config.wallpaper.mode;
@@ -189,8 +193,7 @@ pub async fn async_set_random_online_wallpaper(
         }
     }
 
-    // 2. 检查缓存文件是否存在且大小匹配
-    let cache_path = config.data.cache_path.clone();
+    // 2. 检查缓存文件是否存在且大小匹配（cache_path/online 目录）
     if let Ok(cache_file_path) =
         DownloadService::get_online_image_cache_final_path(&cache_path, &selected.path, selected.file_size)
     {
@@ -198,16 +201,17 @@ pub async fn async_set_random_online_wallpaper(
         if let Ok(metadata) = std::fs::metadata(&cache_file_path_obj) {
             let cache_size = metadata.len();
             if cache_size == selected.file_size {
-                // 缓存文件存在且大小匹配，复制到 data_path
+                // 缓存文件存在且大小匹配，移动到 cache_path/auto_change
+                // 因为这是原图且非主动浏览，不需要在 online 目录中保存对应的缓存
                 info!(
-                    "[定时切换] [在线] 从缓存复制到data_path: {} -> {}",
+                    "[定时切换] [在线] 从online缓存移动到auto_change目录: {} -> {}",
                     cache_file_path_obj.display(),
                     target_path.display()
                 );
-                let _ = std::fs::create_dir_all(&data_path);
-                match std::fs::copy(&cache_file_path_obj, &target_path) {
+                let _ = std::fs::create_dir_all(&auto_change_dir);
+                match std::fs::rename(&cache_file_path_obj, &target_path) {
                     Ok(_) => {
-                        // 复制成功，设置壁纸
+                        // 移动成功，设置壁纸
                         let wallpaper_mode = config.wallpaper.mode;
                         LocalWallpaperService::set_wallpaper(
                             &target_path.to_string_lossy().to_string(),
@@ -216,32 +220,33 @@ pub async fn async_set_random_online_wallpaper(
                         return Ok(target_path.to_string_lossy().to_string());
                     }
                     Err(e) => {
-                        error!("[定时切换] [在线] [ID:{}] 从缓存复制失败: {}", selected.id, e);
-                        // 复制失败，继续走下载流程
+                        error!("[定时切换] [在线] [ID:{}] 从缓存移动失败: {}", selected.id, e);
+                        // 移动失败，继续走下载流程
                     }
                 }
             }
         }
     }
 
-    // 3. 文件不存在，下载到缓存
+    // 3. 文件不存在，下载到 cache_path/online
     let cache_file_path =
         DownloadService::get_online_image_cache_path(&cache_path, &selected.path, selected.file_size)?;
     let cache_file_path_obj = PathBuf::from(&cache_file_path);
     info!(
-        "[定时切换] [在线] 缓存不存在，开始下载: {}",
+        "[定时切换] [在线] 缓存不存在，开始下载到online缓存: {}",
         cache_file_path_obj.display()
     );
     DownloadService::download_thumb_to_cache(&selected.path, &cache_file_path, proxy).await?;
 
-    // 下载完成后，复制到 data_path
+    // 下载完成后，移动到 cache_path/auto_change
+    // 因为这是原图且非主动浏览，不需要在 online 目录中保存对应的缓存
     info!(
-        "[定时切换] [在线] 下载完成，复制到data_path: {} -> {}",
+        "[定时切换] [在线] 下载完成，移动到auto_change目录: {} -> {}",
         cache_file_path_obj.display(),
         target_path.display()
     );
-    let _ = std::fs::create_dir_all(&data_path);
-    std::fs::copy(&cache_file_path_obj, &target_path)?;
+    let _ = std::fs::create_dir_all(&auto_change_dir);
+    std::fs::rename(&cache_file_path_obj, &target_path)?;
 
     // 设置壁纸
     let wallpaper_mode = config.wallpaper.mode;
