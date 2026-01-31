@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+mod cache_cleanup;
 mod download_to_cache;
 mod download_wallpaper;
 mod get_supported_images;
@@ -12,6 +13,7 @@ mod streaming;
 
 use download_to_cache::*;
 
+pub use cache_cleanup::*;
 pub use download_wallpaper::*;
 pub use get_supported_images::*;
 pub use load_online_wallpaper::*;

@@ -5,8 +5,9 @@
 use iced::{Size, Task, font, window};
 use tracing::info;
 use wallwarp::i18n::I18n;
-use wallwarp::ui::App;
+use wallwarp::services::async_task::async_cleanup_cache;
 use wallwarp::ui::main::MainMessage;
+use wallwarp::ui::{App, AppMessage};
 use wallwarp::utils::{assets, config, helpers, logger, single_instance::SingleInstanceGuard};
 
 const LOGO_SIZE: u32 = 128;
@@ -59,13 +60,41 @@ fn main() -> iced::Result {
     iced::application(
         move || {
             let (i18n, cfg) = init_data.borrow_mut().take().expect("App can only be initialized once");
+
+            // 在 cfg 被移动之前先克隆一份用于清理任务
+            let cleanup_config = cfg.clone();
+
             let app = App::new_with_config(i18n, cfg);
+
+            // 创建启动任务
             let load_font_task = font::load(assets::ICON_FONT).discard();
             let enable_resize_task = app.enable_window_drag_resize();
             let listen_task = Task::perform(SingleInstanceGuard::listen(), |payload| {
                 MainMessage::ExternalInstanceTriggered(payload).into()
             });
-            (app, Task::batch(vec![load_font_task, enable_resize_task, listen_task]))
+
+            // 创建缓存清理任务（在后台异步执行）
+            let cleanup_task = Task::perform(
+                async move {
+                    // 延迟 2 秒后执行清理，避免影响启动性能
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    match async_cleanup_cache(cleanup_config).await {
+                        Ok(_) => {
+                            info!("[启动] 缓存清理任务完成");
+                        }
+                        Err(e) => {
+                            tracing::error!("[启动] 缓存清理任务失败: {}", e);
+                        }
+                    }
+                    AppMessage::None // 返回一个空消息
+                },
+                |msg| msg.into(),
+            );
+
+            (
+                app,
+                Task::batch(vec![load_font_task, enable_resize_task, listen_task, cleanup_task]),
+            )
         },
         App::update,
         App::view,
