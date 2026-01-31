@@ -3,7 +3,6 @@
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 use iced::Task;
-use std::time::Instant;
 use tracing::info;
 
 impl App {
@@ -40,17 +39,17 @@ impl App {
         self.config.wallpaper.auto_change_interval = interval;
 
         // 根据选择的间隔启动或停止定时任务
-        if matches!(self.settings_state.auto_change_interval, WallpaperAutoChangeInterval::Off) {
+        if matches!(
+            self.settings_state.auto_change_interval,
+            WallpaperAutoChangeInterval::Off
+        ) {
             // 选择关闭，停止定时任务
             self.auto_change_state.auto_change_enabled = false;
-            self.auto_change_state.auto_change_timer = None;
-            self.auto_change_state.auto_change_last_time = None;
+            self.auto_change_state.next_execute_time = None;
             info!("[定时切换] [停止] 定时任务已停止");
         } else {
             // 选择其他选项，启动定时任务
             self.auto_change_state.auto_change_enabled = true;
-            self.auto_change_state.auto_change_timer = Some(Instant::now());
-            self.auto_change_state.auto_change_last_time = Some(Instant::now());
 
             // 计算并记录下次执行时间
             if let Some(minutes) = self.settings_state.auto_change_interval.get_minutes() {
@@ -60,6 +59,7 @@ impl App {
                     minutes,
                     next_time.format("%Y-%m-%d %H:%M:%S")
                 );
+                self.auto_change_state.next_execute_time = Some(next_time);
             }
         }
 
@@ -76,7 +76,10 @@ impl App {
         self.settings_state.custom_interval_minutes = minutes;
 
         // 如果当前选中的是自定义选项，立即更新配置
-        if matches!(self.settings_state.auto_change_interval, WallpaperAutoChangeInterval::Custom(_)) {
+        if matches!(
+            self.settings_state.auto_change_interval,
+            WallpaperAutoChangeInterval::Custom(_)
+        ) {
             // 同时更新 UI 状态和配置文件
             self.settings_state.auto_change_interval = WallpaperAutoChangeInterval::Custom(minutes);
             self.config.wallpaper.auto_change_interval = WallpaperAutoChangeInterval::Custom(minutes);
@@ -84,13 +87,13 @@ impl App {
 
             // 重置定时任务并记录下次执行时间
             if self.auto_change_state.auto_change_enabled {
-                self.auto_change_state.auto_change_last_time = Some(Instant::now());
                 let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
                 info!(
                     "[定时切换] [重置] 自定义间隔: {}分钟, 下次执行时间: {}",
                     minutes,
                     next_time.format("%Y-%m-%d %H:%M:%S")
                 );
+                self.auto_change_state.next_execute_time = Some(next_time);
             }
         }
         Task::none()

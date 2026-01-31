@@ -5,10 +5,6 @@ use crate::ui::{App, AppMessage};
 /// 定时切换壁纸相关消息
 #[derive(Debug, Clone)]
 pub enum AutoChangeMessage {
-    /// 启动定时切换
-    StartAutoChange,
-    /// 停止定时切换
-    StopAutoChange,
     /// 定时切换定时器事件
     AutoChangeTick,
     /// 获取支持的图片文件列表成功
@@ -31,8 +27,6 @@ impl App {
     /// 处理定时切换壁纸相关消息
     pub fn handle_auto_change_message(&mut self, msg: AutoChangeMessage) -> iced::Task<AppMessage> {
         match msg {
-            AutoChangeMessage::StartAutoChange => self.start_auto_change(),
-            AutoChangeMessage::StopAutoChange => self.stop_auto_change(),
             AutoChangeMessage::AutoChangeTick => self.auto_change_tick(),
             AutoChangeMessage::GetSupportedImagesSuccess(paths) => self.get_supported_images_success(paths),
             AutoChangeMessage::GetSupportedImagesFailed(error) => self.get_supported_images_failed(error),

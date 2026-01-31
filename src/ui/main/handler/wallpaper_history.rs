@@ -28,6 +28,16 @@ impl App {
             self.wallpaper_history.len()
         );
 
+        // 如果开启了定时切换壁纸,那么重新计算下次切换时间
+        if self.auto_change_state.auto_change_enabled {
+            if let Some(minutes) = self.config.wallpaper.auto_change_interval.get_minutes() {
+                if minutes > 0 {
+                    self.auto_change_state.next_execute_time =
+                        Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
+                }
+            }
+        }
+
         // 更新托盘菜单项的启用状态
         self.tray_manager
             .update_switch_previous_item(self.wallpaper_history.len());
@@ -43,6 +53,16 @@ impl App {
                 removed,
                 self.wallpaper_history.len()
             );
+        }
+
+        // 如果开启了定时切换壁纸,那么重新计算下次切换时间
+        if self.auto_change_state.auto_change_enabled {
+            if let Some(minutes) = self.config.wallpaper.auto_change_interval.get_minutes() {
+                if minutes > 0 {
+                    self.auto_change_state.next_execute_time =
+                        Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
+                }
+            }
         }
 
         // 更新托盘菜单项的启用状态

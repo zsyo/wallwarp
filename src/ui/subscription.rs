@@ -1,7 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use super::{App, AppMessage};
-use crate::ui::auto_change::AutoChangeMessage;
 use crate::ui::download::DownloadMessage;
 use crate::ui::main::MainMessage;
 use iced::{Event, Subscription, event, window};
@@ -16,11 +15,13 @@ impl App {
     pub fn subscription(&self) -> Subscription<AppMessage> {
         // 定时更新壁纸任务
         let auto_change_background = if self.auto_change_state.auto_change_enabled {
-            let minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
-            // Iced 的这个定时器非常智能：
-            // 如果 minutes 变了，生成的 Subscription ID 就会变，旧的定时器会被自动替换
-            iced::time::every(Duration::from_secs(minutes as u64 * 60))
-                .map(|_| AutoChangeMessage::AutoChangeTick.into())
+            match self.auto_change_state.next_execute_time {
+                Some(dt) => {
+                    let ts = dt.timestamp();
+                    Subscription::run_with(ts, |id| Self::create_timer_stream(*id))
+                }
+                None => Subscription::none(),
+            }
         } else {
             Subscription::none()
         };
