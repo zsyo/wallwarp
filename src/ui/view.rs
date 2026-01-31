@@ -113,12 +113,16 @@ impl App {
         self.main_state.notification_message = message;
         self.main_state.notification_type = notification_type;
         self.main_state.show_notification = true;
+        // 递增通知版本号，确保只有最新版本的通知能被隐藏
+        self.main_state.notification_version += 1;
+        let current_version = self.main_state.notification_version;
 
         Task::perform(
-            async {
+            async move {
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                current_version
             },
-            |_| MainMessage::HideNotification.into(),
+            |version| MainMessage::HideNotificationWithVersion(version).into(),
         )
     }
 }

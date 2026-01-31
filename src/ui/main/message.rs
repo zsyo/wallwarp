@@ -40,6 +40,8 @@ pub enum MainMessage {
     ShowNotification(String, NotificationType),
     /// 隐藏通知（用于定时隐藏）
     HideNotification,
+    /// 隐藏通知（带版本号，用于防止旧版本的隐藏任务关闭新显示的通知）
+    HideNotificationWithVersion(u64),
     /// 托盘切换上一张壁纸事件
     TraySwitchPreviousWallpaper,
     /// 托盘切换下一张壁纸事件
@@ -93,6 +95,7 @@ impl App {
                 self.show_notification(message, notification_type)
             }
             MainMessage::HideNotification => self.hide_notification(),
+            MainMessage::HideNotificationWithVersion(version) => self.hide_notification_with_version(version),
             MainMessage::TraySwitchPreviousWallpaper => self.tray_switch_previous_wallpaper(),
             MainMessage::TraySwitchNextWallpaper => self.tray_switch_next_wallpaper(),
             MainMessage::AddToWallpaperHistory(path) => self.add_to_wallpaper_history(path),

@@ -22,6 +22,7 @@ pub struct MainState {
     pub show_notification: bool,
     pub notification_message: String,
     pub notification_type: NotificationType,
+    pub notification_version: u64,  // 通知版本号，用于防止旧版本的隐藏任务关闭新显示的通知
 
     // 其他
     pub initial_loaded: bool,
@@ -41,6 +42,7 @@ impl Default for MainState {
             show_notification: false,
             notification_message: String::new(),
             notification_type: NotificationType::Success,
+            notification_version: 0,
             initial_loaded: false,
         }
     }
