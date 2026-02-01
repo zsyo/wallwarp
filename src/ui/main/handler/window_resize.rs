@@ -2,7 +2,7 @@
 
 use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage};
-use iced::Task;
+use iced::{Task, window};
 
 impl App {
     pub(in crate::ui::main) fn window_resized(&mut self, width: u32, height: u32) -> Task<AppMessage> {
@@ -13,11 +13,31 @@ impl App {
         self.main_state.is_visible = width > 0 && height > 0;
         // 暂存窗口大小，等待防抖处理
         self.main_state.pending_window_size = Some((width, height));
+
+        // 窗口大小发生变化,查询当前窗口模式
+        // 如果是从最大化还原成默认窗口,那么需要将自定义标题最大化/还原按钮重置状态,并启用边框调整大小
+        let restore_border_resize = window::oldest().and_then(move |id| {
+            window::is_maximized(id).map(move |is_maximized| {
+                if !is_maximized {
+                    MainMessage::RestoreBorderResize.into()
+                } else {
+                    AppMessage::None
+                }
+            })
+        });
+
         // 在收到调整大小事件时，直接开启一个延迟任务
-        self.main_state.debounce_timer = std::time::Instant::now();
         // 这个 Task 会在 300ms 后发出一条"执行保存"的消息
-        return Task::perform(tokio::time::sleep(std::time::Duration::from_millis(300)), |_| {
+        self.main_state.debounce_timer = std::time::Instant::now();
+        let delay_task = Task::perform(tokio::time::sleep(std::time::Duration::from_millis(300)), |_| {
             MainMessage::ExecutePendingSave.into()
         });
+
+        Task::batch(vec![restore_border_resize, delay_task])
+    }
+
+    pub(in crate::ui::main) fn restore_border_resize(&mut self) -> Task<AppMessage> {
+        self.main_state.is_maximized = false;
+        window::oldest().and_then(move |id| window::maximize(id, false).map(|_: ()| AppMessage::None))
     }
 }

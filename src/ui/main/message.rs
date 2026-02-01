@@ -62,6 +62,8 @@ pub enum MainMessage {
     TitleBarMaximize,
     /// 自定义标题栏关闭窗口按钮事件
     TitleBarClose,
+    /// 从最大化还原窗口后恢复边框调整大小状态
+    RestoreBorderResize,
     /// 调整窗口大小（包含所有方向）
     ResizeWindow(iced::window::Direction),
 }
@@ -108,6 +110,7 @@ impl App {
             MainMessage::TitleBarMinimize => self.title_bar_minimize(),
             MainMessage::TitleBarMaximize => self.title_bar_maximize(),
             MainMessage::TitleBarClose => self.window_close_requested(),
+            MainMessage::RestoreBorderResize => self.restore_border_resize(),
             MainMessage::ResizeWindow(direction) => self.drag_resize_window(direction),
         }
     }

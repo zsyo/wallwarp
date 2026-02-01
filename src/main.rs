@@ -3,7 +3,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use iced::{Size, Task, font, window};
-use tracing::info;
+use tracing::{error, info};
 use wallwarp::i18n::I18n;
 use wallwarp::services::async_task::async_cleanup_cache;
 use wallwarp::ui::main::MainMessage;
@@ -83,7 +83,7 @@ fn main() -> iced::Result {
                             info!("[启动] 缓存清理任务完成");
                         }
                         Err(e) => {
-                            tracing::error!("[启动] 缓存清理任务失败: {}", e);
+                            error!("[启动] 缓存清理任务失败: {}", e);
                         }
                     }
                     AppMessage::None // 返回一个空消息
