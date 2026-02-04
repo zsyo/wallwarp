@@ -54,32 +54,17 @@ pub fn init_logger(enable_logging: bool) -> Option<tracing_appender::non_blockin
     let filter = env_filter_extra(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")));
 
     let guard = if enable_logging {
-        // 获取当前工作目录
-        let current_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-        let logs_dir = current_dir.join("logs");
-
-        // 确保 Logs 目录存在
-        std::fs::create_dir_all(&logs_dir).unwrap_or_else(|e| {
-            eprintln!("[Logger] 无法创建日志目录: {}", e);
-        });
+        let logs_dir = std::env::current_dir().unwrap_or_default().join("logs");
+        std::fs::create_dir_all(&logs_dir).ok();
+        let latest_log_path = logs_dir.join("latest.log");
 
         // 日志文件轮转：如果旧的 latest.log 存在，重命名为时间戳命名的日志文件
-        let latest_log_path = logs_dir.join("latest.log");
         if latest_log_path.exists() {
-            let now = chrono::Local::now();
-            let timestamp = format!(
-                "{:04}-{:02}-{:02}_{:02}_{:02}_{:02}",
-                now.year(),
-                now.month(),
-                now.day(),
-                now.hour(),
-                now.minute(),
-                now.second()
-            );
-            let archived_log_path = logs_dir.join(format!("{}.log", timestamp));
+            let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+            let archived_path = logs_dir.join(format!("{}.log", timestamp));
 
             // 尝试重命名旧的日志文件
-            if let Err(e) = std::fs::rename(&latest_log_path, &archived_log_path) {
+            if let Err(e) = std::fs::rename(&latest_log_path, &archived_path) {
                 eprintln!("[Logger] 重命名旧日志文件失败: {}", e);
             }
         }

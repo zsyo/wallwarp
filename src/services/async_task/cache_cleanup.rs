@@ -207,12 +207,12 @@ async fn cleanup_download_files(dir: &Path) -> Result<usize, Box<dyn Error + Sen
 /// - path: 文件路径
 ///
 /// # 返回
-/// 返回文件创建时间（或修改时间）距今的秒数
+/// 返回文件修改时间（或创建时间）距今的秒数
 fn get_file_age_seconds(path: &Path) -> Result<u64, Box<dyn Error>> {
     let metadata = fs::metadata(path)?;
 
-    // 优先使用创建时间（Windows 系统），如果创建时间不可用则使用修改时间
-    let file_time = metadata.created().unwrap_or_else(|_| metadata.modified().unwrap());
+    // 优先使用修改时间（Windows 系统），如果修改时间不可用则使用创建时间
+    let file_time = metadata.modified().unwrap_or_else(|_| metadata.created().unwrap());
 
     let now = SystemTime::now();
     let duration = now.duration_since(file_time)?;
@@ -241,7 +241,10 @@ async fn get_current_wallpaper() -> Result<String, Box<dyn Error + Send + Sync>>
 /// # 注意事项
 /// - 不会删除 latest.log（当前正在使用的日志文件）
 /// - 只删除 .log 后缀的文件
-async fn cleanup_logs_directory(dir: &Path, max_age_days: u64) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
+async fn cleanup_logs_directory(
+    dir: &Path,
+    max_age_days: u64,
+) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
     let mut deleted_count = 0;
     let max_age_seconds = max_age_days * 24 * 60 * 60;
 
