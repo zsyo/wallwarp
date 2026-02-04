@@ -56,7 +56,10 @@ impl I18n {
         } else if available_langs.contains(&DEFAULT_LANG_CODE.to_string()) {
             DEFAULT_LANG_CODE.to_string()
         } else {
-            available_langs.first().cloned().unwrap_or_else(|| DEFAULT_LANG_CODE.to_string())
+            available_langs
+                .first()
+                .cloned()
+                .unwrap_or_else(|| DEFAULT_LANG_CODE.to_string())
         };
 
         Self {
@@ -66,7 +69,12 @@ impl I18n {
         }
     }
 
-    fn add_bundle(bundles: &mut HashMap<String, FluentBundle<FluentResource>>, langs: &mut Vec<String>, code: &str, content: &str) {
+    fn add_bundle(
+        bundles: &mut HashMap<String, FluentBundle<FluentResource>>,
+        langs: &mut Vec<String>,
+        code: &str,
+        content: &str,
+    ) {
         if let Ok(res) = FluentResource::try_new(content.to_string()) {
             let lang_id: LanguageIdentifier = code.parse().unwrap_or_default();
             let mut bundle = FluentBundle::new(vec![lang_id]);
@@ -103,7 +111,13 @@ impl I18n {
         self.value_or_attr(bundle, msg, id_name, attr_name)
     }
 
-    fn value_or_attr(&self, bundle: &FluentBundle<FluentResource>, msg: fluent_bundle::FluentMessage, id_name: &str, attr_name: Option<&str>) -> String {
+    fn value_or_attr(
+        &self,
+        bundle: &FluentBundle<FluentResource>,
+        msg: fluent_bundle::FluentMessage,
+        id_name: &str,
+        attr_name: Option<&str>,
+    ) -> String {
         let mut errors = vec![];
 
         let pattern = if let Some(name) = attr_name {

@@ -9,6 +9,7 @@ impl App {
         let old_lang = self.config.global.language.clone();
         info!("[设置] [语言] 修改: {} -> {}", old_lang, lang);
         self.i18n.set_language(lang.clone());
+        self.tray_manager.update_i18n(&self.i18n);
         // 同时更新配置
         self.config.set_language(lang);
         Task::none()

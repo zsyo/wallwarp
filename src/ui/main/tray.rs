@@ -5,49 +5,73 @@ use crate::utils::assets;
 use std::collections::HashMap;
 use tray_icon::{
     Icon, TrayIcon, TrayIconBuilder,
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, PredefinedMenuItem},
 };
 
 pub struct TrayManager {
-    _tray_icon: TrayIcon,
+    tray_icon: TrayIcon,
+    kv: HashMap<String, String>,
     items: HashMap<String, MenuItem>,
 }
 
 impl TrayManager {
     pub fn new(i18n: &i18n::I18n) -> Self {
+        let mut kv = HashMap::new();
         let mut items = HashMap::new();
 
-        let tray_menu = Menu::new();
-        let show_item = MenuItem::with_id("tray_show", i18n.t("menu.tray-show"), true, None);
-        let switch_previous_id = "tray_switch_previous".to_string();
-        let switch_previous_item =
-            MenuItem::with_id(&switch_previous_id, i18n.t("menu.tray-switch-previous"), false, None);
-        items.insert(switch_previous_id, switch_previous_item.clone());
-        let switch_next_item = MenuItem::with_id("tray_switch_next", i18n.t("menu.tray-switch-next"), true, None);
-        let save_current_id = "tray_save_current".to_string();
-        let save_current_item = MenuItem::with_id(&save_current_id, i18n.t("menu.tray-save-current"), false, None);
-        items.insert(save_current_id, save_current_item.clone());
-        let show_settings_item = MenuItem::with_id("tray_settings", i18n.t("menu.tray-settings"), true, None);
-        let quit_item = MenuItem::with_id("tray_quit", i18n.t("menu.tray-quit"), true, None);
+        let (key, val) = ("tray_show", "menu.tray-show");
+        let show_item = MenuItem::with_id(key, i18n.t(val), true, None);
+        kv.insert(key.to_string(), val.to_string());
+        items.insert(key.to_string(), show_item.clone());
 
-        tray_menu.append(&show_item).unwrap();
-        tray_menu.append(&switch_previous_item).unwrap();
-        tray_menu.append(&switch_next_item).unwrap();
-        tray_menu.append(&save_current_item).unwrap();
-        tray_menu.append(&show_settings_item).unwrap();
-        tray_menu.append(&quit_item).unwrap();
+        let (key, val) = ("tray_switch_previous", "menu.tray-switch-previous");
+        let switch_previous_item = MenuItem::with_id(key, i18n.t(val), false, None);
+        kv.insert(key.to_string(), val.to_string());
+        items.insert(key.to_string(), switch_previous_item.clone());
+
+        let (key, val) = ("tray_switch_next", "menu.tray-switch-next");
+        let switch_next_item = MenuItem::with_id(key, i18n.t(&val), true, None);
+        kv.insert(key.to_string(), val.to_string());
+        items.insert(key.to_string(), switch_next_item.clone());
+
+        let (key, val) = ("tray_save_current", "menu.tray-save-current");
+        let save_current_item = MenuItem::with_id(key, i18n.t(&val), true, None);
+        kv.insert(key.to_string(), val.to_string());
+        items.insert(key.to_string(), save_current_item.clone());
+
+        let (key, val) = ("tray_settings", "menu.tray-settings");
+        let show_settings_item = MenuItem::with_id(key, i18n.t(val), true, None);
+        kv.insert(key.to_string(), val.to_string());
+        items.insert(key.to_string(), show_settings_item.clone());
+
+        let (key, val) = ("tray_quit", "menu.tray-quit");
+        let quit_item = MenuItem::with_id(key, i18n.t(&val), true, None);
+        kv.insert(key.to_string(), val.to_string());
+        items.insert(key.to_string(), quit_item.clone());
+
+        let tray_menu = Menu::with_items(&[
+            &show_item,
+            &PredefinedMenuItem::separator(),
+            &switch_previous_item,
+            &switch_next_item,
+            &save_current_item,
+            &PredefinedMenuItem::separator(),
+            &show_settings_item,
+            &quit_item,
+        ])
+        .unwrap();
 
         let (rgba, width, height) = assets::get_logo(32);
         let icon = Icon::from_rgba(rgba, width, height).expect("生成 Tray 图标失败");
 
-        let _tray_icon = TrayIconBuilder::new()
+        let tray_icon = TrayIconBuilder::new()
             .with_menu(Box::new(tray_menu))
             .with_tooltip(i18n.t("app-title"))
             .with_icon(icon) // 需要一个自定义图标加载函数
             .build()
             .unwrap();
 
-        Self { _tray_icon, items }
+        Self { tray_icon, kv, items }
     }
 
     pub fn update_switch_previous_item(&mut self, history_count: usize) {
@@ -59,5 +83,17 @@ impl TrayManager {
 
     pub fn update_save_current_item(&mut self, can_save: bool) {
         self.items.get_mut("tray_save_current").unwrap().set_enabled(can_save);
+    }
+
+    pub fn update_i18n(&mut self, i18n: &i18n::I18n) {
+        for (id, lang_key) in self.kv.iter() {
+            if let Some(item) = self.items.get_mut(id) {
+                item.set_text(i18n.t(lang_key));
+            }
+        }
+
+        self.tray_icon
+            .set_tooltip(Some(i18n.t("app-title")))
+            .unwrap_or_default();
     }
 }

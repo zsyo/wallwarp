@@ -1,6 +1,6 @@
 [package]
 name = "wallwarp"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["zsyo <zephyr@aico.top>"]
 repository = "https://github.com/zsyo/wallwarp"
 edition = "2024"

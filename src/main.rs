@@ -33,7 +33,7 @@ fn main() -> iced::Result {
     }
 
     let i18n = I18n::new();
-    let cfg = config::Config::new(&i18n.current_lang);
+    let cfg = config::Config::new(&i18n.current_lang, &i18n.available_langs);
     let _log_guard = logger::init_logger(cfg.global.enable_logging);
 
     let (rgba, width, height) = assets::get_logo(LOGO_SIZE);

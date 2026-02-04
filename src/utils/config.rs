@@ -449,15 +449,16 @@ impl std::fmt::Display for CloseAction {
 }
 
 impl Config {
-    pub fn new(lang: &str) -> Self {
+    pub fn new(lang: &str, available_langs: &Vec<String>) -> Self {
         let config_path = Path::new(CONFIG_FILE);
 
         if let Ok(content) = fs::read_to_string(config_path) {
             match toml::from_str::<Config>(&content) {
                 Ok(mut local_config) => {
                     local_config.fix_config();
-                    // 设置语言（优先使用传入的语言）
-                    local_config.global.language = lang.to_string();
+                    if !available_langs.contains(&local_config.global.language) {
+                        local_config.global.language = lang.to_string();
+                    }
                     local_config.save_to_file();
                     return local_config;
                 }

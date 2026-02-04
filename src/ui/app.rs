@@ -40,7 +40,7 @@ impl Default for App {
 impl App {
     pub fn new() -> Self {
         let i18n = I18n::new();
-        let config = Config::new(&i18n.current_lang);
+        let config = Config::new(&i18n.current_lang, &i18n.available_langs);
         Self::new_with_config(i18n, config)
     }
 
