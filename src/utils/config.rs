@@ -37,7 +37,7 @@ pub struct GlobalConfig {
     pub close_action: CloseAction,
     #[serde(default)]
     pub proxy: String,
-    #[serde(default)]
+    #[serde(default = "default_proxy_enabled")]
     pub proxy_enabled: bool,
 }
 
@@ -56,6 +56,10 @@ impl Default for GlobalConfig {
 
 fn default_language() -> String {
     "zh-cn".to_string()
+}
+
+fn default_proxy_enabled() -> bool {
+    true
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
