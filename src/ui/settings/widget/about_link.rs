@@ -2,8 +2,8 @@
 
 use crate::ui::AppMessage;
 use crate::ui::settings::SettingsMessage;
+use crate::ui::style::ROW_SPACING;
 use crate::ui::style::ThemeColors;
-use crate::ui::style::{ABOUT_ROW_HEIGHT, ROW_SPACING};
 use iced::widget::{button, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -28,7 +28,6 @@ pub fn create_about_link_row<'a>(
             })
             .on_press(SettingsMessage::OpenUrl(url.to_string()).into()),
     ]
-    .height(Length::Fixed(ABOUT_ROW_HEIGHT))
     .width(Length::Fill)
     .align_y(Alignment::Center)
     .spacing(ROW_SPACING)
