@@ -82,6 +82,9 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
             super::create_setting_row(
                 app.i18n.t("settings.proxy"),
                 row![
+                    toggler(app.settings_state.proxy_enabled)
+                        .on_toggle(|state| SettingsMessage::ProxyToggled(state).into()),
+                    container(Space::new()).width(Length::Fixed(ROW_SPACING)),
                     super::create_proxy_protocol_picker(app),
                     container(Space::new()).width(Length::Fixed(ROW_SPACING)),
                     text_input(
@@ -91,47 +94,146 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                     .width(Length::FillPortion(2))
                     .align_x(Alignment::Center)
                     .padding(INPUT_PADDING)
-                    .on_input(|s| SettingsMessage::ProxyAddressChanged(s).into())
+                    .on_input(if app.settings_state.proxy_enabled {
+                        |s| SettingsMessage::ProxyAddressChanged(s).into()
+                    } else {
+                        |_s| SettingsMessage::ProxyToggled(false).into()
+                    })
                     .style(move |_theme: &iced::Theme, _status| text_input::Style {
-                        background: iced::Background::Color(theme_colors.text_input_background),
+                        background: iced::Background::Color(if app.settings_state.proxy_enabled {
+                            theme_colors.text_input_background
+                        } else {
+                            Color {
+                                r: theme_colors.text_input_background.r,
+                                g: theme_colors.text_input_background.g,
+                                b: theme_colors.text_input_background.b,
+                                a: 0.3,
+                            }
+                        }),
                         border: Border {
                             color: Color::TRANSPARENT,
                             width: 0.0,
                             radius: Radius::from(4.0),
                         },
-                        icon: theme_colors.light_text_sub,
-                        placeholder: theme_colors.light_text_sub,
-                        value: theme_colors.light_text,
+                        icon: if app.settings_state.proxy_enabled {
+                            theme_colors.light_text_sub
+                        } else {
+                            Color {
+                                r: theme_colors.light_text_sub.r,
+                                g: theme_colors.light_text_sub.g,
+                                b: theme_colors.light_text_sub.b,
+                                a: 0.3,
+                            }
+                        },
+                        placeholder: if app.settings_state.proxy_enabled {
+                            theme_colors.light_text_sub
+                        } else {
+                            Color {
+                                r: theme_colors.light_text_sub.r,
+                                g: theme_colors.light_text_sub.g,
+                                b: theme_colors.light_text_sub.b,
+                                a: 0.3,
+                            }
+                        },
+                        value: if app.settings_state.proxy_enabled {
+                            theme_colors.light_text
+                        } else {
+                            Color {
+                                r: theme_colors.light_text.r,
+                                g: theme_colors.light_text.g,
+                                b: theme_colors.light_text.b,
+                                a: 0.3,
+                            }
+                        },
                         selection: theme_colors.text_input_selection_color,
                     }),
                     container(Space::new()).width(Length::Fixed(ROW_SPACING)),
-                    container(
-                        iced_aw::NumberInput::new(&app.settings_state.proxy_port, 1..=65535, |n| {
-                            SettingsMessage::ProxyPortChanged(n).into()
-                        })
-                        .width(Length::Fill)
-                        .align_x(Alignment::Start)
-                        .padding(INPUT_PADDING)
-                        .input_style(move |_theme: &iced::Theme, _status| text_input::Style {
-                            background: iced::Background::Color(theme_colors.text_input_background),
-                            border: Border {
-                                color: Color::TRANSPARENT,
-                                width: 0.0,
-                                radius: Radius::from(4.0),
-                            },
-                            icon: theme_colors.light_text_sub,
-                            placeholder: theme_colors.light_text_sub,
-                            value: theme_colors.light_text,
-                            selection: theme_colors.text_input_selection_color,
-                        })
-                        .style(move |_theme: &iced::Theme, _status| {
-                            iced_aw::number_input::Style {
-                                button_background: Some(iced::Background::Color(theme_colors.text_input_background)),
-                                icon_color: theme_colors.light_text_sub,
-                            }
-                        })
-                    )
-                    .width(Length::Fixed(PORT_INPUT_WIDTH)),
+                    {
+                        let proxy_enabled = app.settings_state.proxy_enabled;
+                        container(
+                            iced_aw::NumberInput::new(&app.settings_state.proxy_port, 1..=65535, move |n| {
+                                if proxy_enabled {
+                                    SettingsMessage::ProxyPortChanged(n).into()
+                                } else {
+                                    SettingsMessage::ProxyToggled(false).into()
+                                }
+                            })
+                            .width(Length::Fill)
+                            .align_x(Alignment::Start)
+                            .padding(INPUT_PADDING)
+                            .input_style(move |_theme: &iced::Theme, _status| text_input::Style {
+                                background: iced::Background::Color(if app.settings_state.proxy_enabled {
+                                    theme_colors.text_input_background
+                                } else {
+                                    Color {
+                                        r: theme_colors.text_input_background.r,
+                                        g: theme_colors.text_input_background.g,
+                                        b: theme_colors.text_input_background.b,
+                                        a: 0.3,
+                                    }
+                                }),
+                                border: Border {
+                                    color: Color::TRANSPARENT,
+                                    width: 0.0,
+                                    radius: Radius::from(4.0),
+                                },
+                                icon: if app.settings_state.proxy_enabled {
+                                    theme_colors.light_text_sub
+                                } else {
+                                    Color {
+                                        r: theme_colors.light_text_sub.r,
+                                        g: theme_colors.light_text_sub.g,
+                                        b: theme_colors.light_text_sub.b,
+                                        a: 0.3,
+                                    }
+                                },
+                                placeholder: if app.settings_state.proxy_enabled {
+                                    theme_colors.light_text_sub
+                                } else {
+                                    Color {
+                                        r: theme_colors.light_text_sub.r,
+                                        g: theme_colors.light_text_sub.g,
+                                        b: theme_colors.light_text_sub.b,
+                                        a: 0.3,
+                                    }
+                                },
+                                value: if app.settings_state.proxy_enabled {
+                                    theme_colors.light_text
+                                } else {
+                                    Color {
+                                        r: theme_colors.light_text.r,
+                                        g: theme_colors.light_text.g,
+                                        b: theme_colors.light_text.b,
+                                        a: 0.3,
+                                    }
+                                },
+                                selection: theme_colors.text_input_selection_color,
+                            })
+                            .style(move |_theme: &iced::Theme, _status| iced_aw::number_input::Style {
+                                button_background: Some(iced::Background::Color(if app.settings_state.proxy_enabled {
+                                    theme_colors.text_input_background
+                                } else {
+                                    Color {
+                                        r: theme_colors.text_input_background.r,
+                                        g: theme_colors.text_input_background.g,
+                                        b: theme_colors.text_input_background.b,
+                                        a: 0.3,
+                                    }
+                                })),
+                                icon_color: if app.settings_state.proxy_enabled {
+                                    theme_colors.light_text_sub
+                                } else {
+                                    Color {
+                                        r: theme_colors.light_text_sub.r,
+                                        g: theme_colors.light_text_sub.g,
+                                        b: theme_colors.light_text_sub.b,
+                                        a: 0.3,
+                                    }
+                                },
+                            }),
+                        )
+                        .width(Length::Fixed(PORT_INPUT_WIDTH))
+                    },
                     container(Space::new()).width(Length::Fixed(ROW_SPACING)),
                     common::create_colored_button(
                         app.i18n.t("settings.proxy-save"),
@@ -140,6 +242,7 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                     )
                 ]
                 .width(Length::FillPortion(2))
+                .align_y(Alignment::Center)
                 .spacing(0),
                 &app.theme_config,
             ),

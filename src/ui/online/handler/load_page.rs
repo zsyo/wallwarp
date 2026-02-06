@@ -28,10 +28,10 @@ impl App {
             Some(self.config.wallhaven.api_key.clone())
         };
 
-        let proxy = if self.config.global.proxy.is_empty() {
-            None
-        } else {
+        let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
             Some(self.config.global.proxy.clone())
+        } else {
+            None
         };
 
         // 计算分辨率参数

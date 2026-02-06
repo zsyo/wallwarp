@@ -37,6 +37,8 @@ pub struct GlobalConfig {
     pub close_action: CloseAction,
     #[serde(default)]
     pub proxy: String,
+    #[serde(default)]
+    pub proxy_enabled: bool,
 }
 
 impl Default for GlobalConfig {
@@ -47,6 +49,7 @@ impl Default for GlobalConfig {
             enable_logging: false,
             close_action: CloseAction::default(),
             proxy: String::new(),
+            proxy_enabled: true,
         }
     }
 }

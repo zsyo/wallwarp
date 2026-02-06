@@ -15,10 +15,10 @@ impl App {
         file_name: String,
         file_type: String,
     ) -> Task<AppMessage> {
-        let proxy = if self.config.global.proxy.is_empty() {
-            None
-        } else {
+        let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
             Some(self.config.global.proxy.clone())
+        } else {
+            None
         };
 
         // 合并目录和文件名生成完整路径

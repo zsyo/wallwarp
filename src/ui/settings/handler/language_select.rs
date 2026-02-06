@@ -12,6 +12,8 @@ impl App {
         self.tray_manager.update_i18n(&self.i18n);
         // 同时更新配置
         self.config.set_language(lang);
+        // 自动收起语言选择器
+        self.settings_state.language_picker_expanded = false;
         Task::none()
     }
 }

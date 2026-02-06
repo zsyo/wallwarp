@@ -97,12 +97,11 @@ pub async fn async_set_random_online_wallpaper(
         Some(config.wallhaven.api_key.clone())
     };
 
-    let proxy = if config.global.proxy.is_empty() {
-        None
-    } else {
-        Some(config.global.proxy.clone())
-    };
-
+    let proxy = if config.global.proxy_enabled && !config.global.proxy.is_empty() {
+                Some(config.global.proxy.clone())
+            } else {
+                None
+            };
     // 创建请求上下文
     let context = RequestContext::new();
 

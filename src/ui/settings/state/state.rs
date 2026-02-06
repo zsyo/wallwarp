@@ -11,6 +11,7 @@ pub struct SettingsState {
     pub theme_picker_expanded: bool,
 
     // 代理设置临时状态
+    pub proxy_enabled: bool,
     pub proxy_protocol: String,
     pub proxy_address: String,
     pub proxy_port: u32,
@@ -36,6 +37,7 @@ impl Default for SettingsState {
             language_picker_expanded: false,
             proxy_protocol_picker_expanded: false,
             theme_picker_expanded: false,
+            proxy_enabled: false,
             proxy_protocol: "http".to_string(),
             proxy_address: String::new(),
             proxy_port: 1080,

@@ -42,10 +42,10 @@ impl App {
             return self.load_online_page();
         }
 
-        let proxy = if self.config.global.proxy.is_empty() {
-            None
-        } else {
+        let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
             Some(self.config.global.proxy.clone())
+        } else {
+            None
         };
 
         let cache_path = self.config.data.cache_path.clone();

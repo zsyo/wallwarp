@@ -14,10 +14,10 @@ impl App {
         let file_name = wallhaven::generate_file_name(id, file_type.split('/').last().unwrap_or("jpg"));
         let data_path = self.config.data.data_path.clone();
         let cache_path = self.config.data.cache_path.clone();
-        let proxy = if self.config.global.proxy.is_empty() {
-            None
-        } else {
+        let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
             Some(self.config.global.proxy.clone())
+        } else {
+            None
         };
         let file_type = file_type.split('/').last().unwrap_or("jpg").to_string();
 

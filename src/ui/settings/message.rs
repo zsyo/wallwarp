@@ -43,6 +43,8 @@ pub enum SettingsMessage {
     ProxyAddressChanged(String),
     /// 代理端口更改
     ProxyPortChanged(u32),
+    /// 代理开关切换
+    ProxyToggled(bool),
     /// 保存代理设置
     SaveProxy,
     /// 壁纸模式选择
@@ -99,6 +101,7 @@ impl App {
             SettingsMessage::ProxyProtocolChanged(protocol) => self.settings_proxy_protocol_changed(protocol),
             SettingsMessage::ProxyAddressChanged(address) => self.settings_proxy_address_changed(address),
             SettingsMessage::ProxyPortChanged(port) => self.settings_proxy_port_changed(port),
+            SettingsMessage::ProxyToggled(enabled) => self.settings_proxy_toggled(enabled),
             SettingsMessage::SaveProxy => self.settings_save_proxy(),
             SettingsMessage::WallpaperModeSelected(mode) => self.settings_wallpaper_mode_selected(mode),
             SettingsMessage::AutoChangeModeSelected(mode) => self.settings_auto_change_mode_selected(mode),

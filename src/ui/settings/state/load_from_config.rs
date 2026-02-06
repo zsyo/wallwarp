@@ -8,11 +8,14 @@ impl SettingsState {
     pub fn load_from_config(config: &Config) -> Self {
         // 解析代理字符串
         let (proxy_protocol, proxy_address, proxy_port) = Self::parse_proxy_string(&config.global.proxy);
+        // 直接使用配置文件中的 proxy_enabled 字段
+        let proxy_enabled = config.global.proxy_enabled;
 
         Self {
             language_picker_expanded: false,
             proxy_protocol_picker_expanded: false,
             theme_picker_expanded: false,
+            proxy_enabled,
             proxy_protocol,
             proxy_address,
             proxy_port,
