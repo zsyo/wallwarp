@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::wallhaven::{Sorting, TimeRange};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 
 /// 设置页面相关状态
@@ -25,6 +26,10 @@ pub struct SettingsState {
     pub auto_change_interval: WallpaperAutoChangeInterval,
     pub custom_interval_minutes: u32,
     pub auto_change_query: String,
+    pub auto_change_sorting: Sorting,
+    pub auto_change_time_range: TimeRange,
+    pub sorting_picker_expanded: bool,
+    pub time_range_picker_expanded: bool,
 
     // 对话框状态
     pub show_path_clear_confirmation: bool,
@@ -47,6 +52,10 @@ impl Default for SettingsState {
             auto_change_interval: WallpaperAutoChangeInterval::default(),
             custom_interval_minutes: 30,
             auto_change_query: String::new(),
+            auto_change_sorting: Sorting::DateAdded,
+            auto_change_time_range: TimeRange::Month,
+            sorting_picker_expanded: false,
+            time_range_picker_expanded: false,
             show_path_clear_confirmation: false,
             path_to_clear: String::new(),
         }

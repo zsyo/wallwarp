@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::wallhaven::{Sorting, TimeRange};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{CloseAction, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 use iced::Task;
@@ -59,6 +60,14 @@ pub enum SettingsMessage {
     AutoChangeQueryChanged(String),
     /// 保存定时切换关键词
     SaveAutoChangeQuery,
+    /// 定时切换排序方式变化
+    AutoChangeSortingChanged(Sorting),
+    /// 保存定时切换排序方式
+    SaveAutoChangeSorting,
+    /// 定时切换时间范围变化
+    AutoChangeTimeRangeChanged(TimeRange),
+    /// 保存定时切换时间范围
+    SaveAutoChangeTimeRange,
     /// 展开语言选择器
     LanguagePickerExpanded,
     /// 关闭语言选择器
@@ -71,6 +80,14 @@ pub enum SettingsMessage {
     ThemePickerExpanded,
     /// 关闭主题选择器
     ThemePickerDismiss,
+    /// 展开排序方式选择器
+    SortingPickerExpanded,
+    /// 关闭排序方式选择器
+    SortingPickerDismiss,
+    /// 展开时间范围选择器
+    TimeRangePickerExpanded,
+    /// 关闭时间范围选择器
+    TimeRangePickerDismiss,
 }
 
 impl From<SettingsMessage> for AppMessage {
@@ -113,12 +130,20 @@ impl App {
             }
             SettingsMessage::AutoChangeQueryChanged(query) => self.settings_auto_change_query_changed(query),
             SettingsMessage::SaveAutoChangeQuery => self.settings_save_auto_change_query(),
+            SettingsMessage::AutoChangeSortingChanged(sorting) => self.settings_auto_change_sorting_changed(sorting),
+            SettingsMessage::SaveAutoChangeSorting => self.settings_save_auto_change_sorting(),
+            SettingsMessage::AutoChangeTimeRangeChanged(time_range) => self.settings_auto_change_time_range_changed(time_range),
+            SettingsMessage::SaveAutoChangeTimeRange => self.settings_save_auto_change_time_range(),
             SettingsMessage::LanguagePickerExpanded => self.settings_language_picker_expanded(),
             SettingsMessage::LanguagePickerDismiss => self.settings_language_picker_dismiss(),
             SettingsMessage::ProxyProtocolPickerExpanded => self.settings_proxy_protocol_picker_expanded(),
             SettingsMessage::ProxyProtocolPickerDismiss => self.settings_proxy_protocol_picker_dismiss(),
             SettingsMessage::ThemePickerExpanded => self.settings_theme_picker_expanded(),
             SettingsMessage::ThemePickerDismiss => self.settings_theme_picker_dismiss(),
+            SettingsMessage::SortingPickerExpanded => self.settings_sorting_picker_expanded(),
+            SettingsMessage::SortingPickerDismiss => self.settings_sorting_picker_dismiss(),
+            SettingsMessage::TimeRangePickerExpanded => self.settings_time_range_picker_expanded(),
+            SettingsMessage::TimeRangePickerDismiss => self.settings_time_range_picker_dismiss(),
         }
     }
 }

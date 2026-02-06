@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::wallhaven::{Sorting, TimeRange};
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 use iced::Task;
@@ -115,10 +116,81 @@ impl App {
             if new_query.is_empty() { "(空)" } else { &new_query }
         );
         self.config.wallpaper.auto_change_query = new_query;
+
         self.config.save_to_file();
 
         // 显示保存成功通知
         let success_message = self.i18n.t("settings.save-success").to_string();
         self.show_notification(success_message, NotificationType::Success)
+    }
+
+    pub(in crate::ui::settings) fn settings_auto_change_sorting_changed(
+        &mut self,
+        sorting: Sorting,
+    ) -> Task<AppMessage> {
+        let old_sorting = self.settings_state.auto_change_sorting;
+        info!(
+            "[设置] [定时切换排序方式] 修改: {:?} -> {:?}",
+            old_sorting, sorting
+        );
+        self.settings_state.auto_change_sorting = sorting;
+
+        // 立即保存到配置文件
+        self.config.wallpaper.auto_change_sorting = sorting.to_string();
+        self.config.save_to_file();
+
+        // 选择后关闭选择器
+        self.settings_state.sorting_picker_expanded = false;
+        Task::none()
+    }
+
+    pub(in crate::ui::settings) fn settings_save_auto_change_sorting(&mut self) -> Task<AppMessage> {
+        // 此方法已不再使用，保留以避免编译错误
+        Task::none()
+    }
+
+    pub(in crate::ui::settings) fn settings_auto_change_time_range_changed(
+        &mut self,
+        time_range: TimeRange,
+    ) -> Task<AppMessage> {
+        let old_time_range = self.settings_state.auto_change_time_range;
+        info!(
+            "[设置] [定时切换时间范围] 修改: {:?} -> {:?}",
+            old_time_range, time_range
+        );
+        self.settings_state.auto_change_time_range = time_range;
+
+        // 立即保存到配置文件
+        self.config.wallpaper.auto_change_top_range = time_range.value().to_string();
+        self.config.save_to_file();
+
+        // 选择后关闭选择器
+        self.settings_state.time_range_picker_expanded = false;
+        Task::none()
+    }
+
+    pub(in crate::ui::settings) fn settings_save_auto_change_time_range(&mut self) -> Task<AppMessage> {
+        // 此方法已不再使用，保留以避免编译错误
+        Task::none()
+    }
+
+    pub(in crate::ui::settings) fn settings_sorting_picker_expanded(&mut self) -> Task<AppMessage> {
+        // 切换排序方式选择器的展开/收起状态
+        self.settings_state.sorting_picker_expanded = !self.settings_state.sorting_picker_expanded;
+        Task::none()
+    }
+    pub(in crate::ui::settings) fn settings_sorting_picker_dismiss(&mut self) -> Task<AppMessage> {
+        self.settings_state.sorting_picker_expanded = false;
+        Task::none()
+    }
+
+    pub(in crate::ui::settings) fn settings_time_range_picker_expanded(&mut self) -> Task<AppMessage> {
+        // 切换时间范围选择器的展开/收起状态
+        self.settings_state.time_range_picker_expanded = !self.settings_state.time_range_picker_expanded;
+        Task::none()
+    }
+    pub(in crate::ui::settings) fn settings_time_range_picker_dismiss(&mut self) -> Task<AppMessage> {
+        self.settings_state.time_range_picker_expanded = false;
+        Task::none()
     }
 }

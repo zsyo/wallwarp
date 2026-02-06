@@ -67,11 +67,13 @@ pub async fn async_set_random_online_wallpaper(
 
     // 解析配置参数
     let categories = wallhaven::parse_category_bitmask(&config.wallhaven.category);
-    // let sorting = wallhaven::parse_sorting(&config.wallhaven.sorting);
-    let sorting = crate::services::wallhaven::Sorting::Random; // 将排序方式固定为随机
     let purities = wallhaven::parse_purity_bitmask(&config.wallhaven.purity);
     let color = wallhaven::parse_color(&config.wallhaven.color);
-    let time_range = wallhaven::parse_time_range(&config.wallhaven.top_range);
+    // 使用配置文件中的排序方式和时间范围（从 config.wallpaper 读取）
+    let sorting =
+        wallhaven::Sorting::from_str(&config.wallpaper.auto_change_sorting).unwrap_or(wallhaven::Sorting::Random);
+    let time_range =
+        wallhaven::TimeRange::from_str(&config.wallpaper.auto_change_top_range).unwrap_or(wallhaven::TimeRange::Month);
 
     let atleast = if config.wallhaven.atleast_resolution.is_empty() {
         None
@@ -98,10 +100,10 @@ pub async fn async_set_random_online_wallpaper(
     };
 
     let proxy = if config.global.proxy_enabled && !config.global.proxy.is_empty() {
-                Some(config.global.proxy.clone())
-            } else {
-                None
-            };
+        Some(config.global.proxy.clone())
+    } else {
+        None
+    };
     // 创建请求上下文
     let context = RequestContext::new();
 

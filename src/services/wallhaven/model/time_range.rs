@@ -48,6 +48,19 @@ impl TimeRange {
             TimeRange::Year => "online-wallpapers.time-last-year",
         }
     }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "1d" => Some(TimeRange::Day),
+            "3d" => Some(TimeRange::ThreeDays),
+            "1w" => Some(TimeRange::Week),
+            "1M" => Some(TimeRange::Month),
+            "3M" => Some(TimeRange::ThreeMonths),
+            "6M" => Some(TimeRange::SixMonths),
+            "1y" => Some(TimeRange::Year),
+            _ => Some(TimeRange::Month),
+        }
+    }
 }
 
 impl std::fmt::Display for TimeRange {

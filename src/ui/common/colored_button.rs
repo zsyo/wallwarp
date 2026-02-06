@@ -16,13 +16,15 @@ where
             .align_y(Alignment::Center),
     )
     .on_press(message)
-    .style(move |_theme: &iced::Theme, _status| {
-        let base = button::text(_theme, _status);
-        button::Style {
-            background: Some(iced::Background::Color(color)),
-            text_color: iced::Color::WHITE,
-            ..base
-        }
+    .style(move |theme, status| button::Style {
+        background: Some(iced::Background::Color(color)),
+        text_color: iced::Color::WHITE,
+        border: iced::Border {
+            color: iced::Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(4.0),
+        },
+        ..iced::widget::button::primary(theme, status)
     })
 }
 

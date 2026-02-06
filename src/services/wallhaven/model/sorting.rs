@@ -51,6 +51,19 @@ impl Sorting {
             Sorting::Hot => "online-wallpapers.sorting-hot",
         }
     }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "date_added" => Some(Sorting::DateAdded),
+            "relevance" => Some(Sorting::Relevance),
+            "random" => Some(Sorting::Random),
+            "views" => Some(Sorting::Views),
+            "favorites" => Some(Sorting::Favorites),
+            "toplist" => Some(Sorting::TopList),
+            "hot" => Some(Sorting::Hot),
+            _ => Some(Sorting::DateAdded),
+        }
+    }
 }
 
 impl std::fmt::Display for Sorting {

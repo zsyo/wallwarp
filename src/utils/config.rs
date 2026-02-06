@@ -173,6 +173,14 @@ fn default_resolution_mode() -> String {
     "all".to_string()
 }
 
+fn default_auto_change_sorting() -> String {
+    "random".to_string()
+}
+
+fn default_auto_change_top_range() -> String {
+    "1M".to_string()
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WallpaperConfig {
     #[serde(default)]
@@ -183,6 +191,10 @@ pub struct WallpaperConfig {
     pub auto_change_interval: WallpaperAutoChangeInterval,
     #[serde(default)]
     pub auto_change_query: String,
+    #[serde(default = "default_auto_change_sorting")]
+    pub auto_change_sorting: String,
+    #[serde(default = "default_auto_change_top_range")]
+    pub auto_change_top_range: String,
 }
 
 impl Default for WallpaperConfig {
@@ -192,6 +204,8 @@ impl Default for WallpaperConfig {
             auto_change_mode: WallpaperAutoChangeMode::default(),
             auto_change_interval: WallpaperAutoChangeInterval::default(),
             auto_change_query: String::new(),
+            auto_change_sorting: default_auto_change_sorting(),
+            auto_change_top_range: default_auto_change_top_range(),
         }
     }
 }
