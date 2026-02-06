@@ -46,7 +46,7 @@ windows = { version = "0.62", features = [
     "Win32_UI_WindowsAndMessaging",
     "Win32_UI_Controls",
 ] }
-interprocess = { version = "2.2", features = ["tokio"] }
+interprocess = { version = "2.3", features = ["tokio"] }
 
 # i18n
 fluent-bundle = "0.16"
