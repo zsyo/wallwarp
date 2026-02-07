@@ -81,6 +81,11 @@ impl ThemeConfig {
     pub fn is_light(&self) -> bool {
         self.theme == Theme::Light
     }
+
+    /// 获取当前主题的颜色集合
+    pub fn get_theme_colors(&self) -> ThemeColors {
+        ThemeColors::from_theme(self.theme)
+    }
 }
 
 /// 主题颜色集合

@@ -19,7 +19,7 @@ pub fn create_filter_bar<'a>(
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     // 搜索框（放在最前面）
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     let search_input = text_input(&i18n.t("online-wallpapers.search-placeholder"), &state.search_text)
         .on_input(|text| OnlineMessage::SearchTextChanged(text).into())

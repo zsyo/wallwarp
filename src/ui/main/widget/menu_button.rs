@@ -2,7 +2,7 @@
 
 use crate::ui::main::MainMessage;
 use crate::ui::style::SIDEBAR_INDICATOR_WIDTH;
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use crate::ui::{ActivePage, AppMessage};
 use iced::border::{Border, Radius};
 use iced::widget::{Space, button, container, row, text};
@@ -14,7 +14,7 @@ pub fn create_menu_button<'a>(
     target_page: ActivePage,
     theme_config: &'a ThemeConfig,
 ) -> button::Button<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     let is_selected = current_page == target_page;
     let icon = match target_page {

@@ -9,7 +9,7 @@ use crate::ui::style::{
     BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, IMAGE_HEIGHT,
     IMAGE_WIDTH, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
 };
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use crate::utils::helpers;
 use iced::widget::image::Handle;
 use iced::widget::{Space, button, container, row, text, tooltip};
@@ -22,9 +22,10 @@ pub fn create_loaded_wallpaper<'a>(
     index: usize,
     theme_config: &'a ThemeConfig,
 ) -> button::Button<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
-    let image_handle = Handle::from_path(&wallpaper.thumbnail_path);
+    // 使用缓存的 image_handle，如果缓存不存在则回退到从路径创建
+    let image_handle = wallpaper.image_handle.clone().unwrap_or_else(|| Handle::from_path(&wallpaper.thumbnail_path));
     let image = iced::widget::image(image_handle)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))

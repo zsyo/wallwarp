@@ -3,7 +3,7 @@
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::download::state::{DownloadStatus, DownloadTask};
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use crate::utils::helpers;
 use iced::Element;
 use iced::widget::text;
@@ -14,7 +14,7 @@ pub fn create_download_display<'a>(
     task: &'a DownloadTask,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     let speed_text = match &task.status {
         DownloadStatus::Downloading => format!("{}/s", helpers::format_file_size(task.speed)),

@@ -4,8 +4,10 @@ use super::ActivePage;
 use crate::i18n::I18n;
 use crate::ui::main::TrayManager;
 use crate::ui::style;
+use crate::utils::assets;
 use crate::utils::config::{Config, Theme};
 use crate::utils::window_utils;
+use iced::widget::image::Handle;
 use tracing::info;
 
 pub struct App {
@@ -13,22 +15,26 @@ pub struct App {
     pub config: Config,
     pub active_page: ActivePage,
     pub tray_manager: TrayManager,
-    // 主题配置
+    /// 主题配置
     pub theme_config: crate::ui::style::ThemeConfig,
-    // 主窗口状态
+    /// 主题颜色缓存（仅在主题切换时更新）
+    pub theme_colors: crate::ui::style::ThemeColors,
+    /// 主窗口状态
     pub main_state: crate::ui::main::MainState,
-    // 本地壁纸页面状态
+    /// 本地壁纸页面状态
     pub local_state: crate::ui::local::LocalState,
-    // 在线壁纸页面状态
+    /// 在线壁纸页面状态
     pub online_state: crate::ui::online::OnlineState,
-    // 设置页面状态
+    /// 设置页面状态
     pub settings_state: crate::ui::settings::SettingsState,
-    // 下载管理页面状态
+    /// 下载管理页面状态
     pub download_state: crate::ui::download::DownloadStateFull,
-    // 定时切换壁纸状态
+    /// 定时切换壁纸状态
     pub auto_change_state: crate::ui::auto_change::AutoChangeState,
-    // 壁纸切换历史记录（最多50条）
+    /// 壁纸切换历史记录（最多50条）
     pub wallpaper_history: Vec<String>,
+    /// 图标资源
+    pub logo_handle: Handle,
 }
 
 impl Default for App {
@@ -70,6 +76,9 @@ impl App {
             }
         };
 
+        // 初始化主题颜色缓存
+        let theme_colors = style::ThemeColors::from_theme(theme_config.get_theme());
+
         // 初始化壁纸切换历史记录，获取当前壁纸路径并添加到记录中
         let mut wallpaper_history = Vec::new();
         if let Ok(current_wallpaper) = wallpaper::get() {
@@ -82,12 +91,15 @@ impl App {
             }
         }
 
+        let (img, width, height) = assets::get_logo(style::LOGO_SIZE);
+
         let mut app = Self {
             i18n,
             config: config.clone(),
             active_page: ActivePage::OnlineWallpapers,
             tray_manager,
             theme_config,
+            theme_colors,
             main_state: super::main::MainState::load_from_config(&config),
             local_state: super::local::LocalState::default(),
             online_state: super::online::OnlineState::load_from_config(&config),
@@ -95,6 +107,7 @@ impl App {
             auto_change_state: super::auto_change::AutoChangeState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
             wallpaper_history,
+            logo_handle: Handle::from_rgba(width, height, img),
         };
 
         // 初始化托盘菜单项的状态

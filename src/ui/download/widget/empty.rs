@@ -3,13 +3,13 @@
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::style::{EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE};
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::widget::{column, text};
 use iced::{Alignment, Element, Font, Length};
 
 /// 创建空状态界面
 pub fn create_empty_state<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     let icon = text("\u{F30A}")
         .font(Font::with_name("bootstrap-icons"))

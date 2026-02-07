@@ -2,7 +2,6 @@
 
 use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::ThemeColors;
 use crate::ui::style::{BUTTON_COLOR_BLUE, BUTTON_SPACING, INPUT_PADDING, TEXT_INPUT_SIZE};
 use crate::ui::{App, AppMessage};
 use iced::border::{Border, Radius};
@@ -11,7 +10,7 @@ use iced::{Alignment, Color, Element, Length};
 
 /// 创建API配置区块
 pub fn create_api_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
     super::create_config_section(
         app.i18n.t("settings.api-config"),
         vec![super::create_setting_row(

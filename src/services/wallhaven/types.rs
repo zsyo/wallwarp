@@ -76,6 +76,8 @@ pub struct OnlineWallpaper {
     pub favorites: u32,
     pub colors: Vec<String>,
     pub tags: Vec<String>,
+    /// 缓存的缩略图 Handle，避免每次渲染都重新创建
+    pub image_handle: Option<iced::widget::image::Handle>,
 }
 
 impl From<WallpaperData> for OnlineWallpaper {
@@ -99,6 +101,7 @@ impl From<WallpaperData> for OnlineWallpaper {
             favorites: data.favorites,
             colors: data.colors,
             tags: data.tags.unwrap_or_default().into_iter().map(|t| t.name).collect(),
+            image_handle: None, // Handle 将在后续加载时设置
         }
     }
 }

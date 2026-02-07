@@ -7,7 +7,6 @@ use crate::ui::common;
 use crate::ui::online::OnlineMessage;
 use crate::ui::style::*;
 use crate::utils::helpers;
-use iced::widget::image::Handle;
 use iced::widget::{Space, button, container, row, text, tooltip};
 use iced::{Alignment, Element, Length};
 
@@ -15,20 +14,19 @@ use iced::{Alignment, Element, Length};
 pub fn create_loaded_wallpaper_with_thumb<'a>(
     i18n: &'a I18n,
     wallpaper: &'a OnlineWallpaper,
-    thumb_handle: Option<Handle>,
     index: usize,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
-    // 使用缩略图创建图片
-    let image = if let Some(handle) = thumb_handle {
+    // 使用缓存的 image_handle
+    let image = if let Some(handle) = wallpaper.image_handle.clone() {
         iced::widget::image(handle)
             .width(Length::Fixed(IMAGE_WIDTH))
             .height(Length::Fixed(IMAGE_HEIGHT))
             .content_fit(iced::ContentFit::Fill)
     } else {
-        // 如果没有缩略图，使用占位符
+        // 如果没有缓存的 Handle，使用占位符
         let placeholder = text(i18n.t("online-wallpapers.loading-placeholder"))
             .size(LOADING_TEXT_SIZE)
             .style(move |_theme: &iced::Theme| text::Style {

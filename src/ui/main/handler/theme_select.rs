@@ -32,6 +32,8 @@ impl App {
                     self.theme_config.toggle();
                     let theme_name = self.theme_config.get_theme().name();
                     info!("[设置] [主题] 切换到: {}", theme_name);
+                    // 更新主题颜色缓存
+                    self.theme_colors = self.theme_config.get_theme_colors();
                 }
             }
             Theme::Light => {
@@ -40,6 +42,8 @@ impl App {
                     self.theme_config.toggle();
                     let theme_name = self.theme_config.get_theme().name();
                     info!("[设置] [主题] 切换到: {}", theme_name);
+                    // 更新主题颜色缓存
+                    self.theme_colors = self.theme_config.get_theme_colors();
                 }
             }
             Theme::Auto => {
@@ -55,6 +59,8 @@ impl App {
                     self.theme_config.toggle();
                     let theme_name = self.theme_config.get_theme().name();
                     info!("[设置] [主题] 切换到: {}", theme_name);
+                    // 更新主题颜色缓存
+                    self.theme_colors = self.theme_config.get_theme_colors();
                 }
             }
         }

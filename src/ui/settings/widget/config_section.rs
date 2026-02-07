@@ -2,7 +2,7 @@
 
 use crate::ui::common;
 use crate::ui::style::{SECTION_CONTENT_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE};
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::widget::{Space, column, container, text};
 use iced::{Alignment, Element, Length};
 
@@ -16,7 +16,7 @@ pub(super) fn create_config_section<'a, Message: 'a>(
     rows: Vec<Element<'a, Message>>,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, Message> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     let mut column_content = column!(
         text(title)

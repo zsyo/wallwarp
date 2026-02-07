@@ -9,7 +9,7 @@ use crate::ui::style::{
     BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, ERROR_ICON_SIZE, ERROR_PATH_SIZE,
     ERROR_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
 };
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use crate::utils::helpers;
 use iced::widget::{Space, button, column, container, row, text, tooltip};
 use iced::{Alignment, Color, Font, Length};
@@ -21,7 +21,7 @@ pub fn create_error_placeholder<'a>(
     index: usize,
     theme_config: &'a ThemeConfig,
 ) -> button::Button<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     let error_image = text("\u{F428}")
         .font(Font::with_name("bootstrap-icons"))

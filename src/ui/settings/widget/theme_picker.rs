@@ -2,7 +2,6 @@
 
 use crate::ui::main::MainMessage;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::ThemeColors;
 use crate::ui::style::{COLOR_SELECTED_BLUE, PICK_LIST_WIDTH};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::Theme;
@@ -13,7 +12,7 @@ use iced_aw::{DropDown, drop_down};
 
 /// 创建主题选择器
 pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
     let current_theme = app.config.global.theme.clone();
 
     // 根据当前主题获取对应的翻译文本

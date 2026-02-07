@@ -4,7 +4,7 @@ use crate::ui::style::{
     ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS,
     TOOLTIP_BORDER_WIDTH,
 };
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::border::{Border, Radius};
 use iced::widget::{button, container, text, tooltip};
 use iced::{Alignment, Color, Element, Font};
@@ -75,7 +75,7 @@ pub fn create_button_with_tooltip<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     // 使用主题的文本颜色创建 tooltip 文本
     let tooltip_text_element = text(tooltip_text).style(move |_theme: &iced::Theme| text::Style {

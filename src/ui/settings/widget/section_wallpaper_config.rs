@@ -2,7 +2,6 @@
 
 use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::ThemeColors;
 use crate::ui::style::{
     BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS,
     TOOLTIP_BORDER_WIDTH,
@@ -15,7 +14,7 @@ use iced::{Alignment, Color, Element, Length};
 
 /// 创建壁纸配置区块
 pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
     super::create_config_section(
         app.i18n.t("settings.wallpaper-config"),
         vec![

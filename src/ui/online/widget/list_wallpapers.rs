@@ -24,7 +24,7 @@ pub fn create_wallpaper_list<'a>(
                 .into()
         } else if online_state.wallpapers.is_empty() && online_state.loading_page {
             // 正在加载中
-            let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+            let theme_colors = theme_config.get_theme_colors();
             column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE).style(
                 move |_theme: &iced::Theme| text::Style {
                     color: Some(theme_colors.text),
@@ -36,7 +36,7 @@ pub fn create_wallpaper_list<'a>(
             .into()
         } else if online_state.wallpapers.is_empty() && online_state.has_loaded {
             // 已加载但无数据
-            let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+            let theme_colors = theme_config.get_theme_colors();
             column![
                 text(i18n.t("online-wallpapers.no-data"))
                     .size(EMPTY_STATE_TEXT_SIZE)

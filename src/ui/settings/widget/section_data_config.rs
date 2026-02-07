@@ -1,14 +1,13 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::ThemeColors;
 use crate::ui::{App, AppMessage};
 use crate::utils::helpers;
 use iced::Element;
 
 /// 创建数据配置区块
 pub fn create_data_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
     super::create_config_section(
         app.i18n.t("settings.data-config"),
         vec![

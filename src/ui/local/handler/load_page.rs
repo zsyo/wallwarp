@@ -33,11 +33,13 @@ impl App {
                 async_task::async_load_single_wallpaper_with_fallback(path.clone(), cache_path),
                 move |result| match result {
                     Ok(wallpaper) => LocalMessage::LoadPageSuccess(vec![(absolute_idx, wallpaper)]).into(),
-                    Err(_) => LocalMessage::LoadPageSuccess(vec![(
-                        absolute_idx,
-                        Wallpaper::new(path, "加载失败".to_string(), 0, 0, 0),
-                    )])
-                    .into(), // 创建失败状态
+                    Err(_) => {
+                        // 创建失败状态，使用原始路径作为图片源
+                        let mut failed_wallpaper = Wallpaper::new(path, "加载失败".to_string(), 0, 0, 0);
+                        // 即使失败也创建 Handle，以便在 UI 中显示占位图
+                        failed_wallpaper.image_handle = Some(iced::widget::image::Handle::from_path(&failed_wallpaper.thumbnail_path));
+                        LocalMessage::LoadPageSuccess(vec![(absolute_idx, failed_wallpaper)]).into()
+                    }
                 },
             ));
         }

@@ -2,7 +2,7 @@
 
 use crate::ui::common;
 use crate::ui::style::{TITLE_BAR_BUTTON_SPACING, TITLE_BAR_HEIGHT, TITLE_BAR_ICON_SIZE, TITLE_BAR_TITLE_SIZE};
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::border::{Border, Radius};
 use iced::widget::{button, container, mouse_area, row, text, tooltip};
 use iced::{Alignment, Color, Element, Font, Length};
@@ -32,7 +32,7 @@ pub fn create_title_bar<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     // 创建拖拽区域（标题文本区域）
     // 使用 mouse_area 捕获鼠标事件并触发拖拽

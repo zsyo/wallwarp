@@ -9,7 +9,7 @@ use iced::{Alignment, Element, Length};
 
 /// 创建加载占位符
 pub fn create_loading_placeholder<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     let loading_text = text(i18n.t("online-wallpapers.image-loading"))
         .size(LOADING_TEXT_SIZE)

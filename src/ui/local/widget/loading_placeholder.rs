@@ -3,7 +3,7 @@
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::style::{IMAGE_HEIGHT, IMAGE_WIDTH, LOADING_TEXT_SIZE};
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use crate::ui::{common, style};
 use iced::widget::{button, container, text};
 use iced::{Alignment, Length};
@@ -13,7 +13,7 @@ pub(in crate::ui::local) fn create_loading_placeholder<'a>(
     i18n: &'a I18n,
     theme_config: &'a ThemeConfig,
 ) -> button::Button<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     let loading_text =
         text(i18n.t("local-list.image-loading"))

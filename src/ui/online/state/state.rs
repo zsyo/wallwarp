@@ -11,9 +11,7 @@ use std::sync::atomic::AtomicBool;
 pub enum WallpaperLoadStatus {
     /// 加载中
     Loading,
-    /// 缩略图已加载
-    ThumbLoaded(wallhaven::OnlineWallpaper, Handle),
-    /// 已加载
+    /// 已加载（包含缓存的图片 Handle）
     Loaded(wallhaven::OnlineWallpaper),
 }
 

@@ -38,27 +38,18 @@ pub fn create_wallpaper_grid<'a>(
             for wallpaper_status in chunk {
                 let image_element = match wallpaper_status {
                     WallpaperLoadStatus::Loading => super::create_loading_placeholder(i18n, theme_config),
-                    WallpaperLoadStatus::ThumbLoaded(wallpaper, handle) => {
-                        let wallpaper_index = online_state
-                            .wallpapers
-                            .iter()
-                            .position(|w| matches!(w, WallpaperLoadStatus::ThumbLoaded(wp, _) if wp.id == wallpaper.id))
-                            .unwrap_or(0);
-                        super::create_loaded_wallpaper_with_thumb(
-                            i18n,
-                            wallpaper,
-                            Some(handle.clone()),
-                            wallpaper_index,
-                            theme_config,
-                        )
-                    }
                     WallpaperLoadStatus::Loaded(wallpaper) => {
                         let wallpaper_index = online_state
                             .wallpapers
                             .iter()
                             .position(|w| matches!(w, WallpaperLoadStatus::Loaded(wp) if wp.id == wallpaper.id))
                             .unwrap_or(0);
-                        super::create_loaded_wallpaper_with_thumb(i18n, wallpaper, None, wallpaper_index, theme_config)
+                        super::create_loaded_wallpaper_with_thumb(
+                            i18n,
+                            wallpaper,
+                            wallpaper_index,
+                            theme_config,
+                        )
                     }
                 };
 

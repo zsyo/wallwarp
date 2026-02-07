@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::async_task;
-use crate::ui::online::{OnlineMessage, ResolutionMode, WallpaperLoadStatus};
+use crate::ui::online::{OnlineMessage, ResolutionMode};
 use crate::ui::{App, AppMessage};
 use iced::Task;
 
@@ -11,14 +11,8 @@ impl App {
         self.online_state.loading_page = true;
         // 取消所有缩略图加载任务
         self.online_state.cancel_thumb_loads();
-        // 显式释放 Handle 引用
-        for status in self.online_state.wallpapers.drain(..) {
-            if let WallpaperLoadStatus::ThumbLoaded(_, handle) = status {
-                // Rust 会自动释放，但显式 drop 可以确保立即释放
-                drop(handle);
-            }
-        }
         // 清空当前数据，准备加载新数据
+        self.online_state.wallpapers.clear();
         self.online_state.wallpapers_data.clear();
         self.online_state.page_info.clear();
         self.online_state.has_loaded = false;

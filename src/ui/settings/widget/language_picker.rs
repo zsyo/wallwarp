@@ -1,7 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::ThemeColors;
 use crate::ui::style::{COLOR_SELECTED_BLUE, PICK_LIST_WIDTH};
 use crate::ui::{App, AppMessage};
 use iced::border::{Border, Radius};
@@ -11,7 +10,7 @@ use iced_aw::{DropDown, drop_down};
 
 /// 创建语言选择器
 pub fn create_language_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
     let current_lang = app.i18n.current_lang.clone();
 
     // 创建触发按钮（underlay）

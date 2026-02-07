@@ -2,7 +2,6 @@
 
 use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::ThemeColors;
 use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, PORT_INPUT_WIDTH, ROW_SPACING};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::CloseAction;
@@ -13,7 +12,7 @@ use iced::{Alignment, Color, Element, Length};
 
 /// 创建系统配置区块
 pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
     super::create_config_section(
         app.i18n.t("settings.system-config"),
         vec![

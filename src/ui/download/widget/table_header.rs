@@ -2,13 +2,13 @@
 
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::widget::{container, row, text};
 use iced::{Alignment, Element, Length};
 
 /// 创建表头
 pub fn create_table_header<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     row![
         // 文件名列

@@ -2,7 +2,6 @@
 
 use crate::ui::settings::ProxyProtocol;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::ThemeColors;
 use crate::ui::style::{COLOR_SELECTED_BLUE, PICK_LIST_WIDTH};
 use crate::ui::{App, AppMessage};
 use iced::border::{Border, Radius};
@@ -13,7 +12,7 @@ use std::str::FromStr;
 
 /// 创建代理协议选择器
 pub fn create_proxy_protocol_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
     let current_protocol = ProxyProtocol::from_str(&app.settings_state.proxy_protocol).ok();
 
     // 创建触发按钮（underlay）

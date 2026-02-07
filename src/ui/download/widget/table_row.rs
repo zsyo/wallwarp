@@ -3,7 +3,7 @@
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::download::state::DownloadTask;
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use crate::utils::helpers::format_file_size;
 use iced::widget::{container, row, text};
 use iced::{Alignment, Element, Length};
@@ -14,7 +14,7 @@ pub fn create_table_row<'a>(
     task: &'a DownloadTask,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     row![
         // 文件名列

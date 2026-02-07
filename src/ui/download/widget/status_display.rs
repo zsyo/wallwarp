@@ -6,7 +6,7 @@ use crate::ui::download::state::{DownloadStatus, DownloadTask};
 use crate::ui::style::{
     BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW,
 };
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::widget::{container, progress_bar, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -16,7 +16,7 @@ pub fn create_status_display<'a>(
     task: &'a DownloadTask,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     match &task.status {
         DownloadStatus::Downloading => {

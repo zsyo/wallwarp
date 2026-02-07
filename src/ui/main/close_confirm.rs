@@ -2,7 +2,6 @@
 
 use crate::ui::common;
 use crate::ui::main::MainMessage;
-use crate::ui::style::ThemeColors;
 use crate::ui::style::{
     BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH,
     DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING,
@@ -17,7 +16,7 @@ pub fn close_confirm_view(app: &App) -> iced::Element<'_, AppMessage> {
         return Space::new().into();
     }
 
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
 
     let dialog_content = column![
         text(app.i18n.t("close-confirmation.title"))

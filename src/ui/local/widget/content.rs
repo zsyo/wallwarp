@@ -4,8 +4,8 @@ use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::local::message::WallpaperLoadStatus;
 use crate::ui::local::state::LocalState;
+use crate::ui::style::ThemeConfig;
 use crate::ui::style::{ALL_LOADED_TEXT_SIZE, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_SPACING, IMAGE_WIDTH};
-use crate::ui::style::{ThemeColors, ThemeConfig};
 use iced::widget::{Space, column, container, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -56,7 +56,7 @@ pub fn create_content<'a>(
 
     // 如果已加载全部，显示提示文本
     if local_state.current_page * local_state.page_size >= local_state.total_count {
-        let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+        let theme_colors = theme_config.get_theme_colors();
         let all_loaded_text =
             text(i18n.t("local-list.all-loaded"))
                 .size(ALL_LOADED_TEXT_SIZE)
@@ -76,7 +76,7 @@ pub fn create_content<'a>(
 
 /// 创建空内容展示区
 pub fn create_empty_content<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) -> Element<'a, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
     column![
         text(i18n.t("local-list.no-wallpapers"))
             .size(EMPTY_STATE_TEXT_SIZE)

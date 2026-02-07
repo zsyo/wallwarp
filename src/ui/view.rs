@@ -56,26 +56,23 @@ impl App {
             NotificationType::Info => (style::NOTIFICATION_INFO_BG, style::NOTIFICATION_TEXT_COLOR),
         };
 
-        let notification_content =
-            container(
-                text(&self.main_state.notification_message)
-                    .size(14)
-                    .style(move |_theme| text::Style {
-                        color: Some(text_color),
-                    }),
-            )
-            .padding(10)
-            .width(Length::Shrink)
-            .height(Length::Shrink)
-            .style(move |_theme| container::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                border: iced::border::Border {
-                    radius: iced::border::Radius::from(8.0),
-                    width: 1.0,
-                    color: iced::Color::TRANSPARENT,
-                },
-                ..Default::default()
-            });
+        let notification_content = container(text(&self.main_state.notification_message).size(14).style(
+            move |_theme| text::Style {
+                color: Some(text_color),
+            },
+        ))
+        .padding(10)
+        .width(Length::Shrink)
+        .height(Length::Shrink)
+        .style(move |_theme| container::Style {
+            background: Some(iced::Background::Color(bg_color)),
+            border: iced::border::Border {
+                radius: iced::border::Radius::from(8.0),
+                width: 1.0,
+                color: iced::Color::TRANSPARENT,
+            },
+            ..Default::default()
+        });
 
         // 将通知放在窗口底部中央
         container(

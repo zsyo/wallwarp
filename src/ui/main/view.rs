@@ -1,11 +1,9 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::main::{MainMessage, widget};
-use crate::ui::style::ThemeColors;
-use crate::ui::style::{APP_NAME_SIZE, LOGO_DISPLAY_SIZE, LOGO_SIZE, LOGO_SPACING, SIDEBAR_WIDTH};
+use crate::ui::style::{APP_NAME_SIZE, LOGO_DISPLAY_SIZE, LOGO_SPACING, SIDEBAR_WIDTH};
 use crate::ui::{ActivePage, App, AppMessage};
 use crate::ui::{download, local, online, settings};
-use crate::utils::assets;
 use iced::widget::{Space, column, container, image, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -49,8 +47,7 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
         MainMessage::TitleBarClose.into(),
     );
 
-    let (img, width, height) = assets::get_logo(LOGO_SIZE);
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
     let sidebar = container(
         column![
             container(Space::new()).height(Length::Fixed(20.0)),
@@ -59,7 +56,7 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
                 .color(theme_colors.text)
                 .width(Length::Fill)
                 .align_x(Alignment::Center),
-            image(image::Handle::from_rgba(width, height, img))
+            image(&app.logo_handle)
                 .width(Length::Fixed(LOGO_DISPLAY_SIZE))
                 .height(Length::Fixed(LOGO_DISPLAY_SIZE)),
             container(Space::new()).height(Length::Fixed(LOGO_SPACING)),

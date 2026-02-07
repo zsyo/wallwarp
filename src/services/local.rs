@@ -24,6 +24,8 @@ pub struct Wallpaper {
     pub file_size: u64,
     pub width: u32,
     pub height: u32,
+    /// 缓存的图片 Handle，避免每次渲染都重新创建
+    pub image_handle: Option<iced::widget::image::Handle>,
 }
 
 impl Wallpaper {
@@ -35,6 +37,7 @@ impl Wallpaper {
             file_size,
             width,
             height,
+            image_handle: None,
         }
     }
 
@@ -46,6 +49,9 @@ impl Wallpaper {
         width: u32,
         height: u32,
     ) -> Self {
+        // 在创建时预先生成 Handle
+        let image_handle = Some(iced::widget::image::Handle::from_path(&thumbnail_path));
+        
         Self {
             path,
             name,
@@ -53,6 +59,7 @@ impl Wallpaper {
             file_size,
             width,
             height,
+            image_handle,
         }
     }
 }

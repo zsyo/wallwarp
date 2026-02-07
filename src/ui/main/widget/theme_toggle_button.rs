@@ -3,7 +3,6 @@
 use crate::ui::common;
 use crate::ui::main::MainMessage;
 use crate::ui::style::BUTTON_COLOR_YELLOW;
-use crate::ui::style::ThemeColors;
 use crate::ui::{App, AppMessage};
 use crate::utils::config::Theme;
 use iced::border::{Border, Radius};
@@ -12,7 +11,7 @@ use iced::{Element, Length};
 
 /// 创建主题切换按钮
 pub fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(app.theme_config.get_theme());
+    let theme_colors = app.theme_colors;
 
     let (icon_char, tooltip_text, target_theme) = if app.theme_config.is_dark() {
         ("\u{F5A1}", app.i18n.t("theme.switch-to-light"), Theme::Light)

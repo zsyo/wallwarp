@@ -1,12 +1,12 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::style::SEPARATOR_WIDTH;
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::border::{Border, Radius};
 use iced::widget::container;
 /// 创建主内容区容器样式（无边框，右侧添加分隔线）
 pub fn create_main_container_style(theme_config: &ThemeConfig) -> impl Fn(&iced::Theme) -> container::Style + '_ {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     move |_theme: &iced::Theme| container::Style {
         background: Some(iced::Background::Color(theme_colors.background)),
@@ -21,7 +21,7 @@ pub fn create_main_container_style(theme_config: &ThemeConfig) -> impl Fn(&iced:
 
 /// 创建侧边栏容器样式（无边框，根据主题设置背景色）
 pub fn create_sidebar_container_style(theme_config: &ThemeConfig) -> impl Fn(&iced::Theme) -> container::Style + '_ {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     move |_theme: &iced::Theme| container::Style {
         background: Some(iced::Background::Color(theme_colors.sidebar_bg)),

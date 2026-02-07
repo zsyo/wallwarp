@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::style::{BORDER_RADIUS, BORDER_WIDTH, COLOR_SIDEBAR_BG, shadows::CARD_SHADOW};
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::border::{Border, Radius};
 use iced::widget::container;
 
@@ -33,7 +33,7 @@ pub fn create_bordered_container_style(_theme: &iced::Theme) -> container::Style
 pub fn create_bordered_container_style_with_bg(
     theme_config: &ThemeConfig,
 ) -> impl Fn(&iced::Theme) -> container::Style + '_ {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     move |_theme: &iced::Theme| container::Style {
         background: Some(iced::Background::Color(theme_colors.sidebar_bg)),

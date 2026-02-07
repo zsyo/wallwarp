@@ -45,7 +45,7 @@ pub enum OnlineMessage {
     ModalImageDownloaded(iced::widget::image::Handle),
     /// 模态窗口图片下载失败
     ModalImageDownloadFailed(String),
-    /// 缩略图加载完成
+    /// 缩略图加载完成（内部消息，用于从异步任务传递 Handle）
     ThumbLoaded(usize, iced::widget::image::Handle),
     // 筛选条件相关消息
     /// 切换分类选择状态

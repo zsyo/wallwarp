@@ -2,13 +2,13 @@
 
 use crate::ui::AppMessage;
 use crate::ui::style::TABLE_SEPARATOR_WIDTH;
-use crate::ui::style::{ThemeColors, ThemeConfig};
+use crate::ui::style::ThemeConfig;
 use iced::widget::{Space, container};
 use iced::{Element, Length};
 
 /// 创建水平分隔线
 pub fn create_horizontal_separator(theme_config: &ThemeConfig) -> Element<'_, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     container(Space::new())
         .width(Length::Fill)
@@ -22,7 +22,7 @@ pub fn create_horizontal_separator(theme_config: &ThemeConfig) -> Element<'_, Ap
 
 /// 创建垂直分隔线
 pub fn create_vertical_separator(theme_config: &ThemeConfig) -> Element<'_, AppMessage> {
-    let theme_colors = ThemeColors::from_theme(theme_config.get_theme());
+    let theme_colors = theme_config.get_theme_colors();
 
     container(Space::new())
         .width(TABLE_SEPARATOR_WIDTH)
