@@ -17,13 +17,7 @@ impl App {
         // 窗口大小发生变化,查询当前窗口模式
         // 如果是从最大化还原成默认窗口,那么需要将自定义标题最大化/还原按钮重置状态,并启用边框调整大小
         let restore_border_resize = window::oldest().and_then(move |id| {
-            window::is_maximized(id).map(move |is_maximized| {
-                if !is_maximized {
-                    MainMessage::RestoreBorderResize.into()
-                } else {
-                    AppMessage::None
-                }
-            })
+            window::is_maximized(id).map(move |is_maximized| MainMessage::RestoreBorderResize(is_maximized).into())
         });
 
         // 在收到调整大小事件时，直接开启一个延迟任务
@@ -36,8 +30,12 @@ impl App {
         Task::batch(vec![restore_border_resize, delay_task])
     }
 
-    pub(in crate::ui::main) fn restore_border_resize(&mut self) -> Task<AppMessage> {
-        self.main_state.is_maximized = false;
-        window::oldest().and_then(move |id| window::maximize(id, false).map(|_: ()| AppMessage::None))
+    pub(in crate::ui::main) fn restore_border_resize(&mut self, is_maximized: bool) -> Task<AppMessage> {
+        if self.main_state.is_maximized != is_maximized {
+            self.main_state.is_maximized = is_maximized;
+            window::oldest().and_then(move |id| window::maximize(id, is_maximized).map(|_: ()| AppMessage::None))
+        } else {
+            Task::none()
+        }
     }
 }
