@@ -18,6 +18,8 @@ pub enum MainMessage {
     WindowFocused,
     /// 窗口最小化到托盘事件
     MinimizeToTray,
+    /// 窗口最小化到托盘最终隐藏事件
+    WindowHiddenReady(iced::window::Id),
     /// 托盘图标点击事件
     TrayIconClicked,
     /// 托盘菜单事件
@@ -84,6 +86,7 @@ impl App {
             MainMessage::WindowCloseRequested => self.window_close_requested(),
             MainMessage::WindowFocused => self.window_focused(),
             MainMessage::MinimizeToTray => self.minimize_to_tray(),
+            MainMessage::WindowHiddenReady(id) => self.window_hidden_ready(id),
             MainMessage::TrayIconClicked => self.show_window(),
             MainMessage::TrayMenuEvent(id) => self.tray_menu_event(id),
             MainMessage::ScrollToTop(scrollable_id) => self.scroll_to_top(scrollable_id),
