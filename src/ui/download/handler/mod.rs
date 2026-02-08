@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 mod add_task;
+mod batch_operations;
 mod cancel_task;
 mod completed;
 mod copy_link;

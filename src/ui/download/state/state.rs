@@ -164,6 +164,70 @@ impl DownloadStateFull {
             selected_task_ids: std::collections::HashSet::new(),
         }
     }
+
+    /// 检查是否有选中的任务
+    pub fn has_selected_tasks(&self) -> bool {
+        !self.selected_task_ids.is_empty()
+    }
+
+    /// 检查是否可以批量开始（仅对暂停状态的任务生效）
+    pub fn can_batch_start(&self) -> bool {
+        if !self.has_selected_tasks() {
+            return false;
+        }
+
+        self.tasks.iter().any(|task| {
+            self.selected_task_ids.contains(&task.task.id)
+                && matches!(task.task.status, DownloadStatus::Paused)
+        })
+    }
+
+    /// 检查是否可以批量暂停（仅对下载中和排队中的任务生效）
+    pub fn can_batch_pause(&self) -> bool {
+        if !self.has_selected_tasks() {
+            return false;
+        }
+
+        self.tasks.iter().any(|task| {
+            self.selected_task_ids.contains(&task.task.id)
+                && matches!(
+                    task.task.status,
+                    DownloadStatus::Downloading | DownloadStatus::Waiting
+                )
+        })
+    }
+
+    /// 检查是否可以批量重新开始（对所有非下载完成状态的任务生效）
+    pub fn can_batch_retry(&self) -> bool {
+        if !self.has_selected_tasks() {
+            return false;
+        }
+
+        self.tasks.iter().any(|task| {
+            self.selected_task_ids.contains(&task.task.id)
+                && !matches!(task.task.status, DownloadStatus::Completed)
+        })
+    }
+
+    /// 检查是否可以批量取消（对排队中、下载中、暂停中的任务生效）
+    pub fn can_batch_cancel(&self) -> bool {
+        if !self.has_selected_tasks() {
+            return false;
+        }
+
+        self.tasks.iter().any(|task| {
+            self.selected_task_ids.contains(&task.task.id)
+                && matches!(
+                    task.task.status,
+                    DownloadStatus::Waiting | DownloadStatus::Downloading | DownloadStatus::Paused
+                )
+        })
+    }
+
+    /// 检查是否可以批量删除（对所有状态的任务都生效）
+    pub fn can_batch_delete(&self) -> bool {
+        self.has_selected_tasks()
+    }
 }
 
 /// 排序列枚举

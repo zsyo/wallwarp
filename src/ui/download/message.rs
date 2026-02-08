@@ -47,6 +47,16 @@ pub enum DownloadMessage {
     ToggleTaskSelection(usize),
     /// 切换全选状态
     ToggleSelectAll,
+    /// 批量开始（恢复）选中的任务
+    BatchStart,
+    /// 批量暂停选中的任务
+    BatchPause,
+    /// 批量重新开始选中的任务
+    BatchRetry,
+    /// 批量取消选中的任务
+    BatchCancel,
+    /// 批量删除选中的任务
+    BatchDelete,
 }
 
 impl From<DownloadMessage> for AppMessage {
@@ -96,6 +106,26 @@ impl App {
             }
             DownloadMessage::ToggleSelectAll => {
                 self.toggle_select_all();
+                iced::Task::none()
+            }
+            DownloadMessage::BatchStart => {
+                self.batch_start_selected_tasks();
+                iced::Task::none()
+            }
+            DownloadMessage::BatchPause => {
+                self.batch_pause_selected_tasks();
+                iced::Task::none()
+            }
+            DownloadMessage::BatchRetry => {
+                self.batch_retry_selected_tasks();
+                iced::Task::none()
+            }
+            DownloadMessage::BatchCancel => {
+                self.batch_cancel_selected_tasks();
+                iced::Task::none()
+            }
+            DownloadMessage::BatchDelete => {
+                self.batch_delete_selected_tasks();
                 iced::Task::none()
             }
         }

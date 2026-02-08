@@ -138,6 +138,12 @@ download-tasks = 下载任务
     .set-wallpaper-file-not-found = 文件不存在，无法设置壁纸
     .added-to-download-queue = 已添加到下载队列
     .downloading-for-wallpaper = 正在下载壁纸以完成设置
+    .batch-start = 开始
+    .batch-pause = 暂停
+    .batch-retry = 重试
+    .batch-cancel = 取消
+    .batch-delete = 删除
+    .clear-completed = 清空已完成
 
 settings = 设置
     .system-config = 系统配置

@@ -139,6 +139,12 @@ download-tasks = Download Tasks
     .set-wallpaper-file-not-found = File not found, cannot set wallpaper
     .added-to-download-queue = Added to download queue
     .downloading-for-wallpaper = Downloading wallpaper to complete setting
+    .batch-start = Start
+    .batch-pause = Pause
+    .batch-retry = Retry
+    .batch-cancel = Cancel
+    .batch-delete = Delete
+    .clear-completed = Clear Completed
 
 settings = Settings
     .system-config = System Configuration
