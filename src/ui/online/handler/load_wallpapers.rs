@@ -103,6 +103,8 @@ impl App {
                 page,
                 api_key,
                 proxy,
+                self.config.global.proxy_enabled,
+                true, // 启用环境变量回退
                 context,
             ),
             |result| match result {

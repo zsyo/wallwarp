@@ -22,12 +22,18 @@ impl App {
             base_content
         };
 
-        // 如果显示通知，则将通知叠加在主要内容之上
-        if self.main_state.show_notification {
-            Self::create_stack(main_content, self.notification_view())
+        // 始终将通知叠加在主要内容之上,通过控制可见性来显示/隐藏
+        let notification_layer = if self.main_state.show_notification {
+            self.notification_view()
         } else {
-            main_content
-        }
+            // 创建一个透明的占位元素,保持结构一致
+            container(iced::widget::Space::new())
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
+        };
+
+        Self::create_stack(main_content, notification_layer)
     }
 
     // 渲染路径清空确认对话框

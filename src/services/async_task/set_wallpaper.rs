@@ -107,8 +107,13 @@ pub async fn async_set_random_online_wallpaper(
     // 创建请求上下文
     let context = RequestContext::new();
 
-    // 创建Wallhaven服务
-    let service = wallhaven::WallhavenService::new(api_key.clone(), proxy.clone());
+    // 创建Wallhaven服务（支持环境变量代理回退）
+    let service = wallhaven::WallhavenService::new(
+        api_key.clone(),
+        proxy.clone(),
+        config.global.proxy_enabled,
+        true, // 启用环境变量回退
+    );
 
     // 获取搜索关键词
     let query = config.wallpaper.auto_change_query.clone();

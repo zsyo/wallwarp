@@ -1,7 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use super::{App, AppMessage};
-use crate::ui::main::MainMessage;
 use crate::ui::online::OnlineMessage;
 use iced::Task;
 
@@ -13,10 +12,7 @@ impl App {
             self.main_state.initial_loaded = true;
             // 如果默认页面是在线壁纸，则加载初始数据
             if self.active_page == super::ActivePage::OnlineWallpapers {
-                return Task::batch(vec![
-                    Task::done(OnlineMessage::LoadWallpapers.into()),
-                    Task::done(MainMessage::ScrollToTop("online_wallpapers_scroll".to_string()).into()),
-                ]);
+                return Task::done(OnlineMessage::LoadWallpapers.into());
             }
         }
 

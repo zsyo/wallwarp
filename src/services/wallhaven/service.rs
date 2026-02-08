@@ -55,9 +55,16 @@ impl WallhavenService {
     /// # 参数
     /// - `api_key`: 可选的 API 密钥
     /// - `proxy`: 可选的代理 URL
-    pub fn new(api_key: Option<String>, proxy: Option<String>) -> Self {
+    /// - `proxy_enabled`: 代理是否启用
+    /// - `use_env_fallback`: 是否使用环境变量作为回退（默认 true）
+    pub fn new(
+        api_key: Option<String>,
+        proxy: Option<String>,
+        proxy_enabled: bool,
+        use_env_fallback: bool,
+    ) -> Self {
         Self {
-            client: WallhavenClient::new(api_key, proxy),
+            client: WallhavenClient::new(api_key, proxy, proxy_enabled, use_env_fallback),
         }
     }
 
@@ -240,6 +247,6 @@ impl WallhavenService {
 
 impl Default for WallhavenService {
     fn default() -> Self {
-        Self::new(None, None)
+        Self::new(None, None, false, true)
     }
 }

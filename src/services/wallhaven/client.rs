@@ -21,37 +21,19 @@ impl WallhavenClient {
     /// # 参数
     /// - `api_key`: 可选的 API 密钥
     /// - `proxy`: 可选的代理 URL
-    pub fn new(api_key: Option<String>, proxy: Option<String>) -> Self {
-        let client = if let Some(proxy_url) = proxy {
-            if !proxy_url.is_empty() {
-                debug!("[WallhavenClient] 尝试创建代理客户端，代理URL: {}", proxy_url);
-                match reqwest::Proxy::all(&proxy_url) {
-                    Ok(p) => {
-                        debug!("[WallhavenClient] Proxy::all 成功");
-                        match reqwest::Client::builder().proxy(p).build() {
-                            Ok(http_client) => {
-                                debug!("[WallhavenClient] HTTP客户端创建成功");
-                                http_client
-                            }
-                            Err(e) => {
-                                warn!("[WallhavenClient] HTTP客户端创建失败: {}，回退到无代理", e);
-                                reqwest::Client::new()
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        warn!("[WallhavenClient] Proxy::all 失败: {}，回退到无代理", e);
-                        reqwest::Client::new()
-                    }
-                }
-            } else {
-                debug!("[WallhavenClient] 代理URL为空，使用无代理客户端");
-                reqwest::Client::new()
-            }
-        } else {
-            debug!("[WallhavenClient] 无代理配置，使用无代理客户端");
-            reqwest::Client::new()
-        };
+    /// - `proxy_enabled`: 代理是否启用
+    /// - `use_env_fallback`: 是否使用环境变量作为回退（默认 true）
+    pub fn new(
+        api_key: Option<String>,
+        proxy: Option<String>,
+        proxy_enabled: bool,
+        use_env_fallback: bool,
+    ) -> Self {
+        let client = crate::services::proxy::create_proxy_client(
+            proxy,
+            proxy_enabled,
+            use_env_fallback,
+        );
 
         Self { api_key, client }
     }
@@ -333,6 +315,6 @@ impl WallhavenClient {
 
 impl Default for WallhavenClient {
     fn default() -> Self {
-        Self::new(None, None)
+        Self::new(None, None, false, true)
     }
 }

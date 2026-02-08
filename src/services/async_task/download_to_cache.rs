@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 /// 辅助函数：下载图片到缓存目录
 pub(super) async fn download_to_cache(
@@ -16,55 +16,13 @@ pub(super) async fn download_to_cache(
     cancel_token: Arc<AtomicBool>,
     downloaded_size: u64,
 ) -> Result<u64, String> {
-    // 创建优化的HTTP客户端（带代理）
-    let create_optimized_client = || -> reqwest::Client {
-        reqwest::Client::builder()
-            .pool_max_idle_per_host(10)
-            .pool_idle_timeout(std::time::Duration::from_secs(90))
-            .connect_timeout(std::time::Duration::from_secs(30))
-            .timeout(std::time::Duration::from_secs(300))
-            .tcp_nodelay(true)
-            .http2_prior_knowledge()
-            .gzip(true)
-            .brotli(true)
-            .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
-    };
-
-    let client = if let Some(proxy_url) = &proxy {
-        if !proxy_url.is_empty() {
-            match reqwest::Proxy::all(proxy_url) {
-                Ok(p) => {
-                    match reqwest::Client::builder()
-                        .proxy(p)
-                        .pool_max_idle_per_host(10)
-                        .pool_idle_timeout(std::time::Duration::from_secs(90))
-                        .connect_timeout(std::time::Duration::from_secs(30))
-                        .timeout(std::time::Duration::from_secs(300))
-                        .tcp_nodelay(true)
-                        .http2_prior_knowledge()
-                        .gzip(true)
-                        .brotli(true)
-                        .build()
-                    {
-                        Ok(http_client) => http_client,
-                        Err(e) => {
-                            warn!("[下载任务] [ID:{}] HTTP客户端创建失败: {}，回退到无代理", task_id, e);
-                            create_optimized_client()
-                        }
-                    }
-                }
-                Err(e) => {
-                    warn!("[下载任务] [ID:{}] Proxy::all 失败: {}，回退到无代理", task_id, e);
-                    create_optimized_client()
-                }
-            }
-        } else {
-            create_optimized_client()
-        }
-    } else {
-        create_optimized_client()
-    };
+    // 使用统一的代理客户端创建逻辑（支持环境变量回退）
+    let client = crate::services::proxy::create_client_with_env_fallback(
+        proxy,
+        url,
+        &format!("下载任务 [ID:{}]", task_id),
+        true, // 使用 info 级别
+    );
 
     // 发送请求（支持断点续传）
     let response = if downloaded_size > 0 {

@@ -100,12 +100,19 @@ impl App {
 
             if has_duplicate {
                 // 任务已在下载队列中，只更新待设置壁纸的文件名
-                let info_message = self.i18n.t("download-tasks.task-already-in-queue").to_string();
-                return self.show_notification(info_message, NotificationType::Info);
+                let downloading_message = self.i18n.t("download-tasks.downloading-for-wallpaper").to_string();
+                return self.show_notification(downloading_message, NotificationType::Info);
             }
 
             // 开始下载
-            return self.start_download(url, &id, &file_type);
+            let downloading_message = self.i18n.t("download-tasks.downloading-for-wallpaper").to_string();
+            let download_task = self.start_download(url, &id, &file_type);
+            
+            // 显示正在下载以完成设置的通知
+            return Task::batch([
+                download_task,
+                self.show_notification(downloading_message, NotificationType::Info),
+            ]);
         }
 
         Task::none()

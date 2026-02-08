@@ -22,9 +22,11 @@ pub async fn async_load_online_wallpapers(
     page: usize,
     api_key: Option<String>,
     proxy: Option<String>,
+    proxy_enabled: bool,
+    use_env_fallback: bool,
     context: RequestContext,
 ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), Box<dyn Error + Send + Sync>> {
-    let service = WallhavenService::new(api_key, proxy);
+    let service = WallhavenService::new(api_key, proxy, proxy_enabled, use_env_fallback);
     match service
         .search_wallpapers(
             page,

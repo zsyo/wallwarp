@@ -129,6 +129,8 @@ download-tasks = 下载任务
     .copy-link-success = 下载链接已复制到剪贴板
     .copy-link-failed = 复制下载链接失败
     .set-wallpaper-file-not-found = 文件不存在，无法设置壁纸
+    .added-to-download-queue = 已添加到下载队列
+    .downloading-for-wallpaper = 正在下载壁纸以完成设置
 
 settings = 设置
     .system-config = 系统配置

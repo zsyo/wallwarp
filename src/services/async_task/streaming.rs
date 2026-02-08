@@ -53,58 +53,13 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
         })?;
     }
 
-    // 步骤4: 创建优化的HTTP客户端（带代理）
-    let create_optimized_client = || -> reqwest::Client {
-        reqwest::Client::builder()
-            .pool_max_idle_per_host(10)
-            .pool_idle_timeout(std::time::Duration::from_secs(90))
-            .connect_timeout(std::time::Duration::from_secs(30))
-            .timeout(std::time::Duration::from_secs(300))
-            .tcp_nodelay(true)
-            .http2_prior_knowledge()
-            .gzip(true)
-            .brotli(true)
-            .build()
-            .unwrap_or_else(|_| reqwest::Client::new())
-    };
-
-    let client = if let Some(proxy_url) = &proxy {
-        if !proxy_url.is_empty() {
-            match reqwest::Proxy::all(proxy_url) {
-                Ok(p) => {
-                    match reqwest::Client::builder()
-                        .proxy(p)
-                        .pool_max_idle_per_host(10)
-                        .pool_idle_timeout(std::time::Duration::from_secs(90))
-                        .connect_timeout(std::time::Duration::from_secs(30))
-                        .timeout(std::time::Duration::from_secs(300))
-                        .tcp_nodelay(true)
-                        .http2_prior_knowledge()
-                        .gzip(true)
-                        .brotli(true)
-                        .build()
-                    {
-                        Ok(http_client) => http_client,
-                        Err(e) => {
-                            debug!(
-                                "[模态窗口图片下载] [URL:{}] HTTP客户端创建失败: {}，回退到无代理",
-                                url, e
-                            );
-                            create_optimized_client()
-                        }
-                    }
-                }
-                Err(e) => {
-                    debug!("[模态窗口图片下载] [URL:{}] Proxy::all 失败: {}，回退到无代理", url, e);
-                    create_optimized_client()
-                }
-            }
-        } else {
-            create_optimized_client()
-        }
-    } else {
-        create_optimized_client()
-    };
+    // 步骤4: 创建带代理和环境变量回退的优化 HTTP 客户端
+    let client = crate::services::proxy::create_client_with_env_fallback(
+        proxy,
+        &url,
+        "模态窗口图片下载",
+        true, // 使用 info 级别
+    );
 
     // 步骤5: 发送请求
     let response = client.get(&url).send().await.map_err(|e| {

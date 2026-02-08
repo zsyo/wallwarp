@@ -130,6 +130,8 @@ download-tasks = Download Tasks
     .copy-link-success = Download link copied to clipboard
     .copy-link-failed = Failed to copy download link
     .set-wallpaper-file-not-found = File not found, cannot set wallpaper
+    .added-to-download-queue = Added to download queue
+    .downloading-for-wallpaper = Downloading wallpaper to complete setting
 
 settings = Settings
     .system-config = System Configuration

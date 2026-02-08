@@ -79,7 +79,14 @@ impl App {
             }
 
             // 4. 开始下载
-            return self.start_download(url, &id, &file_type);
+            let add_to_queue_message = self.i18n.t("download-tasks.added-to-download-queue").to_string();
+            let download_task = self.start_download(url, &id, &file_type);
+            
+            // 显示添加到下载队列的通知
+            return Task::batch([
+                download_task,
+                self.show_notification(add_to_queue_message, NotificationType::Info),
+            ]);
         }
 
         Task::none()

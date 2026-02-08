@@ -3,6 +3,7 @@
 pub mod async_task;
 pub mod download;
 pub mod local;
+pub mod proxy;
 pub mod request_context;
 pub mod wallhaven;
 
