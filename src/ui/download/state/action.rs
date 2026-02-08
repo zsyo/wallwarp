@@ -75,6 +75,7 @@ impl DownloadStateFull {
                     created_at: chrono::DateTime::from_timestamp(task_db.created_at, 0)
                         .map(|dt| dt.with_timezone(&chrono::Local))
                         .unwrap_or_else(chrono::Local::now),
+                    queue_order: 0, // 启动时初始化为0，恢复下载时会重新设置
                 };
 
                 self.tasks.push(DownloadTaskFull {
@@ -226,6 +227,7 @@ impl DownloadStateFull {
             start_time: None,
             cancel_token: Some(Arc::new(AtomicBool::new(false))),
             created_at: chrono::Local::now(),
+            queue_order: self.queue_counter,
         };
 
         let task_full = DownloadTaskFull { task, proxy, file_type };
@@ -237,12 +239,16 @@ impl DownloadStateFull {
         let _ = self.save_to_database(&task_full);
 
         self.next_id += 1;
+        self.queue_counter += 1;
     }
 
-    /// 获取下一个等待中的任务（按添加顺序，先添加的先开始）
+    /// 获取下一个等待中的任务（按排队顺序，先排队的先开始）
     pub fn get_next_waiting_task(&mut self) -> Option<&mut DownloadTaskFull> {
-        // 查找状态为 Waiting 的任务（因为是倒序，最早添加的在列表末尾）
-        self.tasks.iter_mut().find(|t| t.task.status == DownloadStatus::Waiting)
+        // 查找所有 Waiting 状态的任务，选择 queue_order 最小的
+        self.tasks
+            .iter_mut()
+            .filter(|t| t.task.status == DownloadStatus::Waiting)
+            .min_by(|a, b| a.task.queue_order.cmp(&b.task.queue_order))
     }
 
     /// 更新任务进度

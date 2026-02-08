@@ -66,6 +66,8 @@ pub struct DownloadTask {
     pub cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     /// 任务创建时间
     pub created_at: chrono::DateTime<chrono::Local>,
+    /// 排队顺序（用于记录用户加入排队的顺序，越小越先执行）
+    pub queue_order: usize,
 }
 
 impl Default for DownloadTask {
@@ -83,6 +85,7 @@ impl Default for DownloadTask {
             start_time: None,
             cancel_token: None,
             created_at: chrono::Local::now(),
+            queue_order: 0,
         }
     }
 }
@@ -133,6 +136,8 @@ pub struct DownloadStateFull {
     pub sort_descending: bool,
     /// 是否正在排序
     pub is_sorting: bool,
+    /// 排队计数器（用于记录排队顺序）
+    pub queue_counter: usize,
 }
 
 impl DownloadStateFull {
@@ -150,6 +155,7 @@ impl DownloadStateFull {
             sort_column: Some(SortColumn::CreatedAt), // 默认按添加时间排序
             sort_descending: true, // 默认降序
             is_sorting: false,
+            queue_counter: 0,
         }
     }
 }

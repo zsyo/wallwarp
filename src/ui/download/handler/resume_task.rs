@@ -140,6 +140,16 @@ impl App {
                             }
                         },
                     );
+                } else {
+                    // 无法立即开始下载，加入排队
+                    if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
+                        task_full.task.status = DownloadStatus::Waiting;
+                        task_full.task.queue_order = self.download_state.queue_counter;
+                        self.download_state.queue_counter += 1;
+                        // 保存状态到数据库
+                        let task_full_clone = task_full.clone();
+                        let _ = self.download_state.save_to_database(&task_full_clone);
+                    }
                 }
             }
         }
