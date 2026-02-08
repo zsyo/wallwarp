@@ -17,6 +17,28 @@ pub enum DownloadStatus {
     Cancelled,
 }
 
+impl DownloadStatus {
+    /// 获取状态对应的翻译key
+    pub fn get_translation_key(&self) -> &'static str {
+        match self {
+            DownloadStatus::Waiting => "download-tasks.status-waiting",
+            DownloadStatus::Downloading => "download-tasks.status-downloading",
+            DownloadStatus::Paused => "download-tasks.status-paused",
+            DownloadStatus::Completed => "download-tasks.status-completed",
+            DownloadStatus::Failed(_) => "download-tasks.status-failed",
+            DownloadStatus::Cancelled => "download-tasks.status-cancelled",
+        }
+    }
+
+    /// 检查两个状态是否匹配（用于筛选）
+    pub fn matches(&self, other: &DownloadStatus) -> bool {
+        match (self, other) {
+            (DownloadStatus::Failed(_), DownloadStatus::Failed(_)) => true,
+            _ => self == other,
+        }
+    }
+}
+
 /// 下载任务结构体
 #[derive(Debug, Clone)]
 pub struct DownloadTask {
@@ -101,6 +123,10 @@ pub struct DownloadStateFull {
     pub max_concurrent_downloads: usize,
     /// 数据库实例
     pub database: Option<crate::ui::download::database::DownloadDatabase>,
+    /// 状态筛选：None表示显示所有状态，Some表示筛选特定状态
+    pub status_filter: Option<DownloadStatus>,
+    /// 状态筛选下拉框展开状态
+    pub status_filter_expanded: bool,
 }
 
 impl DownloadStateFull {
@@ -113,6 +139,8 @@ impl DownloadStateFull {
             downloading_count: 0,
             max_concurrent_downloads: 3,
             database: None,
+            status_filter: None,
+            status_filter_expanded: false,
         }
     }
 }

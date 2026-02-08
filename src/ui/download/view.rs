@@ -9,7 +9,7 @@ use super::widget;
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::style::ThemeConfig;
-use iced::widget::{container, scrollable};
+use iced::widget::{Space, column, container, scrollable};
 use iced::{Element, Length};
 
 /// 下载页面视图函数
@@ -19,12 +19,35 @@ pub fn download_view<'a>(
     download_state: &'a DownloadStateFull,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let content = if download_state.tasks.is_empty() {
-        // 空状态显示
-        widget::create_empty_state(i18n, theme_config)
+    // 筛选后的任务列表
+    let filtered_tasks: Vec<_> = download_state
+        .tasks
+        .iter()
+        .filter(|task| {
+            if let Some(filter_status) = &download_state.status_filter {
+                filter_status.matches(&task.task.status)
+            } else {
+                true
+            }
+        })
+        .collect();
+
+    // 创建主内容
+    let content = column![].spacing(10);
+
+    // 添加工具栏
+    let content = content.push(widget::create_toolbar(i18n, download_state, theme_config));
+
+    // 添加垂直间距
+    let content = content.push(container(Space::new()).height(Length::Fixed(10.0)));
+
+    // 根据筛选后的任务列表显示内容
+    let content = if filtered_tasks.is_empty() {
+        // 无任务显示（保留表头+文案）
+        content.push(widget::create_filtered_empty_state(i18n, download_state, theme_config))
     } else {
         // 表格布局
-        widget::create_table(i18n, download_state, theme_config)
+        content.push(widget::create_filtered_table(i18n, filtered_tasks, theme_config))
     };
 
     let scrollable_content = scrollable(content).width(Length::Fill).height(Length::Fill);

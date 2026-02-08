@@ -35,6 +35,10 @@ pub enum DownloadMessage {
     CopyDownloadLink(usize),
     /// 设为壁纸
     SetAsWallpaper(usize),
+    /// 展开/收起状态筛选下拉框
+    ToggleStatusFilter,
+    /// 设置状态筛选（None表示显示所有状态）
+    SetStatusFilter(Option<crate::ui::download::state::DownloadStatus>),
 }
 
 impl From<DownloadMessage> for AppMessage {
@@ -64,6 +68,15 @@ impl App {
             DownloadMessage::UpdateSpeed => self.update_download_speed(),
             DownloadMessage::CopyDownloadLink(id) => self.copy_download_link(id),
             DownloadMessage::SetAsWallpaper(id) => self.set_downloaded_as_wallpaper(id),
+            DownloadMessage::ToggleStatusFilter => {
+                self.download_state.status_filter_expanded = !self.download_state.status_filter_expanded;
+                iced::Task::none()
+            }
+            DownloadMessage::SetStatusFilter(filter) => {
+                self.download_state.status_filter = filter;
+                self.download_state.status_filter_expanded = false;
+                iced::Task::none()
+            }
         }
     }
 }

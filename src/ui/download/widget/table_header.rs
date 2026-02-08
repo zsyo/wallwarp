@@ -15,7 +15,7 @@ pub fn create_table_header<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) ->
         container(
             text(i18n.t("download-tasks.header-filename"))
                 .size(14)
-                .style(move |_theme: &iced::Theme| text::Style {
+                .style(move |_theme: &iced::Theme| iced::widget::text::Style {
                     color: Some(theme_colors.text),
                 })
         )
@@ -27,7 +27,7 @@ pub fn create_table_header<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) ->
         container(
             text(i18n.t("download-tasks.header-size"))
                 .size(14)
-                .style(move |_theme: &iced::Theme| text::Style {
+                .style(move |_theme: &iced::Theme| iced::widget::text::Style {
                     color: Some(theme_colors.text),
                 })
         )
@@ -39,7 +39,7 @@ pub fn create_table_header<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) ->
         container(
             text(i18n.t("download-tasks.header-status"))
                 .size(14)
-                .style(move |_theme: &iced::Theme| text::Style {
+                .style(move |_theme: &iced::Theme| iced::widget::text::Style {
                     color: Some(theme_colors.text),
                 })
         )
@@ -51,7 +51,7 @@ pub fn create_table_header<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) ->
         container(
             text(i18n.t("download-tasks.header-download"))
                 .size(14)
-                .style(move |_theme: &iced::Theme| text::Style {
+                .style(move |_theme: &iced::Theme| iced::widget::text::Style {
                     color: Some(theme_colors.text),
                 })
         )
@@ -63,7 +63,7 @@ pub fn create_table_header<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) ->
         container(
             text(i18n.t("download-tasks.header-created-at"))
                 .size(14)
-                .style(move |_theme: &iced::Theme| text::Style {
+                .style(move |_theme: &iced::Theme| iced::widget::text::Style {
                     color: Some(theme_colors.text),
                 })
         )
@@ -75,7 +75,7 @@ pub fn create_table_header<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) ->
         container(
             text(i18n.t("download-tasks.header-operations"))
                 .size(14)
-                .style(move |_theme: &iced::Theme| text::Style {
+                .style(move |_theme: &iced::Theme| iced::widget::text::Style {
                     color: Some(theme_colors.text),
                 })
         )
