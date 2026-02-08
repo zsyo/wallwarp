@@ -59,6 +59,11 @@ impl App {
                             // 清空已下载的文件
                             let _ = std::fs::remove_file(&task_full.task.save_path);
                         }
+
+                        // 克隆任务以避免借用冲突
+                        let task_full_clone = task_full.clone();
+                        // 保存状态到数据库
+                        let _ = self.download_state.save_to_database(&task_full_clone);
                     }
 
                     // 获取取消令牌、文件总大小

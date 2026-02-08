@@ -70,6 +70,11 @@ impl App {
                             final_cache_path
                         );
                     }
+
+                    // 克隆任务以避免借用冲突
+                    let task_full_clone = task_full.clone();
+                    // 保存状态到数据库
+                    let _ = self.download_state.save_to_database(&task_full_clone);
                 }
 
                 self.download_state.increment_downloading();

@@ -55,6 +55,12 @@ impl App {
                     // 更新状态
                     task_full.task.status = DownloadStatus::Downloading;
                     task_full.task.start_time = Some(Instant::now());
+
+                    // 克隆任务以避免借用冲突
+                    let task_full_clone = task_full.clone();
+                    // 保存状态到数据库
+                    let _ = self.download_state.save_to_database(&task_full_clone);
+
                     self.download_state.increment_downloading();
 
                     // 启动异步下载任务（带进度更新）
