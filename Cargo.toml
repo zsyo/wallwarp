@@ -6,6 +6,7 @@ repository = "https://github.com/zsyo/wallwarp"
 edition = "2024"
 license = "AGPL-3.0"
 readme = "README.md"
+exclude = ["target/*", "cache/*", "data/*", "db/*", "logs/*", "*.log", "*.db"]
 
 [dependencies]
 iced = { version = "0.14", features = [
@@ -40,6 +41,7 @@ wallpaper = "3.2"
 rand = "0.9"
 chrono = "0.4"
 scopeguard = "1.2"
+rusqlite = { version = "0.38", features = ["bundled"] }
 windows = { version = "0.62", features = [
     "Win32_Graphics_Dwm",
     "Win32_Foundation",

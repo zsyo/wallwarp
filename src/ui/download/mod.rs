@@ -4,6 +4,7 @@
 //!
 //! 提供下载任务管理界面，支持查看下载进度、管理下载任务等功能。
 
+mod database;
 mod handler;
 mod message;
 mod state;

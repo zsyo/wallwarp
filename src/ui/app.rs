@@ -8,7 +8,8 @@ use crate::utils::assets;
 use crate::utils::config::{Config, Theme};
 use crate::utils::window_utils;
 use iced::widget::image::Handle;
-use tracing::info;
+use std::path::PathBuf;
+use tracing::{error, info};
 
 pub struct App {
     pub i18n: I18n,
@@ -110,6 +111,9 @@ impl App {
             logo_handle: Handle::from_rgba(width, height, img),
         };
 
+        // 初始化下载任务数据库
+        app.init_download_database();
+
         // 初始化托盘菜单项的状态
         app.update_tray_menu_items();
 
@@ -126,5 +130,34 @@ impl App {
             .update_switch_previous_item(self.wallpaper_history.len());
         self.tray_manager
             .update_save_current_item(self.can_save_current_wallpaper());
+    }
+
+    /// 初始化下载任务数据库
+    fn init_download_database(&mut self) {
+        // 数据库文件存储在程序目录下的 db 子目录中
+        let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let db_dir = current_dir.join("db");
+        let db_path = db_dir.join("data.db");
+
+        info!("[启动] [下载任务数据库] 初始化数据库: {}", db_path.display());
+
+        match self.download_state.init_database(&db_path.to_string_lossy()) {
+            Ok(_) => {
+                info!("[启动] [下载任务数据库] 数据库初始化成功");
+
+                // 从数据库加载任务
+                match self.download_state.load_from_database() {
+                    Ok(count) => {
+                        info!("[启动] [下载任务数据库] 加载了 {} 个任务", count);
+                    }
+                    Err(e) => {
+                        error!("[启动] [下载任务数据库] 加载任务失败: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                error!("[启动] [下载任务数据库] 数据库初始化失败: {}", e);
+            }
+        }
     }
 }

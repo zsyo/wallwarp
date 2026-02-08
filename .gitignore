@@ -1,4 +1,6 @@
 /target
 /cache
 /data
+/db
+/logs
 /config.toml

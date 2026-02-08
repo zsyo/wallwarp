@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 pub mod async_task;
+pub mod database;
 pub mod download;
 pub mod local;
 pub mod proxy;

@@ -99,6 +99,8 @@ pub struct DownloadStateFull {
     pub downloading_count: usize,
     /// 最大并行下载数
     pub max_concurrent_downloads: usize,
+    /// 数据库实例
+    pub database: Option<crate::ui::download::database::DownloadDatabase>,
 }
 
 impl DownloadStateFull {
@@ -110,6 +112,7 @@ impl DownloadStateFull {
             client: None,
             downloading_count: 0,
             max_concurrent_downloads: 3,
+            database: None,
         }
     }
 }
