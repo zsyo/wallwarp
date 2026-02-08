@@ -9,6 +9,7 @@ mod pause_task;
 mod progress;
 mod resume_task;
 mod retry_task;
+mod selection;
 mod set_wallpaper;
 mod sort;
 mod start_download;

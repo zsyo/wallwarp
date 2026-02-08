@@ -16,6 +16,10 @@ pub fn create_table_header<'a>(
     let theme_colors = theme_config.get_theme_colors();
 
     row![
+        // 全选框列
+        super::create_checkbox_header(download_state, theme_config),
+        // 分隔线
+        super::create_vertical_separator(theme_config),
         // 文件名列（可排序）
         create_sortable_header_cell(
             i18n,
@@ -137,7 +141,7 @@ fn create_sortable_header_cell<'a>(
         } else {
             AppMessage::Download(crate::ui::download::message::DownloadMessage::ToggleSort(sort_column))
         })
-        .padding(5) // 添加padding，与不可排列表头一致
+        .padding(5) // 添加padding，与不可排序列一致
         .width(Length::Fill) // 按钮填满容器宽度
         .style(
             move |_theme: &iced::Theme, _status: iced::widget::button::Status| iced::widget::button::Style {

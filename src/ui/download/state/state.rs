@@ -138,6 +138,10 @@ pub struct DownloadStateFull {
     pub is_sorting: bool,
     /// 排队计数器（用于记录排队顺序）
     pub queue_counter: usize,
+    /// 表头全选框状态
+    pub select_all: bool,
+    /// 已选中的任务ID集合
+    pub selected_task_ids: std::collections::HashSet<usize>,
 }
 
 impl DownloadStateFull {
@@ -156,6 +160,8 @@ impl DownloadStateFull {
             sort_descending: true, // 默认降序
             is_sorting: false,
             queue_counter: 0,
+            select_all: false,
+            selected_task_ids: std::collections::HashSet::new(),
         }
     }
 }

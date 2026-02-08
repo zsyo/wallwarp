@@ -12,11 +12,16 @@ use iced::{Alignment, Element, Length};
 pub fn create_table_row<'a>(
     i18n: &'a I18n,
     task: &'a DownloadTask,
+    is_selected: bool,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
 
     row![
+        // 选中框列
+        super::create_task_checkbox(task.id, is_selected, theme_config),
+        // 分隔线
+        super::create_vertical_separator(theme_config),
         // 文件名列
         container(
             text(&task.file_name)

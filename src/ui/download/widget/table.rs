@@ -24,8 +24,10 @@ pub fn create_filtered_table<'a>(
     table = table.push(super::create_horizontal_separator(theme_config));
 
     for task_full in filtered_tasks {
+        // 获取该任务的选中状态
+        let is_selected = download_state.selected_task_ids.contains(&task_full.task.id);
         // 添加表格行
-        table = table.push(super::create_table_row(i18n, &task_full.task, theme_config));
+        table = table.push(super::create_table_row(i18n, &task_full.task, is_selected, theme_config));
         // 添加行下方的水平分隔线
         table = table.push(super::create_horizontal_separator(theme_config));
     }

@@ -43,6 +43,10 @@ pub enum DownloadMessage {
     ShowAll,
     /// 切换排序列
     ToggleSort(crate::ui::download::state::SortColumn),
+    /// 切换任务选中状态 (任务ID)
+    ToggleTaskSelection(usize),
+    /// 切换全选状态
+    ToggleSelectAll,
 }
 
 impl From<DownloadMessage> for AppMessage {
@@ -86,6 +90,14 @@ impl App {
                 iced::Task::none()
             }
             DownloadMessage::ToggleSort(column) => self.toggle_download_sort(column),
+            DownloadMessage::ToggleTaskSelection(task_id) => {
+                self.toggle_task_selection(task_id);
+                iced::Task::none()
+            }
+            DownloadMessage::ToggleSelectAll => {
+                self.toggle_select_all();
+                iced::Task::none()
+            }
         }
     }
 }
