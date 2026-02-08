@@ -39,6 +39,10 @@ pub enum DownloadMessage {
     ToggleStatusFilter,
     /// 设置状态筛选（None表示显示所有状态）
     SetStatusFilter(Option<crate::ui::download::state::DownloadStatus>),
+    /// 显示全部任务（清除状态筛选）
+    ShowAll,
+    /// 切换排序列
+    ToggleSort(crate::ui::download::state::SortColumn),
 }
 
 impl From<DownloadMessage> for AppMessage {
@@ -77,6 +81,11 @@ impl App {
                 self.download_state.status_filter_expanded = false;
                 iced::Task::none()
             }
+            DownloadMessage::ShowAll => {
+                self.download_state.status_filter = None;
+                iced::Task::none()
+            }
+            DownloadMessage::ToggleSort(column) => self.toggle_download_sort(column),
         }
     }
 }

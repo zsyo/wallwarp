@@ -2,6 +2,7 @@
 
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
+use crate::ui::download::state::DownloadStateFull;
 use crate::ui::style::ThemeConfig;
 use iced::widget::column;
 use iced::{Element, Length};
@@ -9,11 +10,12 @@ use iced::{Element, Length};
 /// 创建筛选后的表格视图
 pub fn create_filtered_table<'a>(
     i18n: &'a I18n,
+    download_state: &'a DownloadStateFull,
     filtered_tasks: Vec<&'a crate::ui::download::state::DownloadTaskFull>,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     // 表头
-    let header = super::create_table_header(i18n, theme_config);
+    let header = super::create_table_header(i18n, download_state, theme_config);
 
     // 表格内容
     let mut table = column![header].spacing(0).width(Length::Fill);

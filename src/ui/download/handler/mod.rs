@@ -10,6 +10,7 @@ mod progress;
 mod resume_task;
 mod retry_task;
 mod set_wallpaper;
+mod sort;
 mod start_download;
 mod update_speed;
 mod view_file;

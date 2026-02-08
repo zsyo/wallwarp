@@ -72,7 +72,9 @@ impl DownloadStateFull {
                     status,
                     start_time: None,
                     cancel_token: Some(Arc::new(AtomicBool::new(false))),
-                    created_at: chrono::Local::now(), // 使用当前时间作为默认值
+                    created_at: chrono::DateTime::from_timestamp(task_db.created_at, 0)
+                        .map(|dt| dt.with_timezone(&chrono::Local))
+                        .unwrap_or_else(chrono::Local::now),
                 };
 
                 self.tasks.push(DownloadTaskFull {
@@ -93,6 +95,9 @@ impl DownloadStateFull {
                 .iter()
                 .filter(|t| matches!(t.task.status, DownloadStatus::Downloading))
                 .count();
+
+            // 按ID倒序排序（ID越大表示越新添加的，应该在前面）
+            self.tasks.sort_by(|a, b| b.task.id.cmp(&a.task.id));
 
             Ok(self.tasks.len())
         } else {

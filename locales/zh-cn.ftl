@@ -103,6 +103,7 @@ download-tasks = 下载任务
     .no-filtered-tasks-hint = 没有符合筛选条件的任务
     .no = 无
     .tasks = 任务
+    .show-all = 显示全部
     .filter-label = 筛选：
     .filter-all = 全部状态
     .status-waiting = 等待中

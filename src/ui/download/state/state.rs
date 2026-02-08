@@ -127,6 +127,12 @@ pub struct DownloadStateFull {
     pub status_filter: Option<DownloadStatus>,
     /// 状态筛选下拉框展开状态
     pub status_filter_expanded: bool,
+    /// 排序列：None表示未排序，Some表示按指定列排序
+    pub sort_column: Option<SortColumn>,
+    /// 排序方向：true表示降序，false表示升序
+    pub sort_descending: bool,
+    /// 是否正在排序
+    pub is_sorting: bool,
 }
 
 impl DownloadStateFull {
@@ -141,6 +147,34 @@ impl DownloadStateFull {
             database: None,
             status_filter: None,
             status_filter_expanded: false,
+            sort_column: Some(SortColumn::CreatedAt), // 默认按添加时间排序
+            sort_descending: true, // 默认降序
+            is_sorting: false,
+        }
+    }
+}
+
+/// 排序列枚举
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SortColumn {
+    /// 文件名
+    FileName,
+    /// 大小
+    Size,
+    /// 状态
+    Status,
+    /// 添加时间
+    CreatedAt,
+}
+
+impl SortColumn {
+    /// 获取列对应的翻译key
+    pub fn get_translation_key(&self) -> &'static str {
+        match self {
+            SortColumn::FileName => "download-tasks.header-filename",
+            SortColumn::Size => "download-tasks.header-size",
+            SortColumn::Status => "download-tasks.header-status",
+            SortColumn::CreatedAt => "download-tasks.header-created-at",
         }
     }
 }

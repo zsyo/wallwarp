@@ -104,6 +104,7 @@ download-tasks = Download Tasks
     .no-filtered-tasks-hint = No tasks match the filter criteria
     .no = No
     .tasks = tasks
+    .show-all = Show All
     .filter-label = Filter:
     .filter-all = All Status
     .status-waiting = Waiting
