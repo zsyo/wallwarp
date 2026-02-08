@@ -58,6 +58,7 @@ impl DownloadStateFull {
             status: DownloadStatus::Waiting,
             start_time: None,
             cancel_token: Some(Arc::new(AtomicBool::new(false))),
+            created_at: chrono::Local::now(),
         };
         // 倒序插入：添加到列表开头
         self.tasks.insert(0, DownloadTaskFull { task, proxy, file_type });

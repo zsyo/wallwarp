@@ -53,6 +53,18 @@ pub fn create_table_row<'a>(
             .padding(5),
         // 分隔线
         super::create_vertical_separator(theme_config),
+        // 添加时间列
+        container(
+            text(task.created_at.format("%Y-%m-%d %H:%M:%S").to_string())
+                .size(12)
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.light_text),
+                })
+        )
+        .width(Length::Fixed(150.0))
+        .padding(5),
+        // 分隔线
+        super::create_vertical_separator(theme_config),
         // 操作列（最后一列，不添加分隔线）
         container(super::create_operation_buttons(i18n, task))
             .width(Length::Fill)

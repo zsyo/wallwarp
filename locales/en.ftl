@@ -112,6 +112,7 @@ download-tasks = Download Tasks
     .header-size = Size
     .header-status = Status
     .header-download = Download
+    .header-created-at = Added Time
     .header-operations = Operations
     .tooltip-pause = Pause
     .tooltip-resume = Resume

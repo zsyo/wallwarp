@@ -59,6 +59,18 @@ pub fn create_table_header<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) ->
         .padding(5),
         // 分隔线
         super::create_vertical_separator(theme_config),
+        // 添加时间列
+        container(
+            text(i18n.t("download-tasks.header-created-at"))
+                .size(14)
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.text),
+                })
+        )
+        .width(Length::Fixed(150.0))
+        .padding(5),
+        // 分隔线
+        super::create_vertical_separator(theme_config),
         // 操作列（最后一列，不添加分隔线）
         container(
             text(i18n.t("download-tasks.header-operations"))

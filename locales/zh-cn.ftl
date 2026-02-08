@@ -111,6 +111,7 @@ download-tasks = 下载任务
     .header-size = 大小
     .header-status = 状态
     .header-download = 下载
+    .header-created-at = 添加时间
     .header-operations = 操作
     .tooltip-pause = 暂停
     .tooltip-resume = 继续

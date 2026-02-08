@@ -42,6 +42,8 @@ pub struct DownloadTask {
     pub start_time: Option<std::time::Instant>,
     /// 取消令牌（用于终止下载）
     pub cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    /// 任务创建时间
+    pub created_at: chrono::DateTime<chrono::Local>,
 }
 
 impl Default for DownloadTask {
@@ -58,6 +60,7 @@ impl Default for DownloadTask {
             status: DownloadStatus::Waiting,
             start_time: None,
             cancel_token: None,
+            created_at: chrono::Local::now(),
         }
     }
 }
