@@ -108,18 +108,12 @@ impl App {
                 self.toggle_select_all();
                 iced::Task::none()
             }
-            DownloadMessage::BatchStart => {
-                self.batch_start_selected_tasks();
-                iced::Task::none()
-            }
+            DownloadMessage::BatchStart => self.batch_start_selected_tasks(),
             DownloadMessage::BatchPause => {
                 self.batch_pause_selected_tasks();
                 iced::Task::none()
             }
-            DownloadMessage::BatchRetry => {
-                self.batch_retry_selected_tasks();
-                iced::Task::none()
-            }
+            DownloadMessage::BatchRetry => self.batch_retry_selected_tasks(),
             DownloadMessage::BatchCancel => {
                 self.batch_cancel_selected_tasks();
                 iced::Task::none()

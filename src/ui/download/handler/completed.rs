@@ -48,33 +48,13 @@ impl App {
                         // 清除未完成的下载文件
                         let cache_path = self.config.data.cache_path.clone();
 
-                        // 1. 删除目标文件（data_path中的文件）
-                        if let Ok(_metadata) = std::fs::metadata(&task.task.save_path) {
-                            let _ = std::fs::remove_file(&task.task.save_path);
-                            tracing::info!("[下载任务] [ID:{}] 已删除未完成的目标文件: {}", id, task.task.save_path);
-                        }
-
-                        // 2. 删除缓存文件（cache_path/online中的.download文件）
+                        // 删除缓存文件（cache_path/online中的.download文件）
                         if let Ok(cache_file_path) =
                             DownloadService::get_online_image_cache_path(&cache_path, &url, size)
                         {
                             if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
                                 let _ = std::fs::remove_file(&cache_file_path);
                                 tracing::info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", id, cache_file_path);
-                            }
-                        }
-
-                        // 3. 删除最终缓存文件（不带.download后缀的文件）
-                        if let Ok(final_cache_path) =
-                            DownloadService::get_online_image_cache_final_path(&cache_path, &url, size)
-                        {
-                            if let Ok(_metadata) = std::fs::metadata(&final_cache_path) {
-                                let _ = std::fs::remove_file(&final_cache_path);
-                                tracing::info!(
-                                    "[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}",
-                                    id,
-                                    final_cache_path
-                                );
                             }
                         }
                     }
@@ -135,40 +115,23 @@ impl App {
         self.download_state.decrement_downloading();
 
         // 检查是否有等待中的任务需要开始
+        if let Some(next_task) = self.download_state.get_next_waiting_task() {
+            let next_url = next_task.task.url.clone();
+            let next_save_path = PathBuf::from(&next_task.task.save_path);
+            let next_proxy = next_task.proxy.clone();
+            let next_task_id = next_task.task.id;
+            let next_cancel_token = next_task.task.cancel_token.clone().unwrap();
+            let next_downloaded_size = next_task.task.downloaded_size;
+            let next_total_size = next_task.task.total_size;
+            next_task.task.status = DownloadStatus::Downloading;
+            next_task.task.start_time = Some(Instant::now());
+            self.download_state.increment_downloading();
 
-                if let Some(next_task) = self.download_state.get_next_waiting_task() {
-
-                    let next_url = next_task.task.url.clone();
-
-                    let next_save_path = PathBuf::from(&next_task.task.save_path);
-
-                    let next_proxy = next_task.proxy.clone();
-
-                    let next_task_id = next_task.task.id;
-
-                    let next_cancel_token = next_task.task.cancel_token.clone().unwrap();
-
-                    let next_downloaded_size = next_task.task.downloaded_size;
-
-                    let next_total_size = next_task.task.total_size;
-
-        
-
-                    next_task.task.status = DownloadStatus::Downloading;
-
-                    next_task.task.start_time = Some(Instant::now());
-
-                    self.download_state.increment_downloading();
-
-        
-
-                    // 保存状态到数据库
-
-                    if let Some(task_full) = self.download_state.tasks.iter().find(|t| t.task.id == next_task_id) {
-
-                        let _ = self.download_state.save_to_database(task_full);
-
-                    }            let cache_path = self.config.data.cache_path.clone();
+            // 保存状态到数据库
+            if let Some(task_full) = self.download_state.tasks.iter().find(|t| t.task.id == next_task_id) {
+                let _ = self.download_state.save_to_database(task_full);
+            }
+            let cache_path = self.config.data.cache_path.clone();
 
             // 启动下一个下载任务
             return Task::perform(

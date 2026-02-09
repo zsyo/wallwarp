@@ -40,14 +40,6 @@ impl App {
                         cancel_token.store(false, Ordering::Relaxed);
                     }
 
-                    // 清空已下载的文件（data_path中的文件）
-                    let _ = std::fs::remove_file(&task_full.task.save_path);
-                    tracing::info!(
-                        "[下载任务] [ID:{}] 重新下载：已清空文件: {}",
-                        task_id,
-                        task_full.task.save_path
-                    );
-
                     // 清空缓存文件（cache_path/online中的文件）
                     let cache_path = self.config.data.cache_path.clone();
                     if let Ok(cache_file_path) = DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
@@ -56,18 +48,6 @@ impl App {
                             "[下载任务] [ID:{}] 重新下载：已清空缓存文件: {}",
                             task_id,
                             cache_file_path
-                        );
-                    }
-
-                    // 清空最终缓存文件（不带.download后缀的文件）
-                    if let Ok(final_cache_path) =
-                        DownloadService::get_online_image_cache_final_path(&cache_path, &url, 0)
-                    {
-                        let _ = std::fs::remove_file(&final_cache_path);
-                        tracing::info!(
-                            "[下载任务] [ID:{}] 重新下载：已清空最终缓存文件: {}",
-                            task_id,
-                            final_cache_path
                         );
                     }
 
