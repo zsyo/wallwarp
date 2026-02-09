@@ -12,7 +12,7 @@ use tracing::{error, info, warn};
 /// # 功能说明
 /// 1. 清理 thumbnail 目录中创建时间超过 7 天的文件
 /// 2. 清理 auto_change 目录中创建时间超过 3 天的文件（但跳过当前正在使用的壁纸）
-/// 3. 清理 online 目录中创建时间超过 7 天的文件以及文件结尾是 .download 的所有文件
+/// 3. 清理 online 目录中创建时间超过 7 天的文件
 /// 4. 清理 logs 目录中创建时间超过 3 天的文件
 pub async fn async_cleanup_cache(config: Config) -> Result<(), Box<dyn Error + Send + Sync>> {
     info!("[缓存清理] 开始清理缓存");
@@ -39,15 +39,11 @@ pub async fn async_cleanup_cache(config: Config) -> Result<(), Box<dyn Error + S
         info!("[缓存清理] auto_change 目录不存在，跳过");
     }
 
-    // 3. 清理 online 目录（超过 7 天以及所有 .download 文件）
+    // 3. 清理 online 目录（超过 7 天的文件）
     let online_dir = cache_path.join("online");
     if online_dir.exists() {
         let deleted_by_age = cleanup_directory_by_age(&online_dir, 7, None).await?;
-        let deleted_downloads = cleanup_download_files(&online_dir).await?;
-        info!(
-            "[缓存清理] online 目录清理完成，删除了 {} 个过期文件和 {} 个下载中文件",
-            deleted_by_age, deleted_downloads
-        );
+        info!("[缓存清理] online 目录清理完成，删除了 {} 个过期文件", deleted_by_age);
     } else {
         info!("[缓存清理] online 目录不存在，跳过");
     }
@@ -134,61 +130,6 @@ async fn cleanup_directory_by_age(
                         path.display(),
                         file_age_seconds as f64 / (24.0 * 60.0 * 60.0)
                     );
-                    deleted_count += 1;
-                }
-                Err(e) => {
-                    error!("[缓存清理] 删除文件失败 {}: {}", path.display(), e);
-                }
-            }
-        }
-    }
-
-    Ok(deleted_count)
-}
-
-/// 清理目录中所有 .download 结尾的文件
-///
-/// # 参数
-/// - dir: 要清理的目录路径
-///
-/// # 返回
-/// 返回删除的文件数量
-async fn cleanup_download_files(dir: &Path) -> Result<usize, Box<dyn Error + Send + Sync>> {
-    let mut deleted_count = 0;
-
-    // 读取目录中的所有文件
-    let entries = match fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(e) => {
-            warn!("[缓存清理] 无法读取目录 {}: {}", dir.display(), e);
-            return Ok(0);
-        }
-    };
-
-    for entry in entries {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(e) => {
-                warn!("[缓存清理] 读取目录项失败: {}", e);
-                continue;
-            }
-        };
-
-        let path = entry.path();
-
-        // 只处理文件，跳过子目录
-        if path.is_dir() {
-            continue;
-        }
-
-        // 检查文件名是否以 .download 结尾
-        if path
-            .extension()
-            .map_or(false, |ext| ext.eq_ignore_ascii_case("download"))
-        {
-            match fs::remove_file(&path) {
-                Ok(_) => {
-                    info!("[缓存清理] 删除下载中文件: {}", path.display());
                     deleted_count += 1;
                 }
                 Err(e) => {
