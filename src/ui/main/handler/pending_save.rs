@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::{App, AppMessage};
+use crate::utils::config::{MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH};
 use iced::Task;
 
 impl App {
@@ -10,7 +11,7 @@ impl App {
         if elapsed >= std::time::Duration::from_millis(300) {
             // 只有当存在 pending 数据时才保存，保存完立即 take() 掉
             if let Some((width, height)) = self.main_state.pending_window_size.take() {
-                if width > 0 && height > 0 {
+                if width >= MIN_WINDOW_WIDTH && height >= MIN_WINDOW_HEIGHT {
                     // 同步窗口大小到配置文件
                     self.config.update_window_size(width, height);
                 }
