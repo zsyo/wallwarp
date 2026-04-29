@@ -102,7 +102,7 @@ pub fn create_proxy_protocol_picker<'a>(app: &'a App) -> Element<'a, AppMessage>
         opaque(picker_content),
         app.settings_state.proxy_protocol_picker_expanded,
     )
-    .width(Length::Fill)
+    .width(Length::Shrink)
     .on_dismiss(SettingsMessage::ProxyProtocolPickerDismiss.into())
     .alignment(drop_down::Alignment::Bottom)
     .into()

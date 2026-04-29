@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::{COLOR_SELECTED_BLUE, PICK_LIST_WIDTH};
+use crate::ui::style::{COLOR_SELECTED_BLUE, LANG_PICK_LIST_WIDTH};
 use crate::ui::{App, AppMessage};
 use iced::border::{Border, Radius};
 use iced::widget::{Space, button, column, container, opaque, row, text};
@@ -11,11 +11,18 @@ use iced_aw::{DropDown, drop_down};
 /// 创建语言选择器
 pub fn create_language_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
     let theme_colors = app.theme_colors;
-    let current_lang = app.i18n.current_lang.clone();
+    let current_lang_code = app.i18n.current_lang.clone();
+    let current_lang_name = app
+        .i18n
+        .available_langs
+        .iter()
+        .find(|info| info.code == current_lang_code)
+        .map(|info| info.name.clone())
+        .unwrap_or_else(|| current_lang_code.clone());
 
     // 创建触发按钮（underlay）
     let lang_underlay = row![
-        text(current_lang.clone()).size(14),
+        text(current_lang_name).size(14),
         Space::new().width(Length::Fill),
         container(text("⏷").color(theme_colors.light_text_sub))
             .height(Length::Fill)
@@ -37,7 +44,7 @@ pub fn create_language_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
 
     let lang_trigger = button(lang_underlay)
         .padding(6)
-        .width(Length::Fixed(PICK_LIST_WIDTH))
+        .width(Length::Fixed(LANG_PICK_LIST_WIDTH))
         .on_press(SettingsMessage::LanguagePickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(theme_colors.settings_dropdown_bg)),
@@ -51,12 +58,16 @@ pub fn create_language_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
         });
 
     // 创建语言选项（overlay）
-    let lang_options_content = column(app.i18n.available_langs.iter().map(|lang| {
-        let is_selected = app.i18n.current_lang == *lang;
-        button(text(lang).size(14))
+    let lang_options = app.i18n.lang_codes_and_names();
+    let current_lang_code = app.i18n.current_lang.clone();
+    let lang_options_content = column(lang_options.iter().map(|(code, name)| {
+        let is_selected = current_lang_code == *code;
+        let lang_code = code.clone();
+        let lang_name = name.clone();
+        button(text(lang_name).size(14))
             .padding(6)
             .width(Length::Fill)
-            .on_press(SettingsMessage::LanguageSelected(lang.clone()).into())
+            .on_press(SettingsMessage::LanguageSelected(lang_code).into())
             .style(move |_theme, _status| button::Style {
                 background: if is_selected {
                     Some(iced::Background::Color(COLOR_SELECTED_BLUE))
@@ -81,7 +92,7 @@ pub fn create_language_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
 
     let picker_content = container(lang_options_content)
         .padding(8)
-        .width(Length::Fixed(PICK_LIST_WIDTH))
+        .width(Length::Fixed(LANG_PICK_LIST_WIDTH))
         .style(move |_theme: &iced::Theme| container::Style {
             background: Some(iced::Background::Color(theme_colors.settings_dropdown_bg)),
             border: Border {
@@ -92,9 +103,14 @@ pub fn create_language_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
             ..Default::default()
         });
 
-    DropDown::new(lang_trigger, opaque(picker_content), app.settings_state.language_picker_expanded)
-        .width(Length::Fill)
-        .on_dismiss(SettingsMessage::LanguagePickerDismiss.into())
-        .alignment(drop_down::Alignment::Bottom)
-        .into()
+    DropDown::new(
+        lang_trigger,
+        opaque(picker_content),
+        app.settings_state.language_picker_expanded,
+    )
+    // .width(Length::Fixed(LANG_PICK_LIST_WIDTH))
+    .width(Length::Shrink)
+    .on_dismiss(SettingsMessage::LanguagePickerDismiss.into())
+    .alignment(drop_down::Alignment::Bottom)
+    .into()
 }

@@ -108,7 +108,7 @@ pub fn create_sorting_picker<'a>(
         });
 
     DropDown::new(sorting_trigger, opaque(picker_content), state.sorting_picker_expanded)
-        .width(Length::Fill)
+        .width(Length::Shrink)
         .on_dismiss(OnlineMessage::SortingPickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
         .into()

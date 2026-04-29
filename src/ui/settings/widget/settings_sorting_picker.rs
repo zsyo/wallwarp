@@ -139,7 +139,7 @@ pub fn create_sorting_picker<'a>(app: &'a App, theme_colors: ThemeColors) -> Ele
         opaque(picker_content),
         app.settings_state.sorting_picker_expanded,
     )
-    .width(Length::Fill)
+    .width(Length::Shrink)
     .on_dismiss(SettingsMessage::SortingPickerDismiss.into())
     .alignment(drop_down::Alignment::Top)
     .into()

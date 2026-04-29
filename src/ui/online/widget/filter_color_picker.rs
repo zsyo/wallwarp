@@ -96,7 +96,7 @@ pub fn create_color_picker<'a>(
 
     // 使用 DropDown 组件
     DropDown::new(color_trigger, color_options, state.color_picker_expanded)
-        .width(Length::Fill)
+        .width(Length::Shrink)
         .on_dismiss(OnlineMessage::ColorPickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
         .into()

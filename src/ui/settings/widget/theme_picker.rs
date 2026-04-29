@@ -2,7 +2,7 @@
 
 use crate::ui::main::MainMessage;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::{COLOR_SELECTED_BLUE, PICK_LIST_WIDTH};
+use crate::ui::style::{COLOR_SELECTED_BLUE, THEME_PICK_LIST_WIDTH};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::Theme;
 use iced::border::{Border, Radius};
@@ -46,7 +46,7 @@ pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
 
     let theme_trigger = button(theme_underlay)
         .padding(6)
-        .width(Length::Fixed(PICK_LIST_WIDTH))
+        .width(Length::Fixed(THEME_PICK_LIST_WIDTH))
         .on_press(SettingsMessage::ThemePickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(theme_colors.settings_dropdown_bg)),
@@ -140,7 +140,7 @@ pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
 
     let picker_content = container(theme_options_content)
         .padding(8)
-        .width(Length::Fixed(PICK_LIST_WIDTH))
+        .width(Length::Fixed(THEME_PICK_LIST_WIDTH))
         .style(move |_theme: &iced::Theme| container::Style {
             background: Some(iced::Background::Color(theme_colors.settings_dropdown_bg)),
             border: Border {
@@ -151,9 +151,13 @@ pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
             ..Default::default()
         });
 
-    DropDown::new(theme_trigger, opaque(picker_content), app.settings_state.theme_picker_expanded)
-        .width(Length::Fill)
-        .on_dismiss(SettingsMessage::ThemePickerDismiss.into())
-        .alignment(drop_down::Alignment::Bottom)
-        .into()
+    DropDown::new(
+        theme_trigger,
+        opaque(picker_content),
+        app.settings_state.theme_picker_expanded,
+    )
+    .width(Length::Shrink)
+    .on_dismiss(SettingsMessage::ThemePickerDismiss.into())
+    .alignment(drop_down::Alignment::Bottom)
+    .into()
 }

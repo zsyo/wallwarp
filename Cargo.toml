@@ -15,18 +15,18 @@ iced = { version = "0.14", features = [
     "canvas",   # 自定义绘图
     "advanced", # 启用高级功能
 ] }
-iced_aw = { version = "0.13", features = ["drop_down", "number_input"] }
-tokio = { version = "1.49", features = ["full"] }
+iced_aw = { version = "=0.13.0", features = ["drop_down", "number_input"] }
+tokio = { version = "1.52", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_with = "3.16"
+serde_with = "3.18"
 serde_json = "1.0"
 image = { version = "0.25", features = ["webp"] }
-toml = "0.9"
+toml = "1.1"
 open = "5.3"
 rfd = "0.17"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 fast_image_resize = { version = "6.0", features = ["image"] }
-rayon = "1.11"
+rayon = "1.12"
 reqwest = { version = "0.13", default-features = false, features = [
     "native-tls",
     "http2",
@@ -38,17 +38,17 @@ reqwest = { version = "0.13", default-features = false, features = [
 urlencoding = "2.1"
 async-stream = "0.3"
 wallpaper = "3.2"
-rand = "0.9"
+rand = "0.10"
 chrono = "0.4"
 scopeguard = "1.2"
-rusqlite = { version = "0.38", features = ["bundled"] }
+rusqlite = { version = "0.39", features = ["bundled"] }
 windows = { version = "0.62", features = [
     "Win32_Graphics_Dwm",
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
     "Win32_UI_Controls",
 ] }
-interprocess = { version = "2.3", features = ["tokio"] }
+interprocess = { version = "2.4", features = ["tokio"] }
 
 # i18n
 fluent-bundle = "0.16"
@@ -62,8 +62,8 @@ tracing-appender = "0.2"
 dark-light = "2.0"
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.55"
-tray-icon = "0.21"
+winreg = "0.56"
+tray-icon = "0.22"
 
 [build-dependencies]
 winresource = "0.1"

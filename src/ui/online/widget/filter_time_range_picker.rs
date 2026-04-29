@@ -112,7 +112,7 @@ pub fn create_time_range_picker<'a>(
         opaque(picker_content),
         state.time_range_picker_expanded,
     )
-    .width(Length::Fill)
+    .width(Length::Shrink)
     .on_dismiss(OnlineMessage::TimeRangePickerDismiss.into())
     .alignment(drop_down::Alignment::Bottom)
     .into()

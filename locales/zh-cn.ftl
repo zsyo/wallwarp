@@ -1,4 +1,5 @@
 # WallWarp Chinese Simplified translations
+lang-name = 简体中文
 app-name = 幻变
 app-title = 幻变 - 壁纸管理器
 

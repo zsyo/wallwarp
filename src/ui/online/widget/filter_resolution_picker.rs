@@ -91,7 +91,7 @@ pub fn create_resolution_picker<'a>(
 
     // 使用 DropDown 组件
     DropDown::new(resolution_trigger, resolution_options, state.resolution_picker_expanded)
-        .width(Length::Fill)
+        .width(Length::Shrink)
         .on_dismiss(OnlineMessage::ResolutionPickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
         .into()

@@ -1,4 +1,5 @@
 # WallWarp English translations
+lang-name = English
 app-name = WallWarp
 app-title = WallWarp - Wallpaper Manager
 

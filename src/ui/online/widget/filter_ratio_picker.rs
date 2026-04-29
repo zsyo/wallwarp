@@ -95,7 +95,7 @@ pub fn create_ratio_picker<'a>(
 
     // 使用 DropDown 组件
     DropDown::new(ratio_trigger, ratio_options, state.ratio_picker_expanded)
-        .width(Length::Fill)
+        .width(Length::Shrink)
         .on_dismiss(OnlineMessage::RatioPickerDismiss.into())
         .alignment(drop_down::Alignment::Bottom)
         .into()

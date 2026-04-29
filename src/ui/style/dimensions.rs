@@ -127,6 +127,12 @@ pub const SCROLL_PADDING: f32 = 20.0;
 /// 选择列表宽度
 pub const PICK_LIST_WIDTH: f32 = 80.0;
 
+/// 语言名称列表宽度
+pub const LANG_PICK_LIST_WIDTH: f32 = 120.0;
+
+/// 主题选择器列表宽度
+pub const THEME_PICK_LIST_WIDTH: f32 = 120.0;
+
 /// 端口输入框宽度
 pub const PORT_INPUT_WIDTH: f32 = 80.0;
 

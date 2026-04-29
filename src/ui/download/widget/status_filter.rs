@@ -65,7 +65,7 @@ pub fn create_status_filter_dropdown<'a>(
 
     // 组合下拉框
     let dropdown = DropDown::new(underlay, filter_options, download_state.status_filter_expanded)
-        .width(Length::Fill)
+        .width(Length::Shrink)
         .on_dismiss(AppMessage::Download(DownloadMessage::ToggleStatusFilter))
         .alignment(drop_down::Alignment::Bottom);
 
