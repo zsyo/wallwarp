@@ -30,7 +30,9 @@ impl App {
 
         // 根据选择执行相应操作
         match action {
-            CloseConfirmationAction::MinimizeToTray => Task::done(MainMessage::MinimizeToTray.into()),
+            CloseConfirmationAction::MinimizeToTray => {
+                Task::done(MainMessage::MinimizeToTray.into())
+            }
             CloseConfirmationAction::CloseApp => iced::exit(),
         }
     }
@@ -41,7 +43,10 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::main) fn toggle_remember_setting(&mut self, checked: bool) -> Task<AppMessage> {
+    pub(in crate::ui::main) fn toggle_remember_setting(
+        &mut self,
+        checked: bool,
+    ) -> Task<AppMessage> {
         self.main_state.remember_close_setting = checked;
         Task::none()
     }

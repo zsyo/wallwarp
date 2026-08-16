@@ -28,22 +28,30 @@ pub(super) async fn download_to_cache(
     let response = if downloaded_size > 0 {
         // 断点续传：使用 Range 请求头
         let range_header = format!("bytes={}-", downloaded_size);
-        info!("[下载任务] [ID:{}] 断点续传：Range = {}", task_id, range_header);
-        let resp = client
+        info!(
+            "[下载任务] [ID:{}] 断点续传：Range = {}",
+            task_id, range_header
+        );
+
+        client
             .get(url)
             .header("Range", range_header)
             .send()
             .await
-            .map_err(|e| format!("请求失败: {}", e))?;
-        resp
+            .map_err(|e| format!("请求失败: {}", e))?
     } else {
         // 新下载
         info!("[下载任务] [ID:{}] 新下载：从头开始", task_id);
-        client.get(url).send().await.map_err(|e| format!("请求失败: {}", e))?
+        client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| format!("请求失败: {}", e))?
     };
 
     // 检查响应状态
-    if !response.status().is_success() && response.status() != reqwest::StatusCode::PARTIAL_CONTENT {
+    if !response.status().is_success() && response.status() != reqwest::StatusCode::PARTIAL_CONTENT
+    {
         return Err(format!("HTTP错误: {}", response.status()));
     }
 
@@ -78,7 +86,7 @@ pub(super) async fn download_to_cache(
             .map_err(|e| format!("打开文件失败: {}", e))?;
 
         // 将文件指针移动到安全偏移量的位置
-        f.seek(std::io::SeekFrom::Start(downloaded_size as u64))
+        f.seek(std::io::SeekFrom::Start(downloaded_size))
             .await
             .map_err(|e| format!("移动文件指针失败: {}", e))?;
 
@@ -126,7 +134,9 @@ pub(super) async fn download_to_cache(
                 .await
                 .map_err(|e| format!("写入文件失败: {}", e))?;
             // 立即刷新到磁盘，确保数据不会丢失
-            file.flush().await.map_err(|e| format!("刷新文件失败: {}", e))?;
+            file.flush()
+                .await
+                .map_err(|e| format!("刷新文件失败: {}", e))?;
             buffer.clear();
         }
 

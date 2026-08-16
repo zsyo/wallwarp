@@ -105,7 +105,9 @@ impl WallhavenService {
         }
 
         // 获取并发控制许可
-        let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER.acquire().await;
+        let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER
+            .acquire()
+            .await;
 
         // 再次检查是否已取消
         if let Some(()) = context.check_cancelled() {
@@ -156,10 +158,11 @@ impl WallhavenService {
         }
 
         // 解析响应
-        let wallhaven_response: WallhavenResponse<Vec<WallpaperData>> = serde_json::from_str(&text).map_err(|e| {
-            error!("[Wallhaven API] [{}] JSON解析失败: {}", search_tag, e);
-            format!("解析JSON失败: {}", e)
-        })?;
+        let wallhaven_response: WallhavenResponse<Vec<WallpaperData>> = serde_json::from_str(&text)
+            .map_err(|e| {
+                error!("[Wallhaven API] [{}] JSON解析失败: {}", search_tag, e);
+                format!("解析JSON失败: {}", e)
+            })?;
 
         // 打印解析结果
         info!(
@@ -168,7 +171,11 @@ impl WallhavenService {
             wallhaven_response.data.len()
         );
 
-        let wallpapers: Vec<OnlineWallpaper> = wallhaven_response.data.into_iter().map(OnlineWallpaper::from).collect();
+        let wallpapers: Vec<OnlineWallpaper> = wallhaven_response
+            .data
+            .into_iter()
+            .map(OnlineWallpaper::from)
+            .collect();
 
         let last_page = wallhaven_response
             .meta
@@ -199,14 +206,20 @@ impl WallhavenService {
     ///
     /// # 返回
     /// 返回壁纸详情
-    pub async fn get_wallpaper(&self, id: &str, context: &RequestContext) -> Result<OnlineWallpaper, String> {
+    pub async fn get_wallpaper(
+        &self,
+        id: &str,
+        context: &RequestContext,
+    ) -> Result<OnlineWallpaper, String> {
         // 检查是否已取消
         if let Some(()) = context.check_cancelled() {
             return Err("请求已取消".to_string());
         }
 
         // 获取并发控制许可
-        let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER.acquire().await;
+        let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER
+            .acquire()
+            .await;
 
         // 再次检查是否已取消
         if let Some(()) = context.check_cancelled() {
@@ -226,10 +239,11 @@ impl WallhavenService {
         }
 
         // 解析响应
-        let wallhaven_response: WallhavenResponse<WallpaperData> = serde_json::from_str(&text).map_err(|e| {
-            error!("[Wallhaven API] [ID:{}] JSON解析失败: {}", id, e);
-            format!("解析JSON失败: {}", e)
-        })?;
+        let wallhaven_response: WallhavenResponse<WallpaperData> = serde_json::from_str(&text)
+            .map_err(|e| {
+                error!("[Wallhaven API] [ID:{}] JSON解析失败: {}", id, e);
+                format!("解析JSON失败: {}", e)
+            })?;
 
         info!(
             "[Wallhaven API] [ID:{}] 解析成功，获取壁纸: {}",

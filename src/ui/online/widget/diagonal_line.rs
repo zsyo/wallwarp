@@ -24,7 +24,14 @@ impl Default for DiagonalLine {
 impl<Message> canvas::Program<Message, Theme, Renderer> for DiagonalLine {
     type State = ();
 
-    fn draw(&self, _state: &Self::State, _renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<canvas::Geometry> {
+    fn draw(
+        &self,
+        _state: &Self::State,
+        _renderer: &Renderer,
+        _theme: &Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
+    ) -> Vec<canvas::Geometry> {
         let mut frame = canvas::Frame::new(_renderer, bounds.size());
 
         // 计算带缩进的起点和终点

@@ -51,17 +51,21 @@ impl App {
                         // 删除缓存文件（cache_path/online中的.download文件）
                         if let Ok(cache_file_path) =
                             DownloadService::get_online_image_cache_path(&cache_path, &url, size)
+                            && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
                         {
-                            if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
-                                let _ = std::fs::remove_file(&cache_file_path);
-                                tracing::info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", id, cache_file_path);
-                            }
+                            let _ = std::fs::remove_file(&cache_file_path);
+                            tracing::info!(
+                                "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
+                                id,
+                                cache_file_path
+                            );
                         }
                     }
                 } else {
                     // 下载成功
                     // 验证实际文件大小
-                    let actual_size = if let Ok(metadata) = std::fs::metadata(&task.task.save_path) {
+                    let actual_size = if let Ok(metadata) = std::fs::metadata(&task.task.save_path)
+                    {
                         metadata.len()
                     } else {
                         size
@@ -78,29 +82,32 @@ impl App {
                         .and_then(|n| n.to_str())
                         .unwrap_or("");
 
-                    if let Some(pending_filename) = self.online_state.pending_set_wallpaper_filename.as_ref() {
-                        if pending_filename == file_name {
-                            // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
-                            let full_path = crate::utils::helpers::get_absolute_path(&task.task.save_path);
-                            let wallpaper_mode = self.config.wallpaper.mode;
-                            let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+                    if let Some(pending_filename) =
+                        self.online_state.pending_set_wallpaper_filename.as_ref()
+                        && pending_filename == file_name
+                    {
+                        // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
+                        let full_path =
+                            crate::utils::helpers::get_absolute_path(&task.task.save_path);
+                        let wallpaper_mode = self.config.wallpaper.mode;
+                        let failed_message =
+                            self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                            // 清除待设置壁纸的文件名
-                            self.online_state.pending_set_wallpaper_filename = None;
+                        // 清除待设置壁纸的文件名
+                        self.online_state.pending_set_wallpaper_filename = None;
 
-                            // 异步设置壁纸
-                            return Task::perform(
-                                async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
-                                move |result| match result {
-                                    Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
-                                    Err(e) => MainMessage::ShowNotification(
-                                        format!("{}: {}", failed_message, e),
-                                        NotificationType::Error,
-                                    )
-                                    .into(),
-                                },
-                            );
-                        }
+                        // 异步设置壁纸
+                        return Task::perform(
+                            async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                            move |result| match result {
+                                Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
+                                Err(e) => MainMessage::ShowNotification(
+                                    format!("{}: {}", failed_message, e),
+                                    NotificationType::Error,
+                                )
+                                .into(),
+                            },
+                        );
                     }
                 }
 
@@ -128,7 +135,12 @@ impl App {
             self.download_state.increment_downloading();
 
             // 保存状态到数据库
-            if let Some(task_full) = self.download_state.tasks.iter().find(|t| t.task.id == next_task_id) {
+            if let Some(task_full) = self
+                .download_state
+                .tasks
+                .iter()
+                .find(|t| t.task.id == next_task_id)
+            {
                 let _ = self.download_state.save_to_database(task_full);
             }
             let cache_path = self.config.data.cache_path.clone();
@@ -147,7 +159,11 @@ impl App {
                 ),
                 move |result| match result {
                     Ok(s) => {
-                        tracing::info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", next_task_id, s);
+                        tracing::info!(
+                            "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
+                            next_task_id,
+                            s
+                        );
                         DownloadMessage::DownloadCompleted(next_task_id, s, None).into()
                     }
                     Err(e) => {

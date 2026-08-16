@@ -5,11 +5,11 @@ use crate::services::local::Wallpaper;
 use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::local::LocalMessage;
-use crate::ui::style::{
-    BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, IMAGE_HEIGHT,
-    IMAGE_WIDTH, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
-};
 use crate::ui::style::ThemeConfig;
+use crate::ui::style::{
+    BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_OVERLAY_BG,
+    COLOR_OVERLAY_TEXT, IMAGE_HEIGHT, IMAGE_WIDTH, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
+};
 use crate::utils::helpers;
 use iced::widget::image::Handle;
 use iced::widget::{Space, button, container, row, text, tooltip};
@@ -25,7 +25,10 @@ pub fn create_loaded_wallpaper<'a>(
     let theme_colors = theme_config.get_theme_colors();
 
     // 使用缓存的 image_handle，如果缓存不存在则回退到从路径创建
-    let image_handle = wallpaper.image_handle.clone().unwrap_or_else(|| Handle::from_path(&wallpaper.thumbnail_path));
+    let image_handle = wallpaper
+        .image_handle
+        .clone()
+        .unwrap_or_else(|| Handle::from_path(&wallpaper.thumbnail_path));
     let image = iced::widget::image(image_handle)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
@@ -52,11 +55,14 @@ pub fn create_loaded_wallpaper<'a>(
             color: Some(theme_colors.overlay_text),
         });
 
-    let resolution_text = text(helpers::format_resolution(wallpaper.width, wallpaper.height))
-        .size(OVERLAY_TEXT_SIZE)
-        .style(move |_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_OVERLAY_TEXT),
-        });
+    let resolution_text = text(helpers::format_resolution(
+        wallpaper.width,
+        wallpaper.height,
+    ))
+    .size(OVERLAY_TEXT_SIZE)
+    .style(move |_theme: &iced::Theme| text::Style {
+        color: Some(COLOR_OVERLAY_TEXT),
+    });
 
     let view_button = common::create_button_with_tooltip(
         common::create_icon_button(
@@ -70,7 +76,11 @@ pub fn create_loaded_wallpaper<'a>(
     );
 
     let set_wallpaper_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F429}", BUTTON_COLOR_GREEN, LocalMessage::SetWallpaper(index).into()),
+        common::create_icon_button(
+            "\u{F429}",
+            BUTTON_COLOR_GREEN,
+            LocalMessage::SetWallpaper(index).into(),
+        ),
         i18n.t("local-list.tooltip-set-wallpaper"),
         tooltip::Position::Top,
         theme_config,
@@ -159,7 +169,10 @@ pub fn create_loaded_wallpaper<'a>(
                     blur_radius: 8.0,
                 },
             };
-            button::Style { shadow, ..base_style }
+            button::Style {
+                shadow,
+                ..base_style
+            }
         })
         .on_press(LocalMessage::ShowModal(index).into())
 }

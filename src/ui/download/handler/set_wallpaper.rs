@@ -7,7 +7,10 @@ use iced::Task;
 use std::path::Path;
 
 impl App {
-    pub(in crate::ui::download) fn set_downloaded_as_wallpaper(&mut self, id: usize) -> Task<AppMessage> {
+    pub(in crate::ui::download) fn set_downloaded_as_wallpaper(
+        &mut self,
+        id: usize,
+    ) -> Task<AppMessage> {
         if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == id) {
             let path = task.task.save_path.clone();
             let full_path = crate::utils::helpers::get_absolute_path(&path);
@@ -23,14 +26,18 @@ impl App {
                     async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                     move |result| match result {
                         Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
-                        Err(e) => {
-                            MainMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error)
-                                .into()
-                        }
+                        Err(e) => MainMessage::ShowNotification(
+                            format!("{}: {}", failed_message, e),
+                            NotificationType::Error,
+                        )
+                        .into(),
                     },
                 );
             } else {
-                let error_message = self.i18n.t("download-tasks.set-wallpaper-file-not-found").to_string();
+                let error_message = self
+                    .i18n
+                    .t("download-tasks.set-wallpaper-file-not-found")
+                    .to_string();
                 return self.show_notification(error_message, NotificationType::Error);
             }
         }

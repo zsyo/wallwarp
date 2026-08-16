@@ -14,49 +14,51 @@ pub fn create_wallpaper_list<'a>(
     online_state: &'a OnlineState,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let content: Element<'a, AppMessage> =
-        if !online_state.has_loaded && !online_state.loading_page {
-            // 初始状态，还未开始加载
-            column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE)]
-                .width(Length::Fill)
-                .align_x(Alignment::Center)
-                .padding(EMPTY_STATE_PADDING)
-                .into()
-        } else if online_state.wallpapers.is_empty() && online_state.loading_page {
-            // 正在加载中
-            let theme_colors = theme_config.get_theme_colors();
-            column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE).style(
-                move |_theme: &iced::Theme| text::Style {
+    let content: Element<'a, AppMessage> = if !online_state.has_loaded && !online_state.loading_page
+    {
+        // 初始状态，还未开始加载
+        column![text(i18n.t("online-wallpapers.loading")).size(LOADING_TEXT_SIZE)]
+            .width(Length::Fill)
+            .align_x(Alignment::Center)
+            .padding(EMPTY_STATE_PADDING)
+            .into()
+    } else if online_state.wallpapers.is_empty() && online_state.loading_page {
+        // 正在加载中
+        let theme_colors = theme_config.get_theme_colors();
+        column![
+            text(i18n.t("online-wallpapers.loading"))
+                .size(LOADING_TEXT_SIZE)
+                .style(move |_theme: &iced::Theme| text::Style {
                     color: Some(theme_colors.text),
-                }
-            )]
-            .width(Length::Fill)
-            .align_x(Alignment::Center)
-            .padding(EMPTY_STATE_PADDING)
-            .into()
-        } else if online_state.wallpapers.is_empty() && online_state.has_loaded {
-            // 已加载但无数据
-            let theme_colors = theme_config.get_theme_colors();
-            column![
-                text(i18n.t("online-wallpapers.no-data"))
-                    .size(EMPTY_STATE_TEXT_SIZE)
-                    .style(move |_theme: &iced::Theme| text::Style {
-                        color: Some(theme_colors.text),
-                    }),
-                text(i18n.t("online-wallpapers.no-data-hint"))
-                    .size(14)
-                    .style(move |_theme: &iced::Theme| text::Style {
-                        color: Some(theme_colors.light_text_sub),
-                    }),
-            ]
-            .width(Length::Fill)
-            .align_x(Alignment::Center)
-            .padding(EMPTY_STATE_PADDING)
-            .spacing(10)
-            .into()
-        } else {
-            super::create_wallpaper_grid(i18n, window_width, online_state, theme_config)
-        };
+                })
+        ]
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .padding(EMPTY_STATE_PADDING)
+        .into()
+    } else if online_state.wallpapers.is_empty() && online_state.has_loaded {
+        // 已加载但无数据
+        let theme_colors = theme_config.get_theme_colors();
+        column![
+            text(i18n.t("online-wallpapers.no-data"))
+                .size(EMPTY_STATE_TEXT_SIZE)
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.text),
+                }),
+            text(i18n.t("online-wallpapers.no-data-hint"))
+                .size(14)
+                .style(move |_theme: &iced::Theme| text::Style {
+                    color: Some(theme_colors.light_text_sub),
+                }),
+        ]
+        .width(Length::Fill)
+        .align_x(Alignment::Center)
+        .padding(EMPTY_STATE_PADDING)
+        .spacing(10)
+        .into()
+    } else {
+        super::create_wallpaper_grid(i18n, window_width, online_state, theme_config)
+    };
 
     scrollable(content)
         .width(Length::Fill)

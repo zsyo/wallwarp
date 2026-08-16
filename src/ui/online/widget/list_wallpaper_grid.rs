@@ -26,7 +26,7 @@ pub fn create_wallpaper_grid<'a>(
 
     // 按页渲染数据，实现类似PDF的分页效果
     let mut start_index = 0;
-    for (_page_idx, page_info) in online_state.page_info.iter().enumerate() {
+    for page_info in online_state.page_info.iter() {
         // 获取当前页的数据范围
         let end_index = page_info.end_index;
         let page_wallpapers = &online_state.wallpapers[start_index..end_index];
@@ -37,7 +37,9 @@ pub fn create_wallpaper_grid<'a>(
 
             for wallpaper_status in chunk {
                 let image_element = match wallpaper_status {
-                    WallpaperLoadStatus::Loading => super::create_loading_placeholder(i18n, theme_config),
+                    WallpaperLoadStatus::Loading => {
+                        super::create_loading_placeholder(i18n, theme_config)
+                    }
                     WallpaperLoadStatus::Loaded(wallpaper) => {
                         let wallpaper_index = online_state
                             .wallpapers
@@ -56,7 +58,9 @@ pub fn create_wallpaper_grid<'a>(
                 row_container = row_container.push(image_element);
             }
 
-            let centered_row = container(row_container).width(Length::Fill).center_x(Length::Fill);
+            let centered_row = container(row_container)
+                .width(Length::Fill)
+                .center_x(Length::Fill);
             content = content.push(centered_row);
         }
 
@@ -73,7 +77,8 @@ pub fn create_wallpaper_grid<'a>(
 
     // 如果是最后一页，显示"已加载全部"
     if online_state.last_page {
-        let all_loaded_text = text(i18n.t("online-wallpapers.all-loaded")).size(ALL_LOADED_TEXT_SIZE);
+        let all_loaded_text =
+            text(i18n.t("online-wallpapers.all-loaded")).size(ALL_LOADED_TEXT_SIZE);
         content = content.push(all_loaded_text)
     }
 

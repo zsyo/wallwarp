@@ -6,8 +6,8 @@ use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::ThemeColors;
 use crate::ui::style::{
-    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING, INPUT_HEIGHT,
-    INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE,
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING,
+    INPUT_HEIGHT, INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE,
 };
 use iced::border::{Border, Radius};
 use iced::widget::{Space, container, row, text, text_input};
@@ -49,13 +49,29 @@ pub fn create_path_config_row<'a>(
                     selection: theme_colors.text_input_selection_color,
                 }),
             container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(i18n.t("settings.select-path"), BUTTON_COLOR_BLUE, select_msg),
+            common::create_colored_button(
+                i18n.t("settings.select-path"),
+                BUTTON_COLOR_BLUE,
+                select_msg
+            ),
             container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(i18n.t("settings.open-path"), BUTTON_COLOR_GREEN, open_msg),
+            common::create_colored_button(
+                i18n.t("settings.open-path"),
+                BUTTON_COLOR_GREEN,
+                open_msg
+            ),
             container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(i18n.t("settings.clear-path"), BUTTON_COLOR_RED, clear_msg),
+            common::create_colored_button(
+                i18n.t("settings.clear-path"),
+                BUTTON_COLOR_RED,
+                clear_msg
+            ),
             container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(i18n.t("settings.restore-default"), BUTTON_COLOR_GRAY, restore_msg),
+            common::create_colored_button(
+                i18n.t("settings.restore-default"),
+                BUTTON_COLOR_GRAY,
+                restore_msg
+            ),
         ]
         .width(Length::FillPortion(4))
         .spacing(0),

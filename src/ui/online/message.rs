@@ -117,9 +117,17 @@ impl App {
     pub fn handle_online_message(&mut self, msg: OnlineMessage) -> Task<AppMessage> {
         match msg {
             OnlineMessage::LoadWallpapers => self.load_online_wallpapers(),
-            OnlineMessage::LoadWallpapersSuccess(wallpapers, last_page, total_pages, current_page) => {
-                self.load_online_wallpapers_success(wallpapers, last_page, total_pages, current_page)
-            }
+            OnlineMessage::LoadWallpapersSuccess(
+                wallpapers,
+                last_page,
+                total_pages,
+                current_page,
+            ) => self.load_online_wallpapers_success(
+                wallpapers,
+                last_page,
+                total_pages,
+                current_page,
+            ),
             OnlineMessage::LoadWallpapersFailed(error) => self.load_online_wallpapers_failed(error),
             OnlineMessage::LoadPage => self.load_online_page(),
             OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page) => {
@@ -129,7 +137,9 @@ impl App {
             OnlineMessage::ShowModal(index) => self.show_online_modal(index),
             OnlineMessage::ModalImageLoaded(handle) => self.online_modal_image_loaded(handle),
             OnlineMessage::ModalImageDownloaded(handle) => self.modal_image_downloaded(handle),
-            OnlineMessage::ModalImageDownloadFailed(error) => self.modal_image_download_failed(error),
+            OnlineMessage::ModalImageDownloadFailed(error) => {
+                self.modal_image_download_failed(error)
+            }
             OnlineMessage::CloseModal => self.close_online_modal(),
             OnlineMessage::NextImage => self.next_online_image(),
             OnlineMessage::PreviousImage => self.previous_online_image(),
@@ -138,7 +148,9 @@ impl App {
             OnlineMessage::DownloadFromCache(index) => self.download_from_cache(index),
             OnlineMessage::SetAsWallpaperFromCache(index) => self.set_wallpaper_from_cache(index),
             OnlineMessage::SetAsWallpaper(index) => self.set_online_wallpaper(index),
-            OnlineMessage::CategoryToggled(category) => self.online_filter_category_toggled(category),
+            OnlineMessage::CategoryToggled(category) => {
+                self.online_filter_category_toggled(category)
+            }
             OnlineMessage::SortingChanged(sorting) => self.online_filter_sorting_changed(sorting),
             OnlineMessage::PurityToggled(purity) => self.online_filter_purity_toggled(purity),
             OnlineMessage::SearchTextChanged(text) => self.online_filter_search_text_changed(text),
@@ -146,16 +158,28 @@ impl App {
             OnlineMessage::Refresh => self.online_refresh(),
             OnlineMessage::ScrollToBottom => self.online_scroll_to_bottom(),
             OnlineMessage::CheckAndLoadNextPage => self.online_check_and_load_next_page(),
-            OnlineMessage::ResolutionChanged(resolution) => self.online_filter_resolution_changed(resolution),
+            OnlineMessage::ResolutionChanged(resolution) => {
+                self.online_filter_resolution_changed(resolution)
+            }
             OnlineMessage::RatioChanged(ratio) => self.online_filter_ratio_changed(ratio),
             OnlineMessage::ColorChanged(color) => self.online_filter_color_changed(color),
             OnlineMessage::ColorPickerExpanded => self.online_filter_color_picker_expanded(),
             OnlineMessage::ColorPickerDismiss => self.online_filter_color_picker_dismiss(),
-            OnlineMessage::TimeRangeChanged(time_range) => self.online_filter_time_range_changed(time_range),
-            OnlineMessage::ResolutionPickerExpanded => self.online_filter_resolution_picker_expanded(),
-            OnlineMessage::ResolutionPickerDismiss => self.online_filter_resolution_picker_dismiss(),
-            OnlineMessage::ResolutionModeChanged(mode) => self.online_filter_resolution_mode_changed(mode),
-            OnlineMessage::ResolutionToggled(resolution) => self.online_filter_resolution_toggled(resolution),
+            OnlineMessage::TimeRangeChanged(time_range) => {
+                self.online_filter_time_range_changed(time_range)
+            }
+            OnlineMessage::ResolutionPickerExpanded => {
+                self.online_filter_resolution_picker_expanded()
+            }
+            OnlineMessage::ResolutionPickerDismiss => {
+                self.online_filter_resolution_picker_dismiss()
+            }
+            OnlineMessage::ResolutionModeChanged(mode) => {
+                self.online_filter_resolution_mode_changed(mode)
+            }
+            OnlineMessage::ResolutionToggled(resolution) => {
+                self.online_filter_resolution_toggled(resolution)
+            }
             OnlineMessage::ResolutionAtLeastSelected(resolution) => {
                 self.online_filter_resolution_atleast_selected(resolution)
             }
@@ -167,7 +191,9 @@ impl App {
             OnlineMessage::RatioToggled(ratio) => self.online_filter_ratio_toggled(ratio),
             OnlineMessage::SortingPickerExpanded => self.online_filter_sorting_picker_expanded(),
             OnlineMessage::SortingPickerDismiss => self.online_filter_sorting_picker_dismiss(),
-            OnlineMessage::TimeRangePickerExpanded => self.online_filter_time_range_picker_expanded(),
+            OnlineMessage::TimeRangePickerExpanded => {
+                self.online_filter_time_range_picker_expanded()
+            }
             OnlineMessage::TimeRangePickerDismiss => self.online_filter_time_range_picker_dismiss(),
         }
     }

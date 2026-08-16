@@ -11,7 +11,10 @@ use std::path::PathBuf;
 use tracing::error;
 
 impl App {
-    pub(in crate::ui::online) fn set_wallpaper_from_cache(&mut self, index: usize) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn set_wallpaper_from_cache(
+        &mut self,
+        index: usize,
+    ) -> Task<AppMessage> {
         // 从缓存或 data_path 设置壁纸
         if let Some(wallpaper) = self.online_state.wallpapers_data.get(index) {
             let url = wallpaper.path.clone();
@@ -20,7 +23,10 @@ impl App {
             let file_size = wallpaper.file_size;
 
             // 生成目标文件路径
-            let file_name = wallhaven::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let file_name = wallhaven::generate_file_name(
+                &id,
+                file_type.split('/').next_back().unwrap_or("jpg"),
+            );
             let data_path = self.config.data.data_path.clone();
             let target_path = PathBuf::from(&data_path).join(&file_name);
 
@@ -29,7 +35,8 @@ impl App {
                 let actual_size = metadata.len();
                 if actual_size == file_size {
                     // 文件已存在且大小匹配，直接设置壁纸
-                    let full_path = helpers::get_absolute_path(&target_path.to_string_lossy().to_string());
+                    let full_path =
+                        helpers::get_absolute_path(target_path.to_string_lossy().as_ref());
                     let wallpaper_mode = self.config.wallpaper.mode;
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
@@ -60,9 +67,11 @@ impl App {
                     match std::fs::copy(&cache_path_buf, &target_path) {
                         Ok(_) => {
                             // 复制成功，设置壁纸
-                            let full_path = helpers::get_absolute_path(&target_path.to_string_lossy().to_string());
+                            let full_path =
+                                helpers::get_absolute_path(target_path.to_string_lossy().as_ref());
                             let wallpaper_mode = self.config.wallpaper.mode;
-                            let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+                            let failed_message =
+                                self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                             return Task::perform(
                                 async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
@@ -79,18 +88,24 @@ impl App {
                         Err(e) => {
                             error!("[模态窗口设置壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
                             let error_message =
-                                format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
+                                format!("{}: {}", self.i18n.t("download-tasks.copy-failed"), e);
                             return self.show_notification(error_message, NotificationType::Error);
                         }
                     }
                 } else {
                     // 缓存文件不存在
-                    let error_message = self.i18n.t("download-tasks.cache-file-not-found").to_string();
+                    let error_message = self
+                        .i18n
+                        .t("download-tasks.cache-file-not-found")
+                        .to_string();
                     return self.show_notification(error_message, NotificationType::Error);
                 }
             } else {
                 // 获取缓存路径失败
-                let error_message = self.i18n.t("download-tasks.get-cache-path-failed").to_string();
+                let error_message = self
+                    .i18n
+                    .t("download-tasks.get-cache-path-failed")
+                    .to_string();
                 return self.show_notification(error_message, NotificationType::Error);
             }
         }

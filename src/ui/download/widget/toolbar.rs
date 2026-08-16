@@ -19,7 +19,8 @@ pub fn create_toolbar<'a>(
     let batch_buttons = super::create_batch_operation_buttons(i18n, download_state, theme_config);
 
     // 创建删除所有已完成任务按钮
-    let clear_completed_button = super::create_clear_completed_button(i18n, download_state, theme_config);
+    let clear_completed_button =
+        super::create_clear_completed_button(i18n, download_state, theme_config);
 
     // 创建状态筛选下拉框
     let filter_dropdown = super::create_status_filter_dropdown(i18n, download_state, theme_config);
@@ -37,7 +38,9 @@ pub fn create_toolbar<'a>(
                 ..Default::default()
             }),
         // 删除所有已完成任务区域
-        container(clear_completed_button).padding(10).width(Length::Shrink),
+        container(clear_completed_button)
+            .padding(10)
+            .width(Length::Shrink),
         // 分隔线
         container(text(""))
             .width(Length::Fixed(1.0))
@@ -49,11 +52,11 @@ pub fn create_toolbar<'a>(
         // 筛选区域
         container(
             row![
-                text(i18n.t("download-tasks.filter-label"))
-                    .size(14)
-                    .style(move |_theme: &iced::Theme| iced::widget::text::Style {
+                text(i18n.t("download-tasks.filter-label")).size(14).style(
+                    move |_theme: &iced::Theme| iced::widget::text::Style {
                         color: Some(theme_colors.text),
-                    }),
+                    }
+                ),
                 container(filter_dropdown).width(Length::Fixed(150.0)),
             ]
             .spacing(10)
@@ -68,5 +71,8 @@ pub fn create_toolbar<'a>(
     .height(Length::Fixed(50.0))
     .align_y(Alignment::Center);
 
-    container(toolbar_content).width(Length::Fill).padding([5, 10]).into()
+    container(toolbar_content)
+        .width(Length::Fill)
+        .padding([5, 10])
+        .into()
 }

@@ -10,10 +10,7 @@ const APP_PATH: &str = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 pub fn is_auto_startup_enabled() -> bool {
     #[cfg(target_os = "windows")]
     {
-        match get_auto_startup_windows() {
-            Ok(enabled) => enabled,
-            Err(_) => false,
-        }
+        get_auto_startup_windows().unwrap_or_default()
     }
     #[cfg(not(target_os = "windows"))]
     {
@@ -65,17 +62,18 @@ fn get_auto_startup_windows() -> Result<bool, Box<dyn std::error::Error>> {
     // 2. "E:\Tool\wallwarp\wallwarp.exe"
     // 3. E:\Tool\wallwarp\wallwarp.exe --hidden
     // 4. "E:\Tool\wallwarp\wallwarp.exe" --hidden
-    let registered_exe = if startup_value.starts_with('"') {
-        // 提取第一个引号内的内容
-        if let Some(end_quote) = startup_value[1..].find('"') {
-            &startup_value[1..end_quote + 1]
-        } else {
-            // 如果没有结束引号，尝试整个字符串
-            startup_value.trim_start_matches('"')
+    let registered_exe = if let Some(unquoted) = startup_value.strip_prefix('"') {
+        // 提取第一个引号内的内容，如果没有结束引号则取整个字符串
+        match unquoted.find('"') {
+            Some(end_quote) => &unquoted[..end_quote],
+            None => unquoted,
         }
     } else {
         // 如果没有引号，按空格分割取第一部分
-        startup_value.split_whitespace().next().unwrap_or(&startup_value)
+        startup_value
+            .split_whitespace()
+            .next()
+            .unwrap_or(&startup_value)
     };
 
     Ok(registered_exe == current_exe)

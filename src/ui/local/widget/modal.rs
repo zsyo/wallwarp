@@ -6,7 +6,9 @@ use crate::ui::common;
 use crate::ui::local::message::LocalMessage;
 use crate::ui::local::state::LocalState;
 use crate::ui::style::ThemeConfig;
-use crate::ui::style::{BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_MODAL_BG};
+use crate::ui::style::{
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_MODAL_BG,
+};
 use iced::widget::{Space, column, container, row, tooltip};
 use iced::{Alignment, Element, Length};
 
@@ -31,7 +33,10 @@ pub fn create_modal<'a>(
         modal_image.into()
     } else {
         // 图片未加载完成，显示透明占位符（让背景文字可见）
-        container(Space::new()).width(Length::Fill).height(Length::Fill).into()
+        container(Space::new())
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     };
 
     // 使用 stack 将图片层叠加在加载文字之上
@@ -39,14 +44,22 @@ pub fn create_modal<'a>(
 
     // 创建底部工具栏按钮
     let prev_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F12E}", BUTTON_COLOR_BLUE, LocalMessage::PreviousImage.into()),
+        common::create_icon_button(
+            "\u{F12E}",
+            BUTTON_COLOR_BLUE,
+            LocalMessage::PreviousImage.into(),
+        ),
         i18n.t("local-list.tooltip-prev"),
         tooltip::Position::Top,
         theme_config,
     );
 
     let next_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F137}", BUTTON_COLOR_BLUE, LocalMessage::NextImage.into()),
+        common::create_icon_button(
+            "\u{F137}",
+            BUTTON_COLOR_BLUE,
+            LocalMessage::NextImage.into(),
+        ),
         i18n.t("local-list.tooltip-next"),
         tooltip::Position::Top,
         theme_config,
@@ -75,7 +88,11 @@ pub fn create_modal<'a>(
     );
 
     let close_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, LocalMessage::CloseModal.into()),
+        common::create_icon_button(
+            "\u{F659}",
+            BUTTON_COLOR_RED,
+            LocalMessage::CloseModal.into(),
+        ),
         i18n.t("local-list.tooltip-close"),
         tooltip::Position::Top,
         theme_config,

@@ -23,12 +23,12 @@ fn main() -> iced::Result {
         return Ok(());
     }
 
-    if let Ok(exe_path) = std::env::current_exe() {
-        if !helpers::is_running_via_cargo() {
-            // 生产模式：使用可执行文件所在目录作为工作目录
-            if let Some(parent_dir) = exe_path.parent() {
-                let _ = std::env::set_current_dir(parent_dir);
-            }
+    if let Ok(exe_path) = std::env::current_exe()
+        && !helpers::is_running_via_cargo()
+    {
+        // 生产模式：使用可执行文件所在目录作为工作目录
+        if let Some(parent_dir) = exe_path.parent() {
+            let _ = std::env::set_current_dir(parent_dir);
         }
     }
 
@@ -59,7 +59,10 @@ fn main() -> iced::Result {
     let init_data = std::cell::RefCell::new(Some((i18n, cfg)));
     iced::application(
         move || {
-            let (i18n, cfg) = init_data.borrow_mut().take().expect("App can only be initialized once");
+            let (i18n, cfg) = init_data
+                .borrow_mut()
+                .take()
+                .expect("App can only be initialized once");
 
             // 在 cfg 被移动之前先克隆一份用于清理任务
             let cleanup_config = cfg.clone();
@@ -88,12 +91,17 @@ fn main() -> iced::Result {
                     }
                     AppMessage::None // 返回一个空消息
                 },
-                |msg| msg.into(),
+                |msg| msg,
             );
 
             (
                 app,
-                Task::batch(vec![load_font_task, enable_resize_task, listen_task, cleanup_task]),
+                Task::batch(vec![
+                    load_font_task,
+                    enable_resize_task,
+                    listen_task,
+                    cleanup_task,
+                ]),
             )
         },
         App::update,

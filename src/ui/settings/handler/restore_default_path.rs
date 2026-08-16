@@ -6,7 +6,10 @@ use iced::Task;
 use tracing::info;
 
 impl App {
-    pub(in crate::ui::settings) fn settings_restore_default_path(&mut self, path_type: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_restore_default_path(
+        &mut self,
+        path_type: String,
+    ) -> Task<AppMessage> {
         match path_type.as_str() {
             "data" => {
                 let old_path = self.config.data.data_path.clone();

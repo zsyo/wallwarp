@@ -47,7 +47,9 @@ impl DownloadStateFull {
                 // 程序启动时，所有未完成（非 Completed、Cancelled和Failed）的任务都应该处于暂停状态
                 let is_completed = matches!(
                     status,
-                    DownloadStatus::Completed | DownloadStatus::Cancelled | DownloadStatus::Failed(_)
+                    DownloadStatus::Completed
+                        | DownloadStatus::Cancelled
+                        | DownloadStatus::Failed(_)
                 );
 
                 if !is_completed {
@@ -98,7 +100,7 @@ impl DownloadStateFull {
                 .count();
 
             // 按ID倒序排序（ID越大表示越新添加的，应该在前面）
-            self.tasks.sort_by(|a, b| b.task.id.cmp(&a.task.id));
+            self.tasks.sort_by_key(|t| std::cmp::Reverse(t.task.id));
 
             Ok(self.tasks.len())
         } else {
@@ -230,7 +232,11 @@ impl DownloadStateFull {
             queue_order: self.queue_counter,
         };
 
-        let task_full = DownloadTaskFull { task, proxy, file_type };
+        let task_full = DownloadTaskFull {
+            task,
+            proxy,
+            file_type,
+        };
 
         // 倒序插入：添加到列表开头
         self.tasks.insert(0, task_full.clone());
@@ -306,7 +312,8 @@ impl DownloadStateFull {
         let _ = self.clear_completed_from_database();
 
         // 从内存删除已完成任务
-        self.tasks.retain(|t| t.task.status != DownloadStatus::Completed);
+        self.tasks
+            .retain(|t| t.task.status != DownloadStatus::Completed);
     }
 
     /// 取消任务
@@ -323,12 +330,12 @@ impl DownloadStateFull {
     /// 更新下载速度（基于时间计算）
     pub fn update_speed(&mut self) {
         for task_full in self.tasks.iter_mut() {
-            if task_full.task.status == DownloadStatus::Downloading {
-                if let Some(start_time) = task_full.task.start_time {
-                    let elapsed = start_time.elapsed().as_secs_f64();
-                    if elapsed > 0.0 && task_full.task.downloaded_size > 0 {
-                        task_full.task.speed = (task_full.task.downloaded_size as f64 / elapsed) as u64;
-                    }
+            if task_full.task.status == DownloadStatus::Downloading
+                && let Some(start_time) = task_full.task.start_time
+            {
+                let elapsed = start_time.elapsed().as_secs_f64();
+                if elapsed > 0.0 && task_full.task.downloaded_size > 0 {
+                    task_full.task.speed = (task_full.task.downloaded_size as f64 / elapsed) as u64;
                 }
             }
         }

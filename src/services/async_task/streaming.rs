@@ -35,22 +35,28 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
     let cache_file = cache_dir.join(format!("{:x}.{}", hash, extension));
 
     // 步骤2: 检查缓存是否存在且大小匹配
-    if cache_file.exists() {
-        if let Ok(metadata) = std::fs::metadata(&cache_file) {
-            let cache_size = metadata.len();
-            if cache_size == file_size {
-                debug!("[模态窗口图片下载] [URL:{}] 使用缓存: {}", url, cache_file.display());
-                return Ok(Handle::from_path(&cache_file));
-            }
+    if cache_file.exists()
+        && let Ok(metadata) = std::fs::metadata(&cache_file)
+    {
+        let cache_size = metadata.len();
+        if cache_size == file_size {
+            debug!(
+                "[模态窗口图片下载] [URL:{}] 使用缓存: {}",
+                url,
+                cache_file.display()
+            );
+            return Ok(Handle::from_path(&cache_file));
         }
     }
 
     // 步骤3: 确保缓存目录存在
     if let Some(cache_dir_path) = cache_file.parent() {
-        tokio::fs::create_dir_all(cache_dir_path).await.map_err(|e| {
-            error!("[模态窗口图片下载] [URL:{}] 创建缓存目录失败: {}", url, e);
-            Box::new(e) as Box<dyn Error + Send + Sync>
-        })?;
+        tokio::fs::create_dir_all(cache_dir_path)
+            .await
+            .map_err(|e| {
+                error!("[模态窗口图片下载] [URL:{}] 创建缓存目录失败: {}", url, e);
+                Box::new(e) as Box<dyn Error + Send + Sync>
+            })?;
     }
 
     // 步骤4: 创建带代理和环境变量回退的优化 HTTP 客户端
@@ -70,7 +76,7 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
     if !response.status().is_success() {
         let error_msg = format!("下载失败: {}", response.status());
         error!("[模态窗口图片下载] [URL:{}] {}", url, error_msg);
-        return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, error_msg)) as Box<dyn Error + Send + Sync>);
+        return Err(Box::new(std::io::Error::other(error_msg)) as Box<dyn Error + Send + Sync>);
     }
 
     // 步骤6: 获取总大小
@@ -93,10 +99,10 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
             info!("[模态窗口图片下载] [URL:{}] 下载被取消", url);
             // 删除未完成的文件
             let _ = tokio::fs::remove_file(&cache_file).await;
-            return Err(
-                Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
-                    as Box<dyn Error + Send + Sync>,
-            );
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Interrupted,
+                "下载已取消",
+            )) as Box<dyn Error + Send + Sync>);
         }
 
         let chunk = chunk_result.map_err(|e| {
@@ -151,10 +157,10 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
                 "[模态窗口图片下载] [URL:{}] 文件大小不匹配：期望 {} bytes，实际 {} bytes",
                 url, total_size, actual_size
             );
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("文件大小不匹配：期望 {} bytes，实际 {} bytes", total_size, actual_size),
-            )) as Box<dyn Error + Send + Sync>);
+            return Err(Box::new(std::io::Error::other(format!(
+                "文件大小不匹配：期望 {} bytes，实际 {} bytes",
+                total_size, actual_size
+            ))) as Box<dyn Error + Send + Sync>);
         }
     }
 

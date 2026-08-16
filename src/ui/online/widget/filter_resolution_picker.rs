@@ -90,9 +90,13 @@ pub fn create_resolution_picker<'a>(
     let resolution_options = super::create_resolution_grid_options(i18n, state, theme_colors);
 
     // 使用 DropDown 组件
-    DropDown::new(resolution_trigger, resolution_options, state.resolution_picker_expanded)
-        .width(Length::Shrink)
-        .on_dismiss(OnlineMessage::ResolutionPickerDismiss.into())
-        .alignment(drop_down::Alignment::Bottom)
-        .into()
+    DropDown::new(
+        resolution_trigger,
+        resolution_options,
+        state.resolution_picker_expanded,
+    )
+    .width(Length::Shrink)
+    .on_dismiss(OnlineMessage::ResolutionPickerDismiss.into())
+    .alignment(drop_down::Alignment::Bottom)
+    .into()
 }

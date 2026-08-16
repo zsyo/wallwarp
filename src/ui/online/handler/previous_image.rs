@@ -15,7 +15,7 @@ impl App {
             self.online_state.current_image_index = prev_index;
 
             // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
-            let _old_handle = std::mem::replace(&mut self.online_state.modal_image_handle, None);
+            let _old_handle = self.online_state.modal_image_handle.take();
 
             // 取消当前下载
             self.online_state.cancel_modal_download();
@@ -24,11 +24,12 @@ impl App {
                 let url = wallpaper.path.clone();
                 let file_size = wallpaper.file_size;
                 let cache_path = self.config.data.cache_path.clone();
-                let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
-                    Some(self.config.global.proxy.clone())
-                } else {
-                    None
-                };
+                let proxy =
+                    if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
+                        Some(self.config.global.proxy.clone())
+                    } else {
+                        None
+                    };
 
                 // 创建取消令牌
                 let cancel_token = Arc::new(AtomicBool::new(false));

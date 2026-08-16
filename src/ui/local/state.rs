@@ -71,12 +71,11 @@ impl LocalState {
             }
 
             // 检查当前索引是否有效
-            if let Some(wallpaper_status) = self.wallpapers.get(current_index) {
-                if let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
-                    if wallpaper.name != "加载失败" {
-                        return Some(current_index);
-                    }
-                }
+            if let Some(wallpaper_status) = self.wallpapers.get(current_index)
+                && let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status
+                && wallpaper.name != "加载失败"
+            {
+                return Some(current_index);
             }
         }
         None

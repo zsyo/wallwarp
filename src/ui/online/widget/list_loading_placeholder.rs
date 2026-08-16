@@ -8,7 +8,10 @@ use iced::widget::{button, container, text};
 use iced::{Alignment, Element, Length};
 
 /// 创建加载占位符
-pub fn create_loading_placeholder<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) -> Element<'a, AppMessage> {
+pub fn create_loading_placeholder<'a>(
+    i18n: &'a I18n,
+    theme_config: &'a ThemeConfig,
+) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
 
     let loading_text = text(i18n.t("online-wallpapers.image-loading"))
@@ -40,7 +43,10 @@ pub fn create_loading_placeholder<'a>(i18n: &'a I18n, theme_config: &'a ThemeCon
         .style(|_theme, status| {
             let base_style = button::text(_theme, status);
             let shadow = get_card_shadow_by_status(matches!(status, button::Status::Hovered));
-            button::Style { shadow, ..base_style }
+            button::Style {
+                shadow,
+                ..base_style
+            }
         })
         .into()
 }

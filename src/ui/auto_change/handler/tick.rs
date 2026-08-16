@@ -42,7 +42,10 @@ impl App {
                     |result| match result {
                         Ok(paths) => {
                             if paths.is_empty() {
-                                AutoChangeMessage::GetSupportedImagesFailed("没有找到支持的壁纸文件".to_string()).into()
+                                AutoChangeMessage::GetSupportedImagesFailed(
+                                    "没有找到支持的壁纸文件".to_string(),
+                                )
+                                .into()
                             } else {
                                 AutoChangeMessage::GetSupportedImagesSuccess(paths).into()
                             }

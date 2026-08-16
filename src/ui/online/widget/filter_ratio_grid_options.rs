@@ -84,7 +84,7 @@ pub fn create_ratio_grid_options<'a>(
             };
             button::Style {
                 background: Some(iced::Background::Color(bg_color)),
-                text_color: text_color,
+                text_color,
                 border: Border {
                     color: Color::TRANSPARENT,
                     width: 0.0,
@@ -117,7 +117,7 @@ pub fn create_ratio_grid_options<'a>(
             };
             button::Style {
                 background: Some(iced::Background::Color(bg_color)),
-                text_color: text_color,
+                text_color,
                 border: Border {
                     color: Color::TRANSPARENT,
                     width: 0.0,
@@ -148,7 +148,7 @@ pub fn create_ratio_grid_options<'a>(
             };
             button::Style {
                 background: Some(iced::Background::Color(bg_color)),
-                text_color: text_color,
+                text_color,
                 border: Border {
                     color: Color::TRANSPARENT,
                     width: 0.0,
@@ -176,9 +176,13 @@ pub fn create_ratio_grid_options<'a>(
         };
 
         // 创建分组标题（水平居中）
-        let group_header = container(text(i18n.t(group_name)).size(14).color(theme_colors.light_text))
-            .width(Length::Fill)
-            .center_x(Length::Fill);
+        let group_header = container(
+            text(i18n.t(group_name))
+                .size(14)
+                .color(theme_colors.light_text),
+        )
+        .width(Length::Fill)
+        .center_x(Length::Fill);
 
         // 创建分组内的比例按钮（每一行一个）
         let mut group_column = column![].spacing(2);
@@ -210,7 +214,7 @@ pub fn create_ratio_grid_options<'a>(
                 .padding(6)
                 .style(move |_theme, _status| button::Style {
                     background: Some(iced::Background::Color(bg_color)),
-                    text_color: text_color,
+                    text_color,
                     border: Border {
                         color: border_color,
                         width: if is_selected { 2.0 } else { 0.0 },
@@ -229,9 +233,15 @@ pub fn create_ratio_grid_options<'a>(
         }
 
         // 将分组标题和内容组合，使用固定宽度
-        let group_section =
-            container(column![group_header, Space::new().height(Length::Fixed(4.0)), group_column,].spacing(0))
-                .width(Length::Fixed(100.0));
+        let group_section = container(
+            column![
+                group_header,
+                Space::new().height(Length::Fixed(4.0)),
+                group_column,
+            ]
+            .spacing(0),
+        )
+        .width(Length::Fixed(100.0));
 
         group_columns.push(group_section.into());
     }
@@ -241,9 +251,13 @@ pub fn create_ratio_grid_options<'a>(
 
     // 创建比例选择器容器
     let picker_content = container(
-        column![option_buttons, Space::new().height(Length::Fixed(12.0)), table_content,]
-            .spacing(0)
-            .align_x(Alignment::Center),
+        column![
+            option_buttons,
+            Space::new().height(Length::Fixed(12.0)),
+            table_content,
+        ]
+        .spacing(0)
+        .align_x(Alignment::Center),
     )
     .padding(6)
     .width(Length::Fixed(460.0))

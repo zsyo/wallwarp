@@ -9,7 +9,10 @@ use std::path::PathBuf;
 use tracing::error;
 
 impl App {
-    pub(in crate::ui::online) fn download_online_wallpaper(&mut self, index: usize) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn download_online_wallpaper(
+        &mut self,
+        index: usize,
+    ) -> Task<AppMessage> {
         // 下载壁纸
         if let Some(wallpaper) = self.online_state.wallpapers_data.get(index) {
             let url = wallpaper.path.clone();
@@ -18,7 +21,10 @@ impl App {
             let file_size = wallpaper.file_size;
 
             // 生成目标文件路径
-            let file_name = wallhaven::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let file_name = wallhaven::generate_file_name(
+                &id,
+                file_type.split('/').next_back().unwrap_or("jpg"),
+            );
             let data_path = self.config.data.data_path.clone();
             let target_path = PathBuf::from(&data_path).join(&file_name);
 
@@ -29,7 +35,7 @@ impl App {
                     // 文件已存在且大小匹配
                     let success_message = format!(
                         "{}: {}",
-                        self.i18n.t("download-tasks.file-already-exists").to_string(),
+                        self.i18n.t("download-tasks.file-already-exists"),
                         file_name
                     );
                     return self.show_notification(success_message, NotificationType::Info);
@@ -40,25 +46,25 @@ impl App {
             let cache_path = self.config.data.cache_path.clone();
             if let Ok(cache_file_path) =
                 DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size)
+                && let Ok(metadata) = std::fs::metadata(&cache_file_path)
             {
-                if let Ok(metadata) = std::fs::metadata(&cache_file_path) {
-                    let cache_size = metadata.len();
-                    if cache_size == file_size {
-                        // 缓存文件存在且大小匹配，直接复制到 data_path
-                        let _ = std::fs::create_dir_all(&data_path);
-                        match std::fs::copy(&cache_file_path, &target_path) {
-                            Ok(_) => {
-                                let success_message = format!(
-                                    "{}: {}",
-                                    self.i18n.t("download-tasks.copied-from-cache").to_string(),
-                                    file_name
-                                );
-                                return self.show_notification(success_message, NotificationType::Success);
-                            }
-                            Err(e) => {
-                                error!("[在线壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
-                                // 复制失败，继续走下载流程
-                            }
+                let cache_size = metadata.len();
+                if cache_size == file_size {
+                    // 缓存文件存在且大小匹配，直接复制到 data_path
+                    let _ = std::fs::create_dir_all(&data_path);
+                    match std::fs::copy(&cache_file_path, &target_path) {
+                        Ok(_) => {
+                            let success_message = format!(
+                                "{}: {}",
+                                self.i18n.t("download-tasks.copied-from-cache"),
+                                file_name
+                            );
+                            return self
+                                .show_notification(success_message, NotificationType::Success);
+                        }
+                        Err(e) => {
+                            error!("[在线壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
+                            // 复制失败，继续走下载流程
                         }
                     }
                 }
@@ -74,14 +80,20 @@ impl App {
 
             if has_duplicate {
                 // 任务已在下载队列中
-                let info_message = self.i18n.t("download-tasks.task-already-in-queue").to_string();
+                let info_message = self
+                    .i18n
+                    .t("download-tasks.task-already-in-queue")
+                    .to_string();
                 return self.show_notification(info_message, NotificationType::Info);
             }
 
             // 4. 开始下载
-            let add_to_queue_message = self.i18n.t("download-tasks.added-to-download-queue").to_string();
+            let add_to_queue_message = self
+                .i18n
+                .t("download-tasks.added-to-download-queue")
+                .to_string();
             let download_task = self.start_download(url, &id, &file_type);
-            
+
             // 显示添加到下载队列的通知
             return Task::batch([
                 download_task,

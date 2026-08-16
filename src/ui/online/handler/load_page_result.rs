@@ -61,7 +61,9 @@ impl App {
 
             // 创建取消令牌
             let cancel_token = Arc::new(AtomicBool::new(false));
-            self.online_state.thumb_load_cancel_tokens.push(cancel_token.clone());
+            self.online_state
+                .thumb_load_cancel_tokens
+                .push(cancel_token.clone());
 
             tasks.push(Task::perform(
                 async_task::async_load_online_wallpaper_thumb_with_cache_with_cancel(
@@ -81,7 +83,9 @@ impl App {
         // 保存原始数据
         for wallpaper in &wallpapers {
             self.online_state.wallpapers_data.push(wallpaper.clone());
-            self.online_state.wallpapers.push(WallpaperLoadStatus::Loading);
+            self.online_state
+                .wallpapers
+                .push(WallpaperLoadStatus::Loading);
         }
 
         // 在添加完当前页数据后记录分页信息
@@ -98,7 +102,10 @@ impl App {
         Task::batch(tasks)
     }
 
-    pub(in crate::ui::online) fn load_online_page_failed(&mut self, error: String) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn load_online_page_failed(
+        &mut self,
+        error: String,
+    ) -> Task<AppMessage> {
         // 加载失败
         self.online_state.loading_page = false;
         self.online_state.has_loaded = true; // 标记已加载过数据（虽然失败了）

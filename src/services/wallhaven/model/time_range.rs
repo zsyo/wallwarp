@@ -49,7 +49,7 @@ impl TimeRange {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "1d" => Some(TimeRange::Day),
             "3d" => Some(TimeRange::ThreeDays),

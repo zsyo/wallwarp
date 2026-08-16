@@ -56,32 +56,36 @@ pub fn create_proxy_protocol_picker<'a>(app: &'a App) -> Element<'a, AppMessage>
         });
 
     // 创建代理协议选项（overlay）
-    let protocol_options_content = column([ProxyProtocol::Http, ProxyProtocol::Socks5].iter().map(|protocol| {
-        let is_selected = current_protocol == Some(*protocol);
-        button(text(protocol.as_str()).size(14))
-            .padding(6)
-            .width(Length::Fill)
-            .on_press(SettingsMessage::ProxyProtocolChanged(protocol.as_str().to_string()).into())
-            .style(move |_theme, _status| button::Style {
-                background: if is_selected {
-                    Some(iced::Background::Color(COLOR_SELECTED_BLUE))
-                } else {
-                    Some(iced::Background::Color(Color::TRANSPARENT))
-                },
-                text_color: if is_selected {
-                    Color::WHITE
-                } else {
-                    theme_colors.light_text
-                },
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..button::text(_theme, _status)
-            })
-            .into()
-    }))
+    let protocol_options_content = column([ProxyProtocol::Http, ProxyProtocol::Socks5].iter().map(
+        |protocol| {
+            let is_selected = current_protocol == Some(*protocol);
+            button(text(protocol.as_str()).size(14))
+                .padding(6)
+                .width(Length::Fill)
+                .on_press(
+                    SettingsMessage::ProxyProtocolChanged(protocol.as_str().to_string()).into(),
+                )
+                .style(move |_theme, _status| button::Style {
+                    background: if is_selected {
+                        Some(iced::Background::Color(COLOR_SELECTED_BLUE))
+                    } else {
+                        Some(iced::Background::Color(Color::TRANSPARENT))
+                    },
+                    text_color: if is_selected {
+                        Color::WHITE
+                    } else {
+                        theme_colors.light_text
+                    },
+                    border: Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: Radius::from(4.0),
+                    },
+                    ..button::text(_theme, _status)
+                })
+                .into()
+        },
+    ))
     .spacing(2);
 
     let picker_content = container(protocol_options_content)

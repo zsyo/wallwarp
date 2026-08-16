@@ -5,11 +5,11 @@ use crate::services::local::Wallpaper;
 use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::local::LocalMessage;
-use crate::ui::style::{
-    BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, ERROR_ICON_SIZE, ERROR_PATH_SIZE,
-    ERROR_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
-};
 use crate::ui::style::ThemeConfig;
+use crate::ui::style::{
+    BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, ERROR_ICON_SIZE,
+    ERROR_PATH_SIZE, ERROR_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
+};
 use crate::utils::helpers;
 use iced::widget::{Space, button, column, container, row, text, tooltip};
 use iced::{Alignment, Color, Font, Length};
@@ -28,18 +28,18 @@ pub fn create_error_placeholder<'a>(
         .color(Color::BLACK)
         .size(ERROR_ICON_SIZE);
 
-    let error_text =
-        text(i18n.t("local-list.loading-error"))
-            .size(ERROR_TEXT_SIZE)
-            .style(move |_theme: &iced::Theme| text::Style {
-                color: Some(theme_colors.text),
-            });
-
-    let error_path = text(&wallpaper.path)
-        .size(ERROR_PATH_SIZE)
+    let error_text = text(i18n.t("local-list.loading-error"))
+        .size(ERROR_TEXT_SIZE)
         .style(move |_theme: &iced::Theme| text::Style {
             color: Some(theme_colors.text),
         });
+
+    let error_path =
+        text(&wallpaper.path)
+            .size(ERROR_PATH_SIZE)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            });
 
     let inner_content = container(
         column![error_image, error_text, error_path]
@@ -98,12 +98,18 @@ pub fn create_error_placeholder<'a>(
     let left_area = container(file_size_text).align_y(Alignment::Center);
 
     // 右侧区域：操作按钮
-    let right_area = row![view_button, delete_button].spacing(2.0).align_y(Alignment::Center);
+    let right_area = row![view_button, delete_button]
+        .spacing(2.0)
+        .align_y(Alignment::Center);
 
     // 遮罩层内容（左中右布局，中间为空，因为没有分辨率）
-    let overlay_content = row![left_area, container(Space::new()).width(Length::Fill), right_area,]
-        .align_y(Alignment::Center)
-        .padding([0, 8]);
+    let overlay_content = row![
+        left_area,
+        container(Space::new()).width(Length::Fill),
+        right_area,
+    ]
+    .align_y(Alignment::Center)
+    .padding([0, 8]);
 
     // 创建遮罩层
     let overlay = container(overlay_content)
@@ -143,6 +149,9 @@ pub fn create_error_placeholder<'a>(
                     blur_radius: 8.0,
                 },
             };
-            button::Style { shadow, ..base_style }
+            button::Style {
+                shadow,
+                ..base_style
+            }
         })
 }

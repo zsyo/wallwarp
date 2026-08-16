@@ -23,7 +23,10 @@ pub async fn async_cleanup_cache(config: Config) -> Result<(), Box<dyn Error + S
     let thumbnail_dir = cache_path.join("thumbnail");
     if thumbnail_dir.exists() {
         let deleted = cleanup_directory_by_age(&thumbnail_dir, 7, None).await?;
-        info!("[缓存清理] thumbnail 目录清理完成，删除了 {} 个文件", deleted);
+        info!(
+            "[缓存清理] thumbnail 目录清理完成，删除了 {} 个文件",
+            deleted
+        );
     } else {
         info!("[缓存清理] thumbnail 目录不存在，跳过");
     }
@@ -33,8 +36,12 @@ pub async fn async_cleanup_cache(config: Config) -> Result<(), Box<dyn Error + S
     if auto_change_dir.exists() {
         // 获取当前正在使用的壁纸路径
         let current_wallpaper = get_current_wallpaper().await.ok();
-        let deleted = cleanup_directory_by_age(&auto_change_dir, 3, current_wallpaper.as_deref()).await?;
-        info!("[缓存清理] auto_change 目录清理完成，删除了 {} 个文件", deleted);
+        let deleted =
+            cleanup_directory_by_age(&auto_change_dir, 3, current_wallpaper.as_deref()).await?;
+        info!(
+            "[缓存清理] auto_change 目录清理完成，删除了 {} 个文件",
+            deleted
+        );
     } else {
         info!("[缓存清理] auto_change 目录不存在，跳过");
     }
@@ -43,7 +50,10 @@ pub async fn async_cleanup_cache(config: Config) -> Result<(), Box<dyn Error + S
     let online_dir = cache_path.join("online");
     if online_dir.exists() {
         let deleted_by_age = cleanup_directory_by_age(&online_dir, 7, None).await?;
-        info!("[缓存清理] online 目录清理完成，删除了 {} 个过期文件", deleted_by_age);
+        info!(
+            "[缓存清理] online 目录清理完成，删除了 {} 个过期文件",
+            deleted_by_age
+        );
     } else {
         info!("[缓存清理] online 目录不存在，跳过");
     }
@@ -105,11 +115,11 @@ async fn cleanup_directory_by_age(
         }
 
         // 检查是否在排除列表中
-        if let Some(exclude) = exclude_path {
-            if path.to_string_lossy().to_lowercase() == exclude.to_lowercase() {
-                info!("[缓存清理] 跳过当前使用的壁纸: {}", path.display());
-                continue;
-            }
+        if let Some(exclude) = exclude_path
+            && path.to_string_lossy().to_lowercase() == exclude.to_lowercase()
+        {
+            info!("[缓存清理] 跳过当前使用的壁纸: {}", path.display());
+            continue;
         }
 
         // 获取文件创建时间（或修改时间）
@@ -153,7 +163,9 @@ fn get_file_age_seconds(path: &Path) -> Result<u64, Box<dyn Error>> {
     let metadata = fs::metadata(path)?;
 
     // 优先使用修改时间（Windows 系统），如果修改时间不可用则使用创建时间
-    let file_time = metadata.modified().unwrap_or_else(|_| metadata.created().unwrap());
+    let file_time = metadata
+        .modified()
+        .unwrap_or_else(|_| metadata.created().unwrap());
 
     let now = SystemTime::now();
     let duration = now.duration_since(file_time)?;
@@ -167,7 +179,10 @@ fn get_file_age_seconds(path: &Path) -> Result<u64, Box<dyn Error>> {
 /// 返回当前壁纸的绝对路径，如果获取失败则返回 None
 async fn get_current_wallpaper() -> Result<String, Box<dyn Error + Send + Sync>> {
     // 使用 tokio::task::spawn_blocking 在阻塞线程中执行
-    tokio::task::spawn_blocking(|| wallpaper::get().map_err(|e| format!("获取当前壁纸失败: {}", e).into())).await?
+    tokio::task::spawn_blocking(|| {
+        wallpaper::get().map_err(|e| format!("获取当前壁纸失败: {}", e).into())
+    })
+    .await?
 }
 
 /// 清理 logs 目录中的日志文件
@@ -226,7 +241,10 @@ async fn cleanup_logs_directory(
         }
 
         // 只处理 .log 后缀的文件
-        if path.extension().map_or(false, |ext| ext.eq_ignore_ascii_case("log")) {
+        if path
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("log"))
+        {
             // 获取文件年龄
             let file_age_seconds = match get_file_age_seconds(&path) {
                 Ok(age) => age,

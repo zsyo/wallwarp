@@ -25,7 +25,9 @@ pub fn create_menu_button<'a>(
     };
 
     let button_content = row![
-        row![text(icon), text(label)].spacing(8).align_y(Alignment::Center),
+        row![text(icon), text(label)]
+            .spacing(8)
+            .align_y(Alignment::Center),
         Space::new().width(Length::Fill),
         if is_selected {
             container(Space::new())

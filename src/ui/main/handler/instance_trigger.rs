@@ -7,7 +7,10 @@ use iced::Task;
 use tracing::info;
 
 impl App {
-    pub(in crate::ui::main) fn external_instance_triggered(&mut self, payload: String) -> Task<AppMessage> {
+    pub(in crate::ui::main) fn external_instance_triggered(
+        &mut self,
+        payload: String,
+    ) -> Task<AppMessage> {
         info!("外部实例触发事件: {}", payload);
 
         let show_window_task = if payload.contains(WAKE_UP) {

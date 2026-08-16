@@ -23,7 +23,10 @@ impl std::fmt::Display for DisplayableTimeRange {
 }
 
 /// 创建时间范围选择器
-pub fn create_time_range_picker<'a>(app: &'a App, theme_colors: ThemeColors) -> Element<'a, AppMessage> {
+pub fn create_time_range_picker<'a>(
+    app: &'a App,
+    theme_colors: ThemeColors,
+) -> Element<'a, AppMessage> {
     let time_range_options: Vec<DisplayableTimeRange> = TimeRange::all()
         .iter()
         .map(|t| DisplayableTimeRange {
@@ -77,21 +80,25 @@ pub fn create_time_range_picker<'a>(app: &'a App, theme_colors: ThemeColors) -> 
         });
 
     // 用 tooltip 包裹时间范围选择器
-    let time_range_tooltip_text =
-        text(app.i18n.t("settings.auto-change-time-range-tooltip")).style(move |_theme: &iced::Theme| text::Style {
+    let time_range_tooltip_text = text(app.i18n.t("settings.auto-change-time-range-tooltip"))
+        .style(move |_theme: &iced::Theme| text::Style {
             color: Some(theme_colors.text),
         });
 
-    let time_range_trigger_with_tooltip = tooltip(time_range_trigger, time_range_tooltip_text, tooltip::Position::Top)
-        .style(move |_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
-            border: Border {
-                color: theme_colors.tooltip_border_color,
-                width: TOOLTIP_BORDER_WIDTH,
-                radius: Radius::from(TOOLTIP_BORDER_RADIUS),
-            },
-            ..Default::default()
-        });
+    let time_range_trigger_with_tooltip = tooltip(
+        time_range_trigger,
+        time_range_tooltip_text,
+        tooltip::Position::Top,
+    )
+    .style(move |_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
+        border: Border {
+            color: theme_colors.tooltip_border_color,
+            width: TOOLTIP_BORDER_WIDTH,
+            radius: Radius::from(TOOLTIP_BORDER_RADIUS),
+        },
+        ..Default::default()
+    });
 
     // 创建时间范围选项（overlay）
     let time_range_options_content = column(time_range_options.iter().map(|option| {

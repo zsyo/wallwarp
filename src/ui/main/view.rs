@@ -8,7 +8,8 @@ use iced::widget::{Space, column, container, image, row, text};
 use iced::{Alignment, Element, Length};
 
 pub fn main_view(app: &App) -> Element<'_, AppMessage> {
-    let functional_area_width = (app.main_state.current_window_width as f32 - SIDEBAR_WIDTH).max(1.0);
+    let functional_area_width =
+        (app.main_state.current_window_width as f32 - SIDEBAR_WIDTH).max(1.0);
 
     let content: Element<'_, AppMessage> = match app.active_page {
         ActivePage::OnlineWallpapers => online::online_view(
@@ -115,12 +116,11 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
     // 使用带边缘调整大小功能的容器包裹整个界面
     // 边缘触发区域大小为 5 像素
     // 当窗口最大化时,禁用边缘调整大小功能
-    let resizable_layout = widget::create_resizable_container(
+
+    widget::create_resizable_container(
         full_layout.into(),
         5.0, // 边缘触发区域大小
         |direction| MainMessage::ResizeWindow(direction).into(),
         app.main_state.is_maximized, // 窗口是否已最大化
-    );
-
-    resizable_layout
+    )
 }

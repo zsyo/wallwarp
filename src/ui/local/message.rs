@@ -68,7 +68,9 @@ impl App {
             LocalMessage::LoadWallpapers => self.load_local_wallpapers(),
             LocalMessage::LoadWallpapersSuccess(paths) => self.load_local_wallpapers_success(paths),
             LocalMessage::LoadPage => self.load_local_page(),
-            LocalMessage::LoadPageSuccess(wallpapers_with_idx) => self.load_local_page_success(wallpapers_with_idx),
+            LocalMessage::LoadPageSuccess(wallpapers_with_idx) => {
+                self.load_local_page_success(wallpapers_with_idx)
+            }
             LocalMessage::ShowModal(index) => self.show_local_modal(index),
             LocalMessage::ModalImageLoaded(handle) => self.local_modal_image_loaded(handle),
             LocalMessage::CloseModal => self.close_local_modal(),

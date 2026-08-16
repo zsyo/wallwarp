@@ -38,13 +38,11 @@ impl DownloadDatabase {
     pub fn open(db_path: &str) -> Result<Self, String> {
         // 初始化全局数据库管理器
         DatabaseManager::init(db_path)?;
-        
+
         // 创建下载任务仓库实例
         let db_manager = DatabaseManager::get();
-        let repository = DownloadTasksRepository::new(
-            db_manager.connection().clone()
-        );
-        
+        let repository = DownloadTasksRepository::new(db_manager.connection().clone());
+
         Ok(Self { repository })
     }
 
@@ -57,9 +55,7 @@ impl DownloadDatabase {
     /// 如果在调用 open() 之前调用此方法，会 panic
     pub fn get() -> Self {
         let db_manager = DatabaseManager::get();
-        let repository = DownloadTasksRepository::new(
-            db_manager.connection().clone()
-        );
+        let repository = DownloadTasksRepository::new(db_manager.connection().clone());
         Self { repository }
     }
 

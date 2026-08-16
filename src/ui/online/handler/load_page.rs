@@ -36,7 +36,9 @@ impl App {
 
         // 计算分辨率参数
         let atleast = if self.online_state.resolution_mode == ResolutionMode::AtLeast {
-            self.online_state.atleast_resolution.map(|r| r.value().to_string())
+            self.online_state
+                .atleast_resolution
+                .map(|r| r.value().to_string())
         } else {
             None
         };
@@ -83,7 +85,7 @@ impl App {
         };
 
         Task::perform(
-            async_task::async_load_online_wallpapers(
+            async_task::async_load_online_wallpapers(async_task::OnlineSearchParams {
                 categories,
                 sorting,
                 purities,
@@ -96,13 +98,14 @@ impl App {
                 page,
                 api_key,
                 proxy,
-                self.config.global.proxy_enabled,
-                true, // 启用环境变量回退
+                proxy_enabled: self.config.global.proxy_enabled,
+                use_env_fallback: true, // 启用环境变量回退
                 context,
-            ),
+            }),
             |result| match result {
                 Ok((wallpapers, last_page, total_pages, current_page)) => {
-                    OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page).into()
+                    OnlineMessage::LoadPageSuccess(wallpapers, last_page, total_pages, current_page)
+                        .into()
                 }
                 Err(e) => OnlineMessage::LoadPageFailed(e.to_string()).into(),
             },

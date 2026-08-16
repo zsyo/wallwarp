@@ -16,31 +16,31 @@ impl SingleInstanceGuard {
         SOCKET_ID
             .to_ns_name::<GenericNamespaced>()
             .map(|n| n.into_owned())
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))
+            .map_err(|e| io::Error::other(e.to_string()))
     }
 
     pub fn send_args_to_existing_instance(start_hidden: bool) -> bool {
-        if let Ok(name) = Self::get_socket_name() {
-            if let Ok(mut conn) = LocalSocketStream::connect(name) {
-                if start_hidden {
-                    // 如果本次是后台启动，我们发现已经有实例在运行了，
-                    // 那么直接返回 true 让当前进程退出，【不发送】任何消息给旧实例。
-                    return true;
-                }
-
-                #[cfg(windows)]
-                unsafe {
-                    // 告诉系统：允许另一个进程（我们的主实例）带走前台焦点
-                    // ASFW_ANY 允许任何进程（通常指接下来获得焦点的进程）置顶
-                    let _ = AllowSetForegroundWindow(ASFW_ANY);
-                }
-
-                let args: Vec<String> = std::env::args().collect();
-                let msg = args.get(1).map(|s| s.as_str()).unwrap_or(WAKE_UP);
-                let _ = conn.write_all(format!("{}\n", msg).as_bytes());
-                let _ = conn.flush();
+        if let Ok(name) = Self::get_socket_name()
+            && let Ok(mut conn) = LocalSocketStream::connect(name)
+        {
+            if start_hidden {
+                // 如果本次是后台启动，我们发现已经有实例在运行了，
+                // 那么直接返回 true 让当前进程退出，【不发送】任何消息给旧实例。
                 return true;
             }
+
+            #[cfg(windows)]
+            unsafe {
+                // 告诉系统：允许另一个进程（我们的主实例）带走前台焦点
+                // ASFW_ANY 允许任何进程（通常指接下来获得焦点的进程）置顶
+                let _ = AllowSetForegroundWindow(ASFW_ANY);
+            }
+
+            let args: Vec<String> = std::env::args().collect();
+            let msg = args.get(1).map(|s| s.as_str()).unwrap_or(WAKE_UP);
+            let _ = conn.write_all(format!("{}\n", msg).as_bytes());
+            let _ = conn.flush();
+            return true;
         }
         false
     }

@@ -1,10 +1,10 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::style::{
-    ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS,
-    TOOLTIP_BORDER_WIDTH,
-};
 use crate::ui::style::ThemeConfig;
+use crate::ui::style::{
+    ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
+    TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
+};
 use iced::border::{Border, Radius};
 use iced::widget::{button, container, text, tooltip};
 use iced::{Alignment, Color, Element, Font};

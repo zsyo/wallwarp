@@ -28,7 +28,10 @@ impl App {
         !wallpaper_path.starts_with(data_dir)
     }
 
-    pub(in crate::ui::main) fn add_to_wallpaper_history(&mut self, path: String) -> Task<AppMessage> {
+    pub(in crate::ui::main) fn add_to_wallpaper_history(
+        &mut self,
+        path: String,
+    ) -> Task<AppMessage> {
         // 检查历史记录中是否已存在该路径，如果存在则先移除
         if let Some(pos) = self.wallpaper_history.iter().position(|p| p == &path) {
             self.wallpaper_history.remove(pos);
@@ -52,13 +55,12 @@ impl App {
         );
 
         // 如果开启了定时切换壁纸,那么重新计算下次切换时间
-        if self.auto_change_state.auto_change_enabled {
-            if let Some(minutes) = self.config.wallpaper.auto_change_interval.get_minutes() {
-                if minutes > 0 {
-                    self.auto_change_state.next_execute_time =
-                        Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
-                }
-            }
+        if self.auto_change_state.auto_change_enabled
+            && let Some(minutes) = self.config.wallpaper.auto_change_interval.get_minutes()
+            && minutes > 0
+        {
+            self.auto_change_state.next_execute_time =
+                Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
         }
 
         // 更新托盘菜单项的启用状态
@@ -81,13 +83,12 @@ impl App {
         }
 
         // 如果开启了定时切换壁纸,那么重新计算下次切换时间
-        if self.auto_change_state.auto_change_enabled {
-            if let Some(minutes) = self.config.wallpaper.auto_change_interval.get_minutes() {
-                if minutes > 0 {
-                    self.auto_change_state.next_execute_time =
-                        Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
-                }
-            }
+        if self.auto_change_state.auto_change_enabled
+            && let Some(minutes) = self.config.wallpaper.auto_change_interval.get_minutes()
+            && minutes > 0
+        {
+            self.auto_change_state.next_execute_time =
+                Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
         }
 
         // 更新托盘菜单项的启用状态

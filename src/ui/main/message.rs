@@ -102,18 +102,26 @@ impl App {
                 self.show_notification(message, notification_type)
             }
             MainMessage::HideNotification => self.hide_notification(),
-            MainMessage::HideNotificationWithVersion(version) => self.hide_notification_with_version(version),
+            MainMessage::HideNotificationWithVersion(version) => {
+                self.hide_notification_with_version(version)
+            }
             MainMessage::TraySwitchPreviousWallpaper => self.tray_switch_previous_wallpaper(),
             MainMessage::TraySwitchNextWallpaper => self.tray_switch_next_wallpaper(),
             MainMessage::TraySaveCurrentWallpaper => self.tray_save_current_wallpaper(),
             MainMessage::AddToWallpaperHistory(path) => self.add_to_wallpaper_history(path),
-            MainMessage::RemoveLastFromWallpaperHistory => self.remove_last_from_wallpaper_history(),
-            MainMessage::ExternalInstanceTriggered(payload) => self.external_instance_triggered(payload),
+            MainMessage::RemoveLastFromWallpaperHistory => {
+                self.remove_last_from_wallpaper_history()
+            }
+            MainMessage::ExternalInstanceTriggered(payload) => {
+                self.external_instance_triggered(payload)
+            }
             MainMessage::TitleBarDrag => self.title_bar_drag(),
             MainMessage::TitleBarMinimize => self.title_bar_minimize(),
             MainMessage::TitleBarMaximize => self.title_bar_maximize(),
             MainMessage::TitleBarClose => self.window_close_requested(),
-            MainMessage::RestoreBorderResize(window_state) => self.restore_border_resize(window_state),
+            MainMessage::RestoreBorderResize(window_state) => {
+                self.restore_border_resize(window_state)
+            }
             MainMessage::ResizeWindow(direction) => self.drag_resize_window(direction),
         }
     }

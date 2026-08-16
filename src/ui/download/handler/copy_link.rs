@@ -17,7 +17,9 @@ impl App {
                     #[cfg(target_os = "windows")]
                     {
                         use std::process::Command;
-                        let result = Command::new("cmd").args(["/c", "echo", &url, "|", "clip"]).output();
+                        let result = Command::new("cmd")
+                            .args(["/c", "echo", &url, "|", "clip"])
+                            .output();
                         match result {
                             Ok(_) => Ok(()),
                             Err(_) => Err("复制失败".to_string()),
@@ -37,11 +39,15 @@ impl App {
                     }
                 },
                 move |result| match result {
-                    Ok(_) => MainMessage::ShowNotification(success_message, NotificationType::Success).into(),
-                    Err(e) => {
-                        MainMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error)
+                    Ok(_) => {
+                        MainMessage::ShowNotification(success_message, NotificationType::Success)
                             .into()
                     }
+                    Err(e) => MainMessage::ShowNotification(
+                        format!("{}: {}", failed_message, e),
+                        NotificationType::Error,
+                    )
+                    .into(),
                 },
             );
         }

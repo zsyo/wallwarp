@@ -14,14 +14,15 @@ impl App {
             }
 
             // 计算每行可以显示多少张图
-            let available_width = (self.main_state.current_window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
+            let available_width =
+                (self.main_state.current_window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
             let unit_width = IMAGE_WIDTH + IMAGE_SPACING;
             let items_per_row = (available_width / unit_width).floor() as usize;
             let items_per_row = items_per_row.max(1);
 
             // 计算实际行数
             let num_wallpapers = self.online_state.wallpapers.len();
-            let num_rows = (num_wallpapers + items_per_row - 1) / items_per_row;
+            let num_rows = num_wallpapers.div_ceil(items_per_row);
 
             // 估算内容高度
             let estimated_content_height = num_rows as f32 * (IMAGE_HEIGHT + IMAGE_SPACING);

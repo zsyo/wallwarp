@@ -47,31 +47,35 @@ pub fn create_clear_completed_button<'a>(
     .align_y(Alignment::Center);
 
     let btn = if has_completed {
-        button(button_content).style(move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
-            iced::widget::button::Style {
-                text_color: iced::Color::WHITE,
-                background: Some(iced::Background::Color(BUTTON_COLOR_RED)),
-                border: iced::Border {
-                    color: BUTTON_COLOR_RED,
-                    width: 0.0,
-                    radius: 4.0.into(),
-                },
-                ..Default::default()
-            }
-        })
+        button(button_content).style(
+            move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
+                iced::widget::button::Style {
+                    text_color: iced::Color::WHITE,
+                    background: Some(iced::Background::Color(BUTTON_COLOR_RED)),
+                    border: iced::Border {
+                        color: BUTTON_COLOR_RED,
+                        width: 0.0,
+                        radius: 4.0.into(),
+                    },
+                    ..Default::default()
+                }
+            },
+        )
     } else {
-        button(button_content).style(move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
-            iced::widget::button::Style {
-                text_color: theme_colors.light_text_sub,
-                background: Some(iced::Background::Color(theme_colors.light_button)),
-                border: iced::Border {
-                    color: theme_colors.border,
-                    width: 1.0,
-                    radius: 4.0.into(),
-                },
-                ..Default::default()
-            }
-        })
+        button(button_content).style(
+            move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
+                iced::widget::button::Style {
+                    text_color: theme_colors.light_text_sub,
+                    background: Some(iced::Background::Color(theme_colors.light_button)),
+                    border: iced::Border {
+                        color: theme_colors.border,
+                        width: 1.0,
+                        radius: 4.0.into(),
+                    },
+                    ..Default::default()
+                }
+            },
+        )
     };
 
     btn.on_press_maybe(if has_completed {

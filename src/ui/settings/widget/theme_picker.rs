@@ -13,7 +13,7 @@ use iced_aw::{DropDown, drop_down};
 /// 创建主题选择器
 pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
     let theme_colors = app.theme_colors;
-    let current_theme = app.config.global.theme.clone();
+    let current_theme = app.config.global.theme;
 
     // 根据当前主题获取对应的翻译文本
     let current_theme_text = match current_theme {
@@ -61,7 +61,6 @@ pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
 
     // 创建主题选项（overlay）
     let theme_options_content = {
-        let theme_colors = theme_colors.clone();
         let current_theme = app.config.global.theme;
 
         column([

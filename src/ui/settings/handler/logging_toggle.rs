@@ -5,7 +5,10 @@ use iced::Task;
 use tracing::info;
 
 impl App {
-    pub(in crate::ui::settings) fn settings_logging_toggled(&mut self, enabled: bool) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_logging_toggled(
+        &mut self,
+        enabled: bool,
+    ) -> Task<AppMessage> {
         let old_value = self.config.global.enable_logging;
         info!("[设置] [运行日志] 修改: {} -> {}", old_value, enabled);
         self.config.global.enable_logging = enabled;

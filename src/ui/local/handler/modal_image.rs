@@ -9,13 +9,12 @@ impl App {
     /// 显示本地壁纸模态窗口
     pub(in crate::ui::local) fn show_local_modal(&mut self, index: usize) -> Task<AppMessage> {
         // 检查要显示的图片是否为失败状态
-        if let Some(wallpaper_status) = self.local_state.wallpapers.get(index) {
-            if let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status {
-                if wallpaper.name == "加载失败" {
-                    // 如果是失败的图片，不显示模态窗口
-                    return Task::none();
-                }
-            }
+        if let Some(wallpaper_status) = self.local_state.wallpapers.get(index)
+            && let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status
+            && wallpaper.name == "加载失败"
+        {
+            // 如果是失败的图片，不显示模态窗口
+            return Task::none();
         }
 
         // 显示模态窗口，设置当前图片索引
@@ -23,7 +22,7 @@ impl App {
         self.local_state.modal_visible = true;
 
         // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
-        let _old_handle = std::mem::replace(&mut self.local_state.modal_image_handle, None);
+        let _old_handle = self.local_state.modal_image_handle.take();
 
         // 异步加载图片数据
         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
@@ -35,7 +34,10 @@ impl App {
     }
 
     /// 模态窗口图片加载完成
-    pub(in crate::ui::local) fn local_modal_image_loaded(&mut self, handle: Handle) -> Task<AppMessage> {
+    pub(in crate::ui::local) fn local_modal_image_loaded(
+        &mut self,
+        handle: Handle,
+    ) -> Task<AppMessage> {
         // 模态窗口图片加载完成，保存图片数据
         if !self.local_state.modal_visible {
             return Task::none();
@@ -50,7 +52,7 @@ impl App {
         self.local_state.modal_visible = false;
 
         // 显式释放图片数据: 先将 Handle 移出,然后让新值覆盖
-        let _old_handle = std::mem::replace(&mut self.local_state.modal_image_handle, None);
+        let _old_handle = self.local_state.modal_image_handle.take();
         Task::none()
     }
 }

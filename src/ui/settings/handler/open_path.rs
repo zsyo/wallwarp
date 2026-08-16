@@ -6,7 +6,10 @@ use iced::Task;
 use tracing::error;
 
 impl App {
-    pub(in crate::ui::settings) fn settings_open_path(&mut self, path_type: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_open_path(
+        &mut self,
+        path_type: String,
+    ) -> Task<AppMessage> {
         let (path_to_open, dir_name) = match path_type.as_str() {
             "data" => (&self.config.data.data_path, "数据目录"),
             "cache" => (&self.config.data.cache_path, "缓存目录"),

@@ -5,7 +5,9 @@ use crate::ui::style::ThemeConfig;
 use iced::border::{Border, Radius};
 use iced::widget::container;
 /// 创建主内容区容器样式（无边框，右侧添加分隔线）
-pub fn create_main_container_style(theme_config: &ThemeConfig) -> impl Fn(&iced::Theme) -> container::Style + '_ {
+pub fn create_main_container_style(
+    theme_config: &ThemeConfig,
+) -> impl Fn(&iced::Theme) -> container::Style + '_ {
     let theme_colors = theme_config.get_theme_colors();
 
     move |_theme: &iced::Theme| container::Style {
@@ -20,7 +22,9 @@ pub fn create_main_container_style(theme_config: &ThemeConfig) -> impl Fn(&iced:
 }
 
 /// 创建侧边栏容器样式（无边框，根据主题设置背景色）
-pub fn create_sidebar_container_style(theme_config: &ThemeConfig) -> impl Fn(&iced::Theme) -> container::Style + '_ {
+pub fn create_sidebar_container_style(
+    theme_config: &ThemeConfig,
+) -> impl Fn(&iced::Theme) -> container::Style + '_ {
     let theme_colors = theme_config.get_theme_colors();
 
     move |_theme: &iced::Theme| container::Style {

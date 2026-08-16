@@ -41,7 +41,11 @@ impl App {
         let path_display = self.get_path_display(&self.settings_state.path_to_clear);
 
         // 将消息转换为字符串（简化处理）
-        let message_text = format!("{}\n{}", self.i18n.t("path-clear-confirmation.message"), path_display);
+        let message_text = format!(
+            "{}\n{}",
+            self.i18n.t("path-clear-confirmation.message"),
+            path_display
+        );
 
         common::create_confirmation_dialog(
             self.i18n.t("path-clear-confirmation.title"),
@@ -57,16 +61,23 @@ impl App {
     fn notification_view(&self) -> iced::Element<'_, AppMessage> {
         // 根据通知类型设置颜色
         let (bg_color, text_color) = match self.main_state.notification_type {
-            NotificationType::Success => (style::NOTIFICATION_SUCCESS_BG, style::NOTIFICATION_TEXT_COLOR),
-            NotificationType::Error => (style::NOTIFICATION_ERROR_BG, style::NOTIFICATION_TEXT_COLOR),
+            NotificationType::Success => (
+                style::NOTIFICATION_SUCCESS_BG,
+                style::NOTIFICATION_TEXT_COLOR,
+            ),
+            NotificationType::Error => {
+                (style::NOTIFICATION_ERROR_BG, style::NOTIFICATION_TEXT_COLOR)
+            }
             NotificationType::Info => (style::NOTIFICATION_INFO_BG, style::NOTIFICATION_TEXT_COLOR),
         };
 
-        let notification_content = container(text(&self.main_state.notification_message).size(14).style(
-            move |_theme| text::Style {
-                color: Some(text_color),
-            },
-        ))
+        let notification_content = container(
+            text(&self.main_state.notification_message)
+                .size(14)
+                .style(move |_theme| text::Style {
+                    color: Some(text_color),
+                }),
+        )
         .padding(10)
         .width(Length::Shrink)
         .height(Length::Shrink)
@@ -95,7 +106,10 @@ impl App {
     }
 
     // 辅助方法：创建叠加层（底层内容 + 覆盖内容）
-    fn create_stack<'a>(base: Element<'a, AppMessage>, overlay: Element<'a, AppMessage>) -> Element<'a, AppMessage> {
+    fn create_stack<'a>(
+        base: Element<'a, AppMessage>,
+        overlay: Element<'a, AppMessage>,
+    ) -> Element<'a, AppMessage> {
         stack(vec![base, overlay])
             .width(Length::Fill)
             .height(Length::Fill)
@@ -112,7 +126,11 @@ impl App {
     }
 
     // 辅助方法：显示通知
-    pub fn show_notification(&mut self, message: String, notification_type: NotificationType) -> Task<AppMessage> {
+    pub fn show_notification(
+        &mut self,
+        message: String,
+        notification_type: NotificationType,
+    ) -> Task<AppMessage> {
         self.main_state.notification_message = message;
         self.main_state.notification_type = notification_type;
         self.main_state.show_notification = true;

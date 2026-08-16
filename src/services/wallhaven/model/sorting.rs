@@ -52,7 +52,7 @@ impl Sorting {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "date_added" => Some(Sorting::DateAdded),
             "relevance" => Some(Sorting::Relevance),

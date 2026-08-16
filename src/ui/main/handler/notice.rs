@@ -11,7 +11,10 @@ impl App {
     }
 
     /// 隐藏通知（带版本号检查，只有当传入的版本号与当前通知版本号匹配时才隐藏）
-    pub(in crate::ui::main) fn hide_notification_with_version(&mut self, version: u64) -> Task<AppMessage> {
+    pub(in crate::ui::main) fn hide_notification_with_version(
+        &mut self,
+        version: u64,
+    ) -> Task<AppMessage> {
         // 只有当传入的版本号与当前通知版本号匹配时才隐藏通知
         // 这样可以防止旧版本的隐藏任务关闭新显示的通知
         if self.main_state.notification_version == version {

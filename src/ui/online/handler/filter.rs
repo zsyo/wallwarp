@@ -38,7 +38,10 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::online) fn online_filter_search_text_changed(&mut self, text: String) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn online_filter_search_text_changed(
+        &mut self,
+        text: String,
+    ) -> Task<AppMessage> {
         self.online_state.search_text = text;
         Task::none()
     }
@@ -53,7 +56,10 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::online) fn online_filter_ratio_changed(&mut self, ratio: wallhaven::Ratio) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn online_filter_ratio_changed(
+        &mut self,
+        ratio: wallhaven::Ratio,
+    ) -> Task<AppMessage> {
         self.online_state.ratio = ratio;
         // 保存到配置文件
         self.online_state.save_to_config(&mut self.config);
@@ -134,7 +140,12 @@ impl App {
         ratio: wallhaven::AspectRatio,
     ) -> Task<AppMessage> {
         // 切换比例选择状态（多选）
-        if let Some(pos) = self.online_state.selected_ratios.iter().position(|&r| r == ratio) {
+        if let Some(pos) = self
+            .online_state
+            .selected_ratios
+            .iter()
+            .position(|&r| r == ratio)
+        {
             // 如果已选中，则取消选中
             self.online_state.selected_ratios.remove(pos);
         } else {
@@ -146,7 +157,9 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::online) fn online_filter_ratio_landscape_toggled(&mut self) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn online_filter_ratio_landscape_toggled(
+        &mut self,
+    ) -> Task<AppMessage> {
         // 切换"全部横屏"选项
         self.online_state.ratio_landscape_selected = !self.online_state.ratio_landscape_selected;
 
@@ -169,7 +182,9 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::online) fn online_filter_ratio_portrait_toggled(&mut self) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn online_filter_ratio_portrait_toggled(
+        &mut self,
+    ) -> Task<AppMessage> {
         // 切换"全部竖屏"选项
         self.online_state.ratio_portrait_selected = !self.online_state.ratio_portrait_selected;
 
@@ -178,7 +193,9 @@ impl App {
             self.online_state.selected_ratios.retain(|r| {
                 !matches!(
                     r,
-                    wallhaven::AspectRatio::R9x16 | wallhaven::AspectRatio::R10x16 | wallhaven::AspectRatio::R9x18
+                    wallhaven::AspectRatio::R9x16
+                        | wallhaven::AspectRatio::R10x16
+                        | wallhaven::AspectRatio::R9x18
                 )
             });
         }

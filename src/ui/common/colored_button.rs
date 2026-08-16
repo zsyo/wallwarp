@@ -5,7 +5,11 @@ use iced::widget::{button, text};
 use iced::{Alignment, Color, Element};
 
 /// 创建带颜色的按钮（接收文本字符串）
-pub fn create_colored_button<'a, Message>(label: String, color: Color, message: Message) -> button::Button<'a, Message>
+pub fn create_colored_button<'a, Message>(
+    label: String,
+    color: Color,
+    message: Message,
+) -> button::Button<'a, Message>
 where
     Message: Clone + 'a,
 {

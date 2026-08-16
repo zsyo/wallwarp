@@ -8,7 +8,8 @@ use iced::Task;
 impl App {
     pub(in crate::ui::main) fn page_selected(&mut self, page: ActivePage) -> Task<AppMessage> {
         // 当切换离开在线壁纸页面时，取消正在进行的请求
-        if self.active_page == ActivePage::OnlineWallpapers && page != ActivePage::OnlineWallpapers {
+        if self.active_page == ActivePage::OnlineWallpapers && page != ActivePage::OnlineWallpapers
+        {
             self.online_state.cancel_and_new_context();
         }
         self.active_page = page;
@@ -21,14 +22,19 @@ impl App {
             ActivePage::LocalList => {
                 // 重置本地状态，以便重新加载壁纸
                 self.local_state = local::LocalState::default();
-                return Task::batch(vec![
+                Task::batch(vec![
                     Task::done(local::LocalMessage::LoadWallpapers.into()),
-                    Task::done(MainMessage::ScrollToTop("local_wallpapers_scroll".to_string()).into()),
-                ]);
+                    Task::done(
+                        MainMessage::ScrollToTop("local_wallpapers_scroll".to_string()).into(),
+                    ),
+                ])
             }
             ActivePage::Settings => {
                 // 当切换到设置页面时，重置设置相关的临时状态
-                let (proxy_protocol, proxy_address, proxy_port) = crate::ui::settings::SettingsState::parse_proxy_string(&self.config.global.proxy);
+                let (proxy_protocol, proxy_address, proxy_port) =
+                    crate::ui::settings::SettingsState::parse_proxy_string(
+                        &self.config.global.proxy,
+                    );
                 self.settings_state.proxy_protocol = proxy_protocol;
                 self.settings_state.proxy_address = proxy_address;
                 self.settings_state.proxy_port = proxy_port;
@@ -46,13 +52,20 @@ impl App {
                 self.settings_state.auto_change_mode = self.config.wallpaper.auto_change_mode;
 
                 // 重置定时切换周期状态
-                self.settings_state.auto_change_interval = self.config.wallpaper.auto_change_interval;
+                self.settings_state.auto_change_interval =
+                    self.config.wallpaper.auto_change_interval;
 
                 // 重置自定义分钟数状态
-                self.settings_state.custom_interval_minutes = self.config.wallpaper.auto_change_interval.get_minutes().unwrap_or(30);
+                self.settings_state.custom_interval_minutes = self
+                    .config
+                    .wallpaper
+                    .auto_change_interval
+                    .get_minutes()
+                    .unwrap_or(30);
 
                 // 重置定时切换关键词状态
-                self.settings_state.auto_change_query = self.config.wallpaper.auto_change_query.clone();
+                self.settings_state.auto_change_query =
+                    self.config.wallpaper.auto_change_query.clone();
 
                 // 滚动到顶部
                 Task::done(MainMessage::ScrollToTop("settings_scroll".to_string()).into())

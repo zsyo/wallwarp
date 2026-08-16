@@ -2,49 +2,61 @@
 
 use crate::services::download::DownloadService;
 use crate::services::request_context::RequestContext;
-use crate::services::wallhaven::{ColorOption, OnlineWallpaper, Sorting, TimeRange, WallhavenService};
+use crate::services::wallhaven::{
+    ColorOption, OnlineWallpaper, Sorting, TimeRange, WallhavenService,
+};
 use iced::widget::image::Handle;
 use std::error::Error;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+/// 在线壁纸搜索参数
+pub struct OnlineSearchParams {
+    pub categories: u32,
+    pub sorting: Sorting,
+    pub purities: u32,
+    pub color: ColorOption,
+    pub query: String,
+    pub time_range: TimeRange,
+    pub atleast: Option<String>,
+    pub resolutions: Option<String>,
+    pub ratios: Option<String>,
+    pub page: usize,
+    pub api_key: Option<String>,
+    pub proxy: Option<String>,
+    pub proxy_enabled: bool,
+    pub use_env_fallback: bool,
+    pub context: RequestContext,
+}
+
 /// 异步加载在线壁纸函数
 pub async fn async_load_online_wallpapers(
-    categories: u32,
-    sorting: Sorting,
-    purities: u32,
-    color: ColorOption,
-    query: String,
-    time_range: TimeRange,
-    atleast: Option<String>,
-    resolutions: Option<String>,
-    ratios: Option<String>,
-    page: usize,
-    api_key: Option<String>,
-    proxy: Option<String>,
-    proxy_enabled: bool,
-    use_env_fallback: bool,
-    context: RequestContext,
+    params: OnlineSearchParams,
 ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), Box<dyn Error + Send + Sync>> {
-    let service = WallhavenService::new(api_key, proxy, proxy_enabled, use_env_fallback);
+    let service = WallhavenService::new(
+        params.api_key,
+        params.proxy,
+        params.proxy_enabled,
+        params.use_env_fallback,
+    );
     match service
         .search_wallpapers(
-            page,
-            categories,
-            sorting,
-            purities,
-            color,
-            &query,
-            time_range,
-            atleast.as_deref(),
-            resolutions.as_deref(),
-            ratios.as_deref(),
-            &context,
+            params.page,
+            params.categories,
+            params.sorting,
+            params.purities,
+            params.color,
+            &params.query,
+            params.time_range,
+            params.atleast.as_deref(),
+            params.resolutions.as_deref(),
+            params.ratios.as_deref(),
+            &params.context,
         )
         .await
     {
         Ok(result) => Ok(result),
-        Err(e) => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn Error + Send + Sync>),
+        Err(e) => Err(Box::new(std::io::Error::other(e)) as Box<dyn Error + Send + Sync>),
     }
 }
 
@@ -69,12 +81,19 @@ pub async fn async_load_online_wallpaper_thumb_with_cache_with_cancel(
 ) -> Result<Handle, Box<dyn Error + Send + Sync>> {
     // 在下载前检查取消状态
     if cancel_token.load(Ordering::Relaxed) {
-        return Err(
-            Box::new(std::io::Error::new(std::io::ErrorKind::Interrupted, "下载已取消"))
-                as Box<dyn Error + Send + Sync>,
-        );
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::Interrupted,
+            "下载已取消",
+        )) as Box<dyn Error + Send + Sync>);
     }
 
     // 使用DownloadService的智能缓存加载功能
-    DownloadService::load_thumb_with_cache_with_cancel(url, file_size, cache_base_path, proxy, cancel_token).await
+    DownloadService::load_thumb_with_cache_with_cancel(
+        url,
+        file_size,
+        cache_base_path,
+        proxy,
+        cancel_token,
+    )
+    .await
 }

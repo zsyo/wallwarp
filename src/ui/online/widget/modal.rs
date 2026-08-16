@@ -27,21 +27,32 @@ pub fn create_modal<'a>(
             .height(Length::Fill);
         modal_image.into()
     } else {
-        container(Space::new()).width(Length::Fill).height(Length::Fill).into()
+        container(Space::new())
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     };
 
     let modal_image_content = iced::widget::stack(vec![loading_text, image_layer]);
 
     // 创建底部工具栏按钮
     let prev_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F12E}", BUTTON_COLOR_BLUE, OnlineMessage::PreviousImage.into()),
+        common::create_icon_button(
+            "\u{F12E}",
+            BUTTON_COLOR_BLUE,
+            OnlineMessage::PreviousImage.into(),
+        ),
         i18n.t("online-wallpapers.tooltip-prev"),
         tooltip::Position::Top,
         theme_config,
     );
 
     let next_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F137}", BUTTON_COLOR_BLUE, OnlineMessage::NextImage.into()),
+        common::create_icon_button(
+            "\u{F137}",
+            BUTTON_COLOR_BLUE,
+            OnlineMessage::NextImage.into(),
+        ),
         i18n.t("online-wallpapers.tooltip-next"),
         tooltip::Position::Top,
         theme_config,
@@ -62,7 +73,8 @@ pub fn create_modal<'a>(
         )
     } else {
         // 禁用状态的设置为壁纸按钮
-        let disabled_button = common::create_icon_button("\u{F429}", BUTTON_COLOR_GRAY, AppMessage::None);
+        let disabled_button =
+            common::create_icon_button("\u{F429}", BUTTON_COLOR_GRAY, AppMessage::None);
         container(disabled_button)
             .style(|_theme: &iced::Theme| container::Style {
                 background: Some(iced::Background::Color(iced::Color {
@@ -91,17 +103,24 @@ pub fn create_modal<'a>(
         )
     } else {
         // 禁用状态的下载按钮
-        let disabled_button = common::create_icon_button("\u{F30A}", BUTTON_COLOR_GRAY, AppMessage::None);
+        let disabled_button =
+            common::create_icon_button("\u{F30A}", BUTTON_COLOR_GRAY, AppMessage::None);
         container(disabled_button)
             .style(|_theme: &iced::Theme| container::Style {
-                background: Some(iced::Background::Color(crate::ui::style::DISABLED_BUTTON_BG)),
+                background: Some(iced::Background::Color(
+                    crate::ui::style::DISABLED_BUTTON_BG,
+                )),
                 ..Default::default()
             })
             .into()
     };
 
     let close_button = common::create_button_with_tooltip(
-        common::create_icon_button("\u{F659}", BUTTON_COLOR_RED, OnlineMessage::CloseModal.into()),
+        common::create_icon_button(
+            "\u{F659}",
+            BUTTON_COLOR_RED,
+            OnlineMessage::CloseModal.into(),
+        ),
         i18n.t("online-wallpapers.tooltip-close"),
         tooltip::Position::Top,
         theme_config,

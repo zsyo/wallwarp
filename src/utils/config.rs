@@ -230,7 +230,7 @@ impl WallpaperAutoChangeMode {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "local" => Some(WallpaperAutoChangeMode::Local),
             "online" => Some(WallpaperAutoChangeMode::Online),
@@ -271,7 +271,7 @@ impl<'de> Deserialize<'de> for WallpaperAutoChangeInterval {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        Ok(WallpaperAutoChangeInterval::from_str(&s).unwrap_or_default())
+        Ok(WallpaperAutoChangeInterval::parse(&s).unwrap_or_default())
     }
 }
 
@@ -295,7 +295,7 @@ impl WallpaperAutoChangeInterval {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "off" => Some(WallpaperAutoChangeInterval::Off),
             "10m" => Some(WallpaperAutoChangeInterval::Minutes(10)),
@@ -306,7 +306,7 @@ impl WallpaperAutoChangeInterval {
                 // 解析 custom:XXm 格式
                 let inner = &s[7..s.len() - 1]; // 去掉 "custom:" 和 "m"
                 if let Ok(minutes) = inner.parse::<u32>() {
-                    if minutes >= 1 && minutes <= 1440 {
+                    if (1..=1440).contains(&minutes) {
                         Some(WallpaperAutoChangeInterval::Custom(minutes))
                     } else {
                         Some(WallpaperAutoChangeInterval::Off)
@@ -366,7 +366,7 @@ impl WallpaperMode {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "crop" => Some(WallpaperMode::Crop),
             "fit" => Some(WallpaperMode::Fit),
@@ -411,7 +411,7 @@ impl Theme {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "dark" => Some(Theme::Dark),
             "light" => Some(Theme::Light),
@@ -449,7 +449,7 @@ impl CloseAction {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s {
             "ask" => Some(CloseAction::Ask),
             "minimize_to_tray" => Some(CloseAction::MinimizeToTray),
@@ -470,7 +470,7 @@ impl std::fmt::Display for CloseAction {
 }
 
 impl Config {
-    pub fn new(lang: &str, available_langs: &Vec<String>) -> Self {
+    pub fn new(lang: &str, available_langs: &[String]) -> Self {
         let config_path = Path::new(CONFIG_FILE);
 
         if let Ok(content) = fs::read_to_string(config_path) {

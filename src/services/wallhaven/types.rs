@@ -100,7 +100,12 @@ impl From<WallpaperData> for OnlineWallpaper {
             views: data.views,
             favorites: data.favorites,
             colors: data.colors,
-            tags: data.tags.unwrap_or_default().into_iter().map(|t| t.name).collect(),
+            tags: data
+                .tags
+                .unwrap_or_default()
+                .into_iter()
+                .map(|t| t.name)
+                .collect(),
             image_handle: None, // Handle 将在后续加载时设置
         }
     }

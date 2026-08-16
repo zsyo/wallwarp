@@ -7,7 +7,10 @@ use iced::Task;
 use tracing::info;
 
 impl App {
-    pub(in crate::ui::settings) fn settings_data_path_selected(&mut self, path: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_data_path_selected(
+        &mut self,
+        path: String,
+    ) -> Task<AppMessage> {
         if !path.is_empty() && path != "SELECT_DATA_PATH" {
             // 这是异步任务返回的实际路径
             let old_path = self.config.data.data_path.clone();
@@ -27,7 +30,10 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::settings) fn settings_cache_path_selected(&mut self, path: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_cache_path_selected(
+        &mut self,
+        path: String,
+    ) -> Task<AppMessage> {
         if !path.is_empty() && path != "SELECT_CACHE_PATH" {
             // 这是异步任务返回的实际路径
             let old_path = self.config.data.cache_path.clone();

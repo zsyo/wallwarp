@@ -79,7 +79,9 @@ impl App {
             DownloadMessage::DeleteTask(id) => self.delete_download_task(id),
             DownloadMessage::OpenFileLocation(id) => self.view_downloaded_file(id),
             DownloadMessage::ClearCompleted => self.clear_download_completed_tasks(),
-            DownloadMessage::DownloadCompleted(id, size, error) => self.download_completed(id, size, error),
+            DownloadMessage::DownloadCompleted(id, size, error) => {
+                self.download_completed(id, size, error)
+            }
             DownloadMessage::DownloadProgress(id, downloaded, total, speed) => {
                 self.update_download_progress(id, downloaded, total, speed)
             }
@@ -87,7 +89,8 @@ impl App {
             DownloadMessage::CopyDownloadLink(id) => self.copy_download_link(id),
             DownloadMessage::SetAsWallpaper(id) => self.set_downloaded_as_wallpaper(id),
             DownloadMessage::ToggleStatusFilter => {
-                self.download_state.status_filter_expanded = !self.download_state.status_filter_expanded;
+                self.download_state.status_filter_expanded =
+                    !self.download_state.status_filter_expanded;
                 iced::Task::none()
             }
             DownloadMessage::SetStatusFilter(filter) => {

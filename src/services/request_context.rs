@@ -33,7 +33,7 @@ impl RequestContext {
     /// 检查并返回取消状态，如果已取消则返回 Some(())
     #[inline]
     pub fn check_cancelled(&self) -> Option<()> {
-        self.is_cancelled().then(|| ())
+        self.is_cancelled().then_some(())
     }
 }
 

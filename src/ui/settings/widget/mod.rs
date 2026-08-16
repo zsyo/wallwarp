@@ -18,15 +18,17 @@ mod settings_time_range_picker;
 mod theme_picker;
 
 use {
-    about_link::create_about_link_row, config_section::create_config_section, info_row::create_info_row,
-    language_picker::create_language_picker, logs_path::create_logs_path_row, path_config::create_path_config_row,
+    about_link::create_about_link_row, config_section::create_config_section,
+    info_row::create_info_row, language_picker::create_language_picker,
+    logs_path::create_logs_path_row, path_config::create_path_config_row,
     proxy_protocol_picker::create_proxy_protocol_picker, setting_row::create_setting_row,
-    settings_sorting_picker::create_sorting_picker, settings_time_range_picker::create_time_range_picker,
-    theme_picker::create_theme_picker,
+    settings_sorting_picker::create_sorting_picker,
+    settings_time_range_picker::create_time_range_picker, theme_picker::create_theme_picker,
 };
 
 pub(in crate::ui::settings) use {
     section_about_info::create_about_info_section, section_api_config::create_api_config_section,
-    section_data_config::create_data_config_section, section_system_config::create_system_config_section,
+    section_data_config::create_data_config_section,
+    section_system_config::create_system_config_section,
     section_wallpaper_config::create_wallpaper_config_section,
 };

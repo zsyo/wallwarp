@@ -2,8 +2,8 @@
 
 use crate::ui::common;
 use crate::ui::style::{
-    ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, LOGO_DISPLAY_SIZE, ROW_SPACING, SECTION_PADDING, SECTION_SPACING,
-    SECTION_TITLE_SIZE,
+    ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, LOGO_DISPLAY_SIZE, ROW_SPACING, SECTION_PADDING,
+    SECTION_SPACING, SECTION_TITLE_SIZE,
 };
 use crate::ui::{App, AppMessage};
 use iced::widget::{Space, column, container, image, row, text};
@@ -63,6 +63,8 @@ pub fn create_about_info_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
         .spacing(SECTION_SPACING),
     )
     .width(Length::Fill)
-    .style(common::create_bordered_container_style_with_bg(&app.theme_config))
+    .style(common::create_bordered_container_style_with_bg(
+        &app.theme_config,
+    ))
     .into()
 }

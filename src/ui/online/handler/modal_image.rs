@@ -15,7 +15,7 @@ impl App {
         self.online_state.modal_visible = true;
 
         // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
-        let _old_handle = std::mem::replace(&mut self.online_state.modal_image_handle, None);
+        let _old_handle = self.online_state.modal_image_handle.take();
 
         // 重置下载状态
         self.online_state.modal_download_progress = 0.0;
@@ -27,7 +27,8 @@ impl App {
             let url = wallpaper.path.clone();
             let file_size = wallpaper.file_size;
             let cache_path = self.config.data.cache_path.clone();
-            let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
+            let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty()
+            {
                 Some(self.config.global.proxy.clone())
             } else {
                 None
@@ -56,7 +57,10 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::online) fn online_modal_image_loaded(&mut self, handle: Handle) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn online_modal_image_loaded(
+        &mut self,
+        handle: Handle,
+    ) -> Task<AppMessage> {
         // 模态窗口图片加载完成，保存图片数据
         self.online_state.modal_image_handle = Some(handle);
         Task::none()
@@ -67,7 +71,7 @@ impl App {
         self.online_state.modal_visible = false;
 
         // 显式释放图片数据: 先将 Handle 移出,然后让新值覆盖
-        let _old_handle = std::mem::replace(&mut self.online_state.modal_image_handle, None);
+        let _old_handle = self.online_state.modal_image_handle.take();
 
         // 取消当前下载
         self.online_state.cancel_modal_download();

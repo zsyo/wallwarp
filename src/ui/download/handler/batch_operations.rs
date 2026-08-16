@@ -19,7 +19,9 @@ impl crate::ui::App {
             .tasks
             .iter()
             .filter(|task| {
-                self.download_state.selected_task_ids.contains(&task.task.id)
+                self.download_state
+                    .selected_task_ids
+                    .contains(&task.task.id)
                     && matches!(task.task.status, DownloadStatus::Paused)
             })
             .map(|task| task.task.id)
@@ -33,7 +35,12 @@ impl crate::ui::App {
         let mut tasks: Vec<Task<AppMessage>> = Vec::new();
 
         for (index, task_id) in sorted_ids.iter().enumerate() {
-            if let Some(task) = self.download_state.tasks.iter_mut().find(|t| t.task.id == *task_id) {
+            if let Some(task) = self
+                .download_state
+                .tasks
+                .iter_mut()
+                .find(|t| t.task.id == *task_id)
+            {
                 // 更新排队顺序
                 task.task.queue_order = index;
                 // 调用恢复任务方法并收集返回的 Task
@@ -60,8 +67,13 @@ impl crate::ui::App {
             .tasks
             .iter()
             .filter(|task| {
-                self.download_state.selected_task_ids.contains(&task.task.id)
-                    && matches!(task.task.status, DownloadStatus::Downloading | DownloadStatus::Waiting)
+                self.download_state
+                    .selected_task_ids
+                    .contains(&task.task.id)
+                    && matches!(
+                        task.task.status,
+                        DownloadStatus::Downloading | DownloadStatus::Waiting
+                    )
             })
             .map(|task| task.task.id)
             .collect();
@@ -86,10 +98,14 @@ impl crate::ui::App {
             .tasks
             .iter()
             .filter(|task| {
-                self.download_state.selected_task_ids.contains(&task.task.id)
+                self.download_state
+                    .selected_task_ids
+                    .contains(&task.task.id)
                     && matches!(
                         task.task.status,
-                        DownloadStatus::Paused | DownloadStatus::Failed(_) | DownloadStatus::Cancelled
+                        DownloadStatus::Paused
+                            | DownloadStatus::Failed(_)
+                            | DownloadStatus::Cancelled
                     )
             })
             .map(|task| task.task.id)
@@ -103,7 +119,12 @@ impl crate::ui::App {
         let mut tasks: Vec<Task<AppMessage>> = Vec::new();
 
         for (index, task_id) in sorted_ids.iter().enumerate() {
-            if let Some(task) = self.download_state.tasks.iter_mut().find(|t| t.task.id == *task_id) {
+            if let Some(task) = self
+                .download_state
+                .tasks
+                .iter_mut()
+                .find(|t| t.task.id == *task_id)
+            {
                 // 更新排队顺序
                 task.task.queue_order = index;
                 // 调用重新开始任务方法并收集返回的 Task
@@ -130,10 +151,14 @@ impl crate::ui::App {
             .tasks
             .iter()
             .filter(|task| {
-                self.download_state.selected_task_ids.contains(&task.task.id)
+                self.download_state
+                    .selected_task_ids
+                    .contains(&task.task.id)
                     && matches!(
                         task.task.status,
-                        DownloadStatus::Waiting | DownloadStatus::Downloading | DownloadStatus::Paused
+                        DownloadStatus::Waiting
+                            | DownloadStatus::Downloading
+                            | DownloadStatus::Paused
                     )
             })
             .map(|task| task.task.id)
@@ -154,7 +179,12 @@ impl crate::ui::App {
     /// 对所有状态的任务都生效
     pub fn batch_delete_selected_tasks(&mut self) {
         // 收集所有要删除的任务ID
-        let task_ids: Vec<usize> = self.download_state.selected_task_ids.iter().cloned().collect();
+        let task_ids: Vec<usize> = self
+            .download_state
+            .selected_task_ids
+            .iter()
+            .cloned()
+            .collect();
 
         // 删除每个任务
         for task_id in task_ids {

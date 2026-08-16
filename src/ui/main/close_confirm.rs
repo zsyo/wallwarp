@@ -3,9 +3,10 @@
 use crate::ui::common;
 use crate::ui::main::MainMessage;
 use crate::ui::style::{
-    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH,
-    DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING,
-    DIALOG_TITLE_SIZE, MASK_ALPHA, TOGGLE_SPACING, TOGGLE_TEXT_SIZE,
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS,
+    DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH,
+    DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, MASK_ALPHA,
+    TOGGLE_SPACING, TOGGLE_TEXT_SIZE,
 };
 use crate::ui::{App, AppMessage, CloseConfirmationAction};
 use iced::widget::{Space, column, container, opaque, row, stack, text, toggler};
@@ -46,8 +47,11 @@ pub fn close_confirm_view(app: &App) -> iced::Element<'_, AppMessage> {
             common::create_colored_button(
                 app.i18n.t("close-confirmation.exit"),
                 BUTTON_COLOR_RED,
-                MainMessage::CloseConfirmationResponse(CloseConfirmationAction::CloseApp, app.main_state.remember_close_setting)
-                    .into()
+                MainMessage::CloseConfirmationResponse(
+                    CloseConfirmationAction::CloseApp,
+                    app.main_state.remember_close_setting
+                )
+                .into()
             ),
             common::create_colored_button(
                 app.i18n.t("close-confirmation.cancel"),
@@ -58,7 +62,8 @@ pub fn close_confirm_view(app: &App) -> iced::Element<'_, AppMessage> {
         .spacing(DIALOG_BUTTON_SPACING)
         .align_y(Alignment::Center),
         row![
-            toggler(app.main_state.remember_close_setting).on_toggle(|state| MainMessage::ToggleRememberSetting(state).into()),
+            toggler(app.main_state.remember_close_setting)
+                .on_toggle(|state| MainMessage::ToggleRememberSetting(state).into()),
             text(app.i18n.t("close-confirmation.remember-setting"))
                 .size(TOGGLE_TEXT_SIZE)
                 .style(move |_theme: &iced::Theme| text::Style {
@@ -111,5 +116,5 @@ pub fn close_confirm_view(app: &App) -> iced::Element<'_, AppMessage> {
     .width(Length::Fill)
     .height(Length::Fill);
 
-    opaque(modal_content).into()
+    opaque(modal_content)
 }

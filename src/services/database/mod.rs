@@ -34,15 +34,15 @@ impl DatabaseManager {
     /// 此方法应该在应用启动时调用一次，后续通过 get() 获取实例
     pub fn init(db_path: &str) -> Result<(), String> {
         let connection = DatabaseConnection::open(db_path)?;
-        
+
         // 创建所有需要的表
         DownloadTasksRepository::create_tables(&connection)?;
-        
+
         GLOBAL_DATABASE.get_or_init(|| DatabaseManager { connection });
-        
+
         Ok(())
     }
-    
+
     /// 获取全局数据库管理器实例
     ///
     /// # 返回
@@ -51,9 +51,11 @@ impl DatabaseManager {
     /// # Panics
     /// 如果在调用 init() 之前调用此方法，会 panic
     pub fn get() -> &'static DatabaseManager {
-        GLOBAL_DATABASE.get().expect("DatabaseManager 未初始化，请先调用 init()")
+        GLOBAL_DATABASE
+            .get()
+            .expect("DatabaseManager 未初始化，请先调用 init()")
     }
-    
+
     /// 获取数据库连接
     pub fn connection(&self) -> &DatabaseConnection {
         &self.connection

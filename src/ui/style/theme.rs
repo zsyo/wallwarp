@@ -44,7 +44,9 @@ pub struct ThemeConfig {
 
 impl Default for ThemeConfig {
     fn default() -> Self {
-        ThemeConfig { theme: Theme::Light }
+        ThemeConfig {
+            theme: Theme::Light,
+        }
     }
 }
 

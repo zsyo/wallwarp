@@ -2,8 +2,8 @@
 
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
-use crate::ui::style::{IMAGE_HEIGHT, IMAGE_WIDTH, LOADING_TEXT_SIZE};
 use crate::ui::style::ThemeConfig;
+use crate::ui::style::{IMAGE_HEIGHT, IMAGE_WIDTH, LOADING_TEXT_SIZE};
 use crate::ui::{common, style};
 use iced::widget::{button, container, text};
 use iced::{Alignment, Length};
@@ -15,12 +15,11 @@ pub(in crate::ui::local) fn create_loading_placeholder<'a>(
 ) -> button::Button<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
 
-    let loading_text =
-        text(i18n.t("local-list.image-loading"))
-            .size(LOADING_TEXT_SIZE)
-            .style(move |_theme: &iced::Theme| text::Style {
-                color: Some(theme_colors.text),
-            });
+    let loading_text = text(i18n.t("local-list.image-loading"))
+        .size(LOADING_TEXT_SIZE)
+        .style(move |_theme: &iced::Theme| text::Style {
+            color: Some(theme_colors.text),
+        });
 
     let placeholder_content = container(loading_text)
         .width(Length::Fixed(IMAGE_WIDTH))
@@ -44,7 +43,11 @@ pub(in crate::ui::local) fn create_loading_placeholder<'a>(
         .height(Length::Fixed(IMAGE_HEIGHT))
         .style(|_theme, status| {
             let base_style = button::text(_theme, status);
-            let shadow = style::get_card_shadow_by_status(matches!(status, button::Status::Hovered));
-            button::Style { shadow, ..base_style }
+            let shadow =
+                style::get_card_shadow_by_status(matches!(status, button::Status::Hovered));
+            button::Style {
+                shadow,
+                ..base_style
+            }
         })
 }

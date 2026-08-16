@@ -38,31 +38,32 @@ impl App {
         let task_id = self.download_state.next_id.saturating_sub(1);
 
         // 更新状态为下载中并启动下载
-        match self.download_state.get_task(task_id) {
-            Some(task_full) => {
-                task_full.task.status = DownloadStatus::Downloading;
-                task_full.task.start_time = Some(Instant::now());
+        if let Some(task_full) = self.download_state.get_task(task_id) {
+            task_full.task.status = DownloadStatus::Downloading;
+            task_full.task.start_time = Some(Instant::now());
 
-                let url = task_full.task.url.clone();
-                let save_path = PathBuf::from(&task_full.task.save_path);
-                let proxy = task_full.proxy.clone();
-                let task_id = task_full.task.id;
+            let url = task_full.task.url.clone();
+            let save_path = PathBuf::from(&task_full.task.save_path);
+            let proxy = task_full.proxy.clone();
+            let task_id = task_full.task.id;
 
-                return Task::perform(
-                    async_task::async_download_wallpaper_task(url, save_path, proxy, task_id),
-                    move |result| match result {
-                        Ok(size) => {
-                            tracing::info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
-                            DownloadMessage::DownloadCompleted(task_id, size, None).into()
-                        }
-                        Err(e) => {
-                            tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                            DownloadMessage::DownloadCompleted(task_id, 0, Some(e)).into()
-                        }
-                    },
-                );
-            }
-            None => {}
+            return Task::perform(
+                async_task::async_download_wallpaper_task(url, save_path, proxy, task_id),
+                move |result| match result {
+                    Ok(size) => {
+                        tracing::info!(
+                            "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
+                            task_id,
+                            size
+                        );
+                        DownloadMessage::DownloadCompleted(task_id, size, None).into()
+                    }
+                    Err(e) => {
+                        tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
+                        DownloadMessage::DownloadCompleted(task_id, 0, Some(e)).into()
+                    }
+                },
+            );
         }
         Task::none()
     }

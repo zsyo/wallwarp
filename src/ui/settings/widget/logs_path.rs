@@ -5,13 +5,19 @@ use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::ThemeColors;
-use crate::ui::style::{BUTTON_COLOR_GREEN, BUTTON_SPACING, INPUT_HEIGHT, INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE};
+use crate::ui::style::{
+    BUTTON_COLOR_GREEN, BUTTON_SPACING, INPUT_HEIGHT, INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE,
+};
 use crate::utils::helpers;
 use iced::border::{Border, Radius};
 use iced::widget::{Space, container, row, text, text_input};
 use iced::{Alignment, Color, Element, Length};
 
-pub fn create_logs_path_row<'a>(i18n: &I18n, label: String, theme_colors: ThemeColors) -> Element<'a, AppMessage> {
+pub fn create_logs_path_row<'a>(
+    i18n: &I18n,
+    label: String,
+    theme_colors: ThemeColors,
+) -> Element<'a, AppMessage> {
     let logs_path = helpers::get_absolute_path("logs");
 
     row![

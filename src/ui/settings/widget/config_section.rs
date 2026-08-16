@@ -1,8 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::common;
-use crate::ui::style::{SECTION_CONTENT_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE};
 use crate::ui::style::ThemeConfig;
+use crate::ui::style::{SECTION_CONTENT_SPACING, SECTION_PADDING, SECTION_TITLE_SIZE};
 use iced::widget::{Space, column, container, text};
 use iced::{Alignment, Element, Length};
 
@@ -37,6 +37,8 @@ pub(super) fn create_config_section<'a, Message: 'a>(
     container(column_content)
         .padding(SECTION_PADDING)
         .width(Length::Fill)
-        .style(common::create_bordered_container_style_with_bg(theme_config))
+        .style(common::create_bordered_container_style_with_bg(
+            theme_config,
+        ))
         .into()
 }

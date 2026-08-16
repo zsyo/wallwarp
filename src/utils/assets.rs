@@ -3,7 +3,8 @@
 use image;
 
 const LOGO: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/logo.ico"));
-pub const ICON_FONT: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/icons.ttf"));
+pub const ICON_FONT: &[u8] =
+    include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/icons.ttf"));
 
 // 通用函数：将资源文件转为 (RGBA字节, 宽度, 高度)
 fn load_rgba_from_bytes(bytes: &[u8], size: u32) -> (Vec<u8>, u32, u32) {

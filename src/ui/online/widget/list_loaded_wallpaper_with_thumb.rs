@@ -38,7 +38,9 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
             .height(Length::Fixed(IMAGE_HEIGHT))
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)
-            .style(move |_theme| common::create_bordered_container_style_with_bg(theme_config)(_theme))
+            .style(move |_theme| {
+                common::create_bordered_container_style_with_bg(theme_config)(_theme)
+            })
             .into();
     };
 
@@ -63,11 +65,12 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
             color: Some(theme_colors.overlay_text),
         });
 
-    let resolution_text = text(&wallpaper.resolution)
-        .size(OVERLAY_TEXT_SIZE)
-        .style(move |_theme: &iced::Theme| text::Style {
-            color: Some(theme_colors.overlay_text),
-        });
+    let resolution_text =
+        text(&wallpaper.resolution)
+            .size(OVERLAY_TEXT_SIZE)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.overlay_text),
+            });
 
     let set_wallpaper_button = common::create_button_with_tooltip(
         common::create_icon_button(
@@ -153,7 +156,10 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
         .style(|_theme, status| {
             let base_style = button::text(_theme, status);
             let shadow = get_card_shadow_by_status(matches!(status, button::Status::Hovered));
-            button::Style { shadow, ..base_style }
+            button::Style {
+                shadow,
+                ..base_style
+            }
         })
         .into()
 }

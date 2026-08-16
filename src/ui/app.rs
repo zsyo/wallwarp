@@ -82,14 +82,14 @@ impl App {
 
         // 初始化壁纸切换历史记录，获取当前壁纸路径并添加到记录中
         let mut wallpaper_history = Vec::new();
-        if let Ok(current_wallpaper) = wallpaper::get() {
-            if !current_wallpaper.is_empty() {
-                tracing::info!(
-                    "[壁纸历史] 初始化，添加当前壁纸: {}",
-                    crate::utils::helpers::normalize_path(&current_wallpaper)
-                );
-                wallpaper_history.push(current_wallpaper);
-            }
+        if let Ok(current_wallpaper) = wallpaper::get()
+            && !current_wallpaper.is_empty()
+        {
+            tracing::info!(
+                "[壁纸历史] 初始化，添加当前壁纸: {}",
+                crate::utils::helpers::normalize_path(&current_wallpaper)
+            );
+            wallpaper_history.push(current_wallpaper);
         }
 
         let (img, width, height) = assets::get_logo(style::LOGO_SIZE);
@@ -139,9 +139,15 @@ impl App {
         let db_dir = current_dir.join("db");
         let db_path = db_dir.join("data.db");
 
-        info!("[启动] [下载任务数据库] 初始化数据库: {}", db_path.display());
+        info!(
+            "[启动] [下载任务数据库] 初始化数据库: {}",
+            db_path.display()
+        );
 
-        match self.download_state.init_database(&db_path.to_string_lossy()) {
+        match self
+            .download_state
+            .init_database(&db_path.to_string_lossy())
+        {
             Ok(_) => {
                 info!("[启动] [下载任务数据库] 数据库初始化成功");
 

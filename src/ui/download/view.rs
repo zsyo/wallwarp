@@ -44,10 +44,19 @@ pub fn download_view<'a>(
     // 根据筛选后的任务列表显示内容
     let content = if filtered_tasks.is_empty() {
         // 无任务显示（保留表头+文案）
-        content.push(widget::create_filtered_empty_state(i18n, download_state, theme_config))
+        content.push(widget::create_filtered_empty_state(
+            i18n,
+            download_state,
+            theme_config,
+        ))
     } else {
         // 表格布局
-        content.push(widget::create_filtered_table(i18n, download_state, filtered_tasks, theme_config))
+        content.push(widget::create_filtered_table(
+            i18n,
+            download_state,
+            filtered_tasks,
+            theme_config,
+        ))
     };
 
     let scrollable_content = scrollable(content).width(Length::Fill).height(Length::Fill);

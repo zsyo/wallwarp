@@ -8,7 +8,10 @@ use iced::Task;
 
 impl App {
     /// 设置壁纸
-    pub(in crate::ui::local) fn local_set_as_wallpaper(&mut self, index: usize) -> Task<AppMessage> {
+    pub(in crate::ui::local) fn local_set_as_wallpaper(
+        &mut self,
+        index: usize,
+    ) -> Task<AppMessage> {
         // 设置壁纸
         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
             let full_path = helpers::get_absolute_path(&path);
@@ -22,10 +25,11 @@ impl App {
                 async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
                 move |result| match result {
                     Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
-                    Err(e) => {
-                        MainMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error)
-                            .into()
-                    }
+                    Err(e) => MainMessage::ShowNotification(
+                        format!("{}: {}", failed_message, e),
+                        NotificationType::Error,
+                    )
+                    .into(),
                 },
             );
         }

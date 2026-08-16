@@ -15,24 +15,24 @@ use tracing::{debug, info, warn};
 /// 返回检测到的代理 URL（如果有）
 pub fn get_proxy_from_env() -> Option<String> {
     // 优先检查 HTTPS_PROXY（用于 HTTPS 请求）
-    if let Ok(https_proxy) = std::env::var("HTTPS_PROXY") {
-        if !https_proxy.is_empty() {
-            return Some(https_proxy);
-        }
+    if let Ok(https_proxy) = std::env::var("HTTPS_PROXY")
+        && !https_proxy.is_empty()
+    {
+        return Some(https_proxy);
     }
 
     // 其次检查 HTTP_PROXY（用于 HTTP 请求）
-    if let Ok(http_proxy) = std::env::var("HTTP_PROXY") {
-        if !http_proxy.is_empty() {
-            return Some(http_proxy);
-        }
+    if let Ok(http_proxy) = std::env::var("HTTP_PROXY")
+        && !http_proxy.is_empty()
+    {
+        return Some(http_proxy);
     }
 
     // 最后检查 ALL_PROXY（通用代理）
-    if let Ok(all_proxy) = std::env::var("ALL_PROXY") {
-        if !all_proxy.is_empty() {
-            return Some(all_proxy);
-        }
+    if let Ok(all_proxy) = std::env::var("ALL_PROXY")
+        && !all_proxy.is_empty()
+    {
+        return Some(all_proxy);
     }
 
     None
@@ -63,19 +63,22 @@ pub enum ProxyConfig {
 /// 1. 配置文件代理（proxy_enabled=true 且 proxy 非空）
 /// 2. 环境变量代理（use_env_fallback=true 且配置文件代理未设置）
 /// 3. 无代理
-pub fn create_proxy_client(proxy: Option<String>, proxy_enabled: bool, use_env_fallback: bool) -> reqwest::Client {
+pub fn create_proxy_client(
+    proxy: Option<String>,
+    proxy_enabled: bool,
+    use_env_fallback: bool,
+) -> reqwest::Client {
     // 优先级1: 使用配置文件代理
-    if proxy_enabled {
-        if let Some(proxy_url) = proxy {
-            if !proxy_url.is_empty() {
-                info!("[代理客户端] 使用配置文件代理: {}", proxy_url);
-                match create_client_with_proxy(&proxy_url) {
-                    Ok(client) => return client,
-                    Err(e) => {
-                        warn!("[代理客户端] 配置文件代理创建失败: {}，尝试环境变量代理", e);
-                        // 继续尝试环境变量代理
-                    }
-                }
+    if proxy_enabled
+        && let Some(proxy_url) = proxy
+        && !proxy_url.is_empty()
+    {
+        info!("[代理客户端] 使用配置文件代理: {}", proxy_url);
+        match create_client_with_proxy(&proxy_url) {
+            Ok(client) => return client,
+            Err(e) => {
+                warn!("[代理客户端] 配置文件代理创建失败: {}，尝试环境变量代理", e);
+                // 继续尝试环境变量代理
             }
         }
     }
@@ -90,7 +93,10 @@ pub fn create_proxy_client(proxy: Option<String>, proxy_enabled: bool, use_env_f
                     return client;
                 }
                 Err(e) => {
-                    warn!("[代理客户端] 环境变量代理客户端创建失败: {}，回退到无代理", e);
+                    warn!(
+                        "[代理客户端] 环境变量代理客户端创建失败: {}，回退到无代理",
+                        e
+                    );
                 }
             }
         } else {
@@ -125,17 +131,16 @@ pub fn create_optimized_proxy_client(
     use_env_fallback: bool,
 ) -> reqwest::Client {
     // 优先级1: 使用配置文件代理
-    if proxy_enabled {
-        if let Some(proxy_url) = proxy {
-            if !proxy_url.is_empty() {
-                info!("[代理客户端] 使用配置文件代理（优化）: {}", proxy_url);
-                match create_optimized_client_with_proxy(&proxy_url) {
-                    Ok(client) => return client,
-                    Err(e) => {
-                        warn!("[代理客户端] 配置文件代理创建失败: {}，尝试环境变量代理", e);
-                        // 继续尝试环境变量代理
-                    }
-                }
+    if proxy_enabled
+        && let Some(proxy_url) = proxy
+        && !proxy_url.is_empty()
+    {
+        info!("[代理客户端] 使用配置文件代理（优化）: {}", proxy_url);
+        match create_optimized_client_with_proxy(&proxy_url) {
+            Ok(client) => return client,
+            Err(e) => {
+                warn!("[代理客户端] 配置文件代理创建失败: {}，尝试环境变量代理", e);
+                // 继续尝试环境变量代理
             }
         }
     }
@@ -150,7 +155,10 @@ pub fn create_optimized_proxy_client(
                     return client;
                 }
                 Err(e) => {
-                    warn!("[代理客户端] 环境变量代理客户端创建失败: {}，回退到无代理", e);
+                    warn!(
+                        "[代理客户端] 环境变量代理客户端创建失败: {}，回退到无代理",
+                        e
+                    );
                 }
             }
         } else {
@@ -164,7 +172,9 @@ pub fn create_optimized_proxy_client(
 }
 
 /// 使用指定代理 URL 创建 HTTP 客户端
-fn create_client_with_proxy(proxy_url: &str) -> Result<reqwest::Client, Box<dyn std::error::Error>> {
+fn create_client_with_proxy(
+    proxy_url: &str,
+) -> Result<reqwest::Client, Box<dyn std::error::Error>> {
     debug!("[代理客户端] 尝试创建代理客户端，代理URL: {}", proxy_url);
 
     let proxy = reqwest::Proxy::all(proxy_url)?;
@@ -175,8 +185,13 @@ fn create_client_with_proxy(proxy_url: &str) -> Result<reqwest::Client, Box<dyn 
 }
 
 /// 使用指定代理 URL 创建优化的 HTTP 客户端
-pub fn create_optimized_client_with_proxy(proxy_url: &str) -> Result<reqwest::Client, Box<dyn std::error::Error>> {
-    debug!("[代理客户端] 尝试创建优化代理客户端，代理URL: {}", proxy_url);
+pub fn create_optimized_client_with_proxy(
+    proxy_url: &str,
+) -> Result<reqwest::Client, Box<dyn std::error::Error>> {
+    debug!(
+        "[代理客户端] 尝试创建优化代理客户端，代理URL: {}",
+        proxy_url
+    );
 
     let proxy = reqwest::Proxy::all(proxy_url)?;
     let client = reqwest::Client::builder()
@@ -229,25 +244,25 @@ pub fn create_optimized_client() -> reqwest::Client {
 pub fn detect_env_proxy() -> Option<String> {
     let mut proxy_info = Vec::new();
 
-    if let Ok(https_proxy) = std::env::var("HTTPS_PROXY") {
-        if !https_proxy.is_empty() {
-            proxy_info.push(format!("HTTPS_PROXY={}", https_proxy));
-        }
+    if let Ok(https_proxy) = std::env::var("HTTPS_PROXY")
+        && !https_proxy.is_empty()
+    {
+        proxy_info.push(format!("HTTPS_PROXY={}", https_proxy));
     }
-    if let Ok(http_proxy) = std::env::var("HTTP_PROXY") {
-        if !http_proxy.is_empty() {
-            proxy_info.push(format!("HTTP_PROXY={}", http_proxy));
-        }
+    if let Ok(http_proxy) = std::env::var("HTTP_PROXY")
+        && !http_proxy.is_empty()
+    {
+        proxy_info.push(format!("HTTP_PROXY={}", http_proxy));
     }
-    if let Ok(all_proxy) = std::env::var("ALL_PROXY") {
-        if !all_proxy.is_empty() {
-            proxy_info.push(format!("ALL_PROXY={}", all_proxy));
-        }
+    if let Ok(all_proxy) = std::env::var("ALL_PROXY")
+        && !all_proxy.is_empty()
+    {
+        proxy_info.push(format!("ALL_PROXY={}", all_proxy));
     }
-    if let Ok(no_proxy) = std::env::var("NO_PROXY") {
-        if !no_proxy.is_empty() {
-            proxy_info.push(format!("NO_PROXY={}", no_proxy));
-        }
+    if let Ok(no_proxy) = std::env::var("NO_PROXY")
+        && !no_proxy.is_empty()
+    {
+        proxy_info.push(format!("NO_PROXY={}", no_proxy));
     }
 
     if proxy_info.is_empty() {
@@ -274,25 +289,37 @@ pub fn create_client_with_env_fallback(
     log_level_info: bool,
 ) -> reqwest::Client {
     // 尝试使用配置文件代理
-    if let Some(proxy_url) = proxy {
-        if !proxy_url.is_empty() {
-            if log_level_info {
-                info!("[{}] [URL:{}] 使用配置文件代理: {}", log_prefix, url, proxy_url);
-            } else {
-                debug!("[{}] [URL:{}] 使用配置文件代理: {}", log_prefix, url, proxy_url);
+    if let Some(proxy_url) = proxy
+        && !proxy_url.is_empty()
+    {
+        if log_level_info {
+            info!(
+                "[{}] [URL:{}] 使用配置文件代理: {}",
+                log_prefix, url, proxy_url
+            );
+        } else {
+            debug!(
+                "[{}] [URL:{}] 使用配置文件代理: {}",
+                log_prefix, url, proxy_url
+            );
+        }
+        match create_optimized_client_with_proxy(&proxy_url) {
+            Ok(http_client) => {
+                if log_level_info {
+                    info!("[{}] [URL:{}] 代理客户端创建成功", log_prefix, url);
+                } else {
+                    debug!(
+                        "[{}] [URL:{}] HTTP客户端创建成功（已优化）",
+                        log_prefix, url
+                    );
+                }
+                return http_client;
             }
-            match create_optimized_client_with_proxy(&proxy_url) {
-                Ok(http_client) => {
-                    if log_level_info {
-                        info!("[{}] [URL:{}] 代理客户端创建成功", log_prefix, url);
-                    } else {
-                        debug!("[{}] [URL:{}] HTTP客户端创建成功（已优化）", log_prefix, url);
-                    }
-                    return http_client;
-                }
-                Err(e) => {
-                    warn!("[{}] [URL:{}] 代理客户端创建失败: {}，尝试环境变量代理", log_prefix, url, e);
-                }
+            Err(e) => {
+                warn!(
+                    "[{}] [URL:{}] 代理客户端创建失败: {}，尝试环境变量代理",
+                    log_prefix, url, e
+                );
             }
         }
     }
@@ -300,9 +327,15 @@ pub fn create_client_with_env_fallback(
     // 尝试使用环境变量代理
     if let Some(env_proxy_url) = get_proxy_from_env() {
         if log_level_info {
-            info!("[{}] [URL:{}] 使用环境变量代理: {}", log_prefix, url, env_proxy_url);
+            info!(
+                "[{}] [URL:{}] 使用环境变量代理: {}",
+                log_prefix, url, env_proxy_url
+            );
         } else {
-            debug!("[{}] [URL:{}] 使用环境变量代理: {}", log_prefix, url, env_proxy_url);
+            debug!(
+                "[{}] [URL:{}] 使用环境变量代理: {}",
+                log_prefix, url, env_proxy_url
+            );
         }
         match create_optimized_client_with_proxy(&env_proxy_url) {
             Ok(http_client) => {
@@ -314,11 +347,17 @@ pub fn create_client_with_env_fallback(
                 return http_client;
             }
             Err(e) => {
-                warn!("[{}] [URL:{}] 环境变量代理客户端创建失败: {}，回退到无代理", log_prefix, url, e);
+                warn!(
+                    "[{}] [URL:{}] 环境变量代理客户端创建失败: {}，回退到无代理",
+                    log_prefix, url, e
+                );
             }
         }
     } else {
-        debug!("[{}] [URL:{}] 未检测到环境变量代理，回退到无代理", log_prefix, url);
+        debug!(
+            "[{}] [URL:{}] 未检测到环境变量代理，回退到无代理",
+            log_prefix, url
+        );
     }
 
     // 回退到无代理

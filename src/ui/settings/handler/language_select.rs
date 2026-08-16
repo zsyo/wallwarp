@@ -5,7 +5,10 @@ use iced::Task;
 use tracing::info;
 
 impl App {
-    pub(in crate::ui::settings) fn settings_language_selected(&mut self, lang: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_language_selected(
+        &mut self,
+        lang: String,
+    ) -> Task<AppMessage> {
         let old_lang = self.config.global.language.clone();
         info!("[设置] [语言] 修改: {} -> {}", old_lang, lang);
         self.i18n.set_language(lang.clone());

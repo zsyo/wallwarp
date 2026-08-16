@@ -59,8 +59,9 @@ pub struct DownloadProgressUpdate {
 }
 
 /// 全局下载进度channel发送器
-pub static DOWNLOAD_PROGRESS_TX: std::sync::OnceLock<tokio::sync::broadcast::Sender<DownloadProgressUpdate>> =
-    std::sync::OnceLock::new();
+pub static DOWNLOAD_PROGRESS_TX: std::sync::OnceLock<
+    tokio::sync::broadcast::Sender<DownloadProgressUpdate>,
+> = std::sync::OnceLock::new();
 
 /// 初始化全局下载进度channel
 pub fn init_download_progress_channel() {

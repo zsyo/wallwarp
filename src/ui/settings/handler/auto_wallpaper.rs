@@ -34,9 +34,12 @@ impl App {
         &mut self,
         interval: WallpaperAutoChangeInterval,
     ) -> Task<AppMessage> {
-        let old_interval = self.config.wallpaper.auto_change_interval.clone();
-        info!("[设置] [定时切换周期] 修改: {:?} -> {:?}", old_interval, interval);
-        self.settings_state.auto_change_interval = interval.clone();
+        let old_interval = self.config.wallpaper.auto_change_interval;
+        info!(
+            "[设置] [定时切换周期] 修改: {:?} -> {:?}",
+            old_interval, interval
+        );
+        self.settings_state.auto_change_interval = interval;
         self.config.wallpaper.auto_change_interval = interval;
 
         // 根据选择的间隔启动或停止定时任务
@@ -83,7 +86,8 @@ impl App {
         ) {
             // 同时更新 UI 状态和配置文件
             self.settings_state.auto_change_interval = WallpaperAutoChangeInterval::Custom(minutes);
-            self.config.wallpaper.auto_change_interval = WallpaperAutoChangeInterval::Custom(minutes);
+            self.config.wallpaper.auto_change_interval =
+                WallpaperAutoChangeInterval::Custom(minutes);
             self.config.save_to_file();
 
             // 重置定时任务并记录下次执行时间
@@ -100,7 +104,10 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::settings) fn settings_auto_change_query_changed(&mut self, query: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_auto_change_query_changed(
+        &mut self,
+        query: String,
+    ) -> Task<AppMessage> {
         // 只更新临时状态，不保存到配置文件
         self.settings_state.auto_change_query = query;
         Task::none()
@@ -112,8 +119,16 @@ impl App {
         let new_query = self.settings_state.auto_change_query.clone();
         info!(
             "[设置] [定时切换关键词] 保存: {} -> {}",
-            if old_query.is_empty() { "(空)" } else { &old_query },
-            if new_query.is_empty() { "(空)" } else { &new_query }
+            if old_query.is_empty() {
+                "(空)"
+            } else {
+                &old_query
+            },
+            if new_query.is_empty() {
+                "(空)"
+            } else {
+                &new_query
+            }
         );
         self.config.wallpaper.auto_change_query = new_query;
 
@@ -144,7 +159,9 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::settings) fn settings_save_auto_change_sorting(&mut self) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_save_auto_change_sorting(
+        &mut self,
+    ) -> Task<AppMessage> {
         // 此方法已不再使用，保留以避免编译错误
         Task::none()
     }
@@ -169,7 +186,9 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::settings) fn settings_save_auto_change_time_range(&mut self) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_save_auto_change_time_range(
+        &mut self,
+    ) -> Task<AppMessage> {
         // 此方法已不再使用，保留以避免编译错误
         Task::none()
     }
@@ -184,12 +203,17 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::settings) fn settings_time_range_picker_expanded(&mut self) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_time_range_picker_expanded(
+        &mut self,
+    ) -> Task<AppMessage> {
         // 切换时间范围选择器的展开/收起状态
-        self.settings_state.time_range_picker_expanded = !self.settings_state.time_range_picker_expanded;
+        self.settings_state.time_range_picker_expanded =
+            !self.settings_state.time_range_picker_expanded;
         Task::none()
     }
-    pub(in crate::ui::settings) fn settings_time_range_picker_dismiss(&mut self) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_time_range_picker_dismiss(
+        &mut self,
+    ) -> Task<AppMessage> {
         self.settings_state.time_range_picker_expanded = false;
         Task::none()
     }

@@ -4,9 +4,9 @@
 //!
 //! 提供下载任务的持久化操作
 
+use super::connection::DatabaseConnection;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use super::connection::DatabaseConnection;
 
 /// 下载任务数据库结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,7 +62,9 @@ impl DownloadTasksRepository {
     /// # 返回
     /// 成功返回 Ok(())，失败返回错误信息
     pub fn create_tables(db: &DatabaseConnection) -> Result<(), String> {
-        let conn = db.inner().lock()
+        let conn = db
+            .inner()
+            .lock()
             .map_err(|e| format!("获取数据库锁失败: {}", e))?;
 
         conn.execute(
@@ -105,7 +107,10 @@ impl DownloadTasksRepository {
     /// # 返回
     /// 成功返回 Ok(())，失败返回错误信息
     pub fn save_task(&self, task: &DownloadTaskDB) -> Result<(), String> {
-        let conn = self.db.inner().lock()
+        let conn = self
+            .db
+            .inner()
+            .lock()
             .map_err(|e| format!("获取数据库锁失败: {}", e))?;
 
         conn.execute(
@@ -135,7 +140,10 @@ impl DownloadTasksRepository {
     /// 返回所有任务的列表
     pub fn load_all_tasks(&self) -> Result<Vec<DownloadTaskDB>, String> {
         let mut tasks = Vec::new();
-        let conn = self.db.inner().lock()
+        let conn = self
+            .db
+            .inner()
+            .lock()
             .map_err(|e| format!("获取数据库锁失败: {}", e))?;
 
         let mut stmt = conn.prepare(
@@ -161,10 +169,8 @@ impl DownloadTasksRepository {
             })
             .map_err(|e| format!("查询任务失败: {}", e))?;
 
-        for row in rows {
-            if let Ok(task) = row {
-                tasks.push(task);
-            }
+        for task in rows.flatten() {
+            tasks.push(task);
         }
 
         Ok(tasks)
@@ -178,7 +184,10 @@ impl DownloadTasksRepository {
     /// # 返回
     /// 成功返回 Ok(())，失败返回错误信息
     pub fn delete_task(&self, id: usize) -> Result<(), String> {
-        let conn = self.db.inner().lock()
+        let conn = self
+            .db
+            .inner()
+            .lock()
             .map_err(|e| format!("获取数据库锁失败: {}", e))?;
 
         conn.execute(
@@ -195,14 +204,14 @@ impl DownloadTasksRepository {
     /// # 返回
     /// 成功返回 Ok(())，失败返回错误信息
     pub fn clear_completed(&self) -> Result<(), String> {
-        let conn = self.db.inner().lock()
+        let conn = self
+            .db
+            .inner()
+            .lock()
             .map_err(|e| format!("获取数据库锁失败: {}", e))?;
 
-        conn.execute(
-            "DELETE FROM download_tasks WHERE status = 'Completed'",
-            [],
-        )
-        .map_err(|e| format!("清空已完成任务失败: {}", e))?;
+        conn.execute("DELETE FROM download_tasks WHERE status = 'Completed'", [])
+            .map_err(|e| format!("清空已完成任务失败: {}", e))?;
 
         Ok(())
     }
@@ -212,14 +221,14 @@ impl DownloadTasksRepository {
     /// # 返回
     /// 成功返回 Ok(())，失败返回错误信息
     pub fn clear_all(&self) -> Result<(), String> {
-        let conn = self.db.inner().lock()
+        let conn = self
+            .db
+            .inner()
+            .lock()
             .map_err(|e| format!("获取数据库锁失败: {}", e))?;
 
-        conn.execute(
-            "DELETE FROM download_tasks",
-            [],
-        )
-        .map_err(|e| format!("清空所有任务失败: {}", e))?;
+        conn.execute("DELETE FROM download_tasks", [])
+            .map_err(|e| format!("清空所有任务失败: {}", e))?;
 
         Ok(())
     }

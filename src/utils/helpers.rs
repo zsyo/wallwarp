@@ -32,7 +32,9 @@ pub fn open_file_in_explorer(path: &str) {
 
     #[cfg(target_os = "macos")]
     {
-        let _ = std::process::Command::new("open").args(["-R", &full_path]).spawn();
+        let _ = std::process::Command::new("open")
+            .args(["-R", &full_path])
+            .spawn();
     }
 
     #[cfg(target_os = "linux")]
@@ -145,9 +147,5 @@ pub fn ensure_directory_exists(path: &str, dir_name: &str) {
 /// 但显示给用户时建议使用标准化后的路径。
 pub fn normalize_path(path: &str) -> String {
     // Windows 扩展路径前缀: \\?\
-    if path.starts_with("\\\\?\\") {
-        path[4..].to_string()
-    } else {
-        path.to_string()
-    }
+    path.strip_prefix("\\\\?\\").unwrap_or(path).to_string()
 }

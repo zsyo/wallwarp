@@ -17,7 +17,12 @@ impl App {
             .download_state
             .tasks
             .iter()
-            .filter(|t| matches!(t.task.status, DownloadStatus::Waiting | DownloadStatus::Paused))
+            .filter(|t| {
+                matches!(
+                    t.task.status,
+                    DownloadStatus::Waiting | DownloadStatus::Paused
+                )
+            })
             .map(|t| t.task.id)
             .collect();
 
@@ -40,7 +45,8 @@ impl App {
             // 取消任务
             self.download_state.cancel_task(task_id);
             // 将任务状态设置为已取消
-            self.download_state.update_status(task_id, DownloadStatus::Cancelled);
+            self.download_state
+                .update_status(task_id, DownloadStatus::Cancelled);
 
             // 清除未完成的下载文件
             if let Some((url, save_path, _file_name, status)) = task_info {
@@ -52,39 +58,43 @@ impl App {
                     // 1. 删除目标文件（data_path中的文件）
                     if let Ok(_metadata) = std::fs::metadata(&save_path) {
                         let _ = std::fs::remove_file(&save_path);
-                        info!("[下载任务] [ID:{}] 已删除未完成的目标文件: {}", task_id, save_path);
+                        info!(
+                            "[下载任务] [ID:{}] 已删除未完成的目标文件: {}",
+                            task_id, save_path
+                        );
                     }
 
                     // 2. 删除缓存文件
                     let cache_path = self.config.data.cache_path.clone();
-                    if let Ok(cache_file_path) = DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
-                        if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
-                            let _ = std::fs::remove_file(&cache_file_path);
-                            info!(
-                                "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
-                                task_id, cache_file_path
-                            );
-                        }
+                    if let Ok(cache_file_path) =
+                        DownloadService::get_online_image_cache_path(&cache_path, &url, 0)
+                        && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
+                    {
+                        let _ = std::fs::remove_file(&cache_file_path);
+                        info!(
+                            "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
+                            task_id, cache_file_path
+                        );
                     }
 
                     // 3. 删除缓存文件（不带.download后缀的最终文件）
                     if let Ok(final_cache_path) =
                         DownloadService::get_online_image_cache_final_path(&cache_path, &url, 0)
+                        && let Ok(_metadata) = std::fs::metadata(&final_cache_path)
                     {
-                        if let Ok(_metadata) = std::fs::metadata(&final_cache_path) {
-                            let _ = std::fs::remove_file(&final_cache_path);
-                            info!(
-                                "[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}",
-                                task_id, final_cache_path
-                            );
-                        }
+                        let _ = std::fs::remove_file(&final_cache_path);
+                        info!(
+                            "[下载任务] [ID:{}] 已删除未完成的最终缓存文件: {}",
+                            task_id, final_cache_path
+                        );
                     }
                 }
             }
         }
 
         // 滚动到顶部，避免触发自动加载下一页
-        let scroll_to_top_task = Task::done(MainMessage::ScrollToTop("online_wallpapers".to_string()).into());
+        let scroll_to_top_task =
+            Task::done(MainMessage::ScrollToTop("online_wallpapers".to_string()).into());
 
         // 执行搜索和滚动到顶部
         Task::batch([self.load_online_wallpapers(), scroll_to_top_task])

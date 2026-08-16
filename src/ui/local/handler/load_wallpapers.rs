@@ -23,7 +23,10 @@ impl App {
     }
 
     /// 处理本地壁纸列表加载成功
-    pub(in crate::ui::local) fn load_local_wallpapers_success(&mut self, paths: Vec<String>) -> Task<AppMessage> {
+    pub(in crate::ui::local) fn load_local_wallpapers_success(
+        &mut self,
+        paths: Vec<String>,
+    ) -> Task<AppMessage> {
         // 更新本地状态，初始化壁纸加载状态列表
         self.local_state.all_paths = paths;
         self.local_state.total_count = self.local_state.all_paths.len();

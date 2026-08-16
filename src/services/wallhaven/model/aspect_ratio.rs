@@ -75,9 +75,15 @@ impl AspectRatio {
     pub fn group(&self) -> AspectRatioGroup {
         match self {
             AspectRatio::R16x9 | AspectRatio::R16x10 => AspectRatioGroup::Wide,
-            AspectRatio::R21x9 | AspectRatio::R32x9 | AspectRatio::R48x9 => AspectRatioGroup::Ultrawide,
-            AspectRatio::R9x16 | AspectRatio::R10x16 | AspectRatio::R9x18 => AspectRatioGroup::Portrait,
-            AspectRatio::R1x1 | AspectRatio::R3x2 | AspectRatio::R4x3 | AspectRatio::R5x4 => AspectRatioGroup::Square,
+            AspectRatio::R21x9 | AspectRatio::R32x9 | AspectRatio::R48x9 => {
+                AspectRatioGroup::Ultrawide
+            }
+            AspectRatio::R9x16 | AspectRatio::R10x16 | AspectRatio::R9x18 => {
+                AspectRatioGroup::Portrait
+            }
+            AspectRatio::R1x1 | AspectRatio::R3x2 | AspectRatio::R4x3 | AspectRatio::R5x4 => {
+                AspectRatioGroup::Square
+            }
         }
     }
 }

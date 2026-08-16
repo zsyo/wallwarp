@@ -1,8 +1,10 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::common;
-use crate::ui::style::{TITLE_BAR_BUTTON_SPACING, TITLE_BAR_HEIGHT, TITLE_BAR_ICON_SIZE, TITLE_BAR_TITLE_SIZE};
 use crate::ui::style::ThemeConfig;
+use crate::ui::style::{
+    TITLE_BAR_BUTTON_SPACING, TITLE_BAR_HEIGHT, TITLE_BAR_ICON_SIZE, TITLE_BAR_TITLE_SIZE,
+};
 use iced::border::{Border, Radius};
 use iced::widget::{button, container, mouse_area, row, text, tooltip};
 use iced::{Alignment, Color, Element, Font, Length};

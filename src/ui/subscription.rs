@@ -27,11 +27,13 @@ impl App {
         };
 
         // 定时检测系统颜色模式任务
-        let auto_detect_color_mode = if self.auto_change_state.auto_detect_color_mode && self.main_state.is_visible {
-            iced::time::every(Duration::from_secs(1)).map(|_| MainMessage::AutoDetectColorModeTick.into())
-        } else {
-            Subscription::none()
-        };
+        let auto_detect_color_mode =
+            if self.auto_change_state.auto_detect_color_mode && self.main_state.is_visible {
+                iced::time::every(Duration::from_secs(1))
+                    .map(|_| MainMessage::AutoDetectColorModeTick.into())
+            } else {
+                Subscription::none()
+            };
 
         Subscription::batch(vec![
             // 窗口事件监听
@@ -39,7 +41,9 @@ impl App {
                 Event::Window(window::Event::Resized(size)) => {
                     Some(MainMessage::WindowResized(size.width as u32, size.height as u32).into())
                 }
-                Event::Window(window::Event::CloseRequested) => Some(MainMessage::WindowCloseRequested.into()),
+                Event::Window(window::Event::CloseRequested) => {
+                    Some(MainMessage::WindowCloseRequested.into())
+                }
                 Event::Window(window::Event::Focused) => Some(MainMessage::WindowFocused.into()),
                 _ => None,
             }),
@@ -76,24 +80,15 @@ impl App {
                 crate::services::init_download_progress_channel();
 
                 // 获取channel接收器
-                let rx = if let Some(tx) = crate::services::DOWNLOAD_PROGRESS_TX.get() {
-                    Some(tx.subscribe())
-                } else {
-                    None
-                };
+                let rx = crate::services::DOWNLOAD_PROGRESS_TX
+                    .get()
+                    .map(|tx| tx.subscribe());
 
                 async_stream::stream! {
                     if let Some(mut rx) = rx {
-                        loop {
-                            match rx.recv().await {
-                                Ok(update) => {
-                                    yield DownloadMessage::DownloadProgress(update.task_id,update.downloaded,update.total,update.speed).into();
-                                }
-                                Err(_) => {
-                                    // Channel关闭，退出循环
-                                    break;
-                                }
-                            }
+                        // Channel关闭时 recv 返回 Err，循环自然结束
+                        while let Ok(update) = rx.recv().await {
+                            yield DownloadMessage::DownloadProgress(update.task_id,update.downloaded,update.total,update.speed).into();
                         }
                     } else {
                         // 如果channel未初始化，返回空stream

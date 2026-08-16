@@ -26,7 +26,7 @@ pub fn create_table_header<'a>(
             "download-tasks.header-filename",
             download_state,
             SortColumn::FileName,
-            theme_colors.clone(),
+            theme_colors,
             Length::FillPortion(3),
         ),
         // 分隔线
@@ -37,7 +37,7 @@ pub fn create_table_header<'a>(
             "download-tasks.header-size",
             download_state,
             SortColumn::Size,
-            theme_colors.clone(),
+            theme_colors,
             Length::Fixed(100.0),
         ),
         // 分隔线
@@ -48,7 +48,7 @@ pub fn create_table_header<'a>(
             "download-tasks.header-status",
             download_state,
             SortColumn::Status,
-            theme_colors.clone(),
+            theme_colors,
             Length::Fixed(220.0),
         ),
         // 分隔线
@@ -71,7 +71,7 @@ pub fn create_table_header<'a>(
             "download-tasks.header-created-at",
             download_state,
             SortColumn::CreatedAt,
-            theme_colors.clone(),
+            theme_colors,
             Length::Fixed(150.0),
         ),
         // 分隔线
@@ -122,42 +122,52 @@ fn create_sortable_header_cell<'a>(
             color: Some(theme_colors.text),
         });
 
-    let sort_icon_elem = sort_icon
-        .size(10)
-        .style(move |_theme: &iced::Theme| iced::widget::text::Style {
-            color: if is_current_column {
-                Some(theme_colors.light_text_sub)
-            } else {
-                Some(theme_colors.text)
-            },
-        });
+    let sort_icon_elem =
+        sort_icon
+            .size(10)
+            .style(move |_theme: &iced::Theme| iced::widget::text::Style {
+                color: if is_current_column {
+                    Some(theme_colors.light_text_sub)
+                } else {
+                    Some(theme_colors.text)
+                },
+            });
 
     // 列名靠左，图标靠右，中间用Fill占位
-    let content = row![header_text, Space::new().width(Length::Fill), sort_icon_elem,].align_y(Alignment::Center);
+    let content = row![
+        header_text,
+        Space::new().width(Length::Fill),
+        sort_icon_elem,
+    ]
+    .align_y(Alignment::Center);
 
     let button_elem = button(content)
         .on_press(if is_sorting {
             AppMessage::None // 排序中禁止点击
         } else {
-            AppMessage::Download(crate::ui::download::message::DownloadMessage::ToggleSort(sort_column))
+            AppMessage::Download(crate::ui::download::message::DownloadMessage::ToggleSort(
+                sort_column,
+            ))
         })
         .padding(5) // 添加padding，与不可排序列一致
         .width(Length::Fill) // 按钮填满容器宽度
         .style(
-            move |_theme: &iced::Theme, _status: iced::widget::button::Status| iced::widget::button::Style {
-                text_color: theme_colors.text,
-                background: Some(iced::Background::Color(if is_current_column {
-                    theme_colors.background
-                } else {
-                    iced::Color::TRANSPARENT
-                })),
-                border: iced::Border {
-                    color: iced::Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: 4.0.into(),
-                },
-                shadow: iced::Shadow::default(),
-                snap: false,
+            move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
+                iced::widget::button::Style {
+                    text_color: theme_colors.text,
+                    background: Some(iced::Background::Color(if is_current_column {
+                        theme_colors.background
+                    } else {
+                        iced::Color::TRANSPARENT
+                    })),
+                    border: iced::Border {
+                        color: iced::Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: 4.0.into(),
+                    },
+                    shadow: iced::Shadow::default(),
+                    snap: false,
+                }
             },
         );
 

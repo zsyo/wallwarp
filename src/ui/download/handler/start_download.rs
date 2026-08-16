@@ -11,7 +11,8 @@ use std::time::Instant;
 impl App {
     /// 辅助方法：开始下载壁纸（支持并行限制和进度更新）
     pub fn start_download(&mut self, url: String, id: &str, file_type: &str) -> Task<AppMessage> {
-        let file_name = wallhaven::generate_file_name(id, file_type.split('/').last().unwrap_or("jpg"));
+        let file_name =
+            wallhaven::generate_file_name(id, file_type.split('/').next_back().unwrap_or("jpg"));
         let data_path = self.config.data.data_path.clone();
         let cache_path = self.config.data.cache_path.clone();
         let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
@@ -19,7 +20,11 @@ impl App {
         } else {
             None
         };
-        let file_type = file_type.split('/').last().unwrap_or("jpg").to_string();
+        let file_type = file_type
+            .split('/')
+            .next_back()
+            .unwrap_or("jpg")
+            .to_string();
 
         // 生成完整保存路径
         let full_save_path = PathBuf::from(&data_path).join(&file_name);
@@ -77,7 +82,11 @@ impl App {
                         ),
                         move |result| match result {
                             Ok(size) => {
-                                tracing::info!("[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes", task_id, size);
+                                tracing::info!(
+                                    "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
+                                    task_id,
+                                    size
+                                );
                                 DownloadMessage::DownloadCompleted(task_id, size, None).into()
                             }
                             Err(e) => {
@@ -91,6 +100,9 @@ impl App {
         }
 
         // 显示通知
-        self.show_notification(format!("已添加到下载队列 (等待中)"), NotificationType::Success)
+        self.show_notification(
+            "已添加到下载队列 (等待中)".to_string(),
+            NotificationType::Success,
+        )
     }
 }

@@ -24,6 +24,12 @@ pub struct I18n {
     pub current_lang: String,
 }
 
+impl Default for I18n {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl I18n {
     pub fn new() -> Self {
         let mut bundles = HashMap::new();
@@ -41,19 +47,24 @@ impl I18n {
         if let Ok(entries) = fs::read_dir(locales_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some(FTL_EXTENSION) {
-                    if let Some(lang_code) = path.file_stem().and_then(|s| s.to_str()) {
-                        let lang_code = lang_code.to_lowercase();
-                        if let Ok(content) = fs::read_to_string(&path) {
-                            Self::add_bundle(&mut bundles, &mut available_langs, &lang_code, &content);
-                        }
+                if path.extension().and_then(|s| s.to_str()) == Some(FTL_EXTENSION)
+                    && let Some(lang_code) = path.file_stem().and_then(|s| s.to_str())
+                {
+                    let lang_code = lang_code.to_lowercase();
+                    if let Ok(content) = fs::read_to_string(&path) {
+                        Self::add_bundle(&mut bundles, &mut available_langs, &lang_code, &content);
                     }
                 }
             }
         }
 
         if available_langs.is_empty() {
-            Self::add_bundle(&mut bundles, &mut available_langs, DEFAULT_LANG_CODE, DEFAULT_LANG);
+            Self::add_bundle(
+                &mut bundles,
+                &mut available_langs,
+                DEFAULT_LANG_CODE,
+                DEFAULT_LANG,
+            );
         }
 
         let sys_lang = get_locale().unwrap_or_default().to_lowercase();
@@ -81,11 +92,17 @@ impl I18n {
     }
 
     pub fn lang_names(&self) -> Vec<String> {
-        self.available_langs.iter().map(|info| info.name.clone()).collect()
+        self.available_langs
+            .iter()
+            .map(|info| info.name.clone())
+            .collect()
     }
 
     pub fn lang_codes(&self) -> Vec<String> {
-        self.available_langs.iter().map(|info| info.code.clone()).collect()
+        self.available_langs
+            .iter()
+            .map(|info| info.code.clone())
+            .collect()
     }
 
     pub fn lang_codes_and_names(&self) -> Vec<(String, String)> {
@@ -126,10 +143,12 @@ impl I18n {
 
     fn extract_lang_name(bundle: &FluentBundle<FluentResource>, code: &str) -> String {
         let mut errors = vec![];
-        if let Some(msg) = bundle.get_message(LANG_NAME_KEY) {
-            if let Some(pattern) = msg.value() {
-                return bundle.format_pattern(pattern, None, &mut errors).to_string();
-            }
+        if let Some(msg) = bundle.get_message(LANG_NAME_KEY)
+            && let Some(pattern) = msg.value()
+        {
+            return bundle
+                .format_pattern(pattern, None, &mut errors)
+                .to_string();
         }
         code.to_string()
     }

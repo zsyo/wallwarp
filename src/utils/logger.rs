@@ -51,9 +51,11 @@ impl FormatTime for LocalTimer {
 /// 返回一个 guard，必须在 main 函数中保持它直到程序结束，否则日志文件写入会停止
 pub fn init_logger(enable_logging: bool) -> Option<tracing_appender::non_blocking::WorkerGuard> {
     // 从环境变量读取日志级别，默认为 info
-    let filter = env_filter_extra(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")));
+    let filter = env_filter_extra(
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+    );
 
-    let guard = if enable_logging {
+    if enable_logging {
         let logs_dir = std::env::current_dir().unwrap_or_default().join("logs");
         std::fs::create_dir_all(&logs_dir).ok();
         let latest_log_path = logs_dir.join("latest.log");
@@ -113,9 +115,7 @@ pub fn init_logger(enable_logging: bool) -> Option<tracing_appender::non_blockin
         tracing_subscriber::registry().with(console_layer).init();
 
         None
-    };
-
-    guard
+    }
 }
 
 /// 设置日志级别（运行时动态设置）

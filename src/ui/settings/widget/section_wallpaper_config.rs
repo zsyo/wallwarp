@@ -3,8 +3,8 @@
 use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::{
-    BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_RADIUS,
-    TOOLTIP_BORDER_WIDTH,
+    BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
+    TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
 };
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
@@ -102,7 +102,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.off"),
                         WallpaperAutoChangeInterval::Off,
-                        Some(app.settings_state.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.off-tooltip"),
                         theme_colors
@@ -110,7 +110,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.ten-min"),
                         WallpaperAutoChangeInterval::Minutes(10),
-                        Some(app.settings_state.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.ten-min-tooltip"),
                         theme_colors
@@ -118,15 +118,16 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.thirty-min"),
                         WallpaperAutoChangeInterval::Minutes(30),
-                        Some(app.settings_state.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
-                        app.i18n.t("auto-change-interval-options.thirty-min-tooltip"),
+                        app.i18n
+                            .t("auto-change-interval-options.thirty-min-tooltip"),
                         theme_colors
                     ),
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.one-hour"),
                         WallpaperAutoChangeInterval::Minutes(60),
-                        Some(app.settings_state.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.one-hour-tooltip"),
                         theme_colors
@@ -134,7 +135,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                     common::create_radio_with_tooltip(
                         app.i18n.t("auto-change-interval-options.two-hour"),
                         WallpaperAutoChangeInterval::Minutes(120),
-                        Some(app.settings_state.auto_change_interval.clone()),
+                        Some(app.settings_state.auto_change_interval),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
                         app.i18n.t("auto-change-interval-options.two-hour-tooltip"),
                         theme_colors
@@ -144,53 +145,73 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                             row![
                                 iced::widget::radio(
                                     app.i18n.t("auto-change-interval-options.custom"),
-                                    WallpaperAutoChangeInterval::Custom(app.settings_state.custom_interval_minutes),
-                                    Some(app.settings_state.auto_change_interval.clone()),
+                                    WallpaperAutoChangeInterval::Custom(
+                                        app.settings_state.custom_interval_minutes
+                                    ),
+                                    Some(app.settings_state.auto_change_interval),
                                     |interval| {
-                                        if let WallpaperAutoChangeInterval::Custom(minutes) = interval {
+                                        if let WallpaperAutoChangeInterval::Custom(minutes) =
+                                            interval
+                                        {
                                             SettingsMessage::AutoChangeIntervalSelected(
                                                 WallpaperAutoChangeInterval::Custom(minutes),
                                             )
                                             .into()
                                         } else {
-                                            SettingsMessage::AutoChangeIntervalSelected(interval).into()
+                                            SettingsMessage::AutoChangeIntervalSelected(interval)
+                                                .into()
                                         }
                                     }
                                 )
-                                .style(move |theme: &iced::Theme, status| {
-                                    radio::Style {
-                                        text_color: Some(theme_colors.text),
-                                        background: iced::Background::Color(Color::TRANSPARENT),
-                                        ..radio::default(theme, status)
+                                .style(
+                                    move |theme: &iced::Theme, status| {
+                                        radio::Style {
+                                            text_color: Some(theme_colors.text),
+                                            background: iced::Background::Color(Color::TRANSPARENT),
+                                            ..radio::default(theme, status)
+                                        }
                                     }
-                                }),
+                                ),
                                 container(
                                     row![
                                         iced_aw::NumberInput::new(
                                             &app.settings_state.custom_interval_minutes,
                                             1..=1440,
-                                            |minutes| { SettingsMessage::CustomIntervalMinutesChanged(minutes).into() }
+                                            |minutes| {
+                                                SettingsMessage::CustomIntervalMinutesChanged(
+                                                    minutes,
+                                                )
+                                                .into()
+                                            }
                                         )
                                         .width(Length::Fill)
                                         .padding(INPUT_PADDING)
-                                        .input_style(move |_theme: &iced::Theme, _status| text_input::Style {
-                                            background: iced::Background::Color(theme_colors.text_input_background),
-                                            border: Border {
-                                                color: Color::TRANSPARENT,
-                                                width: 0.0,
-                                                radius: Radius::from(4.0),
-                                            },
-                                            icon: theme_colors.light_text_sub,
-                                            placeholder: theme_colors.light_text_sub,
-                                            value: theme_colors.light_text,
-                                            selection: theme_colors.text_input_selection_color,
+                                        .input_style(move |_theme: &iced::Theme, _status| {
+                                            text_input::Style {
+                                                background: iced::Background::Color(
+                                                    theme_colors.text_input_background,
+                                                ),
+                                                border: Border {
+                                                    color: Color::TRANSPARENT,
+                                                    width: 0.0,
+                                                    radius: Radius::from(4.0),
+                                                },
+                                                icon: theme_colors.light_text_sub,
+                                                placeholder: theme_colors.light_text_sub,
+                                                value: theme_colors.light_text,
+                                                selection: theme_colors.text_input_selection_color,
+                                            }
                                         })
                                         .style(
-                                            move |_theme: &iced::Theme, _status| iced_aw::number_input::Style {
-                                                button_background: Some(iced::Background::Color(
-                                                    theme_colors.text_input_background
-                                                )),
-                                                icon_color: theme_colors.light_text_sub,
+                                            move |_theme: &iced::Theme, _status| {
+                                                iced_aw::number_input::Style {
+                                                    button_background: Some(
+                                                        iced::Background::Color(
+                                                            theme_colors.text_input_background,
+                                                        ),
+                                                    ),
+                                                    icon_color: theme_colors.light_text_sub,
+                                                }
                                             }
                                         ),
                                         text(app.i18n.t("settings.minutes"))

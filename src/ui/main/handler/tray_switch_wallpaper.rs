@@ -39,9 +39,11 @@ impl App {
                     // 切换成功，将当前壁纸从历史记录末尾移除
                     MainMessage::RemoveLastFromWallpaperHistory.into()
                 }
-                Err(e) => {
-                    MainMessage::ShowNotification(format!("{}: {}", failed_message, e), NotificationType::Error).into()
-                }
+                Err(e) => MainMessage::ShowNotification(
+                    format!("{}: {}", failed_message, e),
+                    NotificationType::Error,
+                )
+                .into(),
             },
         )
     }
@@ -61,8 +63,11 @@ impl App {
                         Ok(paths) => {
                             // 获取到图片列表后，立即尝试设置随机壁纸
                             if paths.is_empty() {
-                                MainMessage::ShowNotification(no_valid_wallpapers_message, NotificationType::Error)
-                                    .into()
+                                MainMessage::ShowNotification(
+                                    no_valid_wallpapers_message,
+                                    NotificationType::Error,
+                                )
+                                .into()
                             } else {
                                 // 发送一个消息来触发设置随机壁纸
                                 AutoChangeMessage::GetSupportedImagesSuccess(paths).into()
@@ -70,7 +75,8 @@ impl App {
                         }
                         Err(e) => {
                             let error_message = format!("获取壁纸列表失败: {}", e);
-                            MainMessage::ShowNotification(error_message, NotificationType::Error).into()
+                            MainMessage::ShowNotification(error_message, NotificationType::Error)
+                                .into()
                         }
                     },
                 )
@@ -85,7 +91,8 @@ impl App {
                         Ok(path) => AutoChangeMessage::SetRandomWallpaperSuccess(path).into(),
                         Err(e) => {
                             let error_message = format!("设置壁纸失败: {}", e);
-                            MainMessage::ShowNotification(error_message, NotificationType::Error).into()
+                            MainMessage::ShowNotification(error_message, NotificationType::Error)
+                                .into()
                         }
                     },
                 )

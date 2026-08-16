@@ -56,7 +56,9 @@ pub fn create_color_picker<'a>(
 
     // 创建颜色选择器的触发按钮（underlay）
     let color_underlay = row![
-        text(color_button_text).size(14).color(color_button_text_color),
+        text(color_button_text)
+            .size(14)
+            .color(color_button_text_color),
         Space::new().width(Length::Fill),
         container(text("⏷").color(theme_colors.light_text_sub))
             .height(Length::Fill)

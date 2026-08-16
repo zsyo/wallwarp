@@ -70,10 +70,10 @@ pub async fn async_set_random_online_wallpaper(
     let purities = wallhaven::parse_purity_bitmask(&config.wallhaven.purity);
     let color = wallhaven::parse_color(&config.wallhaven.color);
     // 使用配置文件中的排序方式和时间范围（从 config.wallpaper 读取）
-    let sorting =
-        wallhaven::Sorting::from_str(&config.wallpaper.auto_change_sorting).unwrap_or(wallhaven::Sorting::Random);
-    let time_range =
-        wallhaven::TimeRange::from_str(&config.wallpaper.auto_change_top_range).unwrap_or(wallhaven::TimeRange::Month);
+    let sorting = wallhaven::Sorting::parse(&config.wallpaper.auto_change_sorting)
+        .unwrap_or(wallhaven::Sorting::Random);
+    let time_range = wallhaven::TimeRange::parse(&config.wallpaper.auto_change_top_range)
+        .unwrap_or(wallhaven::TimeRange::Month);
 
     let atleast = if config.wallhaven.atleast_resolution.is_empty() {
         None
@@ -154,13 +154,17 @@ pub async fn async_set_random_online_wallpaper(
                     continue;
                 }
 
-                info!("[定时切换] [在线] 第 {} 页获取到 {} 张壁纸", page, data.len());
+                info!(
+                    "[定时切换] [在线] 第 {} 页获取到 {} 张壁纸",
+                    page,
+                    data.len()
+                );
                 wallpapers = data;
                 break;
             }
             Err(e) => {
                 error!("[定时切换] [在线] 第 {} 页请求失败: {}", page, e);
-                return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, e)) as Box<dyn Error + Send + Sync>);
+                return Err(Box::new(std::io::Error::other(e)) as Box<dyn Error + Send + Sync>);
             }
         }
     }
@@ -171,7 +175,9 @@ pub async fn async_set_random_online_wallpaper(
     }
 
     // 随机选择一张壁纸
-    let selected = wallpapers.choose(&mut rand::rng()).ok_or("随机选择壁纸失败")?;
+    let selected = wallpapers
+        .choose(&mut rand::rng())
+        .ok_or("随机选择壁纸失败")?;
 
     info!(
         "[定时切换] [在线] 已选择壁纸: ID={}, URL={}",
@@ -179,7 +185,10 @@ pub async fn async_set_random_online_wallpaper(
     );
 
     // 生成目标文件路径（使用原文件名，存储在 cache_path/auto_change 目录中）
-    let file_name = wallhaven::generate_file_name(&selected.id, selected.file_type.split('/').last().unwrap_or("jpg"));
+    let file_name = wallhaven::generate_file_name(
+        &selected.id,
+        selected.file_type.split('/').next_back().unwrap_or("jpg"),
+    );
     let cache_path = config.data.cache_path.clone();
     let auto_change_dir = PathBuf::from(&cache_path).join("auto_change");
     let target_path = auto_change_dir.join(&file_name);
@@ -194,15 +203,20 @@ pub async fn async_set_random_online_wallpaper(
                 target_path.display()
             );
             let wallpaper_mode = config.wallpaper.mode;
-            LocalWallpaperService::set_wallpaper(&target_path.to_string_lossy().to_string(), wallpaper_mode)?;
+            LocalWallpaperService::set_wallpaper(
+                target_path.to_string_lossy().as_ref(),
+                wallpaper_mode,
+            )?;
             return Ok(target_path.to_string_lossy().to_string());
         }
     }
 
     // 2. 检查缓存文件是否存在且大小匹配（cache_path/online 目录）
-    if let Ok(cache_file_path) =
-        DownloadService::get_online_image_cache_final_path(&cache_path, &selected.path, selected.file_size)
-    {
+    if let Ok(cache_file_path) = DownloadService::get_online_image_cache_final_path(
+        &cache_path,
+        &selected.path,
+        selected.file_size,
+    ) {
         let cache_file_path_obj = PathBuf::from(&cache_file_path);
         if let Ok(metadata) = std::fs::metadata(&cache_file_path_obj) {
             let cache_size = metadata.len();
@@ -220,13 +234,16 @@ pub async fn async_set_random_online_wallpaper(
                         // 移动成功，设置壁纸
                         let wallpaper_mode = config.wallpaper.mode;
                         LocalWallpaperService::set_wallpaper(
-                            &target_path.to_string_lossy().to_string(),
+                            target_path.to_string_lossy().as_ref(),
                             wallpaper_mode,
                         )?;
                         return Ok(target_path.to_string_lossy().to_string());
                     }
                     Err(e) => {
-                        error!("[定时切换] [在线] [ID:{}] 从缓存移动失败: {}", selected.id, e);
+                        error!(
+                            "[定时切换] [在线] [ID:{}] 从缓存移动失败: {}",
+                            selected.id, e
+                        );
                         // 移动失败，继续走下载流程
                     }
                 }
@@ -235,8 +252,11 @@ pub async fn async_set_random_online_wallpaper(
     }
 
     // 3. 文件不存在，下载到 cache_path/online
-    let cache_file_path =
-        DownloadService::get_online_image_cache_path(&cache_path, &selected.path, selected.file_size)?;
+    let cache_file_path = DownloadService::get_online_image_cache_path(
+        &cache_path,
+        &selected.path,
+        selected.file_size,
+    )?;
     let cache_file_path_obj = PathBuf::from(&cache_file_path);
     info!(
         "[定时切换] [在线] 缓存不存在，开始下载到online缓存: {}",
@@ -256,7 +276,7 @@ pub async fn async_set_random_online_wallpaper(
 
     // 设置壁纸
     let wallpaper_mode = config.wallpaper.mode;
-    LocalWallpaperService::set_wallpaper(&target_path.to_string_lossy().to_string(), wallpaper_mode)?;
+    LocalWallpaperService::set_wallpaper(target_path.to_string_lossy().as_ref(), wallpaper_mode)?;
 
     info!("[定时切换] [在线] 壁纸设置成功: {}", target_path.display());
     Ok(target_path.to_string_lossy().to_string())

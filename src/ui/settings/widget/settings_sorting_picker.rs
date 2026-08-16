@@ -23,7 +23,10 @@ impl std::fmt::Display for DisplayableSorting {
 }
 
 /// 创建排序方式选择器
-pub fn create_sorting_picker<'a>(app: &'a App, theme_colors: ThemeColors) -> Element<'a, AppMessage> {
+pub fn create_sorting_picker<'a>(
+    app: &'a App,
+    theme_colors: ThemeColors,
+) -> Element<'a, AppMessage> {
     let sorting_options: Vec<DisplayableSorting> = Sorting::all()
         .iter()
         .map(|s| DisplayableSorting {
@@ -33,7 +36,10 @@ pub fn create_sorting_picker<'a>(app: &'a App, theme_colors: ThemeColors) -> Ele
         .collect();
     let current_sorting = DisplayableSorting {
         value: app.settings_state.auto_change_sorting,
-        display: app.i18n.t(app.settings_state.auto_change_sorting.display_name()).leak(),
+        display: app
+            .i18n
+            .t(app.settings_state.auto_change_sorting.display_name())
+            .leak(),
     };
 
     // 创建触发按钮（underlay）
@@ -74,23 +80,26 @@ pub fn create_sorting_picker<'a>(app: &'a App, theme_colors: ThemeColors) -> Ele
         });
 
     // 用 tooltip 包裹排序方式选择器
-    let sorting_tooltip_text =
-        text(app.i18n.t("settings.auto-change-sorting-tooltip")).style(move |_theme: &iced::Theme| text::Style {
+    let sorting_tooltip_text = text(app.i18n.t("settings.auto-change-sorting-tooltip")).style(
+        move |_theme: &iced::Theme| text::Style {
             color: Some(theme_colors.text),
-        });
+        },
+    );
 
-    let sorting_trigger_with_tooltip =
-        tooltip(sorting_trigger, sorting_tooltip_text, tooltip::Position::Top).style(move |_theme: &iced::Theme| {
-            container::Style {
-                background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
-                border: Border {
-                    color: theme_colors.tooltip_border_color,
-                    width: TOOLTIP_BORDER_WIDTH,
-                    radius: Radius::from(TOOLTIP_BORDER_RADIUS),
-                },
-                ..Default::default()
-            }
-        });
+    let sorting_trigger_with_tooltip = tooltip(
+        sorting_trigger,
+        sorting_tooltip_text,
+        tooltip::Position::Top,
+    )
+    .style(move |_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
+        border: Border {
+            color: theme_colors.tooltip_border_color,
+            width: TOOLTIP_BORDER_WIDTH,
+            radius: Radius::from(TOOLTIP_BORDER_RADIUS),
+        },
+        ..Default::default()
+    });
 
     // 创建排序选项（overlay）
     let sorting_options_content = column(sorting_options.iter().map(|option| {

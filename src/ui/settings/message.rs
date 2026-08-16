@@ -2,7 +2,9 @@
 
 use crate::services::wallhaven::{Sorting, TimeRange};
 use crate::ui::{App, AppMessage};
-use crate::utils::config::{CloseAction, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
+use crate::utils::config::{
+    CloseAction, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode,
+};
 use iced::Task;
 
 /// 主界面页面消息
@@ -101,43 +103,73 @@ impl App {
     pub fn handle_settings_message(&mut self, msg: SettingsMessage) -> Task<AppMessage> {
         match msg {
             SettingsMessage::LanguageSelected(lang) => self.settings_language_selected(lang),
-            SettingsMessage::AutoStartupToggled(enabled) => self.settings_auto_startup_toggled(enabled),
+            SettingsMessage::AutoStartupToggled(enabled) => {
+                self.settings_auto_startup_toggled(enabled)
+            }
             SettingsMessage::LoggingToggled(enabled) => self.settings_logging_toggled(enabled),
-            SettingsMessage::CloseActionSelected(action) => self.settings_close_action_selected(action),
+            SettingsMessage::CloseActionSelected(action) => {
+                self.settings_close_action_selected(action)
+            }
             SettingsMessage::OpenUrl(url) => self.settings_open_url(url),
             SettingsMessage::DataPathSelected(path) => self.settings_data_path_selected(path),
             SettingsMessage::CachePathSelected(path) => self.settings_cache_path_selected(path),
             SettingsMessage::OpenPath(path_type) => self.settings_open_path(path_type),
             SettingsMessage::OpenLogsPath => self.settings_open_logs_path(),
-            SettingsMessage::ShowPathClearConfirmation(path_type) => self.settings_show_path_clear_confirm(path_type),
-            SettingsMessage::ConfirmPathClear(path_type) => self.settings_confirm_path_clear(path_type),
+            SettingsMessage::ShowPathClearConfirmation(path_type) => {
+                self.settings_show_path_clear_confirm(path_type)
+            }
+            SettingsMessage::ConfirmPathClear(path_type) => {
+                self.settings_confirm_path_clear(path_type)
+            }
             SettingsMessage::CancelPathClear => self.settings_cancel_path_clear(),
-            SettingsMessage::RestoreDefaultPath(path_type) => self.settings_restore_default_path(path_type),
-            SettingsMessage::WallhavenApiKeyChanged(api_key) => self.settings_wallhaven_api_key_changed(api_key),
+            SettingsMessage::RestoreDefaultPath(path_type) => {
+                self.settings_restore_default_path(path_type)
+            }
+            SettingsMessage::WallhavenApiKeyChanged(api_key) => {
+                self.settings_wallhaven_api_key_changed(api_key)
+            }
             SettingsMessage::SaveWallhavenApiKey => self.settings_save_wallhaven_api_key(),
-            SettingsMessage::ProxyProtocolChanged(protocol) => self.settings_proxy_protocol_changed(protocol),
-            SettingsMessage::ProxyAddressChanged(address) => self.settings_proxy_address_changed(address),
+            SettingsMessage::ProxyProtocolChanged(protocol) => {
+                self.settings_proxy_protocol_changed(protocol)
+            }
+            SettingsMessage::ProxyAddressChanged(address) => {
+                self.settings_proxy_address_changed(address)
+            }
             SettingsMessage::ProxyPortChanged(port) => self.settings_proxy_port_changed(port),
             SettingsMessage::ProxyToggled(enabled) => self.settings_proxy_toggled(enabled),
             SettingsMessage::SaveProxy => self.settings_save_proxy(),
-            SettingsMessage::WallpaperModeSelected(mode) => self.settings_wallpaper_mode_selected(mode),
-            SettingsMessage::AutoChangeModeSelected(mode) => self.settings_auto_change_mode_selected(mode),
+            SettingsMessage::WallpaperModeSelected(mode) => {
+                self.settings_wallpaper_mode_selected(mode)
+            }
+            SettingsMessage::AutoChangeModeSelected(mode) => {
+                self.settings_auto_change_mode_selected(mode)
+            }
             SettingsMessage::AutoChangeIntervalSelected(interval) => {
                 self.settings_auto_change_interval_selected(interval)
             }
             SettingsMessage::CustomIntervalMinutesChanged(minutes) => {
                 self.settings_custom_interval_minutes_changed(minutes)
             }
-            SettingsMessage::AutoChangeQueryChanged(query) => self.settings_auto_change_query_changed(query),
+            SettingsMessage::AutoChangeQueryChanged(query) => {
+                self.settings_auto_change_query_changed(query)
+            }
             SettingsMessage::SaveAutoChangeQuery => self.settings_save_auto_change_query(),
-            SettingsMessage::AutoChangeSortingChanged(sorting) => self.settings_auto_change_sorting_changed(sorting),
+            SettingsMessage::AutoChangeSortingChanged(sorting) => {
+                self.settings_auto_change_sorting_changed(sorting)
+            }
             SettingsMessage::SaveAutoChangeSorting => self.settings_save_auto_change_sorting(),
-            SettingsMessage::AutoChangeTimeRangeChanged(time_range) => self.settings_auto_change_time_range_changed(time_range),
+            SettingsMessage::AutoChangeTimeRangeChanged(time_range) => {
+                self.settings_auto_change_time_range_changed(time_range)
+            }
             SettingsMessage::SaveAutoChangeTimeRange => self.settings_save_auto_change_time_range(),
             SettingsMessage::LanguagePickerExpanded => self.settings_language_picker_expanded(),
             SettingsMessage::LanguagePickerDismiss => self.settings_language_picker_dismiss(),
-            SettingsMessage::ProxyProtocolPickerExpanded => self.settings_proxy_protocol_picker_expanded(),
-            SettingsMessage::ProxyProtocolPickerDismiss => self.settings_proxy_protocol_picker_dismiss(),
+            SettingsMessage::ProxyProtocolPickerExpanded => {
+                self.settings_proxy_protocol_picker_expanded()
+            }
+            SettingsMessage::ProxyProtocolPickerDismiss => {
+                self.settings_proxy_protocol_picker_dismiss()
+            }
             SettingsMessage::ThemePickerExpanded => self.settings_theme_picker_expanded(),
             SettingsMessage::ThemePickerDismiss => self.settings_theme_picker_dismiss(),
             SettingsMessage::SortingPickerExpanded => self.settings_sorting_picker_expanded(),

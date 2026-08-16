@@ -5,7 +5,9 @@ use crate::ui::AppMessage;
 use crate::ui::local::message::WallpaperLoadStatus;
 use crate::ui::local::state::LocalState;
 use crate::ui::style::ThemeConfig;
-use crate::ui::style::{ALL_LOADED_TEXT_SIZE, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_SPACING, IMAGE_WIDTH};
+use crate::ui::style::{
+    ALL_LOADED_TEXT_SIZE, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_SPACING, IMAGE_WIDTH,
+};
 use iced::widget::{Space, column, container, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -31,7 +33,9 @@ pub fn create_content<'a>(
 
         for wallpaper_status in chunk {
             let image_element = match wallpaper_status {
-                WallpaperLoadStatus::Loading => super::create_loading_placeholder(i18n, theme_config),
+                WallpaperLoadStatus::Loading => {
+                    super::create_loading_placeholder(i18n, theme_config)
+                }
                 WallpaperLoadStatus::Loaded(wallpaper) => {
                     let wallpaper_index = local_state
                         .all_paths
@@ -40,9 +44,19 @@ pub fn create_content<'a>(
                         .unwrap_or(0);
 
                     if wallpaper.name == "加载失败" {
-                        super::create_error_placeholder(i18n, wallpaper, wallpaper_index, theme_config)
+                        super::create_error_placeholder(
+                            i18n,
+                            wallpaper,
+                            wallpaper_index,
+                            theme_config,
+                        )
                     } else {
-                        super::create_loaded_wallpaper(i18n, wallpaper, wallpaper_index, theme_config)
+                        super::create_loaded_wallpaper(
+                            i18n,
+                            wallpaper,
+                            wallpaper_index,
+                            theme_config,
+                        )
                     }
                 }
             };
@@ -50,19 +64,20 @@ pub fn create_content<'a>(
             row_container = row_container.push(image_element);
         }
 
-        let centered_row = container(row_container).width(Length::Fill).center_x(Length::Fill);
+        let centered_row = container(row_container)
+            .width(Length::Fill)
+            .center_x(Length::Fill);
         content = content.push(centered_row);
     }
 
     // 如果已加载全部，显示提示文本
     if local_state.current_page * local_state.page_size >= local_state.total_count {
         let theme_colors = theme_config.get_theme_colors();
-        let all_loaded_text =
-            text(i18n.t("local-list.all-loaded"))
-                .size(ALL_LOADED_TEXT_SIZE)
-                .style(move |_theme: &iced::Theme| text::Style {
-                    color: Some(theme_colors.text),
-                });
+        let all_loaded_text = text(i18n.t("local-list.all-loaded"))
+            .size(ALL_LOADED_TEXT_SIZE)
+            .style(move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            });
         content = content.push(all_loaded_text)
     }
 
@@ -75,7 +90,10 @@ pub fn create_content<'a>(
 }
 
 /// 创建空内容展示区
-pub fn create_empty_content<'a>(i18n: &'a I18n, theme_config: &'a ThemeConfig) -> Element<'a, AppMessage> {
+pub fn create_empty_content<'a>(
+    i18n: &'a I18n,
+    theme_config: &'a ThemeConfig,
+) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
     column![
         text(i18n.t("local-list.no-wallpapers"))

@@ -5,14 +5,20 @@ use crate::utils::helpers;
 use iced::Task;
 
 impl App {
-    pub(in crate::ui::settings) fn settings_show_path_clear_confirm(&mut self, path_type: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_show_path_clear_confirm(
+        &mut self,
+        path_type: String,
+    ) -> Task<AppMessage> {
         // 显示路径清空确认对话框
         self.settings_state.show_path_clear_confirmation = true;
         self.settings_state.path_to_clear = path_type;
         Task::none()
     }
 
-    pub(in crate::ui::settings) fn settings_confirm_path_clear(&mut self, path_type: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_confirm_path_clear(
+        &mut self,
+        path_type: String,
+    ) -> Task<AppMessage> {
         // 隐藏确认对话框
         self.settings_state.show_path_clear_confirmation = false;
 
@@ -30,22 +36,20 @@ impl App {
             let mut success_count = 0;
             let mut error_count = 0;
 
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    let result = if path.is_file() {
-                        std::fs::remove_file(&path)
-                    } else if path.is_dir() {
-                        std::fs::remove_dir_all(&path)
-                    } else {
-                        Ok(())
-                    };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let result = if path.is_file() {
+                    std::fs::remove_file(&path)
+                } else if path.is_dir() {
+                    std::fs::remove_dir_all(&path)
+                } else {
+                    Ok(())
+                };
 
-                    if result.is_ok() {
-                        success_count += 1;
-                    } else {
-                        error_count += 1;
-                    }
+                if result.is_ok() {
+                    success_count += 1;
+                } else {
+                    error_count += 1;
                 }
             }
 
@@ -66,7 +70,7 @@ impl App {
                 } else {
                     format!("缓存路径清空成功，删除了{}个项目", count)
                 };
-                return self.show_notification(message, NotificationType::Success);
+                self.show_notification(message, NotificationType::Success)
             }
             Err(error_count) => {
                 // 清空失败，显示错误通知
@@ -75,7 +79,7 @@ impl App {
                 } else {
                     format!("缓存路径清空失败，{}个项目未删除", error_count)
                 };
-                return self.show_notification(message, NotificationType::Error);
+                self.show_notification(message, NotificationType::Error)
             }
         }
     }

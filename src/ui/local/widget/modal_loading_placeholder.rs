@@ -7,12 +7,15 @@ use iced::widget::{container, text};
 use iced::{Element, Length};
 
 /// 创建模态窗口加载占位符
-pub(in crate::ui::local) fn create_modal_loading_placeholder<'a>(i18n: &'a I18n) -> Element<'a, AppMessage> {
-    let loading_text = text(i18n.t("local-list.image-loading"))
-        .size(24)
-        .style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_OVERLAY_TEXT),
-        });
+pub(in crate::ui::local) fn create_modal_loading_placeholder<'a>(
+    i18n: &'a I18n,
+) -> Element<'a, AppMessage> {
+    let loading_text =
+        text(i18n.t("local-list.image-loading"))
+            .size(24)
+            .style(|_theme: &iced::Theme| text::Style {
+                color: Some(COLOR_OVERLAY_TEXT),
+            });
 
     container(loading_text)
         .width(Length::Fill)

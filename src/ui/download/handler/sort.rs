@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::{App, AppMessage};
 use crate::ui::download::state::SortColumn;
+use crate::ui::{App, AppMessage};
 
 impl App {
     /// 切换下载任务的排序列
@@ -43,19 +43,13 @@ impl App {
 
         self.download_state.tasks.sort_by(|a, b| {
             let comparison = match sort_column {
-                SortColumn::FileName => {
-                    a.task.file_name.cmp(&b.task.file_name)
-                }
-                SortColumn::Size => {
-                    a.task.total_size.cmp(&b.task.total_size)
-                }
+                SortColumn::FileName => a.task.file_name.cmp(&b.task.file_name),
+                SortColumn::Size => a.task.total_size.cmp(&b.task.total_size),
                 SortColumn::Status => {
                     // 状态排序：Waiting < Downloading < Paused < Completed < Failed < Cancelled
                     status_order(&a.task.status).cmp(&status_order(&b.task.status))
                 }
-                SortColumn::CreatedAt => {
-                    a.task.created_at.cmp(&b.task.created_at)
-                }
+                SortColumn::CreatedAt => a.task.created_at.cmp(&b.task.created_at),
             };
 
             if descending {

@@ -8,13 +8,12 @@ use crate::utils::config::Config;
 impl OnlineState {
     /// 从配置文件加载筛选条件
     pub fn load_from_config(config: &Config) -> Self {
-        let mut state = Self::default();
-
-        // 加载分类（从字符串解析位掩码）
-        state.categories = helper::parse_category_bitmask(&config.wallhaven.category);
-
-        // 加载纯净度（从字符串解析位掩码）
-        state.purities = helper::parse_purity_bitmask(&config.wallhaven.purity);
+        // 加载分类和纯净度（从字符串解析位掩码）
+        let mut state = Self {
+            categories: helper::parse_category_bitmask(&config.wallhaven.category),
+            purities: helper::parse_purity_bitmask(&config.wallhaven.purity),
+            ..Self::default()
+        };
 
         // 如果 API Key 为空，移除 NSFW 选项
         if config.wallhaven.api_key.is_empty() {
@@ -182,10 +181,14 @@ impl OnlineState {
             }
 
             if state.ratio_landscape_selected {
-                state.selected_ratios.retain(|r| !landscape_included.contains(r));
+                state
+                    .selected_ratios
+                    .retain(|r| !landscape_included.contains(r));
             }
             if state.ratio_portrait_selected {
-                state.selected_ratios.retain(|r| !portrait_included.contains(r));
+                state
+                    .selected_ratios
+                    .retain(|r| !portrait_included.contains(r));
             }
         }
 

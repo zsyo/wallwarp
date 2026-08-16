@@ -9,7 +9,10 @@ use tracing::{error, info, warn};
 
 impl App {
     /// 处理获取支持的图片文件列表成功
-    pub(in crate::ui::auto_change) fn get_supported_images_success(&mut self, paths: Vec<String>) -> Task<AppMessage> {
+    pub(in crate::ui::auto_change) fn get_supported_images_success(
+        &mut self,
+        paths: Vec<String>,
+    ) -> Task<AppMessage> {
         if !paths.is_empty() {
             // 记录找到的壁纸数量
             info!("[定时切换] [获取] 找到 {} 张壁纸", paths.len());
@@ -33,7 +36,10 @@ impl App {
     }
 
     /// 处理获取支持的图片文件列表失败
-    pub(in crate::ui::auto_change) fn get_supported_images_failed(&mut self, error: String) -> Task<AppMessage> {
+    pub(in crate::ui::auto_change) fn get_supported_images_failed(
+        &mut self,
+        error: String,
+    ) -> Task<AppMessage> {
         error!("[定时切换] [失败] 获取壁纸列表失败: {}", error);
         self.auto_change_state.auto_change_enabled = false;
         let error_message = format!("获取壁纸列表失败: {}", error);
@@ -41,7 +47,10 @@ impl App {
     }
 
     /// 处理随机设置壁纸成功
-    pub(in crate::ui::auto_change) fn set_random_wallpaper_success(&mut self, path: String) -> Task<AppMessage> {
+    pub(in crate::ui::auto_change) fn set_random_wallpaper_success(
+        &mut self,
+        path: String,
+    ) -> Task<AppMessage> {
         info!("[定时切换] [成功] 已设置壁纸: {}", path);
 
         // 将壁纸路径添加到历史记录
@@ -49,7 +58,10 @@ impl App {
     }
 
     /// 处理随机设置壁纸失败
-    pub(in crate::ui::auto_change) fn set_random_wallpaper_failed(&mut self, error: String) -> Task<AppMessage> {
+    pub(in crate::ui::auto_change) fn set_random_wallpaper_failed(
+        &mut self,
+        error: String,
+    ) -> Task<AppMessage> {
         error!("[定时切换] [失败] 设置壁纸失败: {}", error);
         let error_message = format!("设置壁纸失败: {}", error);
         self.show_notification(error_message, NotificationType::Error)

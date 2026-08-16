@@ -1,9 +1,9 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::style::{
-    BORDER_COLOR_GRAY, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH,
-    DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING,
-    DIALOG_TITLE_SIZE, MASK_ALPHA,
+    BORDER_COLOR_GRAY, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS,
+    DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH,
+    DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, MASK_ALPHA,
 };
 use iced::widget::{column, container, row, text};
 use iced::{Alignment, Element, Length};
@@ -59,7 +59,11 @@ where
             border: iced::border::Border {
                 radius: iced::border::Radius::from(DIALOG_BORDER_RADIUS),
                 width: DIALOG_BORDER_WIDTH,
-                color: iced::Color::from_rgb(BORDER_COLOR_GRAY, BORDER_COLOR_GRAY, BORDER_COLOR_GRAY),
+                color: iced::Color::from_rgb(
+                    BORDER_COLOR_GRAY,
+                    BORDER_COLOR_GRAY,
+                    BORDER_COLOR_GRAY,
+                ),
             },
             ..Default::default()
         });
@@ -88,5 +92,5 @@ where
     .width(Length::Fill)
     .height(Length::Fill);
 
-    iced::widget::opaque(modal_content).into()
+    iced::widget::opaque(modal_content)
 }

@@ -21,7 +21,8 @@ pub fn online_view<'a>(
     let filter_bar = widget::create_filter_bar(i18n, online_state, config, theme_config);
 
     // 创建壁纸列表
-    let wallpaper_list = widget::create_wallpaper_list(i18n, window_width, online_state, theme_config);
+    let wallpaper_list =
+        widget::create_wallpaper_list(i18n, window_width, online_state, theme_config);
 
     let main_content = column![filter_bar, wallpaper_list]
         .width(Length::Fill)
@@ -34,5 +35,8 @@ pub fn online_view<'a>(
         layers.push(widget::create_modal(i18n, online_state, theme_config));
     }
 
-    stack(layers).width(Length::Fill).height(Length::Fill).into()
+    stack(layers)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }

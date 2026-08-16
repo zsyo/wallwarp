@@ -17,7 +17,10 @@ impl App {
             let file_size = wallpaper.file_size;
 
             // 生成目标文件路径
-            let file_name = wallhaven::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let file_name = wallhaven::generate_file_name(
+                &id,
+                file_type.split('/').next_back().unwrap_or("jpg"),
+            );
             let data_path = self.config.data.data_path.clone();
             let target_path = PathBuf::from(&data_path).join(&file_name);
 
@@ -28,7 +31,7 @@ impl App {
                     // 文件已存在且大小匹配
                     let success_message = format!(
                         "{}: {}",
-                        self.i18n.t("download-tasks.file-already-exists").to_string(),
+                        self.i18n.t("download-tasks.file-already-exists"),
                         file_name
                     );
                     return self.show_notification(success_message, NotificationType::Info);
@@ -49,26 +52,33 @@ impl App {
                         Ok(_) => {
                             let success_message = format!(
                                 "{}: {}",
-                                self.i18n.t("download-tasks.copied-from-cache").to_string(),
+                                self.i18n.t("download-tasks.copied-from-cache"),
                                 file_name
                             );
-                            return self.show_notification(success_message, NotificationType::Success);
+                            return self
+                                .show_notification(success_message, NotificationType::Success);
                         }
                         Err(e) => {
                             error!("[模态窗口下载] [ID:{}] 从缓存复制失败: {}", id, e);
                             let error_message =
-                                format!("{}: {}", self.i18n.t("download-tasks.copy-failed").to_string(), e);
+                                format!("{}: {}", self.i18n.t("download-tasks.copy-failed"), e);
                             return self.show_notification(error_message, NotificationType::Error);
                         }
                     }
                 } else {
                     // 缓存文件不存在
-                    let error_message = self.i18n.t("download-tasks.cache-file-not-found").to_string();
+                    let error_message = self
+                        .i18n
+                        .t("download-tasks.cache-file-not-found")
+                        .to_string();
                     return self.show_notification(error_message, NotificationType::Error);
                 }
             } else {
                 // 获取缓存路径失败
-                let error_message = self.i18n.t("download-tasks.get-cache-path-failed").to_string();
+                let error_message = self
+                    .i18n
+                    .t("download-tasks.get-cache-path-failed")
+                    .to_string();
                 return self.show_notification(error_message, NotificationType::Error);
             }
         }

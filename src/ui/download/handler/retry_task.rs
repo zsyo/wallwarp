@@ -15,18 +15,28 @@ impl App {
         // 重新下载：清空已下载文件，从头开始下载
         // 先检查是否可以开始下载并保存所有需要的数据
         let can_start = self.download_state.can_start_download();
-        let task_data = self.download_state.tasks.iter().find(|t| t.task.id == id).map(|t| {
-            (
-                t.task.url.clone(),
-                PathBuf::from(&t.task.save_path),
-                t.proxy.clone(),
-                t.task.id,
-            )
-        });
+        let task_data = self
+            .download_state
+            .tasks
+            .iter()
+            .find(|t| t.task.id == id)
+            .map(|t| {
+                (
+                    t.task.url.clone(),
+                    PathBuf::from(&t.task.save_path),
+                    t.proxy.clone(),
+                    t.task.id,
+                )
+            });
 
         if let Some((url, save_path, proxy, task_id)) = task_data {
             if can_start {
-                if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
+                if let Some(task_full) = self
+                    .download_state
+                    .tasks
+                    .iter_mut()
+                    .find(|t| t.task.id == id)
+                {
                     // 重置任务状态和进度
                     task_full.task.status = DownloadStatus::Downloading;
                     task_full.task.start_time = Some(Instant::now());
@@ -42,7 +52,9 @@ impl App {
 
                     // 清空缓存文件（cache_path/online中的文件）
                     let cache_path = self.config.data.cache_path.clone();
-                    if let Ok(cache_file_path) = DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
+                    if let Ok(cache_file_path) =
+                        DownloadService::get_online_image_cache_path(&cache_path, &url, 0)
+                    {
                         let _ = std::fs::remove_file(&cache_file_path);
                         tracing::info!(
                             "[下载任务] [ID:{}] 重新下载：已清空缓存文件: {}",
@@ -60,12 +72,19 @@ impl App {
                 self.download_state.increment_downloading();
 
                 // 获取取消令牌和文件总大小（已下载大小为0，因为要重新下载）
-                let (cancel_token, total_size) =
-                    if let Some(task) = self.download_state.tasks.iter().find(|t| t.task.id == task_id) {
-                        (task.task.cancel_token.clone().unwrap(), task.task.total_size)
-                    } else {
-                        (Arc::new(AtomicBool::new(false)), 0)
-                    };
+                let (cancel_token, total_size) = if let Some(task) = self
+                    .download_state
+                    .tasks
+                    .iter()
+                    .find(|t| t.task.id == task_id)
+                {
+                    (
+                        task.task.cancel_token.clone().unwrap(),
+                        task.task.total_size,
+                    )
+                } else {
+                    (Arc::new(AtomicBool::new(false)), 0)
+                };
 
                 let cache_path = self.config.data.cache_path.clone();
                 return Task::perform(
@@ -81,7 +100,11 @@ impl App {
                     ),
                     move |result| match result {
                         Ok(size) => {
-                            tracing::info!("[下载任务] [ID:{}] 重新下载成功, 文件大小: {} bytes", task_id, size);
+                            tracing::info!(
+                                "[下载任务] [ID:{}] 重新下载成功, 文件大小: {} bytes",
+                                task_id,
+                                size
+                            );
                             DownloadMessage::DownloadCompleted(task_id, size, None).into()
                         }
                         Err(e) => {
@@ -92,7 +115,12 @@ impl App {
                 );
             } else {
                 // 无法立即开始下载，加入排队
-                if let Some(task_full) = self.download_state.tasks.iter_mut().find(|t| t.task.id == id) {
+                if let Some(task_full) = self
+                    .download_state
+                    .tasks
+                    .iter_mut()
+                    .find(|t| t.task.id == id)
+                {
                     task_full.task.status = DownloadStatus::Waiting;
                     task_full.task.queue_order = self.download_state.queue_counter;
                     self.download_state.queue_counter += 1;

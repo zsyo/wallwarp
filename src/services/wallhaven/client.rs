@@ -29,11 +29,8 @@ impl WallhavenClient {
         proxy_enabled: bool,
         use_env_fallback: bool,
     ) -> Self {
-        let client = crate::services::proxy::create_proxy_client(
-            proxy,
-            proxy_enabled,
-            use_env_fallback,
-        );
+        let client =
+            crate::services::proxy::create_proxy_client(proxy, proxy_enabled, use_env_fallback);
 
         Self { api_key, client }
     }
@@ -214,17 +211,21 @@ impl WallhavenClient {
                     identifier,
                     timeout_secs.unwrap_or(0)
                 );
-                format!("请求超时，请检查网络连接或设置代理")
+                "请求超时，请检查网络连接或设置代理".to_string()
             } else if e.is_connect() {
                 error!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
-                format!("连接失败，请检查网络连接或设置代理")
+                "连接失败，请检查网络连接或设置代理".to_string()
             } else {
                 error!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
                 format!("请求失败: {}", e)
             }
         })?;
 
-        debug!("[Wallhaven API] [{}] 响应状态: {}", identifier, response.status());
+        debug!(
+            "[Wallhaven API] [{}] 响应状态: {}",
+            identifier,
+            response.status()
+        );
 
         if !response.status().is_success() {
             return Err(format!("API返回错误: {}", response.status()));
@@ -282,17 +283,21 @@ impl WallhavenClient {
                             identifier,
                             timeout_secs.unwrap_or(0)
                         );
-                        format!("请求超时，请检查网络连接或设置代理")
+                        "请求超时，请检查网络连接或设置代理".to_string()
                     } else if e.is_connect() {
                         error!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
-                        format!("连接失败，请检查网络连接或设置代理")
+                        "连接失败，请检查网络连接或设置代理".to_string()
                     } else {
                         error!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
                         format!("请求失败: {}", e)
                     }
                 })?;
 
-                debug!("[Wallhaven API] [{}] 响应状态: {}", identifier, response.status());
+                debug!(
+                    "[Wallhaven API] [{}] 响应状态: {}",
+                    identifier,
+                    response.status()
+                );
 
                 if !response.status().is_success() {
                     return Err(format!("API返回错误: {}", response.status()));

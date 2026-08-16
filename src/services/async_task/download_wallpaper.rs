@@ -25,7 +25,10 @@ pub async fn async_download_wallpaper_task(
     let client = if let Some(proxy_url) = &proxy {
         if !proxy_url.is_empty() {
             if let Ok(p) = reqwest::Proxy::all(proxy_url) {
-                reqwest::Client::builder().proxy(p).build().map_err(|e| e.to_string())?
+                reqwest::Client::builder()
+                    .proxy(p)
+                    .build()
+                    .map_err(|e| e.to_string())?
             } else {
                 reqwest::Client::new()
             }
@@ -37,14 +40,21 @@ pub async fn async_download_wallpaper_task(
     };
 
     // 发送请求
-    let response = client.get(&url).send().await.map_err(|e| format!("请求失败: {}", e))?;
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("请求失败: {}", e))?;
 
     if !response.status().is_success() {
         return Err(format!("HTTP错误: {}", response.status()));
     }
 
     // 读取全部数据（对于壁纸文件，使用 bytes() 更简单）
-    let bytes = response.bytes().await.map_err(|e| format!("读取数据失败: {}", e))?;
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("读取数据失败: {}", e))?;
 
     // 创建文件并写入
     let mut file = tokio::fs::File::create(&save_path)
@@ -149,8 +159,9 @@ pub async fn async_download_wallpaper_task_with_progress(
     .await?;
 
     // 步骤4: 下载完成后，移除.download后缀
-    let final_cache_path = DownloadService::get_online_image_cache_final_path(&cache_path, &url, actual_size)
-        .map_err(|e| format!("获取最终缓存路径失败: {}", e))?;
+    let final_cache_path =
+        DownloadService::get_online_image_cache_final_path(&cache_path, &url, actual_size)
+            .map_err(|e| format!("获取最终缓存路径失败: {}", e))?;
 
     info!(
         "[下载任务] [ID:{}] 重命名文件: {} -> {}",
@@ -178,7 +189,10 @@ pub async fn async_download_wallpaper_task_with_progress(
         .await
         .map_err(|e| format!("复制文件到目标路径失败: {}", e))?;
 
-    info!("[下载任务] [ID:{}] 下载完成，文件大小: {} bytes", task_id, actual_size);
+    info!(
+        "[下载任务] [ID:{}] 下载完成，文件大小: {} bytes",
+        task_id, actual_size
+    );
 
     Ok(actual_size)
 }

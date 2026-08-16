@@ -6,7 +6,10 @@ use iced::Task;
 use tracing::info;
 
 impl App {
-    pub(in crate::ui::settings) fn settings_wallhaven_api_key_changed(&mut self, api_key: String) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_wallhaven_api_key_changed(
+        &mut self,
+        api_key: String,
+    ) -> Task<AppMessage> {
         self.settings_state.wallhaven_api_key = api_key;
         Task::none()
     }
@@ -43,6 +46,9 @@ impl App {
         }
 
         // 显示成功通知
-        self.show_notification("WallHeven API KEY 保存成功".to_string(), NotificationType::Success)
+        self.show_notification(
+            "WallHeven API KEY 保存成功".to_string(),
+            NotificationType::Success,
+        )
     }
 }

@@ -10,28 +10,18 @@ use tracing::{info, warn};
 impl App {
     pub(in crate::ui::main) fn tray_save_current_wallpaper(&mut self) -> Task<AppMessage> {
         // 提前获取翻译文本
-        let no_wallpaper_message = self
-            .i18n
-            .t("local-list.no-wallpaper-to-save")
-            .to_string();
-        let not_in_cache_message = self
-            .i18n
-            .t("local-list.wallpaper-not-in-cache")
-            .to_string();
+        let no_wallpaper_message = self.i18n.t("local-list.no-wallpaper-to-save").to_string();
+        let not_in_cache_message = self.i18n.t("local-list.wallpaper-not-in-cache").to_string();
         let success_message = self.i18n.t("local-list.save-success").to_string();
         let failed_message = self.i18n.t("local-list.save-failed").to_string();
         let file_not_found_message = self.i18n.t("local-list.file-not-found").to_string();
-        let target_file_exists_message = self
-            .i18n
-            .t("local-list.target-file-exists")
-            .to_string();
+        let target_file_exists_message = self.i18n.t("local-list.target-file-exists").to_string();
 
         // 检查壁纸历史记录是否为空
         if self.wallpaper_history.is_empty() {
             warn!("[托盘菜单] 壁纸历史记录为空，无法保存当前壁纸");
             return Task::done(
-                MainMessage::ShowNotification(no_wallpaper_message, NotificationType::Error)
-                    .into(),
+                MainMessage::ShowNotification(no_wallpaper_message, NotificationType::Error).into(),
             );
         }
 
@@ -96,7 +86,8 @@ impl App {
                     .map_err(|e| format!("{}: {}", failed_message_clone, e))?;
                 info!(
                     "[托盘菜单] 壁纸已从{}复制到{}",
-                    crate::utils::helpers::normalize_path(&source_path), target_path_str
+                    crate::utils::helpers::normalize_path(&source_path),
+                    target_path_str
                 );
 
                 Ok(())
@@ -105,13 +96,11 @@ impl App {
                 Ok(_) => {
                     MainMessage::ShowNotification(success_message, NotificationType::Success).into()
                 }
-                Err(e) => {
-                    MainMessage::ShowNotification(
-                        format!("{}: {}", failed_message, e),
-                        NotificationType::Error,
-                    )
-                    .into()
-                }
+                Err(e) => MainMessage::ShowNotification(
+                    format!("{}: {}", failed_message, e),
+                    NotificationType::Error,
+                )
+                .into(),
             },
         )
     }

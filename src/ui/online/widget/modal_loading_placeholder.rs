@@ -9,7 +9,10 @@ use iced::widget::{container, text};
 use iced::{Element, Length};
 
 /// 创建模态窗口加载占位符
-pub fn create_modal_loading_placeholder<'a>(i18n: &'a I18n, online_state: &'a OnlineState) -> Element<'a, AppMessage> {
+pub fn create_modal_loading_placeholder<'a>(
+    i18n: &'a I18n,
+    online_state: &'a OnlineState,
+) -> Element<'a, AppMessage> {
     // 如果正在下载，显示进度
     if online_state.modal_download_progress > 0.0 && online_state.modal_image_handle.is_none() {
         let progress_percent = (online_state.modal_download_progress * 100.0) as i32;
@@ -21,9 +24,11 @@ pub fn create_modal_loading_placeholder<'a>(i18n: &'a I18n, online_state: &'a On
             helpers::format_file_size(online_state.modal_total_bytes)
         );
 
-        let loading_text = text(progress_text).size(18).style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_OVERLAY_TEXT),
-        });
+        let loading_text = text(progress_text)
+            .size(18)
+            .style(|_theme: &iced::Theme| text::Style {
+                color: Some(COLOR_OVERLAY_TEXT),
+            });
 
         container(loading_text)
             .width(Length::Fill)

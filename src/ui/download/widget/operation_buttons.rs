@@ -5,12 +5,17 @@ use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::download::DownloadMessage;
 use crate::ui::download::state::{DownloadStatus, DownloadTask};
-use crate::ui::style::{BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW};
+use crate::ui::style::{
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW,
+};
 use iced::Element;
 use iced::widget::row;
 
 /// 创建操作按钮
-pub fn create_operation_buttons<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> Element<'a, AppMessage> {
+pub fn create_operation_buttons<'a>(
+    i18n: &'a I18n,
+    task: &'a DownloadTask,
+) -> Element<'a, AppMessage> {
     let pause_button = common::create_icon_button_with_tooltip(
         "\u{F4C3}", // pause-fill
         BUTTON_COLOR_YELLOW,
@@ -63,25 +68,38 @@ pub fn create_operation_buttons<'a>(i18n: &'a I18n, task: &'a DownloadTask) -> E
     match &task.status {
         DownloadStatus::Downloading => {
             // 下载中：暂停/复制下载链接/取消
-            row![pause_button, copy_button, cancel_button].spacing(6).into()
+            row![pause_button, copy_button, cancel_button]
+                .spacing(6)
+                .into()
         }
         DownloadStatus::Paused => {
             // 暂停中：继续/复制下载链接/取消
-            row![resume_button, copy_button, cancel_button].spacing(6).into()
+            row![resume_button, copy_button, cancel_button]
+                .spacing(6)
+                .into()
         }
         DownloadStatus::Failed(_) => {
             // 下载失败：重新下载/复制下载链接/删除
-            row![retry_button, copy_button, delete_button].spacing(6).into()
+            row![retry_button, copy_button, delete_button]
+                .spacing(6)
+                .into()
         }
         DownloadStatus::Cancelled => {
             // 已取消：重新下载/复制下载链接/删除
-            row![retry_button, copy_button, delete_button].spacing(6).into()
+            row![retry_button, copy_button, delete_button]
+                .spacing(6)
+                .into()
         }
         DownloadStatus::Completed => {
             // 下载完成：查看文件/设为壁纸/复制下载链接/删除(仅删除任务)
-            row![view_button, set_wallpaper_button, copy_button, delete_button]
-                .spacing(6)
-                .into()
+            row![
+                view_button,
+                set_wallpaper_button,
+                copy_button,
+                delete_button
+            ]
+            .spacing(6)
+            .into()
         }
         DownloadStatus::Waiting => {
             // 等待中：复制下载链接/取消

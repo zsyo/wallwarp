@@ -16,7 +16,7 @@ impl App {
             self.local_state.current_image_index = next_index;
 
             // 显式释放旧的图片数据: 先将 Handle 移出,然后让新值覆盖
-            let _old_handle = std::mem::replace(&mut self.local_state.modal_image_handle, None);
+            let _old_handle = self.local_state.modal_image_handle.take();
 
             // 异步加载图片数据
             if let Some(path) = self.local_state.all_paths.get(next_index).cloned() {

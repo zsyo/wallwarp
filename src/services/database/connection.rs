@@ -26,18 +26,18 @@ impl DatabaseConnection {
     /// 返回数据库连接管理器实例
     pub fn open(db_path: &str) -> Result<Self, String> {
         let path = PathBuf::from(db_path);
-        
+
         // 确保目录存在
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("创建数据库目录失败: {}", e))?;
+            std::fs::create_dir_all(parent).map_err(|e| format!("创建数据库目录失败: {}", e))?;
         }
 
         // 打开数据库
-        let conn = Connection::open(db_path)
-            .map_err(|e| format!("打开数据库失败: {}", e))?;
+        let conn = Connection::open(db_path).map_err(|e| format!("打开数据库失败: {}", e))?;
 
-        Ok(Self { conn: Arc::new(Mutex::new(conn)) })
+        Ok(Self {
+            conn: Arc::new(Mutex::new(conn)),
+        })
     }
 
     /// 获取底层的 rusqlite 连接

@@ -11,7 +11,8 @@ impl App {
         total: u64,
         speed: u64,
     ) -> Task<AppMessage> {
-        self.download_state.update_progress(id, downloaded, total, speed);
+        self.download_state
+            .update_progress(id, downloaded, total, speed);
         Task::none()
     }
 }

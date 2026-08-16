@@ -28,10 +28,18 @@ impl App {
     pub fn handle_auto_change_message(&mut self, msg: AutoChangeMessage) -> iced::Task<AppMessage> {
         match msg {
             AutoChangeMessage::AutoChangeTick => self.auto_change_tick(),
-            AutoChangeMessage::GetSupportedImagesSuccess(paths) => self.get_supported_images_success(paths),
-            AutoChangeMessage::GetSupportedImagesFailed(error) => self.get_supported_images_failed(error),
-            AutoChangeMessage::SetRandomWallpaperSuccess(path) => self.set_random_wallpaper_success(path),
-            AutoChangeMessage::SetRandomWallpaperFailed(error) => self.set_random_wallpaper_failed(error),
+            AutoChangeMessage::GetSupportedImagesSuccess(paths) => {
+                self.get_supported_images_success(paths)
+            }
+            AutoChangeMessage::GetSupportedImagesFailed(error) => {
+                self.get_supported_images_failed(error)
+            }
+            AutoChangeMessage::SetRandomWallpaperSuccess(path) => {
+                self.set_random_wallpaper_success(path)
+            }
+            AutoChangeMessage::SetRandomWallpaperFailed(error) => {
+                self.set_random_wallpaper_failed(error)
+            }
         }
     }
 }

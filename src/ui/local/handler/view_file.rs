@@ -14,10 +14,8 @@ impl App {
 
             // 检查文件是否存在
             if !Path::new(&full_path).exists() {
-                return self.show_notification(
-                    format!("{} 已被删除", full_path),
-                    NotificationType::Error
-                );
+                return self
+                    .show_notification(format!("{} 已被删除", full_path), NotificationType::Error);
             }
 
             helpers::open_file_in_explorer(&full_path);

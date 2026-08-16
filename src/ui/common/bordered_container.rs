@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::style::{BORDER_RADIUS, BORDER_WIDTH, COLOR_SIDEBAR_BG, shadows::CARD_SHADOW};
 use crate::ui::style::ThemeConfig;
+use crate::ui::style::{BORDER_RADIUS, BORDER_WIDTH, COLOR_SIDEBAR_BG, shadows::CARD_SHADOW};
 use iced::border::{Border, Radius};
 use iced::widget::container;
 

@@ -15,23 +15,24 @@ impl App {
             .map(|t| t.task.status.clone());
 
         // 记录暂停时的下载进度
-        if let Some(index) = self.download_state.find_task_index(id) {
-            if let Some(task) = self.download_state.get_task_by_index(index) {
-                tracing::info!(
-                    "[下载任务] [ID:{}] 暂停：status = {:?}, total_size = {} bytes, downloaded_size = {} bytes",
-                    id,
-                    task.task.status,
-                    task.task.total_size,
-                    task.task.downloaded_size
-                );
+        if let Some(index) = self.download_state.find_task_index(id)
+            && let Some(task) = self.download_state.get_task_by_index(index)
+        {
+            tracing::info!(
+                "[下载任务] [ID:{}] 暂停：status = {:?}, total_size = {} bytes, downloaded_size = {} bytes",
+                id,
+                task.task.status,
+                task.task.total_size,
+                task.task.downloaded_size
+            );
 
-                // 注意：不读取缓存文件大小，因为异步写入可能还没刷新到磁盘
-                // 直接使用任务中记录的 downloaded_size 即可
-            }
+            // 注意：不读取缓存文件大小，因为异步写入可能还没刷新到磁盘
+            // 直接使用任务中记录的 downloaded_size 即可
         }
 
         // 设置状态为暂停
-        self.download_state.update_status(id, DownloadStatus::Paused);
+        self.download_state
+            .update_status(id, DownloadStatus::Paused);
 
         // 设置取消标志，终止下载
         self.download_state.cancel_task(id);

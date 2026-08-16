@@ -46,15 +46,17 @@ pub fn create_status_filter_dropdown<'a>(
         .align_y(Alignment::Center),
     )
     .style(
-        move |_theme: &iced::Theme, _status: iced::widget::button::Status| iced::widget::button::Style {
-            background: Some(iced::Background::Color(theme_colors.light_button)),
-            text_color: theme_colors.text,
-            border: iced::Border {
-                color: theme_colors.border,
-                width: 1.0,
-                radius: 4.0.into(),
-            },
-            ..Default::default()
+        move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
+            iced::widget::button::Style {
+                background: Some(iced::Background::Color(theme_colors.light_button)),
+                text_color: theme_colors.text,
+                border: iced::Border {
+                    color: theme_colors.border,
+                    width: 1.0,
+                    radius: 4.0.into(),
+                },
+                ..Default::default()
+            }
         },
     )
     .padding([5, 10])
@@ -64,10 +66,14 @@ pub fn create_status_filter_dropdown<'a>(
     let filter_options = super::create_filter_options(i18n, download_state, theme_config);
 
     // 组合下拉框
-    let dropdown = DropDown::new(underlay, filter_options, download_state.status_filter_expanded)
-        .width(Length::Shrink)
-        .on_dismiss(AppMessage::Download(DownloadMessage::ToggleStatusFilter))
-        .alignment(drop_down::Alignment::Bottom);
+    let dropdown = DropDown::new(
+        underlay,
+        filter_options,
+        download_state.status_filter_expanded,
+    )
+    .width(Length::Shrink)
+    .on_dismiss(AppMessage::Download(DownloadMessage::ToggleStatusFilter))
+    .alignment(drop_down::Alignment::Bottom);
 
     dropdown.into()
 }

@@ -19,21 +19,25 @@ pub fn create_checkbox_header<'a>(
 
     // 使用 Iced 原生的 checkbox 组件
     let checkbox_elem = checkbox(is_checked)
-        .on_toggle(|_state| AppMessage::Download(crate::ui::download::message::DownloadMessage::ToggleSelectAll))
+        .on_toggle(|_state| {
+            AppMessage::Download(crate::ui::download::message::DownloadMessage::ToggleSelectAll)
+        })
         .style(
-            move |_theme: &iced::Theme, _status: iced::widget::checkbox::Status| iced::widget::checkbox::Style {
-                background: iced::Background::Color(if is_checked {
-                    theme_colors.primary
-                } else {
-                    theme_colors.background
-                }),
-                border: iced::Border {
-                    color: theme_colors.border,
-                    width: 1.0,
-                    radius: 2.0.into(),
-                },
-                text_color: Some(theme_colors.text),
-                icon_color: theme_colors.background,
+            move |_theme: &iced::Theme, _status: iced::widget::checkbox::Status| {
+                iced::widget::checkbox::Style {
+                    background: iced::Background::Color(if is_checked {
+                        theme_colors.primary
+                    } else {
+                        theme_colors.background
+                    }),
+                    border: iced::Border {
+                        color: theme_colors.border,
+                        width: 1.0,
+                        radius: 2.0.into(),
+                    },
+                    text_color: Some(theme_colors.text),
+                    icon_color: theme_colors.background,
+                }
             },
         );
 
@@ -55,24 +59,26 @@ pub fn create_task_checkbox<'a>(
     // 使用 Iced 原生的 checkbox 组件
     let checkbox_elem = checkbox(is_selected)
         .on_toggle(move |_state| {
-            AppMessage::Download(crate::ui::download::message::DownloadMessage::ToggleTaskSelection(
-                task_id,
-            ))
+            AppMessage::Download(
+                crate::ui::download::message::DownloadMessage::ToggleTaskSelection(task_id),
+            )
         })
         .style(
-            move |_theme: &iced::Theme, _status: iced::widget::checkbox::Status| iced::widget::checkbox::Style {
-                background: iced::Background::Color(if is_selected {
-                    theme_colors.primary
-                } else {
-                    theme_colors.background
-                }),
-                border: iced::Border {
-                    color: theme_colors.border,
-                    width: 1.0,
-                    radius: 2.0.into(),
-                },
-                text_color: Some(theme_colors.text),
-                icon_color: theme_colors.background,
+            move |_theme: &iced::Theme, _status: iced::widget::checkbox::Status| {
+                iced::widget::checkbox::Style {
+                    background: iced::Background::Color(if is_selected {
+                        theme_colors.primary
+                    } else {
+                        theme_colors.background
+                    }),
+                    border: iced::Border {
+                        color: theme_colors.border,
+                        width: 1.0,
+                        radius: 2.0.into(),
+                    },
+                    text_color: Some(theme_colors.text),
+                    icon_color: theme_colors.background,
+                }
             },
         );
 

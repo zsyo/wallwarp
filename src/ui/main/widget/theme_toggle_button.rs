@@ -14,7 +14,11 @@ pub fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
     let theme_colors = app.theme_colors;
 
     let (icon_char, tooltip_text, target_theme) = if app.theme_config.is_dark() {
-        ("\u{F5A1}", app.i18n.t("theme.switch-to-light"), Theme::Light)
+        (
+            "\u{F5A1}",
+            app.i18n.t("theme.switch-to-light"),
+            Theme::Light,
+        )
     } else {
         ("\u{F494}", app.i18n.t("theme.switch-to-dark"), Theme::Dark)
     };

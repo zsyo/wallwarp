@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::style::{INPUT_HEIGHT, ROW_SPACING};
 use crate::ui::style::ThemeConfig;
+use crate::ui::style::{INPUT_HEIGHT, ROW_SPACING};
 use iced::widget::{row, text};
 use iced::{Alignment, Element, Length};
 

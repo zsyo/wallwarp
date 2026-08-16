@@ -21,7 +21,10 @@ impl App {
             let file_size = wallpaper.file_size;
 
             // 生成目标文件路径
-            let file_name = wallhaven::generate_file_name(&id, file_type.split('/').last().unwrap_or("jpg"));
+            let file_name = wallhaven::generate_file_name(
+                &id,
+                file_type.split('/').next_back().unwrap_or("jpg"),
+            );
             let data_path = self.config.data.data_path.clone();
             let target_path = PathBuf::from(&data_path).join(&file_name);
 
@@ -30,7 +33,8 @@ impl App {
                 let actual_size = metadata.len();
                 if actual_size == file_size {
                     // 文件已存在且大小匹配，直接设置壁纸
-                    let full_path = helpers::get_absolute_path(&target_path.to_string_lossy().to_string());
+                    let full_path =
+                        helpers::get_absolute_path(target_path.to_string_lossy().as_ref());
                     let wallpaper_mode = self.config.wallpaper.mode;
                     let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
@@ -52,35 +56,36 @@ impl App {
             let cache_path = self.config.data.cache_path.clone();
             if let Ok(cache_file_path) =
                 DownloadService::get_online_image_cache_final_path(&cache_path, &url, file_size)
+                && let Ok(metadata) = std::fs::metadata(&cache_file_path)
             {
-                if let Ok(metadata) = std::fs::metadata(&cache_file_path) {
-                    let cache_size = metadata.len();
-                    if cache_size == file_size {
-                        // 缓存文件存在且大小匹配，复制到 data_path
-                        let _ = std::fs::create_dir_all(&data_path);
-                        match std::fs::copy(&cache_file_path, &target_path) {
-                            Ok(_) => {
-                                // 复制成功，设置壁纸
-                                let full_path = helpers::get_absolute_path(&target_path.to_string_lossy().to_string());
-                                let wallpaper_mode = self.config.wallpaper.mode;
-                                let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
+                let cache_size = metadata.len();
+                if cache_size == file_size {
+                    // 缓存文件存在且大小匹配，复制到 data_path
+                    let _ = std::fs::create_dir_all(&data_path);
+                    match std::fs::copy(&cache_file_path, &target_path) {
+                        Ok(_) => {
+                            // 复制成功，设置壁纸
+                            let full_path =
+                                helpers::get_absolute_path(target_path.to_string_lossy().as_ref());
+                            let wallpaper_mode = self.config.wallpaper.mode;
+                            let failed_message =
+                                self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
-                                return Task::perform(
-                                    async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
-                                    move |result| match result {
-                                        Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
-                                        Err(e) => MainMessage::ShowNotification(
-                                            format!("{}: {}", failed_message, e),
-                                            NotificationType::Error,
-                                        )
-                                        .into(),
-                                    },
-                                );
-                            }
-                            Err(e) => {
-                                error!("[在线壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
-                                // 复制失败，继续走下载流程
-                            }
+                            return Task::perform(
+                                async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
+                                move |result| match result {
+                                    Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
+                                    Err(e) => MainMessage::ShowNotification(
+                                        format!("{}: {}", failed_message, e),
+                                        NotificationType::Error,
+                                    )
+                                    .into(),
+                                },
+                            );
+                        }
+                        Err(e) => {
+                            error!("[在线壁纸] [ID:{}] 从缓存复制失败: {}", id, e);
+                            // 复制失败，继续走下载流程
                         }
                     }
                 }
@@ -100,14 +105,20 @@ impl App {
 
             if has_duplicate {
                 // 任务已在下载队列中，只更新待设置壁纸的文件名
-                let downloading_message = self.i18n.t("download-tasks.downloading-for-wallpaper").to_string();
+                let downloading_message = self
+                    .i18n
+                    .t("download-tasks.downloading-for-wallpaper")
+                    .to_string();
                 return self.show_notification(downloading_message, NotificationType::Info);
             }
 
             // 开始下载
-            let downloading_message = self.i18n.t("download-tasks.downloading-for-wallpaper").to_string();
+            let downloading_message = self
+                .i18n
+                .t("download-tasks.downloading-for-wallpaper")
+                .to_string();
             let download_task = self.start_download(url, &id, &file_type);
-            
+
             // 显示正在下载以完成设置的通知
             return Task::batch([
                 download_task,

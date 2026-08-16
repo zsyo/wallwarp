@@ -30,12 +30,12 @@ impl TrayManager {
         items.insert(key.to_string(), switch_previous_item.clone());
 
         let (key, val) = ("tray_switch_next", "menu.tray-switch-next");
-        let switch_next_item = MenuItem::with_id(key, i18n.t(&val), true, None);
+        let switch_next_item = MenuItem::with_id(key, i18n.t(val), true, None);
         kv.insert(key.to_string(), val.to_string());
         items.insert(key.to_string(), switch_next_item.clone());
 
         let (key, val) = ("tray_save_current", "menu.tray-save-current");
-        let save_current_item = MenuItem::with_id(key, i18n.t(&val), true, None);
+        let save_current_item = MenuItem::with_id(key, i18n.t(val), true, None);
         kv.insert(key.to_string(), val.to_string());
         items.insert(key.to_string(), save_current_item.clone());
 
@@ -45,7 +45,7 @@ impl TrayManager {
         items.insert(key.to_string(), show_settings_item.clone());
 
         let (key, val) = ("tray_quit", "menu.tray-quit");
-        let quit_item = MenuItem::with_id(key, i18n.t(&val), true, None);
+        let quit_item = MenuItem::with_id(key, i18n.t(val), true, None);
         kv.insert(key.to_string(), val.to_string());
         items.insert(key.to_string(), quit_item.clone());
 
@@ -71,7 +71,11 @@ impl TrayManager {
             .build()
             .unwrap();
 
-        Self { tray_icon, kv, items }
+        Self {
+            tray_icon,
+            kv,
+            items,
+        }
     }
 
     pub fn update_switch_previous_item(&mut self, history_count: usize) {
@@ -82,7 +86,10 @@ impl TrayManager {
     }
 
     pub fn update_save_current_item(&mut self, can_save: bool) {
-        self.items.get_mut("tray_save_current").unwrap().set_enabled(can_save);
+        self.items
+            .get_mut("tray_save_current")
+            .unwrap()
+            .set_enabled(can_save);
     }
 
     pub fn update_i18n(&mut self, i18n: &i18n::I18n) {

@@ -35,13 +35,11 @@ pub fn create_table_row<'a>(
         // 分隔线
         super::create_vertical_separator(theme_config),
         // 大小列
-        container(
-            text(format_file_size(task.total_size))
-                .size(12)
-                .style(move |_theme: &iced::Theme| text::Style {
-                    color: Some(theme_colors.light_text),
-                })
-        )
+        container(text(format_file_size(task.total_size)).size(12).style(
+            move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.light_text),
+            }
+        ))
         .width(Length::Fixed(100.0))
         .padding(5),
         // 分隔线

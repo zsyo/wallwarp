@@ -18,7 +18,8 @@ impl App {
         // 取消任务
         self.download_state.cancel_task(id);
         // 将任务状态设置为已取消
-        self.download_state.update_status(id, DownloadStatus::Cancelled);
+        self.download_state
+            .update_status(id, DownloadStatus::Cancelled);
 
         // 清除未完成的下载文件（仅删除 .download 缓存文件）
         if let Some((url, status)) = task_info {
@@ -30,11 +31,16 @@ impl App {
                 let cache_path = self.config.data.cache_path.clone();
 
                 // 删除缓存文件（cache_path/online中的 .download 文件）
-                if let Ok(cache_file_path) = DownloadService::get_online_image_cache_path(&cache_path, &url, 0) {
-                    if let Ok(_metadata) = std::fs::metadata(&cache_file_path) {
-                        let _ = std::fs::remove_file(&cache_file_path);
-                        tracing::info!("[下载任务] [ID:{}] 已删除未完成的缓存文件: {}", id, cache_file_path);
-                    }
+                if let Ok(cache_file_path) =
+                    DownloadService::get_online_image_cache_path(&cache_path, &url, 0)
+                    && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
+                {
+                    let _ = std::fs::remove_file(&cache_file_path);
+                    tracing::info!(
+                        "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
+                        id,
+                        cache_file_path
+                    );
                 }
             }
         }
