@@ -1,11 +1,20 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
+//
+// I18n 模块：基于 fluent-bundle 的多语言支持。
+// - mod.rs 负责 locales 目录扫描、语言包加载与语言列表管理
+// - translate.rs 负责词条查找、参数插值、缺失回退与告警
+
+mod translate;
 
 use fluent_bundle::{FluentBundle, FluentResource};
+use std::cell::RefCell;
+use std::collections::HashSet;
 use std::{collections::HashMap, fs, path::PathBuf};
 use sys_locale::get_locale;
+use tracing::info;
 use unic_langid::LanguageIdentifier;
 
-const DEFAULT_LANG_CODE: &str = "zh-cn";
+pub(crate) const DEFAULT_LANG_CODE: &str = "zh-cn";
 const LOCALES_DIR_NAME: &str = "locales";
 const FTL_EXTENSION: &str = "ftl";
 const LANG_NAME_KEY: &str = "lang-name";
@@ -19,9 +28,11 @@ pub struct LangInfo {
 }
 
 pub struct I18n {
-    bundles: HashMap<String, FluentBundle<FluentResource>>,
+    pub(crate) bundles: HashMap<String, FluentBundle<FluentResource>>,
     pub available_langs: Vec<LangInfo>,
     pub current_lang: String,
+    /// 已告警过的缺失键，避免每帧渲染重复刷日志
+    pub(crate) warned_keys: RefCell<HashSet<String>>,
 }
 
 impl Default for I18n {
@@ -35,16 +46,7 @@ impl I18n {
         let mut bundles = HashMap::new();
         let mut available_langs = Vec::new();
 
-        let mut base_dir = std::env::current_exe().unwrap_or_default();
-        base_dir.pop();
-
-        let locales_dir = if base_dir.join(LOCALES_DIR_NAME).exists() {
-            base_dir.join(LOCALES_DIR_NAME)
-        } else {
-            PathBuf::from(LOCALES_DIR_NAME)
-        };
-
-        if let Ok(entries) = fs::read_dir(locales_dir) {
+        if let Ok(entries) = fs::read_dir(Self::resolve_locales_dir()) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.extension().and_then(|s| s.to_str()) == Some(FTL_EXTENSION)
@@ -84,10 +86,62 @@ impl I18n {
             bundles,
             available_langs,
             current_lang,
+            warned_keys: RefCell::new(HashSet::new()),
         }
     }
 
-    fn lang_code_exists(langs: &[LangInfo], code: &str) -> bool {
+    /// 解析 locales 目录：优先使用程序同级目录，其次回退到工作目录
+    fn resolve_locales_dir() -> PathBuf {
+        let mut base_dir = std::env::current_exe().unwrap_or_default();
+        base_dir.pop();
+
+        let dir = base_dir.join(LOCALES_DIR_NAME);
+        if dir.exists() {
+            dir
+        } else {
+            PathBuf::from(LOCALES_DIR_NAME)
+        }
+    }
+
+    /// 重扫 locales 目录，加载运行期间新增的语言文件
+    ///
+    /// 仅增量添加新语言，已加载语言不受文件删除影响；
+    /// 新语言会追加到可选列表末尾，供语言下拉框展示。
+    pub fn refresh_languages(&mut self) {
+        let existing_count = self.available_langs.len();
+        let Ok(entries) = fs::read_dir(Self::resolve_locales_dir()) else {
+            return;
+        };
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let Some(lang_code) = path.file_stem().and_then(|s| s.to_str()) else {
+                continue;
+            };
+            let lang_code = lang_code.to_lowercase();
+            if path.extension().and_then(|s| s.to_str()) != Some(FTL_EXTENSION)
+                || self.bundles.contains_key(&lang_code)
+            {
+                continue;
+            }
+            let Ok(content) = fs::read_to_string(&path) else {
+                continue;
+            };
+            Self::add_bundle(
+                &mut self.bundles,
+                &mut self.available_langs,
+                &lang_code,
+                &content,
+            );
+        }
+
+        let added = self.available_langs.len() - existing_count;
+        if added > 0 {
+            info!("[I18n] [locales] 重扫完成，新增 {} 个语言", added);
+        }
+    }
+
+    pub(crate) fn lang_code_exists(langs: &[LangInfo], code: &str) -> bool {
         langs.iter().any(|info| info.code == code)
     }
 
@@ -156,48 +210,6 @@ impl I18n {
     pub fn set_language(&mut self, lang: String) {
         if self.bundles.contains_key(&lang) {
             self.current_lang = lang;
-        }
-    }
-
-    pub fn t(&self, key: &str) -> String {
-        let mut parts = key.splitn(2, '.');
-        let id_name = parts.next().unwrap_or_default();
-        let attr_name = parts.next();
-
-        let bundle = match self.bundles.get(&self.current_lang) {
-            Some(bundle) => bundle,
-            None => return key.to_string(),
-        };
-
-        let msg = match bundle.get_message(id_name) {
-            Some(msg) => msg,
-            None => return key.to_string(),
-        };
-
-        self.value_or_attr(bundle, msg, id_name, attr_name)
-    }
-
-    fn value_or_attr(
-        &self,
-        bundle: &FluentBundle<FluentResource>,
-        msg: fluent_bundle::FluentMessage,
-        id_name: &str,
-        attr_name: Option<&str>,
-    ) -> String {
-        let mut errors = vec![];
-
-        let pattern = if let Some(name) = attr_name {
-            msg.get_attribute(name).map(|attr| attr.value())
-        } else {
-            msg.value()
-        };
-
-        match pattern {
-            Some(p) => bundle.format_pattern(p, None, &mut errors).to_string(),
-            None => match attr_name {
-                Some(name) => name.to_string(),
-                None => id_name.to_string(),
-            },
         }
     }
 }

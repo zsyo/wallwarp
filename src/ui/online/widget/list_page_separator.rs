@@ -12,10 +12,13 @@ pub fn create_page_separator<'a>(
     current_page: usize,
     total_pages: usize,
 ) -> Element<'a, AppMessage> {
-    let page_text = i18n
-        .t("online-wallpapers.page-separator")
-        .replace("{current}", &current_page.to_string())
-        .replace("{total}", &total_pages.to_string());
+    let page_text = i18n.t_with_args(
+        "online-wallpapers.page-separator",
+        &[
+            ("current", current_page.to_string()),
+            ("total", total_pages.to_string()),
+        ],
+    );
 
     let separator = container(text(page_text).size(PAGE_SEPARATOR_TEXT_SIZE).style(
         |_theme: &iced::Theme| text::Style {
