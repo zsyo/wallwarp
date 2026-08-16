@@ -90,15 +90,7 @@ pub fn create_time_range_picker<'a>(
         time_range_tooltip_text,
         tooltip::Position::Top,
     )
-    .style(move |_theme: &iced::Theme| container::Style {
-        background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
-        border: Border {
-            color: theme_colors.tooltip_border_color,
-            width: TOOLTIP_BORDER_WIDTH,
-            radius: Radius::from(TOOLTIP_BORDER_RADIUS),
-        },
-        ..Default::default()
-    });
+    .style(crate::ui::common::create_tooltip_style(theme_colors));
 
     // 创建时间范围选项（overlay）
     let time_range_options_content = column(time_range_options.iter().map(|option| {

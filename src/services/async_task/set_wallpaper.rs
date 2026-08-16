@@ -131,16 +131,18 @@ pub async fn async_set_random_online_wallpaper(
 
         match service
             .search_wallpapers(
-                page,
-                categories,
-                sorting,
-                purities,
-                color,
-                &query, // 使用配置中的关键词
-                time_range,
-                atleast.as_deref(),
-                resolutions.as_deref(),
-                ratios.as_deref(),
+                &wallhaven::SearchParams {
+                    page,
+                    categories,
+                    sorting: sorting.value(),
+                    purities,
+                    color: color.value(),
+                    query: &query, // 使用配置中的关键词
+                    top_range: time_range.value(),
+                    atleast: atleast.as_deref(),
+                    resolutions: resolutions.as_deref(),
+                    ratios: ratios.as_deref(),
+                },
                 &context,
             )
             .await

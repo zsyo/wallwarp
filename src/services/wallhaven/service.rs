@@ -4,8 +4,7 @@
 //!
 //! 提供 Wallhaven API 的高级接口
 
-use super::client::WallhavenClient;
-use super::model::{ColorOption, Sorting, TimeRange};
+use super::client::{SearchParams, WallhavenClient};
 use super::types::{OnlineWallpaper, WallhavenResponse, WallpaperData};
 use crate::services::request_context::RequestContext;
 use tracing::{debug, error, info};
@@ -87,16 +86,7 @@ impl WallhavenService {
     /// 返回元组：(壁纸列表, 是否最后一页, 总页数, 当前页码)
     pub async fn search_wallpapers(
         &self,
-        page: usize,
-        categories: u32,
-        sorting: Sorting,
-        purities: u32,
-        color: ColorOption,
-        query: &str,
-        time_range: TimeRange,
-        atleast: Option<&str>,
-        resolutions: Option<&str>,
-        ratios: Option<&str>,
+        params: &SearchParams<'_>,
         context: &RequestContext,
     ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), String> {
         // 检查是否已取消
@@ -115,32 +105,21 @@ impl WallhavenService {
         }
 
         // 构建搜索 URL
-        let url = self.client.build_search_url(
-            page,
-            categories,
-            sorting.value(),
-            purities,
-            color.value(),
-            query,
-            time_range.value(),
-            atleast,
-            resolutions,
-            ratios,
-        );
+        let url = self.client.build_search_url(params);
 
         // 打印请求参数
         let search_tag = format!(
-            "page{}_cat{:03b}_sort{:?}_purity{:03b}_color{}_tr{}_q{}",
-            page,
-            categories,
-            sorting,
-            purities,
-            color.value(),
-            time_range.value(),
-            if query.is_empty() {
+            "page{}_cat{:03b}_sort{}_purity{:03b}_color{}_tr{}_q{}",
+            params.page,
+            params.categories,
+            params.sorting,
+            params.purities,
+            params.color,
+            params.top_range,
+            if params.query.is_empty() {
                 "empty"
             } else {
-                &query[..query.len().min(10)]
+                &params.query[..params.query.len().min(10)]
             }
         );
         let masked_url = Self::mask_api_key_in_url(&url);
@@ -180,7 +159,7 @@ impl WallhavenService {
         let last_page = wallhaven_response
             .meta
             .as_ref()
-            .map(|m| page as u64 >= m.last_page)
+            .map(|m| params.page as u64 >= m.last_page)
             .unwrap_or(false);
 
         let total_pages = wallhaven_response
@@ -193,7 +172,7 @@ impl WallhavenService {
             .meta
             .as_ref()
             .map(|m| m.current_page as usize)
-            .unwrap_or(page);
+            .unwrap_or(params.page);
 
         Ok((wallpapers, last_page, total_pages, current_page))
     }

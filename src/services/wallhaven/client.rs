@@ -9,6 +9,31 @@ use tracing::{debug, error, info, warn};
 
 const BASE_URL: &str = "https://wallhaven.cc/api/v1";
 
+/// Wallhaven 搜索参数（借用形式，供构建 URL 与发起搜索共用）
+#[derive(Clone, Copy)]
+pub struct SearchParams<'a> {
+    /// 页码
+    pub page: usize,
+    /// 分类位掩码
+    pub categories: u32,
+    /// 排序方式（如 date_added / toplist / random）
+    pub sorting: &'a str,
+    /// 纯净度位掩码
+    pub purities: u32,
+    /// 颜色选项（any 表示不限）
+    pub color: &'a str,
+    /// 搜索关键词
+    pub query: &'a str,
+    /// 时间范围（仅 toplist 排序生效，any 表示不限）
+    pub top_range: &'a str,
+    /// 最小分辨率（atleast 参数）
+    pub atleast: Option<&'a str>,
+    /// 精确分辨率列表（逗号分隔）
+    pub resolutions: Option<&'a str>,
+    /// 比例列表（逗号分隔）
+    pub ratios: Option<&'a str>,
+}
+
 /// Wallhaven HTTP 客户端
 pub struct WallhavenClient {
     api_key: Option<String>,
@@ -92,32 +117,23 @@ impl WallhavenClient {
     /// 构建搜索 URL
     ///
     /// # 参数
-    /// - `page`: 页码
-    /// - `categories`: 分类位掩码
-    /// - `sorting`: 排序方式
-    /// - `purities`: 纯净度位掩码
-    /// - `color`: 颜色选项
-    /// - `query`: 搜索关键词
-    /// - `top_range`: 时间范围（仅用于 toplist 排序）
-    /// - `atleast`: 最小分辨率（atleast参数）
-    /// - `resolutions`: 精确分辨率列表（resolutions参数，逗号分隔）
-    /// - `ratios`: 比例列表（ratios参数，逗号分隔）
+    /// - `params`: 搜索参数
     ///
     /// # 返回
     /// 返回完整的搜索 URL
-    pub fn build_search_url(
-        &self,
-        page: usize,
-        categories: u32,
-        sorting: &str,
-        purities: u32,
-        color: &str,
-        query: &str,
-        top_range: &str,
-        atleast: Option<&str>,
-        resolutions: Option<&str>,
-        ratios: Option<&str>,
-    ) -> String {
+    pub fn build_search_url(&self, params: &SearchParams) -> String {
+        let SearchParams {
+            page,
+            categories,
+            sorting,
+            purities,
+            color,
+            query,
+            top_range,
+            atleast,
+            resolutions,
+            ratios,
+        } = *params;
         let mut url = format!("{}/search?page={}", BASE_URL, page);
 
         // 添加分类参数（使用位掩码）

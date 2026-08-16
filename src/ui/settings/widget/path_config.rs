@@ -13,16 +13,39 @@ use iced::border::{Border, Radius};
 use iced::widget::{Space, container, row, text, text_input};
 use iced::{Alignment, Color, Element, Length};
 
+/// 路径配置行各按钮触发的消息集合
+pub struct PathRowActions {
+    /// 选择路径
+    pub select: AppMessage,
+    /// 打开路径
+    pub open: AppMessage,
+    /// 清空路径（弹出确认）
+    pub clear: AppMessage,
+    /// 恢复默认路径
+    pub restore: AppMessage,
+}
+
+/// 创建路径配置行
+///
+/// # 参数
+/// - `i18n`: 国际化实例
+/// - `label`: 标签文本
+/// - `path`: 当前路径（用于展示）
+/// - `actions`: 各按钮消息集合
+/// - `theme_colors`: 主题颜色
 pub fn create_path_config_row<'a>(
     i18n: &I18n,
     label: String,
     path: &str,
-    select_msg: AppMessage,
-    open_msg: AppMessage,
-    clear_msg: AppMessage,
-    restore_msg: AppMessage,
+    actions: PathRowActions,
     theme_colors: ThemeColors,
 ) -> Element<'a, AppMessage> {
+    let PathRowActions {
+        select: select_msg,
+        open: open_msg,
+        clear: clear_msg,
+        restore: restore_msg,
+    } = actions;
     row![
         text(label)
             .width(Length::FillPortion(1))

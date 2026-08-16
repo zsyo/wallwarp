@@ -91,15 +91,7 @@ pub fn create_sorting_picker<'a>(
         sorting_tooltip_text,
         tooltip::Position::Top,
     )
-    .style(move |_theme: &iced::Theme| container::Style {
-        background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
-        border: Border {
-            color: theme_colors.tooltip_border_color,
-            width: TOOLTIP_BORDER_WIDTH,
-            radius: Radius::from(TOOLTIP_BORDER_RADIUS),
-        },
-        ..Default::default()
-    });
+    .style(crate::ui::common::create_tooltip_style(theme_colors));
 
     // 创建排序选项（overlay）
     let sorting_options_content = column(sorting_options.iter().map(|option| {

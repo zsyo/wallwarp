@@ -2,10 +2,7 @@
 
 use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::{
-    BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING, TOOLTIP_BG_COLOR, TOOLTIP_BORDER_COLOR,
-    TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH,
-};
+use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 use iced::border::{Border, Radius};
@@ -226,18 +223,14 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                             .spacing(ROW_SPACING)
                             .align_y(Alignment::Center)
                         ),
-                        text(app.i18n.t("auto-change-interval-options.custom-tooltip")),
+                        text(app.i18n.t("auto-change-interval-options.custom-tooltip")).style(
+                            move |_theme: &iced::Theme| text::Style {
+                                color: Some(theme_colors.text),
+                            }
+                        ),
                         tooltip::Position::Top
                     )
-                    .style(|_theme: &iced::Theme| container::Style {
-                        background: Some(iced::Background::Color(TOOLTIP_BG_COLOR)),
-                        border: Border {
-                            color: TOOLTIP_BORDER_COLOR,
-                            width: TOOLTIP_BORDER_WIDTH,
-                            radius: Radius::from(TOOLTIP_BORDER_RADIUS),
-                        },
-                        ..Default::default()
-                    }),
+                    .style(common::create_tooltip_style(theme_colors)),
                 ]
                 .spacing(ROW_SPACING),
                 &app.theme_config,

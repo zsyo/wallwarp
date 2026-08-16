@@ -1,8 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::style::ThemeColors;
-use crate::ui::style::{TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_WIDTH};
-use iced::border::{Border, Radius};
 use iced::widget::{container, radio, text, tooltip};
 use iced::{Alignment, Color, Element, Length};
 
@@ -46,14 +44,6 @@ where
     });
 
     tooltip(content, tooltip_text_element, tooltip::Position::Top)
-        .style(move |_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(theme_colors.tooltip_bg_color)),
-            border: Border {
-                color: theme_colors.tooltip_border_color,
-                width: TOOLTIP_BORDER_WIDTH,
-                radius: Radius::from(TOOLTIP_BORDER_RADIUS),
-            },
-            ..Default::default()
-        })
+        .style(crate::ui::common::create_tooltip_style(theme_colors))
         .into()
 }

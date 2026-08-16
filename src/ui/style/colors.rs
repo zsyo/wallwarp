@@ -227,16 +227,6 @@ pub const DISABLED_BUTTON_BG: Color = Color::from_rgba(0.7, 0.7, 0.7, 0.5);
 pub const TEXT_INPUT_SELECTION_COLOR: Color = Color::from_rgba(0.098, 0.463, 0.824, 0.3);
 
 // ============================================================================
-// Tooltip颜色
-// ============================================================================
-
-/// Tooltip背景颜色
-pub const TOOLTIP_BG_COLOR: Color = Color::WHITE;
-
-/// Tooltip边框颜色
-pub const TOOLTIP_BORDER_COLOR: Color = Color::BLACK;
-
-// ============================================================================
 // 其他颜色
 // ============================================================================
 

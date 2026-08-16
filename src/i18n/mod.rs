@@ -6,6 +6,9 @@
 
 mod translate;
 
+#[cfg(test)]
+mod tests;
+
 use fluent_bundle::{FluentBundle, FluentResource};
 use std::cell::RefCell;
 use std::collections::HashSet;

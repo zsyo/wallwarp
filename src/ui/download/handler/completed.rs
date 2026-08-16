@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::services::async_task;
+use crate::services::async_task::{self, DownloadTaskParams};
 use crate::services::download::DownloadService;
 use crate::ui::download::{DownloadMessage, DownloadStatus};
 use crate::ui::main::MainMessage;
@@ -147,16 +147,16 @@ impl App {
 
             // 启动下一个下载任务
             return Task::perform(
-                async_task::async_download_wallpaper_task_with_progress(
-                    next_url.to_string(),
-                    next_save_path,
-                    next_proxy,
-                    next_task_id,
-                    next_cancel_token,
-                    next_downloaded_size,
-                    next_total_size,
+                async_task::async_download_wallpaper_task_with_progress(DownloadTaskParams {
+                    url: next_url.to_string(),
+                    save_path: next_save_path,
+                    proxy: next_proxy,
+                    task_id: next_task_id,
+                    cancel_token: next_cancel_token,
+                    downloaded_size: next_downloaded_size,
+                    total_size: next_total_size,
                     cache_path,
-                ),
+                }),
                 move |result| match result {
                     Ok(s) => {
                         tracing::info!(

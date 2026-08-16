@@ -9,31 +9,45 @@ use iced::border::{Border, Radius};
 use iced::widget::{button, container, mouse_area, row, text, tooltip};
 use iced::{Alignment, Color, Element, Font, Length};
 
+/// 标题栏各按钮触发的消息集合
+pub struct TitleBarActions<Message> {
+    /// 拖拽窗口
+    pub drag: Message,
+    /// 最小化到托盘
+    pub minimize_to_tray: Message,
+    /// 最小化
+    pub minimize: Message,
+    /// 最大化/还原
+    pub maximize: Message,
+    /// 关闭
+    pub close: Message,
+}
+
 /// 创建自定义标题栏
 ///
 /// # 参数
 /// - `title`: 窗口标题
 /// - `is_maximized`: 是否已最大化
 /// - `theme_config`: 主题配置
-/// - `drag_message`: 拖拽消息
-/// - `minimize_to_tray_message`: 最小化到托盘消息
-/// - `minimize_message`: 最小化消息
-/// - `maximize_message`: 最大化消息
-/// - `close_message`: 关闭消息
+/// - `minimize_to_tray_tooltip`: 最小化到托盘按钮的提示文本
+/// - `actions`: 各按钮消息集合
 pub fn create_title_bar<'a, Message>(
     title: String,
     is_maximized: bool,
     theme_config: &'a ThemeConfig,
-    drag_message: Message,
-    minimize_to_tray_message: Message,
     minimize_to_tray_tooltip: String,
-    minimize_message: Message,
-    maximize_message: Message,
-    close_message: Message,
+    actions: TitleBarActions<Message>,
 ) -> Element<'a, Message>
 where
     Message: Clone + 'a,
 {
+    let TitleBarActions {
+        drag: drag_message,
+        minimize_to_tray: minimize_to_tray_message,
+        minimize: minimize_message,
+        maximize: maximize_message,
+        close: close_message,
+    } = actions;
     let theme_colors = theme_config.get_theme_colors();
 
     // 创建拖拽区域（标题文本区域）

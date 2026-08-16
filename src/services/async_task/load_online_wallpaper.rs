@@ -3,7 +3,7 @@
 use crate::services::download::DownloadService;
 use crate::services::request_context::RequestContext;
 use crate::services::wallhaven::{
-    ColorOption, OnlineWallpaper, Sorting, TimeRange, WallhavenService,
+    ColorOption, OnlineWallpaper, SearchParams, Sorting, TimeRange, WallhavenService,
 };
 use iced::widget::image::Handle;
 use std::error::Error;
@@ -39,20 +39,20 @@ pub async fn async_load_online_wallpapers(
         params.proxy_enabled,
         params.use_env_fallback,
     );
+    let search_params = SearchParams {
+        page: params.page,
+        categories: params.categories,
+        sorting: params.sorting.value(),
+        purities: params.purities,
+        color: params.color.value(),
+        query: &params.query,
+        top_range: params.time_range.value(),
+        atleast: params.atleast.as_deref(),
+        resolutions: params.resolutions.as_deref(),
+        ratios: params.ratios.as_deref(),
+    };
     match service
-        .search_wallpapers(
-            params.page,
-            params.categories,
-            params.sorting,
-            params.purities,
-            params.color,
-            &params.query,
-            params.time_range,
-            params.atleast.as_deref(),
-            params.resolutions.as_deref(),
-            params.ratios.as_deref(),
-            &params.context,
-        )
+        .search_wallpapers(&search_params, &params.context)
         .await
     {
         Ok(result) => Ok(result),

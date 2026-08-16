@@ -15,6 +15,7 @@ pub mod service;
 pub mod types;
 
 // 重新导出常用类型
+pub use client::SearchParams;
 pub use helper::*;
 pub use model::*;
 pub use service::WallhavenService;

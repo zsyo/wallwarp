@@ -7,7 +7,10 @@ mod theme_toggle_button;
 mod title_bar;
 
 pub(in crate::ui::main) use {
-    container_style::create_main_container_style, container_style::create_sidebar_container_style,
-    menu_button::create_menu_button, resizable_container::create_resizable_container,
-    theme_toggle_button::create_theme_toggle_button, title_bar::create_title_bar,
+    container_style::create_main_container_style,
+    container_style::create_sidebar_container_style,
+    menu_button::create_menu_button,
+    resizable_container::create_resizable_container,
+    theme_toggle_button::create_theme_toggle_button,
+    title_bar::{TitleBarActions, create_title_bar},
 };

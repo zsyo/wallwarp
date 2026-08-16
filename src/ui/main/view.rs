@@ -40,12 +40,14 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
         app.title(),
         app.main_state.is_maximized,
         &app.theme_config,
-        MainMessage::TitleBarDrag.into(),
-        MainMessage::MinimizeToTray.into(),
         app.i18n.t("titlebar.minimize-to-tray"),
-        MainMessage::TitleBarMinimize.into(),
-        MainMessage::TitleBarMaximize.into(),
-        MainMessage::TitleBarClose.into(),
+        widget::TitleBarActions {
+            drag: MainMessage::TitleBarDrag.into(),
+            minimize_to_tray: MainMessage::MinimizeToTray.into(),
+            minimize: MainMessage::TitleBarMinimize.into(),
+            maximize: MainMessage::TitleBarMaximize.into(),
+            close: MainMessage::TitleBarClose.into(),
+        },
     );
 
     let theme_colors = app.theme_colors;

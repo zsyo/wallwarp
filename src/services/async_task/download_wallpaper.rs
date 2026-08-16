@@ -71,18 +71,41 @@ pub async fn async_download_wallpaper_task(
     Ok(bytes.len() as u64)
 }
 
+/// 带进度更新的下载任务参数
+pub struct DownloadTaskParams {
+    /// 下载地址
+    pub url: String,
+    /// 最终保存路径
+    pub save_path: PathBuf,
+    /// 代理地址
+    pub proxy: Option<String>,
+    /// 任务 ID（用于日志与进度通知）
+    pub task_id: usize,
+    /// 取消令牌
+    pub cancel_token: Arc<AtomicBool>,
+    /// 已下载字节数（续传场景非 0）
+    pub downloaded_size: u64,
+    /// 文件总大小（未知时为 0）
+    pub total_size: u64,
+    /// 缓存基础路径
+    pub cache_path: String,
+}
+
 /// 带进度更新的异步下载壁纸任务函数
 /// 使用 tokio::sync::mpsc 通道来发送进度更新
 pub async fn async_download_wallpaper_task_with_progress(
-    url: String,
-    save_path: PathBuf,
-    proxy: Option<String>,
-    task_id: usize,
-    cancel_token: Arc<AtomicBool>,
-    downloaded_size: u64,
-    total_size: u64,
-    cache_path: String,
+    params: DownloadTaskParams,
 ) -> Result<u64, String> {
+    let DownloadTaskParams {
+        url,
+        save_path,
+        proxy,
+        task_id,
+        cancel_token,
+        downloaded_size,
+        total_size,
+        cache_path,
+    } = params;
     info!("[下载任务] [ID:{}] 开始下载: {}", task_id, url);
     info!(
         "[下载任务] [ID:{}] 参数：downloaded_size = {} bytes, total_size = {} bytes",

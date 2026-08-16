@@ -12,10 +12,13 @@ impl I18n {
         self.translate(key, None)
     }
 
-    /// 翻译指定键，并用 `args` 替换 FTL 文件中的 `{name}` 占位符
+    /// 翻译指定键，并用 `args` 替换 FTL 文件中的 `{$name}` 占位符
+    ///
+    /// 注意：FTL 中变量必须带 `$` 前缀（`{$name}`）；
+    /// `{name}` 是消息引用而非变量，不会被插值
     ///
     /// # 示例
-    /// FTL: `.page-separator = 第 {current}/{total} 页`
+    /// FTL: `.page-separator = 第 {$current}/{$total} 页`
     /// ```no_run
     /// # use wallwarp::i18n::I18n;
     /// # let i18n = I18n::new();

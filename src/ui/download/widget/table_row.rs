@@ -69,7 +69,7 @@ pub fn create_table_row<'a>(
         // 分隔线
         super::create_vertical_separator(theme_config),
         // 操作列（最后一列，不添加分隔线）
-        container(super::create_operation_buttons(i18n, task))
+        container(super::create_operation_buttons(i18n, task, theme_colors))
             .width(Length::Fill)
             .padding(5),
     ]
