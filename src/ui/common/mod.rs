@@ -7,6 +7,8 @@ mod icon_button;
 mod tooltip_button;
 mod tooltip_radio;
 
+pub mod drop_down;
+
 pub use bordered_container::*;
 pub use colored_button::*;
 pub use confirmation_dialog::*;

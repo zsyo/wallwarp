@@ -15,7 +15,7 @@ iced = { version = "0.14", features = [
     "canvas",   # 自定义绘图
     "advanced", # 启用高级功能
 ] }
-iced_aw = { version = "0.14", features = ["drop_down", "number_input"] }
+iced_aw = { version = "0.14", features = ["number_input"] }
 tokio = { version = "1.53", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_with = "3.22"

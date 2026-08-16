@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::ui::common::drop_down::{self, DropDown};
 use crate::ui::settings::ProxyProtocol;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::{COLOR_SELECTED_BLUE, PICK_LIST_WIDTH};
@@ -7,7 +8,6 @@ use crate::ui::{App, AppMessage};
 use iced::border::{Border, Radius};
 use iced::widget::{Space, button, column, container, opaque, row, text};
 use iced::{Alignment, Color, Element, Length};
-use iced_aw::{DropDown, drop_down};
 use std::str::FromStr;
 
 /// 创建代理协议选择器

@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::ui::common::drop_down::{self, DropDown};
 use crate::ui::main::MainMessage;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::{COLOR_SELECTED_BLUE, THEME_PICK_LIST_WIDTH};
@@ -8,7 +9,6 @@ use crate::utils::config::Theme;
 use iced::border::{Border, Radius};
 use iced::widget::{Space, button, column, container, opaque, row, text};
 use iced::{Alignment, Color, Element, Length};
-use iced_aw::{DropDown, drop_down};
 
 /// 创建主题选择器
 pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {

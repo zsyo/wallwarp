@@ -1,13 +1,13 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::wallhaven::TimeRange;
+use crate::ui::common::drop_down::{self, DropDown};
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::*;
 use crate::ui::{App, AppMessage};
 use iced::border::{Border, Radius};
 use iced::widget::{Space, button, column, container, opaque, row, text, tooltip};
 use iced::{Alignment, Color, Element, Length};
-use iced_aw::{DropDown, drop_down};
 
 /// 显示用的时间范围包装类型，用于 pick_list 显示翻译后的文本
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
