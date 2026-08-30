@@ -5,7 +5,8 @@ use super::{App, AppMessage, NotificationType};
 use crate::ui::main::{MainMessage, close_confirm_view, main_view};
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style;
-use iced::widget::{container, stack, text};
+use crate::ui::style::RADIUS_LG;
+use iced::widget::{container, row, stack, text};
 use iced::{Element, Length, Task};
 
 impl App {
@@ -54,6 +55,7 @@ impl App {
         );
 
         common::create_confirmation_dialog(
+            self.theme_colors,
             self.i18n.t("path-clear-confirmation.title"),
             message_text,
             self.i18n.t("path-clear-confirmation.confirm"),
@@ -65,41 +67,59 @@ impl App {
 
     // 渲染通知组件
     fn notification_view(&self) -> iced::Element<'_, AppMessage> {
-        // 根据通知类型设置颜色
-        let (bg_color, text_color) = match self.main_state.notification_type {
+        use iced::Font;
+
+        // 根据通知类型设置颜色与图标
+        let (bg_color, text_color, icon_char) = match self.main_state.notification_type {
             NotificationType::Success => (
                 style::NOTIFICATION_SUCCESS_BG,
                 style::NOTIFICATION_TEXT_COLOR,
+                "\u{F270}", // bootstrap-icons: check2-circle
             ),
-            NotificationType::Error => {
-                (style::NOTIFICATION_ERROR_BG, style::NOTIFICATION_TEXT_COLOR)
-            }
-            NotificationType::Info => (style::NOTIFICATION_INFO_BG, style::NOTIFICATION_TEXT_COLOR),
+            NotificationType::Error => (
+                style::NOTIFICATION_ERROR_BG,
+                style::NOTIFICATION_TEXT_COLOR,
+                "\u{F33A}", // bootstrap-icons: exclamation-triangle-fill
+            ),
+            NotificationType::Info => (
+                style::NOTIFICATION_INFO_BG,
+                style::NOTIFICATION_TEXT_COLOR,
+                "\u{F430}", // bootstrap-icons: info-circle-fill
+            ),
         };
 
-        let notification_content = container(
+        let notification_content = row![
+            text(icon_char)
+                .size(16)
+                .font(Font::with_name("bootstrap-icons"))
+                .color(text_color),
             text(&self.main_state.notification_message)
                 .size(14)
                 .style(move |_theme| text::Style {
                     color: Some(text_color),
                 }),
-        )
-        .padding(10)
-        .width(Length::Shrink)
-        .height(Length::Shrink)
-        .style(move |_theme| container::Style {
-            background: Some(iced::Background::Color(bg_color)),
-            border: iced::border::Border {
-                radius: iced::border::Radius::from(8.0),
-                width: 1.0,
-                color: iced::Color::TRANSPARENT,
-            },
-            ..Default::default()
-        });
+        ]
+        .spacing(10)
+        .align_y(iced::Alignment::Center);
+
+        let notification_container = container(notification_content)
+            .padding([12, 18])
+            .width(Length::Shrink)
+            .height(Length::Shrink)
+            .style(move |_theme| container::Style {
+                background: Some(iced::Background::Color(bg_color)),
+                border: iced::border::Border {
+                    radius: iced::border::Radius::from(RADIUS_LG),
+                    width: 0.0,
+                    color: iced::Color::TRANSPARENT,
+                },
+                shadow: style::shadows::DIALOG_SHADOW,
+                ..Default::default()
+            });
 
         // 将通知放在窗口底部中央
         container(
-            container(notification_content)
+            container(notification_container)
                 .width(Length::Shrink)
                 .height(Length::Shrink)
                 .padding(10),

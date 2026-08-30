@@ -91,7 +91,13 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
             widget::create_theme_toggle_button(app),
             container(Space::new()).height(Length::Fixed(20.0)),
         ]
-        .align_x(Alignment::Center),
+        .align_x(Alignment::Center)
+        .padding(iced::Padding {
+            top: 0.0,
+            bottom: 0.0,
+            left: 8.0,
+            right: 8.0,
+        }),
     )
     .width(Length::Fixed(SIDEBAR_WIDTH))
     .height(Length::Fill)

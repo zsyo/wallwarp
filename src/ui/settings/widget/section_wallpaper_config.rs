@@ -5,7 +5,6 @@ use crate::ui::settings::SettingsMessage;
 use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
-use iced::border::{Border, Radius};
 use iced::widget::{container, radio, row, text, text_input, tooltip};
 use iced::{Alignment, Color, Element, Length};
 
@@ -183,22 +182,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                                         )
                                         .width(Length::Fill)
                                         .padding(INPUT_PADDING)
-                                        .input_style(move |_theme: &iced::Theme, _status| {
-                                            text_input::Style {
-                                                background: iced::Background::Color(
-                                                    theme_colors.text_input_background,
-                                                ),
-                                                border: Border {
-                                                    color: Color::TRANSPARENT,
-                                                    width: 0.0,
-                                                    radius: Radius::from(4.0),
-                                                },
-                                                icon: theme_colors.light_text_sub,
-                                                placeholder: theme_colors.light_text_sub,
-                                                value: theme_colors.light_text,
-                                                selection: theme_colors.text_input_selection_color,
-                                            }
-                                        })
+                                        .input_style(common::styled_text_input(theme_colors))
                                         .style(
                                             move |_theme: &iced::Theme, _status| {
                                                 iced_aw::number_input::Style {
@@ -249,18 +233,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                         .align_x(Alignment::Center)
                         .padding(INPUT_PADDING)
                         .on_input(|query| SettingsMessage::AutoChangeQueryChanged(query).into())
-                        .style(move |_theme: &iced::Theme, _status| text_input::Style {
-                            background: iced::Background::Color(theme_colors.text_input_background),
-                            border: Border {
-                                color: Color::TRANSPARENT,
-                                width: 0.0,
-                                radius: Radius::from(4.0),
-                            },
-                            icon: theme_colors.light_text_sub,
-                            placeholder: theme_colors.light_text_sub,
-                            value: theme_colors.light_text,
-                            selection: theme_colors.text_input_selection_color,
-                        }),
+                        .style(common::styled_text_input(theme_colors)),
                         common::create_colored_button(
                             app.i18n.t("settings.save"),
                             BUTTON_COLOR_BLUE,

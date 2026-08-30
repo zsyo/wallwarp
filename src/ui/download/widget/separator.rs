@@ -19,17 +19,3 @@ pub fn create_horizontal_separator(theme_config: &ThemeConfig) -> Element<'_, Ap
         })
         .into()
 }
-
-/// 创建垂直分隔线
-pub fn create_vertical_separator(theme_config: &ThemeConfig) -> Element<'_, AppMessage> {
-    let theme_colors = theme_config.get_theme_colors();
-
-    container(Space::new())
-        .width(TABLE_SEPARATOR_WIDTH)
-        .height(Length::Fill)
-        .style(move |_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(theme_colors.table_separator_color)),
-            ..Default::default()
-        })
-        .into()
-}

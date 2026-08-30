@@ -9,7 +9,7 @@ use crate::ui::style::ThemeConfig;
 use crate::ui::style::{
     BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_MODAL_BG,
 };
-use iced::widget::{Space, column, container, row, tooltip};
+use iced::widget::{Space, container, row, tooltip};
 use iced::{Alignment, Element, Length};
 
 /// 创建模态展示区
@@ -78,7 +78,7 @@ pub fn create_modal<'a>(
 
     let locate_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F341}",
+            "\u{F3D8}",
             BUTTON_COLOR_YELLOW,
             LocalMessage::ViewInFolder(wallpaper_index).into(),
         ),
@@ -98,45 +98,51 @@ pub fn create_modal<'a>(
         theme_config,
     );
 
-    // 底部工具栏
+    // 底部悬浮工具栏（圆角胶囊）
     let toolbar = container(
         row![
-            container(Space::new()).width(Length::Fill),
             prev_button,
             next_button,
             set_wallpaper_button,
             locate_button,
             close_button,
-            container(Space::new()).width(Length::Fill),
         ]
-        .width(Length::Fill)
-        .height(Length::Fill)
         .align_y(Alignment::Center)
-        .spacing(50.0),
+        .spacing(24.0),
     )
-    .height(Length::Fixed(30.0))
-    .width(Length::Fill)
+    .padding([6, 20])
     .style(|_theme: &iced::Theme| container::Style {
         background: Some(iced::Background::Color(iced::Color {
             r: 0.0,
             g: 0.0,
             b: 0.0,
-            a: 0.7,
+            a: 0.65,
         })),
+        border: iced::border::Border {
+            color: iced::Color::TRANSPARENT,
+            width: 0.0,
+            radius: iced::border::Radius::from(crate::ui::style::RADIUS_MD),
+        },
         ..Default::default()
     });
 
-    container(
-        column![
-            container(modal_image_content)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .padding(20),
-            toolbar,
-        ]
+    // 工具栏悬浮于图片底部居中
+    let toolbar_layer = container(toolbar)
         .width(Length::Fill)
-        .height(Length::Fill),
-    )
+        .height(Length::Fill)
+        .align_x(Alignment::Center)
+        .align_y(Alignment::End)
+        .padding(iced::Padding {
+            top: 0.0,
+            right: 0.0,
+            bottom: 24.0,
+            left: 0.0,
+        });
+
+    container(iced::widget::stack(vec![
+        modal_image_content.into(),
+        toolbar_layer.into(),
+    ]))
     .style(|_theme: &iced::Theme| container::Style {
         background: Some(iced::Background::Color(COLOR_MODAL_BG)),
         ..Default::default()

@@ -13,7 +13,7 @@ use crate::ui::style::{
 use crate::utils::helpers;
 use iced::widget::image::Handle;
 use iced::widget::{Space, button, container, row, text, tooltip};
-use iced::{Alignment, Color, Length};
+use iced::{Alignment, Length};
 
 /// 创建已加载壁纸卡片
 pub fn create_loaded_wallpaper<'a>(
@@ -37,16 +37,8 @@ pub fn create_loaded_wallpaper<'a>(
     let styled_image = container(image)
         .width(Length::Fill)
         .height(Length::Fill)
-        .style(move |_theme| {
-            let mut style = common::create_bordered_container_style_with_bg(theme_config)(_theme);
-            // 添加阴影效果
-            style.shadow = iced::Shadow {
-                color: theme_colors.overlay_bg,
-                offset: iced::Vector { x: 0.0, y: 2.0 },
-                blur_radius: 8.0,
-            };
-            style
-        });
+        .clip(true)
+        .style(common::wallpaper_image_container_style(theme_colors));
 
     // 创建透明遮罩内容
     let file_size_text = text(helpers::format_file_size(wallpaper.file_size))
@@ -66,7 +58,7 @@ pub fn create_loaded_wallpaper<'a>(
 
     let view_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F341}",
+            "\u{F3D8}",
             BUTTON_COLOR_YELLOW,
             LocalMessage::ViewInFolder(index).into(),
         ),
@@ -155,24 +147,6 @@ pub fn create_loaded_wallpaper<'a>(
         .padding(0)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(|_theme, status| {
-            let base_style = button::text(_theme, status);
-            let shadow = match status {
-                button::Status::Hovered => iced::Shadow {
-                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.12),
-                    offset: iced::Vector { x: 0.0, y: 4.0 },
-                    blur_radius: 12.0,
-                },
-                _ => iced::Shadow {
-                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.08),
-                    offset: iced::Vector { x: 0.0, y: 2.0 },
-                    blur_radius: 8.0,
-                },
-            };
-            button::Style {
-                shadow,
-                ..base_style
-            }
-        })
+        .style(common::wallpaper_card_button_style(theme_colors))
         .on_press(LocalMessage::ShowModal(index).into())
 }

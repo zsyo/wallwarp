@@ -81,6 +81,7 @@ pub fn local_view<'a>(
     // 删除确认模态窗口
     if local_state.delete_confirm_visible {
         let delete_confirm_dialog = common::create_confirmation_dialog(
+            theme_config.get_theme_colors(),
             i18n.t("local-list.delete-confirm-title"),
             i18n.t("local-list.delete-confirm-message"),
             i18n.t("local-list.delete-confirm-confirm"),

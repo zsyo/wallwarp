@@ -3,11 +3,13 @@
 use crate::i18n::I18n;
 use crate::services::wallhaven::Resolution;
 use crate::ui::AppMessage;
+use crate::ui::common::drop_down::{
+    dropdown_cell_style, dropdown_option_style, dropdown_panel_style,
+};
 use crate::ui::online::{OnlineMessage, OnlineState, ResolutionMode};
-use crate::ui::style::*;
-use iced::border::{Border, Radius};
+use crate::ui::style::ThemeColors;
 use iced::widget::{Space, button, column, container, opaque, row, text};
-use iced::{Alignment, Color, Element, Length};
+use iced::{Alignment, Element, Length};
 
 /// 创建分辨率网格选择器内容
 pub fn create_resolution_grid_options<'a>(
@@ -62,7 +64,7 @@ pub fn create_resolution_grid_options<'a>(
                 (Resolution::R1600x1280, "1600x1280"),
                 (Resolution::R1920x1536, "1920x1536"),
                 (Resolution::R2560x2048, "2560x2048"),
-                (Resolution::R3840x3072, "3840x3072"),
+                (Resolution::R3840x2880, "3840x2880"),
             ],
         ),
     ];
@@ -71,90 +73,30 @@ pub fn create_resolution_grid_options<'a>(
     let is_list_disabled = state.resolution_mode == ResolutionMode::All;
 
     // 创建顶部模式切换按钮（水平居中）
-    let atleast_button = button(text(i18n.t("online-wallpapers.resolution-mode-atleast")).size(14))
-        .padding(6)
-        .on_press(OnlineMessage::ResolutionModeChanged(ResolutionMode::AtLeast).into())
-        .style(move |_theme, _status| {
-            let is_selected = state.resolution_mode == ResolutionMode::AtLeast;
-            let bg_color = if is_selected {
-                COLOR_SELECTED_BLUE
-            } else {
-                theme_colors.light_button
-            };
-            let text_color = if is_selected {
-                Color::WHITE
-            } else {
-                theme_colors.light_text
-            };
-            button::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                text_color,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..button::text(_theme, _status)
-            }
-        });
-
-    let exactly_button = button(text(i18n.t("online-wallpapers.resolution-mode-exactly")).size(14))
-        .padding(6)
-        .on_press(OnlineMessage::ResolutionModeChanged(ResolutionMode::Exactly).into())
-        .style(move |_theme, _status| {
-            let is_selected = state.resolution_mode == ResolutionMode::Exactly;
-            let bg_color = if is_selected {
-                COLOR_SELECTED_BLUE
-            } else {
-                theme_colors.light_button
-            };
-            let text_color = if is_selected {
-                Color::WHITE
-            } else {
-                theme_colors.light_text
-            };
-            button::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                text_color,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..button::text(_theme, _status)
-            }
-        });
-
-    let all_button = button(text(i18n.t("online-wallpapers.resolution-mode-all")).size(14))
-        .padding(6)
-        .on_press(OnlineMessage::ResolutionModeChanged(ResolutionMode::All).into())
-        .style(move |_theme, _status| {
-            let is_selected = state.resolution_mode == ResolutionMode::All;
-            let bg_color = if is_selected {
-                COLOR_SELECTED_BLUE
-            } else {
-                theme_colors.light_button
-            };
-            let text_color = if is_selected {
-                Color::WHITE
-            } else {
-                theme_colors.light_text
-            };
-            button::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                text_color,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..button::text(_theme, _status)
-            }
-        });
-
-    let mode_buttons = container(row![atleast_button, exactly_button, all_button].spacing(4))
-        .width(Length::Fill)
-        .center_x(Length::Fill);
+    let mode_options = [
+        (
+            ResolutionMode::AtLeast,
+            "online-wallpapers.resolution-mode-atleast",
+        ),
+        (
+            ResolutionMode::Exactly,
+            "online-wallpapers.resolution-mode-exactly",
+        ),
+        (ResolutionMode::All, "online-wallpapers.resolution-mode-all"),
+    ];
+    let mode_buttons = container(
+        row(mode_options.iter().map(|(mode, key)| {
+            let is_selected = state.resolution_mode == *mode;
+            button(text(i18n.t(key)).size(14))
+                .padding(6)
+                .on_press(OnlineMessage::ResolutionModeChanged(*mode).into())
+                .style(dropdown_option_style(theme_colors, is_selected))
+                .into()
+        }))
+        .spacing(4),
+    )
+    .width(Length::Fill)
+    .center_x(Length::Fill);
 
     // 创建分辨率表格（水平排列分组）
     let mut group_columns: Vec<Element<'a, AppMessage>> = Vec::new();
@@ -180,22 +122,6 @@ pub fn create_resolution_grid_options<'a>(
                 false
             };
 
-            let border_color = if is_selected {
-                COLOR_PICKER_ACTIVE
-            } else {
-                Color::TRANSPARENT
-            };
-            let bg_color = if is_selected {
-                COLOR_SELECTED_BLUE
-            } else {
-                Color::TRANSPARENT
-            };
-            let text_color = if is_list_disabled {
-                DISABLED_COLOR
-            } else {
-                theme_colors.light_text
-            };
-
             let button_content = container(text(*label).size(13))
                 .align_x(Alignment::Center)
                 .align_y(Alignment::Center)
@@ -203,16 +129,11 @@ pub fn create_resolution_grid_options<'a>(
 
             let res_button: Element<'a, AppMessage> = button(button_content)
                 .padding(6)
-                .style(move |_theme, _status| button::Style {
-                    background: Some(iced::Background::Color(bg_color)),
-                    text_color,
-                    border: Border {
-                        color: border_color,
-                        width: if is_selected { 2.0 } else { 0.0 },
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                })
+                .style(dropdown_cell_style(
+                    theme_colors,
+                    is_selected,
+                    is_list_disabled,
+                ))
                 .on_press(if is_list_disabled {
                     AppMessage::None
                 } else if state.resolution_mode == ResolutionMode::AtLeast {
@@ -255,15 +176,7 @@ pub fn create_resolution_grid_options<'a>(
     .padding(12)
     .width(Length::Fixed(530.0))
     .align_x(Alignment::Center)
-    .style(move |_theme: &iced::Theme| container::Style {
-        background: Some(iced::Background::Color(theme_colors.light_button)),
-        border: Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(8.0),
-        },
-        ..Default::default()
-    });
+    .style(dropdown_panel_style(theme_colors));
 
     opaque(picker_content)
 }

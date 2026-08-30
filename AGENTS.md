@@ -293,8 +293,8 @@
   - 仅某个页面使用的尺寸常量 → 定义在该页面的源码文件中
 
 ### 13. 样式常量定义规范
-- **集中管理**: UI 开发中的样式相关常量（如颜色、尺寸、间距、字体大小等）应统一定义到 `src/ui/style.rs` 中
-- **复用检查**: 添加新常量前，应先检查 `style.rs` 中是否已有相同含义的常量，避免重复定义
+- **集中管理**: UI 开发中的样式相关常量（如颜色、尺寸、间距、字体大小等）应统一定义到 `src/ui/style/` 模块中（colors.rs / theme_colors.rs / dimensions.rs / shadows.rs / color_utils.rs）
+- **复用检查**: 添加新常量前，应先检查 `style/` 模块中是否已有相同含义的常量，避免重复定义
 - **命名规范**: 样式常量使用 UPPER_SNAKE_CASE 命名，命名应清晰表达其用途（如 `BUTTON_COLOR_BLUE`、`SECTION_PADDING` 等）
 - **示例场景**:
   - 新增按钮颜色常量 → 先检查 `style.rs` 是否已有相同颜色定义
@@ -326,3 +326,17 @@
 - **例外——版本受生态锁定时**: 若最新版与依赖树中其他库的版本要求冲突（如 x11rb 被 arboard/winit 锁定 `^0.13`），则选择与生态一致的版本、保持依赖树单一副本，并在 Cargo.toml 注释中说明锁定原因，待上游迁移后自然统一，不做强行超前
 - **升级后核对锁版本**: 编辑 Cargo.toml 会触发依赖重解析，锁版本可能被意外降级（案例：reqwest 0.13.4 → 0.13.1 导致 SOCKS5 代理全部失效）。每次改动依赖后必须核对 Cargo.lock 中关键包版本：新增的包确认是预期版本，既有包未被降级
 - **记录升级理由与差异**: 引入或升级重要依赖时在 Cargo.toml 注释中写明选型理由（如 reqwest 用 native-tls 走系统 TLS 栈的说明），便于后续维护者判断能否安全升级
+
+### 16. 主题与配色规范
+- **唯一强调色**: 全应用统一使用现代蓝——浅色主题 `#3B82F6`，深色主题 `#5C9DFF`。需要强调色的场景（按钮、选中态、指示条、焦点边框、链接）一律使用 `ThemeColors::primary` / `primary_hover` / `primary_active`，禁止散落新的蓝色硬编码值
+- **主题色与固定色的分界**: 随明暗主题变化的颜色定义在 `style/theme_colors.rs` 的 `ThemeColors::light()/dark()`；与主题无关的固定色（Wallhaven 29 色板、纯净度语义色、按钮语义色）定义在 `style/colors.rs`。新增颜色时先判断属于哪一类
+- **交互态必须完整**: 可交互控件（按钮、菜单项、下拉选项、表格行、输入框）的样式闭包应接收 `status` 参数并区分 Hovered / Pressed / Disabled——通用悬停填充用 `hover_fill`，彩色按钮悬停用 `darken(color, 0.08)`（style/color_utils.rs 提供 darken/lighten/with_alpha/tint）
+- **统一样式函数优先**: text_input 一律用 `common::styled_text_input(theme_colors)`（含焦点强调色描边与禁用弱化）、进度条用 `common::styled_progress_bar`、下拉面板/选项/单元格用 `drop_down::styles::*`、壁纸卡片用 `common::wallpaper_card_button_style` / `wallpaper_image_container_style`；新增同类控件时扩展这些函数而非另写内联样式
+- **圆角刻度**: 圆角统一使用 `RADIUS_SM`(4) / `RADIUS_MD`(8) / `RADIUS_LG`(12) / `RADIUS_FULL`(20)，不要出现新的魔法数字
+- **选中态视觉语言**: 列表/下拉的选中项 = 强调色 12% 淡染底 + 强调色文字；网格单元格选中项 = 淡染底 + 强调色 1.5px 描边。不要用实心蓝底白字
+
+### 17. 图标码点规范
+- **图标来源**: 全部图标使用 `assets/icons.ttf`（Bootstrap Icons），通过 `Font::with_name("bootstrap-icons")` + Unicode 码点渲染；界面禁止再使用 emoji 图标或 unicode 符号充当图标（▲▼⇅⏷ 等）
+- **码点必须验证**: 新增图标前必须用字体 cmap 验证码点（源码注释可能失真，历史案例：`\u{F341}` 注释写 folder-fill 实际渲染 eye）。验证方式：用 Python struct 解析 icons.ttf 的 cmap+post 表得到 glyph 名→码点映射，或对照 bootstrap-icons 官方码点表
+- **常用已验证码点**: house-door=`F423`、folder=`F3D7`、folder2-open=`F3D8`、download=`F30A`、gear=`F3E5`、chevron-down=`F282`、chevron-right=`F285`、chevron-up=`F286`、chevron-expand=`F283`、x-lg=`F659`、x-circle-fill=`F622`、trash3=`F78B`、arrow-repeat=`F130`、arrow-counterclockwise=`F117`、copy=`F759`、check2-circle=`F270`、exclamation-triangle-fill=`F33A`、info-circle-fill=`F430`、image-fill=`F429`、image-alt=`F428`、pause-fill=`F4C3`、play-fill=`F4F4`、dash=`F2EA`、dash-lg=`F63B`
+- **注释即契约**: 图标码点旁的注释必须写渲染出的真实 glyph 名（如 `// x-circle-fill (取消)`），发现注释与实际渲染不符时以字体为准修正

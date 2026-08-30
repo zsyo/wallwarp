@@ -1,14 +1,15 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::common::drop_down::{self, DropDown};
+use crate::ui::common::drop_down::{
+    self, DropDown, dropdown_option_style, dropdown_panel_style, dropdown_trigger_button,
+};
 use crate::ui::main::MainMessage;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::{COLOR_SELECTED_BLUE, THEME_PICK_LIST_WIDTH};
+use crate::ui::style::THEME_PICK_LIST_WIDTH;
 use crate::ui::{App, AppMessage};
 use crate::utils::config::Theme;
-use iced::border::{Border, Radius};
-use iced::widget::{Space, button, column, container, opaque, row, text};
-use iced::{Alignment, Color, Element, Length};
+use iced::widget::{button, column, container, opaque, text};
+use iced::{Element, Length};
 
 /// 创建主题选择器
 pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
@@ -22,133 +23,35 @@ pub fn create_theme_picker<'a>(app: &'a App) -> Element<'a, AppMessage> {
         Theme::Auto => app.i18n.t("theme-options.auto"),
     };
 
-    // 创建触发按钮（underlay）
-    let theme_underlay = row![
-        text(current_theme_text).size(14),
-        Space::new().width(Length::Fill),
-        container(text("⏷").color(theme_colors.light_text_sub))
-            .height(Length::Fill)
-            .padding(iced::Padding {
-                top: -2.0,
-                bottom: 0.0,
-                left: 0.0,
-                right: 0.0,
-            }),
-    ]
-    .spacing(4)
-    .align_y(Alignment::Center)
-    .padding(iced::Padding {
-        top: 0.0,
-        bottom: 0.0,
-        left: 0.0,
-        right: -2.0,
-    });
+    // 触发按钮（underlay）
+    let theme_trigger = dropdown_trigger_button(
+        current_theme_text,
+        THEME_PICK_LIST_WIDTH,
+        theme_colors,
+        SettingsMessage::ThemePickerExpanded.into(),
+    );
 
-    let theme_trigger = button(theme_underlay)
-        .padding(6)
-        .width(Length::Fixed(THEME_PICK_LIST_WIDTH))
-        .on_press(SettingsMessage::ThemePickerExpanded.into())
-        .style(move |_theme, _status| button::Style {
-            background: Some(iced::Background::Color(theme_colors.settings_dropdown_bg)),
-            text_color: theme_colors.light_text,
-            border: Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: Radius::from(4.0),
-            },
-            ..button::text(_theme, _status)
-        });
-
-    // 创建主题选项（overlay）
-    let theme_options_content = {
-        let current_theme = app.config.global.theme;
-
-        column([
-            button(text(app.i18n.t("theme-options.dark")).size(14))
-                .padding(6)
-                .width(Length::Fill)
-                .on_press(MainMessage::ThemeSelected(Theme::Dark).into())
-                .style(move |_theme, _status| button::Style {
-                    background: if current_theme == Theme::Dark {
-                        Some(iced::Background::Color(COLOR_SELECTED_BLUE))
-                    } else {
-                        Some(iced::Background::Color(Color::TRANSPARENT))
-                    },
-                    text_color: if current_theme == Theme::Dark {
-                        Color::WHITE
-                    } else {
-                        theme_colors.light_text
-                    },
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                })
-                .into(),
-            button(text(app.i18n.t("theme-options.light")).size(14))
-                .padding(6)
-                .width(Length::Fill)
-                .on_press(MainMessage::ThemeSelected(Theme::Light).into())
-                .style(move |_theme, _status| button::Style {
-                    background: if current_theme == Theme::Light {
-                        Some(iced::Background::Color(COLOR_SELECTED_BLUE))
-                    } else {
-                        Some(iced::Background::Color(Color::TRANSPARENT))
-                    },
-                    text_color: if current_theme == Theme::Light {
-                        Color::WHITE
-                    } else {
-                        theme_colors.light_text
-                    },
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                })
-                .into(),
-            button(text(app.i18n.t("theme-options.auto")).size(14))
-                .padding(6)
-                .width(Length::Fill)
-                .on_press(MainMessage::ThemeSelected(Theme::Auto).into())
-                .style(move |_theme, _status| button::Style {
-                    background: if current_theme == Theme::Auto {
-                        Some(iced::Background::Color(COLOR_SELECTED_BLUE))
-                    } else {
-                        Some(iced::Background::Color(Color::TRANSPARENT))
-                    },
-                    text_color: if current_theme == Theme::Auto {
-                        Color::WHITE
-                    } else {
-                        theme_colors.light_text
-                    },
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                })
-                .into(),
-        ])
-        .spacing(2)
-    };
+    // 主题选项（overlay）
+    let options = [
+        (Theme::Dark, "theme-options.dark"),
+        (Theme::Light, "theme-options.light"),
+        (Theme::Auto, "theme-options.auto"),
+    ];
+    let theme_options_content = column(options.iter().map(|(theme, key)| {
+        let is_selected = current_theme == *theme;
+        button(text(app.i18n.t(key)).size(14))
+            .padding(6)
+            .width(Length::Fill)
+            .on_press(MainMessage::ThemeSelected(*theme).into())
+            .style(dropdown_option_style(theme_colors, is_selected))
+            .into()
+    }))
+    .spacing(2);
 
     let picker_content = container(theme_options_content)
         .padding(8)
         .width(Length::Fixed(THEME_PICK_LIST_WIDTH))
-        .style(move |_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(theme_colors.settings_dropdown_bg)),
-            border: Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: Radius::from(8.0),
-            },
-            ..Default::default()
-        });
+        .style(dropdown_panel_style(theme_colors));
 
     DropDown::new(
         theme_trigger,

@@ -5,8 +5,10 @@
 // 上游 0.14.1 尚未修复，因此在此维护修正版本。
 
 mod overlay;
+pub mod styles;
 
 pub use overlay::{Alignment, Offset};
+pub use styles::*;
 
 use iced::advanced::layout::{Limits, Node};
 use iced::advanced::overlay::Element as OverlayElement;

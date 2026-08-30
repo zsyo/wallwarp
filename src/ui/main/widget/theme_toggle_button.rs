@@ -32,15 +32,22 @@ pub fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
     .on_press(MainMessage::ThemeSelected(target_theme).into())
     .width(Length::Fixed(40.0))
     .height(Length::Fixed(40.0))
-    .style(move |_theme: &iced::Theme, _status| button::Style {
-        background: Some(iced::Background::Color(iced::Color::TRANSPARENT)),
-        text_color: theme_colors.text,
-        border: Border {
-            color: iced::Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(20.0),
-        },
-        ..Default::default()
+    .style(move |_theme: &iced::Theme, status| {
+        let bg = match status {
+            button::Status::Hovered => theme_colors.hover_fill,
+            button::Status::Pressed => theme_colors.sidebar_button_selected,
+            _ => iced::Color::TRANSPARENT,
+        };
+        button::Style {
+            background: Some(iced::Background::Color(bg)),
+            text_color: theme_colors.text,
+            border: Border {
+                color: iced::Color::TRANSPARENT,
+                width: 0.0,
+                radius: Radius::from(20.0),
+            },
+            ..Default::default()
+        }
     });
 
     common::create_button_with_tooltip(btn, tooltip_text, tooltip::Position::Top, &app.theme_config)

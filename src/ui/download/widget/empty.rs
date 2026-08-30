@@ -72,17 +72,21 @@ pub fn create_filtered_empty_state<'a>(
                     crate::ui::download::message::DownloadMessage::ShowAll,
                 ))
                 .style(
-                    move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
+                    move |_theme: &iced::Theme, status: iced::widget::button::Status| {
+                        let bg = match status {
+                            iced::widget::button::Status::Hovered
+                            | iced::widget::button::Status::Pressed => theme_colors.hover_fill,
+                            _ => iced::Color::TRANSPARENT,
+                        };
                         iced::widget::button::Style {
-                            text_color: iced::Color::from_rgb(0.0, 0.6, 1.0),
-                            background: Some(iced::Background::Color(iced::Color::TRANSPARENT)),
+                            text_color: theme_colors.primary,
+                            background: Some(iced::Background::Color(bg)),
                             border: iced::Border {
                                 color: iced::Color::TRANSPARENT,
                                 width: 0.0,
-                                radius: 0.0.into(),
+                                radius: crate::ui::style::RADIUS_SM.into(),
                             },
-                            shadow: iced::Shadow::default(),
-                            snap: false,
+                            ..iced::widget::button::text(_theme, status)
                         }
                     },
                 );

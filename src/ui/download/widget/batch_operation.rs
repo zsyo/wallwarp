@@ -47,7 +47,7 @@ pub fn create_batch_operation_buttons<'a>(
         // 重新开始按钮 - 蓝色
         super::create_batch_button(
             i18n.t("download-tasks.batch-retry"),
-            "\u{F130}", // play-fill (重新下载)
+            "\u{F130}", // arrow-repeat (重新下载)
             can_retry,
             AppMessage::Download(DownloadMessage::BatchRetry),
             theme_colors,
@@ -56,7 +56,7 @@ pub fn create_batch_operation_buttons<'a>(
         // 取消按钮 - 红色
         super::create_batch_button(
             i18n.t("download-tasks.batch-cancel"),
-            "\u{F117}", // x-circle-fill
+            "\u{F622}", // x-circle-fill (批量取消)
             can_cancel,
             AppMessage::Download(DownloadMessage::BatchCancel),
             theme_colors,
@@ -65,7 +65,7 @@ pub fn create_batch_operation_buttons<'a>(
         // 删除按钮 - 红色
         super::create_batch_button(
             i18n.t("download-tasks.batch-delete"),
-            "\u{F78B}", // trash-fill
+            "\u{F78B}", // trash3
             can_delete,
             AppMessage::Download(DownloadMessage::BatchDelete),
             theme_colors,

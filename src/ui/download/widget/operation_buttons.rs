@@ -32,35 +32,35 @@ pub fn create_operation_buttons<'a>(
         theme_colors,
     );
     let retry_button = common::create_icon_button_with_tooltip(
-        "\u{F130}", // play-fill (重新下载)
+        "\u{F130}", // arrow-repeat (重新下载)
         BUTTON_COLOR_BLUE,
         DownloadMessage::RetryTask(task.id).into(),
         i18n.t("download-tasks.tooltip-retry"),
         theme_colors,
     );
     let copy_button = common::create_icon_button_with_tooltip(
-        "\u{F759}", // link-45deg
+        "\u{F759}", // copy (复制链接)
         BUTTON_COLOR_BLUE,
         DownloadMessage::CopyDownloadLink(task.id).into(),
         i18n.t("download-tasks.tooltip-copy-url"),
         theme_colors,
     );
     let cancel_button = common::create_icon_button_with_tooltip(
-        "\u{F117}", // x-circle-fill
+        "\u{F622}", // x-circle-fill (取消)
         BUTTON_COLOR_RED,
         DownloadMessage::CancelTask(task.id).into(),
         i18n.t("download-tasks.tooltip-cancel"),
         theme_colors,
     );
     let delete_button = common::create_icon_button_with_tooltip(
-        "\u{F78B}", // trash-fill (删除任务)
+        "\u{F78B}", // trash3 (删除任务)
         BUTTON_COLOR_RED,
         DownloadMessage::DeleteTask(task.id).into(),
         i18n.t("download-tasks.tooltip-delete"),
         theme_colors,
     );
     let view_button = common::create_icon_button_with_tooltip(
-        "\u{F341}", // folder-fill (查看文件)
+        "\u{F3D8}", // folder2-open (打开文件位置)
         BUTTON_COLOR_YELLOW,
         DownloadMessage::OpenFileLocation(task.id).into(),
         i18n.t("download-tasks.tooltip-open"),

@@ -3,9 +3,10 @@
 use crate::i18n::I18n;
 use crate::services::wallhaven::ColorOption;
 use crate::ui::AppMessage;
+use crate::ui::common::drop_down::dropdown_panel_style;
 use crate::ui::online::{OnlineMessage, OnlineState};
+use crate::ui::style::ThemeColors;
 use crate::ui::style::*;
-use iced::border::{Border, Radius};
 use iced::widget::{button, canvas, column, container, opaque, row};
 use iced::{Color, Element, Length};
 
@@ -60,57 +61,54 @@ pub fn create_color_grid_options<'a>(
         let mut row_items: Vec<Element<'a, AppMessage>> = Vec::new();
         for (color, color_option) in row {
             let is_selected = state.color == *color_option;
-            let border_color = if is_selected {
-                COLOR_PICKER_ACTIVE
+
+            // 选中态用强调色描边，未选中悬停时显示中性描边提示可点击
+            let border = if is_selected {
+                (theme_colors.primary, 2.0)
             } else {
-                Color::TRANSPARENT
+                (Color::TRANSPARENT, 0.0)
             };
 
-            // 对于 Any 选项，显示白色底色
-            let color_button: Element<'a, AppMessage> = if *color_option == ColorOption::Any {
-                // 创建定制化的红线：稍微缩进 2 像素，线宽 2.0
+            let swatch = container(
+                iced::widget::Space::new()
+                    .width(Length::Fixed(64.0))
+                    .height(Length::Fixed(28.0)),
+            );
+
+            // 对于 Any 选项，叠加红色斜线表示"无色"
+            let content: Element<'a, AppMessage> = if *color_option == ColorOption::Any {
                 let line_program = super::DiagonalLine {
-                    color: COLOR_NO_COLOR_STROKE, // 使用略深的红色，更有质感
+                    color: COLOR_NO_COLOR_STROKE,
                     width: 2.5,
                     padding: 3.0,
                 };
-
-                button(
+                iced::widget::stack![
+                    swatch,
                     canvas(line_program)
                         .width(Length::Fixed(64.0))
-                        .height(Length::Fixed(28.0)),
-                )
-                .padding(0)
-                .style(move |_theme, _status| button::Style {
-                    background: Some(iced::Background::Color(*color)),
-                    border: Border {
-                        color: border_color,
-                        width: if is_selected { 2.0 } else { 0.0 },
-                        radius: Radius::from(2.0),
-                    },
-                    ..button::text(_theme, _status)
-                })
-                .on_press(OnlineMessage::ColorChanged(*color_option).into())
+                        .height(Length::Fixed(28.0))
+                ]
                 .into()
             } else {
-                button(
-                    iced::widget::Space::new()
-                        .width(Length::Fixed(64.0))
-                        .height(Length::Fixed(28.0)),
-                )
+                swatch.into()
+            };
+
+            let color_button: Element<'a, AppMessage> = button(content)
                 .padding(0)
-                .style(move |_theme, _status| button::Style {
-                    background: Some(iced::Background::Color(*color)),
-                    border: Border {
-                        color: border_color,
-                        width: if is_selected { 2.0 } else { 0.0 },
-                        radius: Radius::from(2.0),
-                    },
-                    ..button::text(_theme, _status)
+                .style(move |_theme: &iced::Theme, _status| {
+                    use crate::ui::style::RADIUS_SM;
+                    iced::widget::button::Style {
+                        background: Some(iced::Background::Color(*color)),
+                        border: iced::border::Border {
+                            color: border.0,
+                            width: border.1,
+                            radius: RADIUS_SM.into(),
+                        },
+                        ..iced::widget::button::text(_theme, _status)
+                    }
                 })
                 .on_press(OnlineMessage::ColorChanged(*color_option).into())
-                .into()
-            };
+                .into();
 
             row_items.push(color_button);
         }
@@ -127,15 +125,7 @@ pub fn create_color_grid_options<'a>(
     // 创建颜色选择器容器
     let picker_content = container(grid)
         .padding(12)
-        .style(move |_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(theme_colors.light_button)),
-            border: Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: Radius::from(8.0),
-            },
-            ..Default::default()
-        });
+        .style(dropdown_panel_style(theme_colors));
 
     opaque(picker_content)
 }

@@ -4,12 +4,51 @@ use crate::i18n::I18n;
 use crate::services::wallhaven::{Category, Purity, Sorting};
 use crate::ui::AppMessage;
 use crate::ui::common;
+use crate::ui::common::icon_button::solid_icon_button_style;
 use crate::ui::online::{OnlineMessage, OnlineState};
 use crate::ui::style::*;
 use crate::utils::config::Config;
 use iced::border::{Border, Radius};
 use iced::widget::{Space, button, container, row, text, text_input};
 use iced::{Alignment, Color, Element, Length};
+
+/// 筛选栏切换按钮样式：选中=语义色实底，未选中=中性底+悬停反馈
+fn toggle_chip_style(
+    theme_colors: ThemeColors,
+    is_checked: bool,
+    accent: Color,
+    checked_text: Color,
+) -> impl Fn(&iced::Theme, button::Status) -> button::Style {
+    move |_theme: &iced::Theme, status| {
+        let bg_color = if is_checked {
+            match status {
+                button::Status::Hovered => darken(accent, 0.08),
+                button::Status::Pressed => darken(accent, 0.15),
+                _ => accent,
+            }
+        } else {
+            match status {
+                button::Status::Hovered => theme_colors.hover_fill,
+                button::Status::Pressed => tint(theme_colors.primary, 0.08),
+                _ => theme_colors.light_button,
+            }
+        };
+        button::Style {
+            background: Some(iced::Background::Color(bg_color)),
+            text_color: if is_checked {
+                checked_text
+            } else {
+                theme_colors.light_text
+            },
+            border: Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: Radius::from(RADIUS_SM),
+            },
+            ..button::text(_theme, status)
+        }
+    }
+}
 
 /// 创建筛选栏
 pub fn create_filter_bar<'a>(
@@ -30,35 +69,18 @@ pub fn create_filter_bar<'a>(
     .padding(6)
     .size(14)
     .width(Length::Fixed(160.0))
-    .style(move |_theme: &iced::Theme, _status| text_input::Style {
-        background: iced::Background::Color(theme_colors.light_button),
-        border: Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(4.0),
-        },
-        icon: theme_colors.light_text_sub,
-        placeholder: theme_colors.light_text_sub,
-        value: theme_colors.light_text,
-        selection: theme_colors.text_input_selection_color,
-    });
+    .style(common::styled_text_input(theme_colors));
 
     let search_button = common::create_icon_button_with_size(
         "\u{F52A}",
-        BUTTON_COLOR_BLUE,
+        theme_colors.light_text,
         17,
         OnlineMessage::Search.into(),
     )
-    .style(move |_theme: &iced::Theme, _status| button::Style {
-        background: Some(iced::Background::Color(theme_colors.light_button)),
-        text_color: theme_colors.light_text,
-        border: Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(4.0),
-        },
-        ..button::text(_theme, _status)
-    });
+    .style(solid_icon_button_style(
+        theme_colors.light_button,
+        theme_colors.light_text,
+    ));
 
     let search_container = row![search_input, search_button]
         .spacing(2)
@@ -80,173 +102,90 @@ pub fn create_filter_bar<'a>(
     // 功能按钮
     let refresh_button = common::create_icon_button_with_size(
         "\u{F130}",
-        BUTTON_COLOR_GREEN,
+        theme_colors.light_text,
         20,
         OnlineMessage::Refresh.into(),
     )
-    .style(move |_theme, _status| button::Style {
-        background: Some(iced::Background::Color(theme_colors.light_button)),
-        text_color: theme_colors.light_text,
-        border: Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(4.0),
-        },
-        ..button::text(_theme, _status)
-    });
+    .style(solid_icon_button_style(
+        theme_colors.light_button,
+        theme_colors.light_text,
+    ));
+
+    // 分类切换按钮（选中=强调色实底）
+    let category_button = |label: String, category: Category, message: OnlineMessage| {
+        let is_checked = (state.categories & category.bit_value()) != 0;
+        button(text(label).size(14))
+            .on_press(message.into())
+            .padding(6)
+            .style(toggle_chip_style(
+                theme_colors,
+                is_checked,
+                theme_colors.primary,
+                Color::WHITE,
+            ))
+    };
+
+    // 纯净度切换按钮（选中=纯净度语义色实底）
+    let purity_button = |label: String,
+                         purity: Purity,
+                         accent: Color,
+                         checked_text: Color,
+                         message: OnlineMessage| {
+        let is_checked = (state.purities & purity.bit_value()) != 0;
+        button(text(label).size(14))
+            .on_press(message.into())
+            .padding(6)
+            .style(toggle_chip_style(
+                theme_colors,
+                is_checked,
+                accent,
+                checked_text,
+            ))
+    };
 
     // 组合所有元素
     let filter_row = row![
         search_container,
         Space::new().width(2),
-        // 分类按钮（选中状态为蓝色）
-        button(text(i18n.t("online-wallpapers.category-general")).size(14))
-            .on_press(OnlineMessage::CategoryToggled(Category::General).into())
-            .padding(6)
-            .style(move |_theme, _status| {
-                let is_checked = (state.categories & Category::General.bit_value()) != 0;
-                let bg_color = if is_checked {
-                    COLOR_SELECTED_BLUE
-                } else {
-                    theme_colors.light_button
-                };
-                let text_color = if is_checked {
-                    Color::WHITE
-                } else {
-                    theme_colors.light_text
-                };
-                button::Style {
-                    background: Some(iced::Background::Color(bg_color)),
-                    text_color,
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                }
-            }),
-        button(text(i18n.t("online-wallpapers.category-anime")).size(14))
-            .on_press(OnlineMessage::CategoryToggled(Category::Anime).into())
-            .padding(6)
-            .style(move |_theme, _status| {
-                let is_checked = (state.categories & Category::Anime.bit_value()) != 0;
-                let bg_color = if is_checked {
-                    COLOR_SELECTED_BLUE
-                } else {
-                    theme_colors.light_button
-                };
-                let text_color = if is_checked {
-                    Color::WHITE
-                } else {
-                    theme_colors.light_text
-                };
-                button::Style {
-                    background: Some(iced::Background::Color(bg_color)),
-                    text_color,
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                }
-            }),
-        button(text(i18n.t("online-wallpapers.category-people")).size(14))
-            .on_press(OnlineMessage::CategoryToggled(Category::People).into())
-            .padding(6)
-            .style(move |_theme, _status| {
-                let is_checked = (state.categories & Category::People.bit_value()) != 0;
-                let bg_color = if is_checked {
-                    COLOR_SELECTED_BLUE
-                } else {
-                    theme_colors.light_button
-                };
-                let text_color = if is_checked {
-                    Color::WHITE
-                } else {
-                    theme_colors.light_text
-                };
-                button::Style {
-                    background: Some(iced::Background::Color(bg_color)),
-                    text_color,
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                }
-            }),
+        category_button(
+            i18n.t("online-wallpapers.category-general"),
+            Category::General,
+            OnlineMessage::CategoryToggled(Category::General),
+        ),
+        category_button(
+            i18n.t("online-wallpapers.category-anime"),
+            Category::Anime,
+            OnlineMessage::CategoryToggled(Category::Anime),
+        ),
+        category_button(
+            i18n.t("online-wallpapers.category-people"),
+            Category::People,
+            OnlineMessage::CategoryToggled(Category::People),
+        ),
         Space::new().width(2),
-        // 纯净度按钮（带颜色）
-        button(text(i18n.t("online-wallpapers.purity-sfw")).size(14))
-            .on_press(OnlineMessage::PurityToggled(Purity::SFW).into())
-            .padding(6)
-            .style(move |_theme, _status| {
-                let is_checked = (state.purities & Purity::SFW.bit_value()) != 0;
-                let (bg_color, text_color) = if is_checked {
-                    (COLOR_SFW, Color::WHITE)
-                } else {
-                    (theme_colors.light_button, theme_colors.light_text)
-                };
-                button::Style {
-                    background: Some(iced::Background::Color(bg_color)),
-                    text_color,
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                }
-            }),
-        button(text(i18n.t("online-wallpapers.purity-sketchy")).size(14))
-            .on_press(OnlineMessage::PurityToggled(Purity::Sketchy).into())
-            .padding(6)
-            .style(move |_theme, _status| {
-                let is_checked = (state.purities & Purity::Sketchy.bit_value()) != 0;
-                let (bg_color, text_color) = if is_checked {
-                    (COLOR_SKETCHY, Color::BLACK)
-                } else {
-                    (theme_colors.light_button, theme_colors.light_text)
-                };
-                button::Style {
-                    background: Some(iced::Background::Color(bg_color)),
-                    text_color,
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                }
-            }),
+        purity_button(
+            i18n.t("online-wallpapers.purity-sfw"),
+            Purity::SFW,
+            COLOR_SFW,
+            Color::WHITE,
+            OnlineMessage::PurityToggled(Purity::SFW),
+        ),
+        purity_button(
+            i18n.t("online-wallpapers.purity-sketchy"),
+            Purity::Sketchy,
+            COLOR_SKETCHY,
+            Color::BLACK,
+            OnlineMessage::PurityToggled(Purity::Sketchy),
+        ),
         // NSFW 按钮：只在 API Key 不为空时显示
         if !config.wallhaven.api_key.is_empty() {
-            Some(
-                button(text(i18n.t("online-wallpapers.purity-nsfw")).size(14))
-                    .on_press(OnlineMessage::PurityToggled(Purity::NSFW).into())
-                    .padding(6)
-                    .style(move |_theme, _status| {
-                        let is_checked = (state.purities & Purity::NSFW.bit_value()) != 0;
-                        let (bg_color, text_color) = if is_checked {
-                            (COLOR_NSFW, Color::WHITE)
-                        } else {
-                            (theme_colors.light_button, theme_colors.light_text)
-                        };
-                        button::Style {
-                            background: Some(iced::Background::Color(bg_color)),
-                            text_color,
-                            border: Border {
-                                color: Color::TRANSPARENT,
-                                width: 0.0,
-                                radius: Radius::from(4.0),
-                            },
-                            ..button::text(_theme, _status)
-                        }
-                    }),
-            )
+            Some(purity_button(
+                i18n.t("online-wallpapers.purity-nsfw"),
+                Purity::NSFW,
+                COLOR_NSFW,
+                Color::WHITE,
+                OnlineMessage::PurityToggled(Purity::NSFW),
+            ))
         } else {
             None
         },

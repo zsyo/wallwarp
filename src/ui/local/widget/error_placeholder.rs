@@ -12,7 +12,7 @@ use crate::ui::style::{
 };
 use crate::utils::helpers;
 use iced::widget::{Space, button, column, container, row, text, tooltip};
-use iced::{Alignment, Color, Font, Length};
+use iced::{Alignment, Font, Length};
 
 /// 创建错误占位符
 pub fn create_error_placeholder<'a>(
@@ -25,7 +25,7 @@ pub fn create_error_placeholder<'a>(
 
     let error_image = text("\u{F428}")
         .font(Font::with_name("bootstrap-icons"))
-        .color(Color::BLACK)
+        .color(theme_colors.disabled_color)
         .size(ERROR_ICON_SIZE);
 
     let error_text = text(i18n.t("local-list.loading-error"))
@@ -54,16 +54,7 @@ pub fn create_error_placeholder<'a>(
     let error_content = container(inner_content)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(move |_theme| {
-            let mut style = common::create_bordered_container_style_with_bg(theme_config)(_theme);
-            // 添加阴影效果
-            style.shadow = iced::Shadow {
-                color: theme_colors.overlay_bg,
-                offset: iced::Vector { x: 0.0, y: 2.0 },
-                blur_radius: 8.0,
-            };
-            style
-        });
+        .style(common::wallpaper_image_container_style(theme_colors));
 
     // 创建遮罩层内容（不显示分辨率）
     let file_size_text = text(helpers::format_file_size(wallpaper.file_size))
@@ -74,7 +65,7 @@ pub fn create_error_placeholder<'a>(
 
     let view_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F341}",
+            "\u{F3D8}",
             BUTTON_COLOR_YELLOW,
             LocalMessage::ViewInFolder(index).into(),
         ),
@@ -135,23 +126,5 @@ pub fn create_error_placeholder<'a>(
         .padding(0)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(|_theme, status| {
-            let base_style = button::text(_theme, status);
-            let shadow = match status {
-                button::Status::Hovered => iced::Shadow {
-                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.12),
-                    offset: iced::Vector { x: 0.0, y: 4.0 },
-                    blur_radius: 12.0,
-                },
-                _ => iced::Shadow {
-                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.08),
-                    offset: iced::Vector { x: 0.0, y: 2.0 },
-                    blur_radius: 8.0,
-                },
-            };
-            button::Style {
-                shadow,
-                ..base_style
-            }
-        })
+        .style(common::wallpaper_card_button_style(theme_colors))
 }

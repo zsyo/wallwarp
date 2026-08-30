@@ -5,7 +5,12 @@ use crate::ui::AppMessage;
 use crate::ui::download::state::{DownloadStateFull, SortColumn};
 use crate::ui::style::{ThemeColors, ThemeConfig};
 use iced::widget::{Space, button, container, row, text};
-use iced::{Alignment, Element, Length};
+use iced::{Alignment, Element, Font, Length};
+
+/// 排序状态图标（bootstrap-icons，码点已对照 icons.ttf 验证）
+const ICON_SORT_ASC: &str = "\u{F286}"; // chevron-up
+const ICON_SORT_DESC: &str = "\u{F282}"; // chevron-down
+const ICON_SORT_NONE: &str = "\u{F283}"; // chevron-expand
 
 /// 创建表头
 pub fn create_table_header<'a>(
@@ -18,8 +23,6 @@ pub fn create_table_header<'a>(
     row![
         // 全选框列
         super::create_checkbox_header(download_state, theme_config),
-        // 分隔线
-        super::create_vertical_separator(theme_config),
         // 文件名列（可排序）
         create_sortable_header_cell(
             i18n,
@@ -29,8 +32,6 @@ pub fn create_table_header<'a>(
             theme_colors,
             Length::FillPortion(3),
         ),
-        // 分隔线
-        super::create_vertical_separator(theme_config),
         // 大小列（可排序）
         create_sortable_header_cell(
             i18n,
@@ -40,8 +41,6 @@ pub fn create_table_header<'a>(
             theme_colors,
             Length::Fixed(100.0),
         ),
-        // 分隔线
-        super::create_vertical_separator(theme_config),
         // 状态列（可排序）
         create_sortable_header_cell(
             i18n,
@@ -51,8 +50,6 @@ pub fn create_table_header<'a>(
             theme_colors,
             Length::Fixed(220.0),
         ),
-        // 分隔线
-        super::create_vertical_separator(theme_config),
         // 下载列（不可排序）
         container(
             text(i18n.t("download-tasks.header-download"))
@@ -63,8 +60,6 @@ pub fn create_table_header<'a>(
         )
         .width(Length::Fixed(100.0))
         .padding(5),
-        // 分隔线
-        super::create_vertical_separator(theme_config),
         // 添加时间列（可排序）
         create_sortable_header_cell(
             i18n,
@@ -74,9 +69,7 @@ pub fn create_table_header<'a>(
             theme_colors,
             Length::Fixed(150.0),
         ),
-        // 分隔线
-        super::create_vertical_separator(theme_config),
-        // 操作列（不可排序，最后一列，不添加分隔线）
+        // 操作列（不可排序，最后一列）
         container(
             text(i18n.t("download-tasks.header-operations"))
                 .size(14)
@@ -93,7 +86,7 @@ pub fn create_table_header<'a>(
     .into()
 }
 
-/// 创建可排序的表头单元格
+/// 创建可排序的表头单元格：悬停变强调色，排序列显示方向箭头
 fn create_sortable_header_cell<'a>(
     i18n: &'a I18n,
     translation_key: &'a str,
@@ -108,12 +101,12 @@ fn create_sortable_header_cell<'a>(
     // 排序图标
     let sort_icon = if is_current_column {
         if download_state.sort_descending {
-            text("▼")
+            ICON_SORT_DESC
         } else {
-            text("▲")
+            ICON_SORT_ASC
         }
     } else {
-        text("⇅")
+        ICON_SORT_NONE
     };
 
     let header_text = text(i18n.t(translation_key))
@@ -122,16 +115,16 @@ fn create_sortable_header_cell<'a>(
             color: Some(theme_colors.text),
         });
 
-    let sort_icon_elem =
-        sort_icon
-            .size(10)
-            .style(move |_theme: &iced::Theme| iced::widget::text::Style {
-                color: if is_current_column {
-                    Some(theme_colors.light_text_sub)
-                } else {
-                    Some(theme_colors.text)
-                },
-            });
+    let sort_icon_elem = text(sort_icon)
+        .font(Font::with_name("bootstrap-icons"))
+        .size(12)
+        .style(move |_theme: &iced::Theme| iced::widget::text::Style {
+            color: if is_current_column {
+                Some(theme_colors.primary)
+            } else {
+                Some(theme_colors.light_text_sub)
+            },
+        });
 
     // 列名靠左，图标靠右，中间用Fill占位
     let content = row![
@@ -139,6 +132,7 @@ fn create_sortable_header_cell<'a>(
         Space::new().width(Length::Fill),
         sort_icon_elem,
     ]
+    .spacing(4)
     .align_y(Alignment::Center);
 
     let button_elem = button(content)
@@ -149,24 +143,27 @@ fn create_sortable_header_cell<'a>(
                 sort_column,
             ))
         })
-        .padding(5) // 添加padding，与不可排序列一致
+        .padding(5) // 与不可排序列一致
         .width(Length::Fill) // 按钮填满容器宽度
         .style(
-            move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
+            move |_theme: &iced::Theme, status: iced::widget::button::Status| {
+                let text_color = match status {
+                    button::Status::Active | button::Status::Disabled => theme_colors.text,
+                    _ => theme_colors.primary,
+                };
+                let bg = match status {
+                    button::Status::Hovered | button::Status::Pressed => theme_colors.hover_fill,
+                    _ => iced::Color::TRANSPARENT,
+                };
                 iced::widget::button::Style {
-                    text_color: theme_colors.text,
-                    background: Some(iced::Background::Color(if is_current_column {
-                        theme_colors.background
-                    } else {
-                        iced::Color::TRANSPARENT
-                    })),
+                    text_color,
+                    background: Some(iced::Background::Color(bg)),
                     border: iced::Border {
                         color: iced::Color::TRANSPARENT,
                         width: 0.0,
-                        radius: 4.0.into(),
+                        radius: crate::ui::style::RADIUS_SM.into(),
                     },
-                    shadow: iced::Shadow::default(),
-                    snap: false,
+                    ..iced::widget::button::text(_theme, status)
                 }
             },
         );

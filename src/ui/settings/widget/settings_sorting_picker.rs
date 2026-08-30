@@ -1,13 +1,15 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::wallhaven::Sorting;
-use crate::ui::common::drop_down::{self, DropDown};
+use crate::ui::common::create_tooltip_style;
+use crate::ui::common::drop_down::{
+    self, DropDown, dropdown_option_style, dropdown_panel_style, dropdown_trigger_button,
+};
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::*;
+use crate::ui::style::ThemeColors;
 use crate::ui::{App, AppMessage};
-use iced::border::{Border, Radius};
-use iced::widget::{Space, button, column, container, opaque, row, text, tooltip};
-use iced::{Alignment, Color, Element, Length};
+use iced::widget::{button, column, container, opaque, text, tooltip};
+use iced::{Element, Length};
 
 /// 显示用的排序方式包装类型，用于 pick_list 显示翻译后的文本
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,42 +44,13 @@ pub fn create_sorting_picker<'a>(
             .leak(),
     };
 
-    // 创建触发按钮（underlay）
-    let sorting_underlay = row![
-        text(current_sorting.display).size(14),
-        Space::new().width(Length::Fill),
-        container(text("⏷").color(theme_colors.light_text_sub))
-            .height(Length::Fill)
-            .padding(iced::Padding {
-                top: -2.0,
-                bottom: 0.0,
-                left: 0.0,
-                right: 0.0,
-            }),
-    ]
-    .spacing(4)
-    .align_y(Alignment::Center)
-    .padding(iced::Padding {
-        top: 0.0,
-        bottom: 0.0,
-        left: 0.0,
-        right: -2.0,
-    });
-
-    let sorting_trigger = button(sorting_underlay)
-        .padding(6)
-        .width(Length::Fixed(100.0))
-        .on_press(SettingsMessage::SortingPickerExpanded.into())
-        .style(move |_theme, _status| button::Style {
-            background: Some(iced::Background::Color(theme_colors.light_button)),
-            text_color: theme_colors.light_text,
-            border: Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: Radius::from(4.0),
-            },
-            ..button::text(_theme, _status)
-        });
+    // 触发按钮（underlay）
+    let sorting_trigger = dropdown_trigger_button(
+        current_sorting.display.to_string(),
+        100.0,
+        theme_colors,
+        SettingsMessage::SortingPickerExpanded.into(),
+    );
 
     // 用 tooltip 包裹排序方式选择器
     let sorting_tooltip_text = text(app.i18n.t("settings.auto-change-sorting-tooltip")).style(
@@ -91,33 +64,16 @@ pub fn create_sorting_picker<'a>(
         sorting_tooltip_text,
         tooltip::Position::Top,
     )
-    .style(crate::ui::common::create_tooltip_style(theme_colors));
+    .style(create_tooltip_style(theme_colors));
 
-    // 创建排序选项（overlay）
+    // 排序选项（overlay）
     let sorting_options_content = column(sorting_options.iter().map(|option| {
         let is_selected = app.settings_state.auto_change_sorting == option.value;
         button(text(option.display).size(14))
             .padding(6)
             .width(Length::Fill)
             .on_press(SettingsMessage::AutoChangeSortingChanged(option.value).into())
-            .style(move |_theme, _status| button::Style {
-                background: if is_selected {
-                    Some(iced::Background::Color(COLOR_SELECTED_BLUE))
-                } else {
-                    Some(iced::Background::Color(Color::TRANSPARENT))
-                },
-                text_color: if is_selected {
-                    Color::WHITE
-                } else {
-                    theme_colors.light_text
-                },
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..button::text(_theme, _status)
-            })
+            .style(dropdown_option_style(theme_colors, is_selected))
             .into()
     }))
     .spacing(2);
@@ -125,15 +81,7 @@ pub fn create_sorting_picker<'a>(
     let picker_content = container(sorting_options_content)
         .padding(8)
         .width(Length::Fixed(120.0))
-        .style(move |_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(theme_colors.light_button)),
-            border: Border {
-                color: Color::TRANSPARENT,
-                width: 0.0,
-                radius: Radius::from(8.0),
-            },
-            ..Default::default()
-        });
+        .style(dropdown_panel_style(theme_colors));
 
     DropDown::new(
         sorting_trigger_with_tooltip,

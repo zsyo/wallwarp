@@ -1,16 +1,18 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::style::{
-    BORDER_COLOR_GRAY, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS,
-    DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH,
-    DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, MASK_ALPHA,
+    BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS, DIALOG_BORDER_WIDTH,
+    DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH, DIALOG_MESSAGE_SIZE,
+    DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, MASK_ALPHA, ThemeColors,
+    shadows::DIALOG_SHADOW,
 };
 use iced::widget::{column, container, row, text};
-use iced::{Alignment, Element, Length};
+use iced::{Alignment, Element, Font, Length, font::Weight};
 
-/// 创建模态确认对话框
+/// 创建模态确认对话框（随主题明暗适配）
 ///
 /// # 参数
+/// - `theme_colors`: 主题颜色集合
 /// - `title`: 对话框标题
 /// - `message`: 对话框提示信息
 /// - `confirm_label`: 确认按钮文本
@@ -18,6 +20,7 @@ use iced::{Alignment, Element, Length};
 /// - `confirm_msg`: 确认按钮消息
 /// - `cancel_msg`: 取消按钮消息
 pub fn create_confirmation_dialog<'a, Message>(
+    theme_colors: ThemeColors,
     title: String,
     message: String,
     confirm_label: String,
@@ -31,10 +34,16 @@ where
     let dialog_content = column![
         text(title)
             .size(DIALOG_TITLE_SIZE)
+            .font(Font {
+                weight: Weight::Semibold,
+                ..Font::default()
+            })
+            .color(theme_colors.text)
             .width(Length::Fill)
             .align_x(Alignment::Center),
         text(message)
             .size(DIALOG_MESSAGE_SIZE)
+            .color(theme_colors.light_text_sub)
             .width(Length::Fill)
             .align_x(Alignment::Center),
         row![
@@ -54,17 +63,14 @@ where
         .width(Length::Shrink)
         .height(Length::Shrink)
         .padding(DIALOG_INNER_PADDING)
-        .style(|_theme: &iced::Theme| iced::widget::container::Style {
-            background: Some(iced::Background::Color(iced::Color::WHITE)),
+        .style(move |_theme: &iced::Theme| iced::widget::container::Style {
+            background: Some(iced::Background::Color(theme_colors.dialog_bg)),
             border: iced::border::Border {
                 radius: iced::border::Radius::from(DIALOG_BORDER_RADIUS),
                 width: DIALOG_BORDER_WIDTH,
-                color: iced::Color::from_rgb(
-                    BORDER_COLOR_GRAY,
-                    BORDER_COLOR_GRAY,
-                    BORDER_COLOR_GRAY,
-                ),
+                color: theme_colors.border,
             },
+            shadow: DIALOG_SHADOW,
             ..Default::default()
         });
 

@@ -32,9 +32,9 @@ pub fn create_status_filter_dropdown<'a>(
                     color: Some(theme_colors.text),
                 }),
             text(if download_state.status_filter_expanded {
-                "\u{F282}" // ChevronUp
+                "\u{F282}" // chevron-down (点击收起)
             } else {
-                "\u{F285}" // ChevronDown
+                "\u{F285}" // chevron-right (点击展开)
             })
             .font(iced::Font::with_name("bootstrap-icons"))
             .size(12)

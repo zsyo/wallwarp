@@ -19,7 +19,7 @@ mod toolbar;
 // 重新导出需要公开访问的函数
 pub use checkbox::{create_checkbox_header, create_task_checkbox};
 pub use empty::create_filtered_empty_state;
-pub use separator::{create_horizontal_separator, create_vertical_separator};
+pub use separator::create_horizontal_separator;
 pub use table::create_filtered_table;
 pub use table_header::create_table_header;
 pub use toolbar::create_toolbar;

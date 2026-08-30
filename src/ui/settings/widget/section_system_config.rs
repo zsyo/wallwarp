@@ -1,14 +1,27 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::common;
+use crate::ui::common::styled_text_input;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, PORT_INPUT_WIDTH, ROW_SPACING};
+use crate::ui::style::{
+    BUTTON_COLOR_BLUE, INPUT_PADDING, PORT_INPUT_WIDTH, ROW_SPACING, with_alpha,
+};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::CloseAction;
 use crate::utils::startup;
-use iced::border::{Border, Radius};
 use iced::widget::{Space, container, radio, row, text_input, toggler};
 use iced::{Alignment, Color, Element, Length};
+
+/// 关闭动作单选按钮样式（透明背景 + 指定文字色）
+fn radio_style(
+    text_color: Color,
+) -> impl Fn(&iced::Theme, iced::widget::radio::Status) -> iced::widget::radio::Style {
+    move |theme: &iced::Theme, status| iced::widget::radio::Style {
+        text_color: Some(text_color),
+        background: iced::Background::Color(Color::TRANSPARENT),
+        ..iced::widget::radio::default(theme, status)
+    }
+}
 
 /// 创建系统配置区块
 pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
@@ -55,33 +68,21 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                 Some(app.config.global.close_action),
                 |act| SettingsMessage::CloseActionSelected(act).into()
             )
-            .style(move |theme: &iced::Theme, status| radio::Style {
-                text_color: Some(theme_colors.text),
-                background: iced::Background::Color(Color::TRANSPARENT),
-                ..radio::default(theme, status)
-            }),
+            .style(radio_style(theme_colors.text)),
             radio(
                 app.i18n.t("close-action-options.minimize-to-tray"),
                 CloseAction::MinimizeToTray,
                 Some(app.config.global.close_action),
                 |act| SettingsMessage::CloseActionSelected(act).into()
             )
-            .style(move |theme: &iced::Theme, status| radio::Style {
-                text_color: Some(theme_colors.text),
-                background: iced::Background::Color(Color::TRANSPARENT),
-                ..radio::default(theme, status)
-            }),
+            .style(radio_style(theme_colors.text)),
             radio(
                 app.i18n.t("close-action-options.close-app"),
                 CloseAction::CloseApp,
                 Some(app.config.global.close_action),
                 |act| SettingsMessage::CloseActionSelected(act).into()
             )
-            .style(move |theme: &iced::Theme, status| radio::Style {
-                text_color: Some(theme_colors.text),
-                background: iced::Background::Color(Color::TRANSPARENT),
-                ..radio::default(theme, status)
-            })
+            .style(radio_style(theme_colors.text)),
         ]
         .spacing(ROW_SPACING),
         &app.theme_config,
@@ -101,59 +102,12 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
             .width(Length::FillPortion(2))
             .align_x(Alignment::Center)
             .padding(INPUT_PADDING)
-            .on_input(if app.settings_state.proxy_enabled {
-                |s| SettingsMessage::ProxyAddressChanged(s).into()
-            } else {
-                |_s| SettingsMessage::ProxyToggled(false).into()
-            })
-            .style(move |_theme: &iced::Theme, _status| text_input::Style {
-                background: iced::Background::Color(if app.settings_state.proxy_enabled {
-                    theme_colors.text_input_background
-                } else {
-                    Color {
-                        r: theme_colors.text_input_background.r,
-                        g: theme_colors.text_input_background.g,
-                        b: theme_colors.text_input_background.b,
-                        a: 0.3,
-                    }
-                }),
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                icon: if app.settings_state.proxy_enabled {
-                    theme_colors.light_text_sub
-                } else {
-                    Color {
-                        r: theme_colors.light_text_sub.r,
-                        g: theme_colors.light_text_sub.g,
-                        b: theme_colors.light_text_sub.b,
-                        a: 0.3,
-                    }
-                },
-                placeholder: if app.settings_state.proxy_enabled {
-                    theme_colors.light_text_sub
-                } else {
-                    Color {
-                        r: theme_colors.light_text_sub.r,
-                        g: theme_colors.light_text_sub.g,
-                        b: theme_colors.light_text_sub.b,
-                        a: 0.3,
-                    }
-                },
-                value: if app.settings_state.proxy_enabled {
-                    theme_colors.light_text
-                } else {
-                    Color {
-                        r: theme_colors.light_text.r,
-                        g: theme_colors.light_text.g,
-                        b: theme_colors.light_text.b,
-                        a: 0.3,
-                    }
-                },
-                selection: theme_colors.text_input_selection_color,
-            }),
+            .on_input_maybe(
+                app.settings_state
+                    .proxy_enabled
+                    .then_some(move |s: String| { SettingsMessage::ProxyAddressChanged(s).into() })
+            )
+            .style(styled_text_input(theme_colors)),
             container(Space::new()).width(Length::Fixed(ROW_SPACING)),
             {
                 let proxy_enabled = app.settings_state.proxy_enabled;
@@ -172,77 +126,17 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                     .width(Length::Fill)
                     .align_x(Alignment::Start)
                     .padding(INPUT_PADDING)
-                    .input_style(move |_theme: &iced::Theme, _status| text_input::Style {
-                        background: iced::Background::Color(if app.settings_state.proxy_enabled {
-                            theme_colors.text_input_background
-                        } else {
-                            Color {
-                                r: theme_colors.text_input_background.r,
-                                g: theme_colors.text_input_background.g,
-                                b: theme_colors.text_input_background.b,
-                                a: 0.3,
-                            }
-                        }),
-                        border: Border {
-                            color: Color::TRANSPARENT,
-                            width: 0.0,
-                            radius: Radius::from(4.0),
-                        },
-                        icon: if app.settings_state.proxy_enabled {
-                            theme_colors.light_text_sub
-                        } else {
-                            Color {
-                                r: theme_colors.light_text_sub.r,
-                                g: theme_colors.light_text_sub.g,
-                                b: theme_colors.light_text_sub.b,
-                                a: 0.3,
-                            }
-                        },
-                        placeholder: if app.settings_state.proxy_enabled {
-                            theme_colors.light_text_sub
-                        } else {
-                            Color {
-                                r: theme_colors.light_text_sub.r,
-                                g: theme_colors.light_text_sub.g,
-                                b: theme_colors.light_text_sub.b,
-                                a: 0.3,
-                            }
-                        },
-                        value: if app.settings_state.proxy_enabled {
-                            theme_colors.light_text
-                        } else {
-                            Color {
-                                r: theme_colors.light_text.r,
-                                g: theme_colors.light_text.g,
-                                b: theme_colors.light_text.b,
-                                a: 0.3,
-                            }
-                        },
-                        selection: theme_colors.text_input_selection_color,
-                    })
+                    .input_style(styled_text_input(theme_colors))
                     .style(
                         move |_theme: &iced::Theme, _status| iced_aw::number_input::Style {
-                            button_background: Some(iced::Background::Color(
-                                if app.settings_state.proxy_enabled {
-                                    theme_colors.text_input_background
-                                } else {
-                                    Color {
-                                        r: theme_colors.text_input_background.r,
-                                        g: theme_colors.text_input_background.g,
-                                        b: theme_colors.text_input_background.b,
-                                        a: 0.3,
-                                    }
-                                },
-                            )),
-                            icon_color: if app.settings_state.proxy_enabled {
+                            button_background: Some(iced::Background::Color(with_alpha(
+                                theme_colors.text_input_background,
+                                if proxy_enabled { 1.0 } else { 0.45 },
+                            ))),
+                            icon_color: if proxy_enabled {
                                 theme_colors.light_text_sub
                             } else {
-                                Color {
-                                    r: theme_colors.light_text_sub.r,
-                                    g: theme_colors.light_text_sub.g,
-                                    b: theme_colors.light_text_sub.b,
-                                    a: 0.3,
-                                }
+                                theme_colors.disabled_color
                             },
                         },
                     ),

@@ -2,9 +2,9 @@
 
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
+use crate::ui::common;
 use crate::ui::style::ThemeConfig;
 use crate::ui::style::{IMAGE_HEIGHT, IMAGE_WIDTH, LOADING_TEXT_SIZE};
-use crate::ui::{common, style};
 use iced::widget::{button, container, text};
 use iced::{Alignment, Length};
 
@@ -26,28 +26,11 @@ pub(in crate::ui::local) fn create_loading_placeholder<'a>(
         .height(Length::Fixed(IMAGE_HEIGHT))
         .align_x(Alignment::Center)
         .align_y(Alignment::Center)
-        .style(move |_theme| {
-            let mut style = common::create_bordered_container_style_with_bg(theme_config)(_theme);
-            // 添加阴影效果
-            style.shadow = iced::Shadow {
-                color: theme_colors.overlay_bg,
-                offset: iced::Vector { x: 0.0, y: 2.0 },
-                blur_radius: 8.0,
-            };
-            style
-        });
+        .style(common::wallpaper_image_container_style(theme_colors));
 
     button(placeholder_content)
         .padding(0)
         .width(Length::Fixed(IMAGE_WIDTH))
         .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(|_theme, status| {
-            let base_style = button::text(_theme, status);
-            let shadow =
-                style::get_card_shadow_by_status(matches!(status, button::Status::Hovered));
-            button::Style {
-                shadow,
-                ..base_style
-            }
-        })
+        .style(common::wallpaper_card_button_style(theme_colors))
 }

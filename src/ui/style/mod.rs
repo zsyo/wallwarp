@@ -6,13 +6,18 @@
 //! 所有样式常量按类型拆分到不同的子模块中，便于维护和主题切换。
 
 // 重新导出所有子模块
+pub mod color_utils;
 pub mod colors;
 pub mod dimensions;
 pub mod shadows;
 pub mod theme;
+pub mod theme_colors;
 
 // 重新导出颜色常量
 pub use colors::*;
+
+// 重新导出颜色工具函数
+pub use color_utils::*;
 
 // 重新导出尺寸常量
 pub use dimensions::*;
@@ -22,3 +27,4 @@ pub use shadows::*;
 
 // 重新导出主题相关类型
 pub use theme::*;
+pub use theme_colors::*;

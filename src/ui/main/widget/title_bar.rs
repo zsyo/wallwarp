@@ -1,12 +1,12 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::common;
-use crate::ui::style::ThemeConfig;
 use crate::ui::style::{
-    TITLE_BAR_BUTTON_SPACING, TITLE_BAR_HEIGHT, TITLE_BAR_ICON_SIZE, TITLE_BAR_TITLE_SIZE,
+    BUTTON_COLOR_RED, RADIUS_SM, SEPARATOR_WIDTH, TITLE_BAR_BUTTON_SPACING, TITLE_BAR_HEIGHT,
+    TITLE_BAR_ICON_SIZE, TITLE_BAR_TITLE_SIZE, ThemeColors, ThemeConfig, darken,
 };
 use iced::border::{Border, Radius};
-use iced::widget::{button, container, mouse_area, row, text, tooltip};
+use iced::widget::{button, column, container, mouse_area, row, space::Space, text, tooltip};
 use iced::{Alignment, Color, Element, Font, Length};
 
 /// macOS 原生红绿灯按钮占据的标题栏左侧宽度
@@ -28,6 +28,61 @@ pub struct TitleBarActions<Message> {
     pub maximize: Message,
     /// 关闭
     pub close: Message,
+}
+
+/// 标题栏窗口按钮样式：悬停淡染填充
+///
+/// `hover_override` 不为空时（关闭按钮），悬停使用指定的底色与文字色。
+fn window_button_style(
+    theme_colors: ThemeColors,
+    hover_override: Option<(Color, Color)>,
+) -> impl Fn(&iced::Theme, button::Status) -> button::Style {
+    move |_theme: &iced::Theme, status| {
+        let (bg, text_color) = match status {
+            button::Status::Hovered => match hover_override {
+                Some((bg, fg)) => (Some(bg), fg),
+                None => (Some(theme_colors.hover_fill), theme_colors.text),
+            },
+            button::Status::Pressed => match hover_override {
+                Some((bg, fg)) => (Some(darken(bg, 0.10)), fg),
+                None => (Some(theme_colors.hover_fill), theme_colors.text),
+            },
+            _ => (None, theme_colors.text),
+        };
+        button::Style {
+            text_color,
+            background: bg.map(iced::Background::Color),
+            border: Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: Radius::from(RADIUS_SM),
+            },
+            ..button::text(_theme, status)
+        }
+    }
+}
+
+/// 创建标题栏窗口图标按钮
+fn window_button<'a, Message>(
+    icon: &'static str,
+    theme_colors: ThemeColors,
+    hover_override: Option<(Color, Color)>,
+    message: Message,
+) -> button::Button<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    button(
+        text(icon)
+            .size(TITLE_BAR_ICON_SIZE)
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center)
+            .font(Font::with_name("bootstrap-icons"))
+            .color(theme_colors.text),
+    )
+    .padding([4, 8])
+    .style(window_button_style(theme_colors, hover_override))
+    .on_press(message)
 }
 
 /// 创建自定义标题栏
@@ -74,234 +129,42 @@ where
     )
     .on_press(drag_message);
 
-    // 创建最小化到托盘按钮（带悬停效果）
-    let minimize_to_tray_btn = button(
-        text("\u{F2EA}") // Bootstrap Icons: dash
-            .size(TITLE_BAR_ICON_SIZE)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Center)
-            .font(Font::with_name("bootstrap-icons"))
-            .color(theme_colors.text),
-    )
-    .padding([4, 8])
-    .style(move |_theme: &iced::Theme, status| {
-        let base = button::text(_theme, status);
-        match status {
-            button::Status::Hovered => {
-                // 根据主题计算悬停背景色
-                let hover_bg = if theme_config.is_dark() {
-                    // 深色主题：使用文本颜色的 10% 透明度
-                    iced::Color {
-                        r: theme_colors.text.r * 0.1,
-                        g: theme_colors.text.g * 0.1,
-                        b: theme_colors.text.b * 0.1,
-                        a: 1.0,
-                    }
-                } else {
-                    // 浅色主题：使用比标题栏背景色稍深的颜色
-                    iced::Color {
-                        r: (theme_colors.sidebar_bg.r * 255.0 - 20.0) / 255.0,
-                        g: (theme_colors.sidebar_bg.g * 255.0 - 20.0) / 255.0,
-                        b: (theme_colors.sidebar_bg.b * 255.0 - 20.0) / 255.0,
-                        a: 1.0,
-                    }
-                };
-
-                button::Style {
-                    text_color: theme_colors.text,
-                    background: Some(iced::Background::Color(hover_bg)),
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..base
-                }
-            }
-            _ => button::Style {
-                text_color: theme_colors.text,
-                background: None,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..base
-            },
-        }
-    })
-    .on_press(minimize_to_tray_message);
-
-    // 为最小化到托盘按钮添加 tooltip（位于按钮下方）
+    // 创建最小化到托盘按钮（带 tooltip）
     let minimize_to_tray_btn = common::create_button_with_tooltip(
-        minimize_to_tray_btn,
+        window_button(
+            "\u{F2EA}", // bootstrap-icons: dash
+            theme_colors,
+            None,
+            minimize_to_tray_message,
+        ),
         minimize_to_tray_tooltip,
         tooltip::Position::Bottom,
         theme_config,
     );
 
-    // 创建最小化按钮（带悬停效果）
-    let minimize_btn = button(
-        text("\u{F63B}") // Bootstrap Icons: dash-lg
-            .size(TITLE_BAR_ICON_SIZE)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Center)
-            .font(Font::with_name("bootstrap-icons"))
-            .color(theme_colors.text),
-    )
-    .padding([4, 8])
-    .style(move |_theme: &iced::Theme, status| {
-        let base = button::text(_theme, status);
-        match status {
-            button::Status::Hovered => {
-                // 根据主题计算悬停背景色
-                let hover_bg = if theme_config.is_dark() {
-                    // 深色主题：使用文本颜色的 10% 透明度
-                    iced::Color {
-                        r: theme_colors.text.r * 0.1,
-                        g: theme_colors.text.g * 0.1,
-                        b: theme_colors.text.b * 0.1,
-                        a: 1.0,
-                    }
-                } else {
-                    // 浅色主题：使用比标题栏背景色稍深的颜色
-                    iced::Color {
-                        r: (theme_colors.sidebar_bg.r * 255.0 - 20.0) / 255.0,
-                        g: (theme_colors.sidebar_bg.g * 255.0 - 20.0) / 255.0,
-                        b: (theme_colors.sidebar_bg.b * 255.0 - 20.0) / 255.0,
-                        a: 1.0,
-                    }
-                };
+    // 创建最小化按钮
+    let minimize_btn = window_button(
+        "\u{F63B}", // bootstrap-icons: dash-lg
+        theme_colors,
+        None,
+        minimize_message,
+    );
 
-                button::Style {
-                    text_color: theme_colors.text,
-                    background: Some(iced::Background::Color(hover_bg)),
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..base
-                }
-            }
-            _ => button::Style {
-                text_color: theme_colors.text,
-                background: None,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..base
-            },
-        }
-    })
-    .on_press(minimize_message);
-
-    // 创建最大化/还原按钮（带悬停效果）
+    // 创建最大化/还原按钮
     let maximize_icon = if is_maximized {
-        "\u{F149}" // Bootstrap Icons: arrows-angle-contract
+        "\u{F149}" // bootstrap-icons: arrows-angle-contract
     } else {
-        "\u{F14A}" // Bootstrap Icons: arrows-angle-expand
+        "\u{F14A}" // bootstrap-icons: arrows-angle-expand
     };
-    let maximize_btn = button(
-        text(maximize_icon)
-            .size(TITLE_BAR_ICON_SIZE)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Center)
-            .font(Font::with_name("bootstrap-icons"))
-            .color(theme_colors.text),
-    )
-    .padding([4, 8])
-    .style(move |_theme: &iced::Theme, status| {
-        let base = button::text(_theme, status);
-        match status {
-            button::Status::Hovered => {
-                // 根据主题计算悬停背景色
-                let hover_bg = if theme_config.is_dark() {
-                    // 深色主题：使用文本颜色的 10% 透明度
-                    iced::Color {
-                        r: theme_colors.text.r * 0.1,
-                        g: theme_colors.text.g * 0.1,
-                        b: theme_colors.text.b * 0.1,
-                        a: 1.0,
-                    }
-                } else {
-                    // 浅色主题：使用比标题栏背景色稍深的颜色
-                    iced::Color {
-                        r: (theme_colors.sidebar_bg.r * 255.0 - 20.0) / 255.0,
-                        g: (theme_colors.sidebar_bg.g * 255.0 - 20.0) / 255.0,
-                        b: (theme_colors.sidebar_bg.b * 255.0 - 20.0) / 255.0,
-                        a: 1.0,
-                    }
-                };
+    let maximize_btn = window_button(maximize_icon, theme_colors, None, maximize_message);
 
-                button::Style {
-                    text_color: theme_colors.text,
-                    background: Some(iced::Background::Color(hover_bg)),
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    ..base
-                }
-            }
-            _ => button::Style {
-                text_color: theme_colors.text,
-                background: None,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..base
-            },
-        }
-    })
-    .on_press(maximize_message);
-
-    // 创建关闭按钮（带悬停效果，悬停时显示红色背景）
-    let close_btn = button(
-        text("\u{F659}") // Bootstrap Icons: x-lg
-            .size(TITLE_BAR_ICON_SIZE)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Center)
-            .font(Font::with_name("bootstrap-icons"))
-            .color(theme_colors.text),
-    )
-    .padding([4, 8])
-    .style(move |_theme: &iced::Theme, status| {
-        let base = button::text(_theme, status);
-        match status {
-            button::Status::Hovered => button::Style {
-                text_color: iced::Color::WHITE,
-                background: Some(iced::Background::Color(iced::Color {
-                    r: 0.86,
-                    g: 0.21,
-                    b: 0.21,
-                    a: 1.0,
-                })),
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..base
-            },
-            _ => button::Style {
-                text_color: theme_colors.text,
-                background: None,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..base
-            },
-        }
-    })
-    .on_press(close_message);
+    // 创建关闭按钮（悬停红色背景 + 白色图标）
+    let close_btn = window_button(
+        "\u{F659}", // bootstrap-icons: x-lg
+        theme_colors,
+        Some((BUTTON_COLOR_RED, Color::WHITE)),
+        close_message,
+    );
 
     // 创建标题栏内容
     let title_bar_content = row![
@@ -314,25 +177,33 @@ where
     .align_y(Alignment::Center)
     .spacing(TITLE_BAR_BUTTON_SPACING)
     .width(Length::Fill)
-    .height(TITLE_BAR_HEIGHT);
+    .height(Length::Fill);
 
-    container(title_bar_content)
+    // 标题栏底部分隔线（替代原先四边的 1px 边框）
+    let bottom_line = container(Space::new())
         .width(Length::Fill)
-        .height(TITLE_BAR_HEIGHT)
-        .padding(iced::Padding {
-            top: 0.0,
-            right: 0.0,
-            bottom: 0.0,
-            left: TRAFFIC_LIGHT_INSET,
-        })
+        .height(Length::Fixed(SEPARATOR_WIDTH))
         .style(move |_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(theme_colors.title_bar_bg)),
-            border: Border {
-                color: theme_colors.border,
-                width: 1.0,
-                radius: Radius::from(0.0),
-            },
+            background: Some(iced::Background::Color(theme_colors.separator)),
             ..Default::default()
-        })
-        .into()
+        });
+
+    container(
+        column![title_bar_content, bottom_line]
+            .spacing(0)
+            .height(TITLE_BAR_HEIGHT),
+    )
+    .width(Length::Fill)
+    .height(TITLE_BAR_HEIGHT)
+    .padding(iced::Padding {
+        top: 0.0,
+        right: 0.0,
+        bottom: 0.0,
+        left: TRAFFIC_LIGHT_INSET,
+    })
+    .style(move |_theme: &iced::Theme| container::Style {
+        background: Some(iced::Background::Color(theme_colors.title_bar_bg)),
+        ..Default::default()
+    })
+    .into()
 }

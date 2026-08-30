@@ -3,11 +3,11 @@
 use crate::i18n::I18n;
 use crate::services::wallhaven::AspectRatio;
 use crate::ui::AppMessage;
+use crate::ui::common::drop_down::{dropdown_cell_style, dropdown_panel_style};
 use crate::ui::online::{OnlineMessage, OnlineState};
-use crate::ui::style::*;
-use iced::border::{Border, Radius};
+use crate::ui::style::ThemeColors;
 use iced::widget::{Space, button, column, container, opaque, row, text};
-use iced::{Alignment, Color, Element, Length};
+use iced::{Alignment, Element, Length};
 
 /// 创建比例网格选择器内容
 pub fn create_ratio_grid_options<'a>(
@@ -58,109 +58,50 @@ pub fn create_ratio_grid_options<'a>(
     // 判断额外选项是否应该被禁用
     let is_landscape_button_disabled = state.ratio_all_selected;
     let is_portrait_button_disabled = state.ratio_all_selected;
-    let is_all_button_disabled = false;
 
     // 创建顶部额外选项按钮（水平居中）
-    let landscape_button = button(text(i18n.t("online-wallpapers.ratio-mode-landscape")).size(14))
-        .padding(6)
-        .on_press(if is_landscape_button_disabled {
-            AppMessage::None
-        } else {
-            OnlineMessage::RatioLandscapeToggled.into()
-        })
-        .style(move |_theme, _status| {
-            let is_selected = state.ratio_landscape_selected;
-            let bg_color = if is_selected {
-                COLOR_SELECTED_BLUE
-            } else {
-                theme_colors.light_button
-            };
-            let text_color = if is_landscape_button_disabled {
-                DISABLED_COLOR
-            } else if is_selected {
-                Color::WHITE
-            } else {
-                theme_colors.light_text
-            };
-            button::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                text_color,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..button::text(_theme, _status)
-            }
-        });
-
-    let portrait_button = button(text(i18n.t("online-wallpapers.ratio-mode-portrait")).size(14))
-        .padding(6)
-        .on_press(if is_portrait_button_disabled {
-            AppMessage::None
-        } else {
-            OnlineMessage::RatioPortraitToggled.into()
-        })
-        .style(move |_theme, _status| {
-            let is_selected = state.ratio_portrait_selected;
-            let bg_color = if is_selected {
-                COLOR_SELECTED_BLUE
-            } else {
-                theme_colors.light_button
-            };
-            let text_color = if is_portrait_button_disabled {
-                DISABLED_COLOR
-            } else if is_selected {
-                Color::WHITE
-            } else {
-                theme_colors.light_text
-            };
-            button::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                text_color,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..button::text(_theme, _status)
-            }
-        });
-
-    let all_button = button(text(i18n.t("online-wallpapers.ratio-mode-all")).size(14))
-        .padding(6)
-        .on_press(if is_all_button_disabled {
-            AppMessage::None
-        } else {
-            OnlineMessage::RatioAllToggled.into()
-        })
-        .style(move |_theme, _status| {
-            let is_selected = state.ratio_all_selected;
-            let bg_color = if is_selected {
-                COLOR_SELECTED_BLUE
-            } else {
-                theme_colors.light_button
-            };
-            let text_color = if is_selected {
-                Color::WHITE
-            } else {
-                theme_colors.light_text
-            };
-            button::Style {
-                background: Some(iced::Background::Color(bg_color)),
-                text_color,
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(4.0),
-                },
-                ..button::text(_theme, _status)
-            }
-        });
-
-    let option_buttons = container(row![landscape_button, portrait_button, all_button].spacing(4))
-        .width(Length::Fill)
-        .center_x(Length::Fill);
+    let mode_options: [(bool, bool, &str, OnlineMessage); 3] = [
+        (
+            state.ratio_landscape_selected,
+            is_landscape_button_disabled,
+            "online-wallpapers.ratio-mode-landscape",
+            OnlineMessage::RatioLandscapeToggled,
+        ),
+        (
+            state.ratio_portrait_selected,
+            is_portrait_button_disabled,
+            "online-wallpapers.ratio-mode-portrait",
+            OnlineMessage::RatioPortraitToggled,
+        ),
+        (
+            state.ratio_all_selected,
+            false,
+            "online-wallpapers.ratio-mode-all",
+            OnlineMessage::RatioAllToggled,
+        ),
+    ];
+    let option_buttons = container(
+        row(mode_options
+            .iter()
+            .map(|(is_selected, is_disabled, key, msg)| {
+                button(text(i18n.t(key)).size(14))
+                    .padding(6)
+                    .on_press(if *is_disabled {
+                        AppMessage::None
+                    } else {
+                        msg.clone().into()
+                    })
+                    .style(dropdown_cell_style(
+                        theme_colors,
+                        *is_selected,
+                        *is_disabled,
+                    ))
+                    .into()
+            }))
+        .spacing(4),
+    )
+    .width(Length::Fill)
+    .center_x(Length::Fill);
 
     // 创建比例表格（水平排列分组）
     let mut group_columns: Vec<Element<'a, AppMessage>> = Vec::new();
@@ -189,22 +130,6 @@ pub fn create_ratio_grid_options<'a>(
         for (ratio, label) in ratios.iter() {
             let is_selected = state.selected_ratios.contains(ratio);
 
-            let border_color = if is_selected {
-                COLOR_PICKER_ACTIVE
-            } else {
-                Color::TRANSPARENT
-            };
-            let bg_color = if is_selected {
-                COLOR_SELECTED_BLUE
-            } else {
-                Color::TRANSPARENT
-            };
-            let text_color = if is_all_disabled || is_group_disabled {
-                DISABLED_COLOR
-            } else {
-                theme_colors.light_text
-            };
-
             let button_content = container(text(*label).size(13))
                 .align_x(Alignment::Center)
                 .align_y(Alignment::Center)
@@ -212,16 +137,11 @@ pub fn create_ratio_grid_options<'a>(
 
             let ratio_button: Element<'a, AppMessage> = button(button_content)
                 .padding(6)
-                .style(move |_theme, _status| button::Style {
-                    background: Some(iced::Background::Color(bg_color)),
-                    text_color,
-                    border: Border {
-                        color: border_color,
-                        width: if is_selected { 2.0 } else { 0.0 },
-                        radius: Radius::from(4.0),
-                    },
-                    ..button::text(_theme, _status)
-                })
+                .style(dropdown_cell_style(
+                    theme_colors,
+                    is_selected,
+                    is_all_disabled || is_group_disabled,
+                ))
                 .on_press(if is_all_disabled || is_group_disabled {
                     AppMessage::None
                 } else {
@@ -262,15 +182,7 @@ pub fn create_ratio_grid_options<'a>(
     .padding(6)
     .width(Length::Fixed(460.0))
     .align_x(Alignment::Center)
-    .style(move |_theme: &iced::Theme| container::Style {
-        background: Some(iced::Background::Color(theme_colors.light_button)),
-        border: Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(8.0),
-        },
-        ..Default::default()
-    });
+    .style(dropdown_panel_style(theme_colors));
 
     opaque(picker_content)
 }

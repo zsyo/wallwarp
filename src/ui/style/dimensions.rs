@@ -13,11 +13,27 @@ use iced::Length;
 /// 标准边框宽度
 pub const BORDER_WIDTH: f32 = 1.0;
 
-/// 标准边框圆角半径
-pub const BORDER_RADIUS: f32 = 5.0;
+// ============================================================================
+// 圆角刻度（全项目圆角统一走这四个常量）
+// ============================================================================
+
+/// 小圆角：输入框、图标按钮、小控件
+pub const RADIUS_SM: f32 = 4.0;
+
+/// 中圆角：按钮、卡片、下拉面板
+pub const RADIUS_MD: f32 = 8.0;
+
+/// 大圆角：对话框、toast 通知
+pub const RADIUS_LG: f32 = 12.0;
+
+/// 全圆（圆形按钮/头像）
+pub const RADIUS_FULL: f32 = 20.0;
+
+/// 标准边框圆角半径（兼容旧调用点，等同 RADIUS_MD）
+pub const BORDER_RADIUS: f32 = RADIUS_MD;
 
 /// 侧边栏选中指示条宽度
-pub const SIDEBAR_INDICATOR_WIDTH: f32 = 6.0;
+pub const SIDEBAR_INDICATOR_WIDTH: f32 = 3.0;
 
 /// 分隔线宽度
 pub const SEPARATOR_WIDTH: f32 = 1.0;
@@ -61,7 +77,7 @@ pub const DIALOG_BUTTON_TEXT_SIZE: f32 = 14.0;
 pub const DIALOG_MAX_WIDTH: f32 = 500.0;
 
 /// 对话框边框圆角半径
-pub const DIALOG_BORDER_RADIUS: f32 = 8.0;
+pub const DIALOG_BORDER_RADIUS: f32 = RADIUS_LG;
 
 /// 对话框边框宽度
 pub const DIALOG_BORDER_WIDTH: f32 = 1.0;
@@ -124,8 +140,8 @@ pub const BUTTON_SPACING: f32 = 6.0;
 /// 滚动边距
 pub const SCROLL_PADDING: f32 = 20.0;
 
-/// 选择列表宽度
-pub const PICK_LIST_WIDTH: f32 = 80.0;
+/// 选择列表宽度（需容纳最长选项 socks5h + 下拉箭头）
+pub const PICK_LIST_WIDTH: f32 = 100.0;
 
 /// 语言名称列表宽度
 pub const LANG_PICK_LIST_WIDTH: f32 = 120.0;
@@ -159,6 +175,12 @@ pub const ICON_BUTTON_PADDING: [u16; 2] = [4, 4];
 /// 侧边栏宽度
 pub const SIDEBAR_WIDTH: f32 = 200.0;
 
+/// 菜单项高度
+pub const MENU_ITEM_HEIGHT: f32 = 48.0;
+
+/// 菜单项图标大小
+pub const MENU_ICON_SIZE: f32 = 18.0;
+
 /// 行间距
 pub const ROW_SPACING_LARGE: f32 = 20.0;
 
@@ -169,7 +191,7 @@ pub const OUTER_PADDING: f32 = 20.0;
 pub const LOGO_SIZE: u32 = 128;
 
 /// Logo显示尺寸
-pub const LOGO_DISPLAY_SIZE: f32 = 128.0;
+pub const LOGO_DISPLAY_SIZE: f32 = 88.0;
 
 /// Logo间距
 pub const LOGO_SPACING: f32 = 20.0;
@@ -277,6 +299,9 @@ pub const DOWNLOAD_BUTTON_SPACING: f32 = 4.0;
 
 /// 表格分隔线宽度
 pub const TABLE_SEPARATOR_WIDTH: f32 = 1.0;
+
+/// 表格文字大小（统一表格内字号）
+pub const TABLE_TEXT_SIZE: f32 = 13.0;
 
 // ============================================================================
 // 自定义标题栏尺寸

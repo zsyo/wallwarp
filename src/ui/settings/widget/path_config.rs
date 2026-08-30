@@ -3,15 +3,15 @@
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::common;
+use crate::ui::common::styled_text_input;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::ThemeColors;
 use crate::ui::style::{
     BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING,
     INPUT_HEIGHT, INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE,
 };
-use iced::border::{Border, Radius};
 use iced::widget::{Space, container, row, text, text_input};
-use iced::{Alignment, Color, Element, Length};
+use iced::{Alignment, Element, Length};
 
 /// 路径配置行各按钮触发的消息集合
 pub struct PathRowActions {
@@ -59,18 +59,7 @@ pub fn create_path_config_row<'a>(
                 .align_x(Alignment::Center)
                 .on_input(|_| SettingsMessage::DataPathSelected("".to_string()).into())
                 .padding(INPUT_PADDING)
-                .style(move |_theme: &iced::Theme, _status| text_input::Style {
-                    background: iced::Background::Color(theme_colors.text_input_background),
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(4.0),
-                    },
-                    icon: theme_colors.light_text_sub,
-                    placeholder: theme_colors.light_text_sub,
-                    value: theme_colors.light_text,
-                    selection: theme_colors.text_input_selection_color,
-                }),
+                .style(styled_text_input(theme_colors)),
             container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
             common::create_colored_button(
                 i18n.t("settings.select-path"),

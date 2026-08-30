@@ -30,7 +30,7 @@ pub fn create_tooltip_style(
 /// 创建带 tooltip 的图标按钮
 ///
 /// # 参数
-/// - `icon_char`: 图标字符（如 "\u{F341}"）
+/// - `icon_char`: 图标字符（如 "\u{F30A}" download）
 /// - `icon_color`: 图标颜色
 /// - `message`: 按钮点击消息
 /// - `tooltip_text`: tooltip 文本
@@ -54,16 +54,7 @@ where
             .align_y(Alignment::Center),
     )
     .padding(ICON_BUTTON_PADDING)
-    .style(|_theme: &iced::Theme, _status| button::Style {
-        text_color: iced::Color::WHITE,
-        background: None,
-        border: Border {
-            color: Color::TRANSPARENT,
-            width: 0.0,
-            radius: Radius::from(0.0),
-        },
-        ..Default::default()
-    })
+    .style(super::icon_button::icon_button_style(icon_color))
     .on_press(message);
 
     let tooltip_text_element = text(tooltip_text).style(move |_theme: &iced::Theme| text::Style {

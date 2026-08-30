@@ -23,7 +23,7 @@ pub fn create_clear_completed_button<'a>(
         .any(|task| matches!(task.task.status, DownloadStatus::Completed));
 
     let button_content = row![
-        text("\u{F78B}") // trash-fill
+        text("\u{F78B}") // trash3
             .font(iced::Font::with_name("bootstrap-icons"))
             .size(14)
             .style(move |_theme: &iced::Theme| iced::widget::text::Style {
