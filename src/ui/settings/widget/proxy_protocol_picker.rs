@@ -56,8 +56,14 @@ pub fn create_proxy_protocol_picker<'a>(app: &'a App) -> Element<'a, AppMessage>
         });
 
     // 创建代理协议选项（overlay）
-    let protocol_options_content = column([ProxyProtocol::Http, ProxyProtocol::Socks5].iter().map(
-        |protocol| {
+    let protocol_options_content = column(
+        [
+            ProxyProtocol::Http,
+            ProxyProtocol::Socks5,
+            ProxyProtocol::Socks5h,
+        ]
+        .iter()
+        .map(|protocol| {
             let is_selected = current_protocol == Some(*protocol);
             button(text(protocol.as_str()).size(14))
                 .padding(6)
@@ -84,8 +90,8 @@ pub fn create_proxy_protocol_picker<'a>(app: &'a App) -> Element<'a, AppMessage>
                     ..button::text(_theme, _status)
                 })
                 .into()
-        },
-    ))
+        }),
+    )
     .spacing(2);
 
     let picker_content = container(protocol_options_content)

@@ -6,6 +6,8 @@ use std::str::FromStr;
 pub enum ProxyProtocol {
     Http,
     Socks5,
+    /// SOCKS5 + 远端 DNS：域名交给代理解析，绕开本地 DNS 污染
+    Socks5h,
 }
 
 impl std::fmt::Display for ProxyProtocol {
@@ -13,6 +15,7 @@ impl std::fmt::Display for ProxyProtocol {
         match self {
             ProxyProtocol::Http => write!(f, "http"),
             ProxyProtocol::Socks5 => write!(f, "socks5"),
+            ProxyProtocol::Socks5h => write!(f, "socks5h"),
         }
     }
 }
@@ -22,6 +25,7 @@ impl ProxyProtocol {
         match self {
             ProxyProtocol::Http => "http",
             ProxyProtocol::Socks5 => "socks5",
+            ProxyProtocol::Socks5h => "socks5h",
         }
     }
 }
@@ -32,6 +36,7 @@ impl FromStr for ProxyProtocol {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "socks5" => Ok(ProxyProtocol::Socks5),
+            "socks5h" => Ok(ProxyProtocol::Socks5h),
             _ => Ok(ProxyProtocol::Http),
         }
     }

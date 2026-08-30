@@ -40,19 +40,36 @@ WallWarp is a desktop wallpaper management application built with Rust and the m
 ## Tech Stack
 
 - **Language**: Rust 2024 Edition
-- **GUI Framework**: Iced 0.14
+- **GUI Framework**: Iced 0.14 (multi-window daemon)
 - **Async Runtime**: Tokio
 - **Image Processing**: Image, fast_image_resize
 - **Serialization**: Serde, Serde_json
 - **Internationalization**: fluent-bundle
-- **Network Requests**: Reqwest
-- **System Tray**: tray-icon (Windows)
+- **Network Requests**: Reqwest (native-tls, uses the system TLS stack and certificate store)
+- **System Tray**: tray-icon (Windows / macOS / Linux)
+
+## Platform Support
+
+| Platform | Architecture | Installer | Notes |
+|----------|--------------|-----------|-------|
+| Windows 10+ | x64 | NSIS installer / portable zip | Full features |
+| Windows 11 | arm64 | NSIS installer | Full features |
+| macOS 10.15+ | Apple Silicon (arm64) | dmg | Full features (wallpaper fit mode decided by the system) |
+| macOS 10.15+ | Intel (x64) | dmg | Full features (same as above) |
+| Linux (X11) | x64 | AppImage | Floating ball requires an X11 session |
+| Linux (X11) | arm64 | AppImage | Same as above |
+
+> **Linux desktops**: wallpaper setting supports GNOME/KDE/XFCE/Cinnamon/MATE/LXDE/Deepin;
+> the tray icon relies on StatusNotifier (libayatana-appindicator is bundled with the AppImage).
+> **Wayland sessions**: the main window and tray work normally; the desktop floating ball is disabled
+> because window positioning/always-on-top is restricted.
+> **macOS**: the dmg is unsigned — right-click → Open on first launch.
 
 ## Installation
 
 ### Build from Source
 
-Make sure you have the Rust toolchain installed (Rust 1.70 or higher).
+Make sure you have the Rust toolchain installed (Rust 1.85 or higher).
 
 ```bash
 # Clone the repository
@@ -65,13 +82,24 @@ cargo build --release
 # Run
 cargo run --release
 
-# Build installer package
+# Build installer package (NSIS / dmg / AppImage, platform default)
 cargo packager --release
+
+# Specify format and target
+cargo packager --release --formats dmg --target aarch64-apple-darwin
+```
+
+**Linux build dependencies**:
+
+```bash
+sudo apt install libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
+  libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libx11-dev \
+  libxcb1-dev libxrandr-dev libxi-dev cmake
 ```
 
 ### Download Pre-built Version
 
-Visit the [Releases](https://github.com/zsyo/wallwarp/releases) page to download the pre-built version for your system.
+Visit the [Releases](https://github.com/zsyo/wallwarp/releases) page to download the pre-built version for your system (x64 and arm64 builds are provided for every platform).
 
 ## Usage
 
@@ -99,7 +127,13 @@ Visit the [Releases](https://github.com/zsyo/wallwarp/releases) page to download
 
 ## Configuration File
 
-WallWarp creates a `config.toml` configuration file in the same directory as the program to save user settings:
+WallWarp stores its data directory (`config.toml`, wallpaper library, cache, database, logs) per platform:
+
+- **Windows**: the directory containing the exe (portable)
+- **macOS**: `~/Library/Application Support/WallWarp`
+- **Linux**: `~/.config/wallwarp`
+
+The `config.toml` file saves user settings:
 
 ```toml
 [global]
@@ -117,7 +151,14 @@ wallwarp/
 ├── src/
 │   ├── main.rs                      # Application entry point
 │   ├── lib.rs                       # Library entry, declares all modules
-│   ├── i18n.rs                      # Internationalization support module
+│   ├── i18n/                        # Internationalization support module
+│   ├── platform/                    # Platform abstraction layer (Windows/macOS/Linux)
+│   │   ├── mod.rs                   # Common API (window geometry/work area/menu anchor)
+│   │   ├── menu.rs                  # Cross-platform tray & native menu wrapper
+│   │   ├── menu_linux.rs            # Linux GTK menu runtime
+│   │   ├── windows.rs               # Win32 implementation
+│   │   ├── macos.rs                 # AppKit implementation
+│   │   └── linux.rs                 # X11 implementation
 │   ├── ui/                          # User interface modules
 │   │   ├── app.rs                   # Main application logic
 │   │   ├── mod.rs                   # UI module declaration
@@ -220,8 +261,7 @@ wallwarp/
 │       ├── helpers.rs               # Helper functions
 │       ├── logger.rs                # Logging system
 │       ├── single_instance.rs       # Single instance control
-│       ├── startup.rs               # Startup management
-│       └── window_utils.rs          # Window utilities
+│       └── startup/                 # Auto-start (registry/plist/desktop per platform)
 ├── locales/                         # Language files
 │   ├── zh-cn.ftl                    # Chinese translation
 │   └── en.ftl                       # English translation
@@ -242,13 +282,13 @@ wallwarp/
 
 ### Build Requirements
 
-- Rust 1.70 or higher
-- Windows 10 or higher (currently primarily supports Windows)
-- **Minimum CPU Requirement**: Processors supporting x86-64-v3 instruction set (Intel/AMD CPUs from around 2013 and later)
+- Rust 1.85 or higher (Edition 2024)
+- Windows 10+ / macOS 10.15+ / Linux (GTK3 development packages, see above)
+- **Minimum CPU Requirement (x64)**: Processors supporting x86-64-v3 instruction set (Intel/AMD CPUs from around 2013 and later; no such requirement on arm64)
 
 ### Compilation Optimization
 
-This project uses the `x86-64-v3` target CPU for compilation optimization to achieve better performance:
+The CI uses the `x86-64-v3` target CPU for x64 builds to achieve better performance:
 
 ```bash
 # Set compilation optimization flags

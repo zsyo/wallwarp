@@ -6,4 +6,3 @@ pub mod helpers;
 pub mod logger;
 pub mod single_instance;
 pub mod startup;
-pub mod window_utils;

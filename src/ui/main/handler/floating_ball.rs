@@ -3,25 +3,20 @@
 //! 悬浮球交互处理：按下/移动/释放、菜单弹出、位置持久化、开关窗口、
 //! 空闲贴边半圆与悬停展开
 //!
-//! 坐标体系说明：贴边相关的 Win32 采集与窗口移动都在 window::run 闭包内以
-//! **物理屏幕坐标**完成（MonitorFromWindow + GetMonitorInfoW + SetWindowPos）。
+//! 坐标体系说明：贴边相关的几何采集与窗口移动都经 `crate::platform`
+//! 在 window::run 闭包内以**原生全屏坐标**完成（Windows/Linux 物理
+//! 像素左上原点、macOS 点坐标左下原点，平台内自洽）。
 //! 仅支持左右贴边：贴边时窗口紧贴屏幕边缘且尺寸不变，
 //! 视图把球向边缘偏移一半（窗口外部分被渲染表面裁剪）呈现半圆图案，
 //! 因此多屏接缝处不会有任何部分出现在另一块屏上。
 
+use crate::platform::{self, WindowAnchor};
 use crate::ui::main::MainMessage;
 use crate::ui::main::floating_ball;
 use crate::ui::{App, AppMessage};
-use crate::utils::window_utils;
 use iced::Task;
-use iced::wgpu::rwh::RawWindowHandle;
 use iced::window;
 use tracing::info;
-use windows::Win32::Foundation::{HWND, RECT};
-use windows::Win32::Graphics::Gdi::{
-    GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromWindow,
-};
-use windows::Win32::UI::WindowsAndMessaging::{GetWindowRect, SWP_NOSIZE, SetWindowPos};
 
 impl App {
     /// 悬浮球鼠标按下：重置交互状态
@@ -64,6 +59,10 @@ impl App {
     /// 鼠标离开后延迟调度贴边（拖动后的自由位置需要吸附）
     pub(crate) fn floating_ball_hovered(&mut self, hovered: bool) -> Task<AppMessage> {
         self.floating_ball_state.set_hovered(hovered);
+        if hovered {
+            // 重新进入球体：解除菜单打开守卫（Linux 非阻塞弹出的复位路径之一）
+            self.floating_ball_state.set_menu_open(false);
+        }
         if !hovered
             && self.floating_ball_id.is_some()
             && !self.floating_ball_state.is_menu_open()
@@ -80,7 +79,7 @@ impl App {
 
     /// 贴边调度：吸附到窗口中心最近的左右屏幕边缘并呈半圆形态
     ///
-    /// 所有 Win32 采集与窗口移动都在 window::run 闭包内以物理坐标完成，
+    /// 几何采集与窗口移动在 window::run 闭包内经 platform 抽象完成，
     /// 吸附上下文经消息回传后存入状态
     pub(crate) fn floating_ball_snap_to_edge(&mut self) -> Task<AppMessage> {
         let Some(ball_id) = self.floating_ball_id else {
@@ -100,43 +99,36 @@ impl App {
     fn tuck_ball(ball_id: window::Id) -> Task<AppMessage> {
         window::run::<floating_ball::SnapState>(ball_id, move |mw| {
             let mut result = floating_ball::SnapState::default();
-            let Some(hwnd) = ball_hwnd(mw) else {
+            let Some(geom) = platform::window_geometry(mw) else {
                 return result;
             };
-            unsafe {
-                let (work, size) = match collect_monitor(hwnd) {
-                    Some(v) => v,
-                    None => return result,
-                };
-                let (pos_x, pos_y) = match window_physical_pos(hwnd) {
-                    Some(v) => v,
-                    None => return result,
-                };
-                let size_f = size as f32;
-                // 垂直方向保持在屏幕内
-                let clamp_y = pos_y.clamp(work.y, work.y + work.height - size_f);
+            let Some(work) = platform::work_area(mw) else {
+                return result;
+            };
+            let size = geom.size;
+            // 垂直方向保持在屏幕内
+            let clamp_y = geom.y.clamp(work.y, work.y + work.height - size);
 
-                // 以窗口中心判断贴近左还是右边缘
-                use floating_ball::SnapEdge;
-                let center_x = pos_x + size_f / 2.0;
-                let edge = if center_x - work.x <= work.x + work.width - center_x {
-                    SnapEdge::Left
-                } else {
-                    SnapEdge::Right
-                };
+            // 以窗口中心判断贴近左还是右边缘
+            use floating_ball::SnapEdge;
+            let center_x = geom.x + size / 2.0;
+            let edge = if center_x - work.x <= work.x + work.width - center_x {
+                SnapEdge::Left
+            } else {
+                SnapEdge::Right
+            };
 
-                let tx = match edge {
-                    SnapEdge::Left => work.x,
-                    SnapEdge::Right => work.x + work.width - size_f,
-                };
-                info!(
-                    "[悬浮球] [贴边] 吸附至 {:?}, 目标物理位置 ({}, {})",
-                    edge, tx, clamp_y
-                );
-                move_window_to(hwnd, tx as i32, clamp_y as i32);
-                result.edge = Some(edge);
-                result.work = work;
-            }
+            let tx = match edge {
+                SnapEdge::Left => work.x,
+                SnapEdge::Right => work.x + work.width - size,
+            };
+            info!(
+                "[悬浮球] [贴边] 吸附至 {:?}, 目标位置 ({}, {})",
+                edge, tx, clamp_y
+            );
+            platform::move_window_to(mw, tx, clamp_y);
+            result.edge = Some(edge);
+            result.work = work;
             result
         })
         .map(|snap| MainMessage::FloatingBallSnapped(snap).into())
@@ -148,31 +140,55 @@ impl App {
             return Task::none();
         };
 
-        // Menu 内部为 Rc（非 Send），无法移入 window::run 闭包，
-        // 因此这里仅提取 HWND（isize 可 Send），弹出动作在主线程消息处理器中完成
-        window::run::<isize>(ball_id, |mw| {
-            ball_hwnd(mw).map(|hwnd| hwnd.0 as isize).unwrap_or(0)
-        })
-        .map(|hwnd| MainMessage::FloatingBallMenuReady(hwnd).into())
+        // Menu 内部非 Send，无法移入 window::run 闭包，
+        // 因此这里仅提取可跨线程传递的窗口锚点，弹出动作在
+        // 主线程消息处理器中完成
+        window::run::<WindowAnchor>(ball_id, platform::window_anchor)
+            .map(|anchor| MainMessage::FloatingBallMenuReady(anchor).into())
     }
 
-    /// 收到球窗口 HWND：前置窗口并同步弹出菜单（主线程）
-    pub(crate) fn floating_ball_menu_ready(&mut self, hwnd: isize) -> Task<AppMessage> {
-        if hwnd == 0 {
-            tracing::warn!("[悬浮球] [menu] 无法获取窗口句柄，弹出菜单失败");
+    /// 收到球窗口锚点：弹出菜单（主线程）
+    ///
+    /// Windows/macOS：muda 弹出为阻塞调用，返回即代表菜单已关闭；
+    /// Linux：GTK 线程非阻塞弹出，用"菜单打开守卫 + 延迟复位"近似阻塞语义
+    pub(crate) fn floating_ball_menu_ready(&mut self, anchor: WindowAnchor) -> Task<AppMessage> {
+        if anchor == WindowAnchor::Unsupported {
+            tracing::warn!("[悬浮球] [menu] 无法获取窗口锚点，弹出菜单失败");
             return Task::none();
         }
 
-        // TrackPopupMenu 需要前置窗口才能在点击外部时正常关闭
-        window_utils::set_foreground_window_by_isize(hwnd);
-        // 菜单打开期间（阻塞式弹出）禁止贴边隐藏
-        self.floating_ball_state.set_menu_open(true);
-        let shown = self.floating_ball.show_popup_at(hwnd);
-        self.floating_ball_state.set_menu_open(false);
-        if !shown {
-            tracing::warn!("[悬浮球] [menu] 弹出菜单失败");
+        #[cfg(not(target_os = "linux"))]
+        {
+            // 菜单打开期间（阻塞式弹出）禁止贴边隐藏
+            self.floating_ball_state.set_menu_open(true);
+            let shown = self.floating_ball.show_popup_at(anchor);
+            self.floating_ball_state.set_menu_open(false);
+            if !shown {
+                tracing::warn!("[悬浮球] [menu] 弹出菜单失败");
+            }
+            // 菜单期间鼠标可能已移出球且 on_exit 已被消费，关闭后需补充贴边调度
+            if !self.floating_ball_state.is_hovered() {
+                return Task::perform(
+                    tokio::time::sleep(tokio::time::Duration::from_millis(200)),
+                    |_| MainMessage::FloatingBallSnapToEdge.into(),
+                );
+            }
+            Task::none()
         }
-        // 菜单期间鼠标可能已移出球且 on_exit 已被消费，关闭后需补充贴边调度
+        #[cfg(target_os = "linux")]
+        {
+            let _ = self.floating_ball.show_popup_at(anchor);
+            // 复位延迟须大于菜单典型交互时长；期间鼠标重新进入球体也会解除守卫
+            Task::perform(
+                tokio::time::sleep(tokio::time::Duration::from_millis(2500)),
+                |_| MainMessage::FloatingBallMenuClosed.into(),
+            )
+        }
+    }
+
+    /// 菜单打开守卫解除：恢复贴边调度（Linux 非阻塞弹出路径）
+    pub(crate) fn floating_ball_menu_closed(&mut self) -> Task<AppMessage> {
+        self.floating_ball_state.set_menu_open(false);
         if !self.floating_ball_state.is_hovered() {
             return Task::perform(
                 tokio::time::sleep(tokio::time::Duration::from_millis(200)),
@@ -230,6 +246,10 @@ impl App {
         if self.floating_ball_id.is_some() {
             return Task::none();
         }
+        if !platform::supports_floating_ball() {
+            tracing::warn!("[悬浮球] [窗口] 当前平台/会话不支持悬浮球（Wayland 下窗口定位受限）");
+            return Task::none();
+        }
         let (ball_id, task) = window::open(floating_ball::window_settings(&self.config.global));
         self.floating_ball_id = Some(ball_id);
         info!("[悬浮球] [窗口] 已打开: {:?}", ball_id);
@@ -244,17 +264,9 @@ impl App {
         ])
     }
 
-    /// 禁用悬浮球窗口的 DWM 系统边框
-    ///
-    /// Windows 11 会为圆角窗口绘制 1px 系统边框，在透明窗口上表现为
-    /// 圆球外围的一圈方框，需要在窗口创建后显式关闭
+    /// 移除悬浮球窗口的系统边框（仅 Windows 有此修饰问题）
     pub(crate) fn disable_ball_dwm_frame(ball_id: window::Id) -> Task<AppMessage> {
-        window::run(ball_id, move |mw| {
-            if let Some(hwnd) = ball_hwnd(mw) {
-                window_utils::remove_dwm_frame(hwnd);
-            }
-        })
-        .map(|_| AppMessage::None)
+        window::run(ball_id, |mw| platform::remove_dwm_frame(mw)).map(|_| AppMessage::None)
     }
 
     /// 关闭悬浮球窗口并清空 Id
@@ -271,59 +283,5 @@ impl App {
         self.config.global.show_floating_ball = false;
         self.config.save_to_file();
         self.close_floating_ball_window()
-    }
-}
-
-/// 从 iced 窗口提取 Win32 HWND
-fn ball_hwnd(mw: &dyn iced::window::Window) -> Option<HWND> {
-    let handle = mw.window_handle().ok()?;
-    match handle.as_raw() {
-        RawWindowHandle::Win32(win32_handle) => Some(HWND(win32_handle.hwnd.get() as _)),
-        _ => None,
-    }
-}
-
-/// 采集窗口所在显示器的工作区与窗口物理尺寸
-///
-/// 返回 (工作区矩形[物理像素], 窗口物理边长)
-unsafe fn collect_monitor(hwnd: HWND) -> Option<(iced::Rectangle, i32)> {
-    unsafe {
-        let monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-        let mut monitor_info = MONITORINFO {
-            cbSize: std::mem::size_of::<MONITORINFO>() as u32,
-            ..Default::default()
-        };
-        if !GetMonitorInfoW(monitor, &mut monitor_info).as_bool() {
-            return None;
-        }
-        let rc = monitor_info.rcWork;
-        let work = iced::Rectangle::new(
-            iced::Point::new(rc.left as f32, rc.top as f32),
-            iced::Size::new((rc.right - rc.left) as f32, (rc.bottom - rc.top) as f32),
-        );
-
-        let mut rect = RECT::default();
-        if GetWindowRect(hwnd, &mut rect).is_err() {
-            return None;
-        }
-        Some((work, rect.right - rect.left))
-    }
-}
-
-/// 获取窗口左上角的物理屏幕坐标
-unsafe fn window_physical_pos(hwnd: HWND) -> Option<(f32, f32)> {
-    unsafe {
-        let mut rect = RECT::default();
-        if GetWindowRect(hwnd, &mut rect).is_err() {
-            return None;
-        }
-        Some((rect.left as f32, rect.top as f32))
-    }
-}
-
-/// 以物理屏幕坐标移动窗口（保持尺寸不变，不激活、不改层级）
-fn move_window_to(hwnd: HWND, x: i32, y: i32) {
-    unsafe {
-        let _ = SetWindowPos(hwnd, None, x, y, 0, 0, SWP_NOSIZE);
     }
 }

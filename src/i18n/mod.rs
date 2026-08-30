@@ -93,17 +93,30 @@ impl I18n {
         }
     }
 
-    /// 解析 locales 目录：优先使用程序同级目录，其次回退到工作目录
+    /// 解析 locales 目录：按候选顺序取第一个存在的目录
+    ///
+    /// 候选覆盖各打包形态：exe 同级（Windows 便携 / AppImage）、
+    /// macOS .app 的 Resources、应用目录上级，最后回退工作目录
+    /// （开发模式 cargo run 从项目根启动）与内嵌兜底
     fn resolve_locales_dir() -> PathBuf {
-        let mut base_dir = std::env::current_exe().unwrap_or_default();
-        base_dir.pop();
+        Self::locales_dir_candidates()
+            .into_iter()
+            .find(|dir| dir.is_dir())
+            .unwrap_or_else(|| PathBuf::from(LOCALES_DIR_NAME))
+    }
 
-        let dir = base_dir.join(LOCALES_DIR_NAME);
-        if dir.exists() {
-            dir
-        } else {
-            PathBuf::from(LOCALES_DIR_NAME)
+    fn locales_dir_candidates() -> Vec<PathBuf> {
+        let mut candidates = Vec::new();
+        if let Ok(exe) = std::env::current_exe()
+            && let Some(dir) = exe.parent()
+        {
+            candidates.push(dir.join(LOCALES_DIR_NAME));
+            candidates.push(dir.join("..").join("Resources").join(LOCALES_DIR_NAME));
+            candidates.push(dir.join("..").join(LOCALES_DIR_NAME));
+            candidates.push(dir.join("..").join("..").join(LOCALES_DIR_NAME));
         }
+        candidates.push(PathBuf::from(LOCALES_DIR_NAME));
+        candidates
     }
 
     /// 重扫 locales 目录，加载运行期间新增的语言文件

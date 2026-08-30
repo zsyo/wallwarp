@@ -1,8 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::platform;
 use crate::ui::{App, AppMessage};
 use crate::utils::config::Theme;
-use crate::utils::window_utils;
 use iced::Task;
 use tracing::info;
 
@@ -48,7 +48,7 @@ impl App {
             }
             Theme::Auto => {
                 // 自动模式：根据系统主题判断
-                let is_system_dark = window_utils::get_system_color_mode();
+                let is_system_dark = platform::system_color_mode();
                 info!(
                     "[设置] [主题] 自动模式，系统主题: {}",
                     if is_system_dark { "深色" } else { "浅色" }

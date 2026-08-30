@@ -23,13 +23,15 @@ fn main() -> iced::Result {
         return Ok(());
     }
 
-    if let Ok(exe_path) = std::env::current_exe()
-        && !helpers::is_running_via_cargo()
-    {
-        // 生产模式：使用可执行文件所在目录作为工作目录
-        if let Some(parent_dir) = exe_path.parent() {
-            let _ = std::env::set_current_dir(parent_dir);
+    if !helpers::is_running_via_cargo() {
+        // 生产模式：切换工作目录到应用数据根目录
+        // （Windows 便携式：exe 同级；macOS/Linux：平台标准数据目录，
+        //   此后 config.toml/data/cache/db/logs 等相对路径全部落在根目录内）
+        let root = helpers::app_root_dir();
+        if let Err(e) = std::fs::create_dir_all(&root) {
+            eprintln!("[启动] 创建数据目录失败 {}: {}", root.display(), e);
         }
+        let _ = std::env::set_current_dir(&root);
     }
 
     let i18n = I18n::new();
@@ -56,7 +58,9 @@ fn main() -> iced::Result {
             let mut app = App::new_with_config(i18n, cfg);
 
             // daemon 默认不开窗：主窗口在此显式打开并记录 Id
-            let main_settings = window::Settings {
+            // （仅 macOS 的红绿灯叠加参数需要可变）
+            #[allow(unused_mut)]
+            let mut main_settings = window::Settings {
                 position: window::Position::Centered,
                 size: Size::new(
                     app.config.display.width as f32,
@@ -69,16 +73,29 @@ fn main() -> iced::Result {
                 icon: Some(icon),
                 exit_on_close_request: false,
                 visible: !start_hidden, // 如果是隐藏模式，初始不显示窗口
-                decorations: false,     // 隐藏默认标题栏，使用自定义标题栏
+                decorations: cfg!(target_os = "macos"), // macOS：原生红绿灯叠加自绘标题栏；其余平台无边框
                 ..window::Settings::default()
             };
+            #[cfg(target_os = "macos")]
+            {
+                // macOS：原生红绿灯叠加在自绘标题栏上，原生边缘缩放/全屏可用
+                main_settings.platform_specific.title_hidden = true;
+                main_settings.platform_specific.titlebar_transparent = true;
+                main_settings.platform_specific.fullsize_content_view = true;
+            }
+            #[cfg(target_os = "linux")]
+            {
+                // 与 .desktop 文件名保持一致，便于窗口管理器关联应用图标
+                main_settings.platform_specific.application_id = "wallwarp".to_string();
+            }
             let (main_id, open_main_task) = window::open(main_settings);
             app.main_window_id = main_id;
 
             let mut tasks: Vec<Task<AppMessage>> = vec![open_main_task.map(|_| AppMessage::None)];
 
-            // 按配置打开悬浮球窗口
-            if app.config.global.show_floating_ball {
+            // 按配置打开悬浮球窗口（Wayland 会话不支持窗口定位/置顶，自动跳过）
+            if app.config.global.show_floating_ball && wallwarp::platform::supports_floating_ball()
+            {
                 let (ball_id, open_ball_task) = window::open(window_settings(&app.config.global));
                 app.floating_ball_id = Some(ball_id);
                 tasks.push(open_ball_task.map(|_| AppMessage::None));

@@ -9,6 +9,13 @@ use iced::border::{Border, Radius};
 use iced::widget::{button, container, mouse_area, row, text, tooltip};
 use iced::{Alignment, Color, Element, Font, Length};
 
+/// macOS 原生红绿灯按钮占据的标题栏左侧宽度
+/// （fullsize_content_view 模式下红绿灯叠加在自绘标题栏上，需预留空间）
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHT_INSET: f32 = 78.0;
+#[cfg(not(target_os = "macos"))]
+const TRAFFIC_LIGHT_INSET: f32 = 0.0;
+
 /// 标题栏各按钮触发的消息集合
 pub struct TitleBarActions<Message> {
     /// 拖拽窗口
@@ -312,6 +319,12 @@ where
     container(title_bar_content)
         .width(Length::Fill)
         .height(TITLE_BAR_HEIGHT)
+        .padding(iced::Padding {
+            top: 0.0,
+            right: 0.0,
+            bottom: 0.0,
+            left: TRAFFIC_LIGHT_INSET,
+        })
         .style(move |_theme: &iced::Theme| container::Style {
             background: Some(iced::Background::Color(theme_colors.title_bar_bg)),
             border: Border {

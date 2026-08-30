@@ -5,11 +5,24 @@
 - 项目类型: 桌面壁纸管理软件
 - 开发语言: Rust
 - GUI框架: Iced (版本 0.14.0)
+- 支持平台: Windows 10+ / macOS 10.15+ / Linux（X11），各平台均提供 x64 与 arm64 构建
 - 项目目的: 创建一个功能齐全的壁纸管理应用程序
 
 ## 项目结构
 - src/main.rs - 应用入口点（iced::daemon 多窗口运行时）
 - src/lib.rs - 库入口点，声明所有模块
+- src/platform/ - 平台抽象层（三平台实现按 target_os 编译期选择）
+  - mod.rs - 公共接口：窗口几何/工作区查询（原生坐标）、菜单锚点 WindowAnchor、
+    system_color_mode、supports_floating_ball；`use xxx as imp` 按平台分发
+  - menu.rs - 托盘/悬浮球菜单跨平台封装（Menu/TrayIconHandle 句柄，
+    Windows/macOS 主线程直连 muda；Linux 走 menu_linux.rs 的 GTK 线程）
+  - menu_linux.rs - Linux 菜单运行时：muda 对象为 Rc（非 Send）且 appindicator
+    托盘需 GTK 事件循环，故托盘与全部菜单在专用 GTK 线程创建，主线程经
+    mpsc 命令通道操控（BuildMenu/AttachTray/SetText/SetEnabled/PopupBall）
+  - windows.rs - Win32 实现（MonitorFromWindow/GetMonitorInfoW/SetWindowPos/DWM）
+  - macos.rs - AppKit 实现（objc2：NSScreen visibleFrame / NSWindow setFrameOrigin）
+  - linux.rs - X11 实现（x11rb：RandR 显示器 + _NET_WORKAREA 求交集；
+    Wayland 会话 supports_floating_ball()=false）
 - src/ui/ - 用户界面组件
   - common.rs - UI公共方法和常量（按钮创建、模态对话框、容器样式等）
   - message.rs - 定义UI消息类型
@@ -19,7 +32,7 @@
 - src/services/ - 业务逻辑服务
   - mod.rs - 服务模块声明
 - src/utils/ - 工具函数
-  - helpers.rs - 辅助函数
+  - helpers.rs - 辅助函数（app_root_dir 为各平台数据根目录）
   - mod.rs - 工具模块声明
 - src/i18n/ - 国际化支持模块（mod.rs 加载、translate.rs 翻译）
 - locales/ - 语言配置文件目录
@@ -35,8 +48,10 @@
 - 悬浮球窗口透明背景通过专用 Theme 实现（palette.background = TRANSPARENT，
   在 `.style` 闭包中按 palette 识别），不是按窗口区分 style 闭包
 - 悬浮球菜单复用 muda（`tray_icon::menu`）全局 MenuEvent 通道，菜单 id 以
-  `ball_` 为前缀；Menu 内部为 Rc（非 Send），弹菜单须在主线程
-  （window::run 取 HWND → 消息回传 → update 中 show_popup_at）
+  `ball_` 为前缀；弹出经 `platform::menu`：window::run 提取 WindowAnchor →
+  消息回传 → update 中 popup_at（Windows/macOS 阻塞弹出；Linux 非阻塞，
+  以 menu_open 守卫 + 延迟 `FloatingBallMenuClosed` 复位近似阻塞语义，
+  悬停重新进入也会解除守卫）
 - 悬浮球左键/右键均可弹出操作菜单（右键释放即触发，不参与拖动）
 - 悬浮球空闲时自动贴边呈半圆（仅支持左右贴边）：窗口紧贴屏幕边缘且尺寸
   不变，视图用 `iced::widget::Float` 把完整大球（含大 logo）向边缘平移一半
@@ -44,9 +59,56 @@
   完全留在当前屏幕内。悬停时平移归零显示整圆（无需移动窗口）。
   注意：不能用 padding 平移——iced 的 padding.fit 会把推出容器边界的
   正向 padding 钳回，导致单侧贴边失效。吸附（方向+工作区）存于 SnapState。
-  窗口移动在 window::run 闭包内以**物理屏幕坐标**完成（MonitorFromWindow +
-  GetMonitorInfoW 采集工作区 + SetWindowPos，必须带 SWP_NOSIZE），
-  不用逻辑坐标——多屏不同 DPI 下换算有歧义。需要 Win32_Graphics_Gdi feature
+  窗口移动在 window::run 闭包内经 `platform::window_geometry/work_area/
+  move_window_to` 以**原生全屏坐标**完成（Windows/Linux 物理像素左上原点、
+  macOS 点坐标左下原点，平台内自洽），不用逻辑坐标——多屏不同 DPI 下
+  换算有歧义
+
+## 跨平台规范
+- **平台代码分文件**：所有 OS 专属调用必须收敛到 `src/platform/`（win/macos/linux
+  各一文件 + menu.rs），UI/handler 层禁止直接 `use windows::` / objc / x11rb；
+  新增平台能力时先在 platform/mod.rs 定义公共签名，再补三平台实现
+- **编译隔离**：平台专属依赖必须放 `[target.'cfg(...)'.dependencies]`
+  （windows/winreg、objc2 系、x11rb/gtk）；tray-icon 为全平台依赖（Linux 需
+  `features = ["gtk"]` 启用 libappindicator 后端）
+- **数据目录**：`helpers::app_root_dir()` 决定 config/data/cache/db/logs 根——
+  Windows 为 exe 同级（便携式），macOS 为 `~/Library/Application Support/WallWarp`，
+  Linux 为 `~/.config/wallwarp`；启动时 set_current_dir 到该根目录，
+  其余代码继续使用相对路径
+- **locales 资源**：`i18n::resolve_locales_dir()` 按候选序解析（exe 同级 →
+  `../Resources/locales`（mac bundle）→ `../locales` → CWD），支持运行时热加载
+- **开机自启动**：`src/utils/startup/` 按平台拆分——Windows 注册表 Run 键、
+  macOS LaunchAgent plist（`top.aico.wallwarp`）、Linux XDG autostart desktop；
+  Linux AppImage 场景必须用 `APPIMAGE` 环境变量取真实路径（挂载点易失）
+- **剪贴板**：使用 arboard（原生实现），禁止用 cmd/clip、xclip 等外部命令
+- **窗口显隐**：托盘隐藏/恢复用 iced API（`set_mode(Mode::Hidden/Windowed)` +
+  `minimize(false)` + `gain_focus`），跨平台且保留最大化状态；
+  Windows 无边框缩放经 platform::enable_resize_border 注入 WS_THICKFRAME，
+  macOS 用原生 fullsize_content_view（红绿灯叠加，自绘标题栏左侧预留 78px），
+  Linux 复用自绘边缘感应层 + `window::drag_resize`
+- **已知平台差异**：macOS 壁纸铺满方式由系统决定（wallpaper crate set_mode 为空）；
+  Wayland 不显示悬浮球；Linux 托盘无双击事件（appindicator 限制）；
+  dmg 默认未签名（Gatekeeper 需右键打开）
+- **网络请求**：reqwest 保持 `native-tls`（走系统 TLS 栈与证书库，SOCKS5/自签 CA
+  等代理场景兼容性最好）+ `system-proxy`（未显式代理时自动读取系统代理设置）。
+  教训：编辑 Cargo.toml 触发依赖重解析时锁版本可能被降级
+  （reqwest 0.13.4 → 0.13.1 曾导致 SOCKS5 代理全部失效），升级后必须核对
+  Cargo.lock 中关键包版本是否与改动前一致
+- **x11rb**（platform/linux.rs）：依赖必须带 `features = ["randr"]`（默认特性
+  不含任何协议扩展）；trait 方法返回 `Result<Cookie>`，惯用链式
+  `.ok()?.reply().ok()?`；`GetPropertyReply::value32()` 返回 `Option`；
+  移动窗口用 `configure_window` + `ConfigureWindowAux::new().x().y()`
+  （X11 无独立 MoveWindow 请求）；RandR `Monitor` 的 x/y 为 i16、
+  width/height 为 u16，混算必须分别 `as f32`。
+  版本保持 0.13：arboard 与 winit 均依赖 x11rb ^0.13，升级到 0.14 会造成
+  依赖树双版本并存且无功能收益。
+  验证方法：platform/linux.rs 无法在 Windows 本机编译，需临时 crate +
+  `cargo check --target x86_64-unknown-linux-gnu`（x11rb 纯 Rust 无 C 依赖；
+  含 gtk/tray 的部分只能靠 CI 验证）
+- **打包**：`[package.metadata.packager]` 三平台共用（product_name/identifier/
+  icons=assets/logo-*.png/resources=locales），CI 用 `cargo packager --release
+  --formats X --target T` 指定；macOS 的 icns 由 cargo-packager 从 PNG 自动生成；
+  Linux 构建需 libssl-dev + pkg-config（native-tls 依赖 OpenSSL）
 
 ## 开发规范
 
@@ -257,3 +319,10 @@
   - API请求日志：`[Wallhaven API] [ID:xyz789] 响应状态: 200 OK`
   - 搜索操作日志：`[Wallhaven API] [page1_catAnime] 请求URL: https://...`
   - 错误日志：`[Wallhaven API] [ID:abc123] JSON解析失败: unexpected token`
+
+### 15. 依赖管理规范
+- **新依赖优先最新稳定版**: 新增依赖库时，一律使用其最新的稳定版本（不含预发布版），以规避旧版本已知安全漏洞、及时获得新特性与缺陷修复，也避免版本差距积压导致后续升级迁移成本越拖越大
+- **平台专属依赖同理**: 新增 `[target.'cfg(...)'.dependencies]` 平台依赖（如 windows/objc2/x11rb）同样遵循最新稳定版原则，并在对应平台上完成编译验证（无法本地编译的目标用交叉 `cargo check` 或 CI 验证）
+- **例外——版本受生态锁定时**: 若最新版与依赖树中其他库的版本要求冲突（如 x11rb 被 arboard/winit 锁定 `^0.13`），则选择与生态一致的版本、保持依赖树单一副本，并在 Cargo.toml 注释中说明锁定原因，待上游迁移后自然统一，不做强行超前
+- **升级后核对锁版本**: 编辑 Cargo.toml 会触发依赖重解析，锁版本可能被意外降级（案例：reqwest 0.13.4 → 0.13.1 导致 SOCKS5 代理全部失效）。每次改动依赖后必须核对 Cargo.lock 中关键包版本：新增的包确认是预期版本，既有包未被降级
+- **记录升级理由与差异**: 引入或升级重要依赖时在 Cargo.toml 注释中写明选型理由（如 reqwest 用 native-tls 走系统 TLS 栈的说明），便于后续维护者判断能否安全升级

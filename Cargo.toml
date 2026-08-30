@@ -27,8 +27,11 @@ rfd = "0.17"
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 fast_image_resize = { version = "6.1", features = ["image"] }
 rayon = "1.12"
+# native-tls：走系统 TLS 栈与证书库（Windows SChannel），代理/自签 CA 场景兼容性最好；
+# system-proxy：无显式代理时自动读取 Windows/macOS 系统代理设置
 reqwest = { version = "0.13", default-features = false, features = [
     "native-tls",
+    "system-proxy",
     "http2",
     "json",
     "stream",
@@ -42,14 +45,16 @@ rand = "0.10"
 chrono = "0.4"
 scopeguard = "1.2"
 rusqlite = { version = "0.40", features = ["bundled"] }
-windows = { version = "0.62", features = [
-    "Win32_Graphics_Dwm",
-    "Win32_Graphics_Gdi",
-    "Win32_Foundation",
-    "Win32_UI_WindowsAndMessaging",
-    "Win32_UI_Controls",
-] }
 interprocess = { version = "2.4", features = ["tokio"] }
+
+# 托盘图标与原生菜单（三平台；Linux 需系统库 libayatana-appindicator3 / gtk3）
+tray-icon = "0.24"
+
+# 剪贴板（三平台原生实现，替代 cmd/clip 与 xclip 命令行方案）
+arboard = "3"
+
+# 平台标准目录（macOS/Linux 下定位应用数据根目录）
+dirs = "6"
 
 # i18n
 fluent-bundle = "0.16"
@@ -63,17 +68,45 @@ tracing-appender = "0.2"
 dark-light = "3.0"
 
 [target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Graphics_Dwm",
+    "Win32_Graphics_Gdi",
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Controls",
+] }
 winreg = "0.56"
-tray-icon = "0.24"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSGeometry"] }
+objc2-app-kit = { version = "0.3", features = [
+    "NSApplication",
+    "NSResponder",
+    "NSScreen",
+    "NSView",
+    "NSWindow",
+] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# gtk 特性启用 libappindicator 托盘后端；gtk crate 用于创建弹窗锚点窗口
+tray-icon = { version = "0.24", features = ["gtk"] }
+gtk = "0.18"
+# X11 后端：悬浮球贴边所需的显示器几何与窗口移动
+# （randr 特性查询显示器工作区；arboard/winit 也依赖 x11rb 0.13，保持同版本单一副本）
+x11rb = { version = "0.13", features = ["randr"] }
 
 [build-dependencies]
 winresource = "0.1"
 
 [package.metadata.packager]
-before-packaging-command = "cargo build --release"
 # 指定需要包含的资源文件
 resources = ["locales"]
+product_name = "WallWarp"
+identifier = "top.aico.wallwarp"
+category = "GraphicsAndDesign"
+icons = ["assets/logo-*.png"]
 
-[[package.metadata.packager.binaries]]
-path = "wallwarp.exe"
-main = true
+# macOS：app bundle + dmg（CI 通过 --formats app,dmg 指定）
+[package.metadata.packager.macos]
+minimum_system_version = "10.15"

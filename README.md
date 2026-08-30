@@ -40,19 +40,35 @@ WallWarp 是一款用 Rust 开发的桌面壁纸管理应用程序，采用现�
 ## 技术栈
 
 - **语言**: Rust 2024 Edition
-- **GUI 框架**: Iced 0.14
+- **GUI 框架**: Iced 0.14（多窗口 daemon）
 - **异步运行时**: Tokio
 - **图像处理**: Image、fast_image_resize
 - **序列化**: Serde、Serde_json
 - **国际化**: fluent-bundle
-- **网络请求**: Reqwest
-- **系统托盘**: tray-icon (Windows)
+- **网络请求**: Reqwest（native-tls，走系统 TLS 栈与证书库）
+- **系统托盘**: tray-icon（Windows / macOS / Linux）
+
+## 平台支持
+
+| 平台 | 架构 | 安装包 | 说明 |
+|------|------|--------|------|
+| Windows 10+ | x64 | NSIS 安装器 / 便携 zip | 完整功能 |
+| Windows 11 | arm64 | NSIS 安装器 | 完整功能 |
+| macOS 10.15+ | Apple Silicon (arm64) | dmg | 完整功能（壁纸铺满方式由系统决定） |
+| macOS 10.15+ | Intel (x64) | dmg | 完整功能（同上） |
+| Linux (X11) | x64 | AppImage | 悬浮球/贴边需 X11 会话 |
+| Linux (X11) | arm64 | AppImage | 同上 |
+
+> **Linux 桌面环境**：壁纸设置支持 GNOME/KDE/XFCE/Cinnamon/MATE/LXDE/Deepin；
+> 托盘图标依赖 StatusNotifier（libayatana-appindicator 已随 AppImage 打包）。
+> **Wayland 会话**：主窗口与托盘正常，桌面悬浮球因窗口定位/置顶受限而禁用。
+> **macOS**：安装包未签名，首次打开需右键 → 打开。
 
 ## 安装
 
 ### 从源码编译
 
-确保你的系统已安装 Rust 工具链（Rust 1.70 或更高版本）。
+确保你的系统已安装 Rust 工具链（Rust 1.85 或更高版本）。
 
 ```bash
 # 克隆仓库
@@ -65,13 +81,24 @@ cargo build --release
 # 运行
 cargo run --release
 
-# 构建安装包
+# 构建安装包（NSIS / dmg / AppImage，按当前平台默认）
 cargo packager --release
+
+# 指定打包格式与目标
+cargo packager --release --formats dmg --target aarch64-apple-darwin
+```
+
+**Linux 构建依赖**：
+
+```bash
+sudo apt install libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
+  libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libx11-dev \
+  libxcb1-dev libxrandr-dev libxi-dev cmake
 ```
 
 ### 下载预编译版本
 
-访问 [Releases](https://github.com/zsyo/wallwarp/releases) 页面下载适合你系统的预编译版本。
+访问 [Releases](https://github.com/zsyo/wallwarp/releases) 页面下载适合你系统的预编译版本（每个平台均提供 x64 与 arm64 架构）。
 
 ## 使用说明
 
@@ -99,7 +126,13 @@ cargo packager --release
 
 ## 配置文件
 
-WallWarp 会在程序同级目录创建 `config.toml` 配置文件，用于保存用户设置：
+WallWarp 的数据目录（`config.toml`、壁纸库、缓存、数据库、日志）按平台存放：
+
+- **Windows**：exe 同级目录（便携式，绿色软件）
+- **macOS**：`~/Library/Application Support/WallWarp`
+- **Linux**：`~/.config/wallwarp`
+
+`config.toml` 用于保存用户设置：
 
 ```toml
 [global]
@@ -117,7 +150,14 @@ wallwarp/
 ├── src/
 │   ├── main.rs                      # 应用入口点
 │   ├── lib.rs                       # 库入口，声明所有模块
-│   ├── i18n.rs                      # 国际化支持模块
+│   ├── i18n/                        # 国际化支持模块
+│   ├── platform/                    # 平台抽象层（Windows/macOS/Linux 实现）
+│   │   ├── mod.rs                   # 公共接口（窗口几何/工作区/菜单锚点）
+│   │   ├── menu.rs                  # 托盘与原生菜单跨平台封装
+│   │   ├── menu_linux.rs            # Linux GTK 菜单运行时
+│   │   ├── windows.rs               # Win32 实现
+│   │   ├── macos.rs                 # AppKit 实现
+│   │   └── linux.rs                 # X11 实现
 │   ├── ui/                          # 用户界面模块
 │   │   ├── app.rs                   # 主应用逻辑
 │   │   ├── mod.rs                   # UI模块声明
@@ -220,14 +260,14 @@ wallwarp/
 │       ├── helpers.rs               # 辅助函数
 │       ├── logger.rs                # 日志系统
 │       ├── single_instance.rs       # 单实例控制
-│       ├── startup.rs               # 启动管理
-│       └── window_utils.rs          # 窗口工具
+│       └── startup/                 # 开机自启动（注册表/plist/desktop 按平台拆分）
 ├── locales/                         # 语言文件
 │   ├── zh-cn.ftl                    # 中文翻译
 │   └── en.ftl                       # 英文翻译
 ├── assets/                          # 资源文件
 │   ├── icons.ttf                    # 图标字体
-│   └── logo.ico                     # 应用图标
+│   ├── logo.ico                     # 应用图标（Windows）
+│   └── logo-*.png                   # 应用图标（macOS/Linux 打包用）
 ├── .github/                         # GitHub 配置
 │   └── workflows/
 │       └── release.yml              # 发布工作流
@@ -242,13 +282,13 @@ wallwarp/
 
 ### 构建要求
 
-- Rust 1.70 或更高版本
-- Windows 10 或更高版本（当前主要支持 Windows）
-- **最低 CPU 要求**: 支持 x86-64-v3 指令集的处理器（约 2013 年及以后的 Intel/AMD CPU）
+- Rust 1.85 或更高版本（Edition 2024）
+- Windows 10+ / macOS 10.15+ / Linux（GTK3 开发库，见上文）
+- **最低 CPU 要求（x64）**: 支持 x86-64-v3 指令集的处理器（约 2013 年及以后的 Intel/AMD CPU；arm64 无此要求）
 
 ### 编译优化
 
-本项目使用 `x86-64-v3` 目标 CPU 进行编译优化，以获得更好的性能：
+本项目在 CI 中对 x64 构建使用 `x86-64-v3` 目标 CPU 进行编译优化：
 
 ```bash
 # 设置编译优化标志

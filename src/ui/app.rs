@@ -2,11 +2,11 @@
 
 use super::ActivePage;
 use crate::i18n::I18n;
+use crate::platform;
 use crate::ui::main::{FloatingBallManager, FloatingBallState, TrayManager};
 use crate::ui::style;
 use crate::utils::assets;
 use crate::utils::config::{Config, Theme};
-use crate::utils::window_utils;
 use iced::widget::image::Handle;
 use std::path::PathBuf;
 use tracing::{error, info};
@@ -74,7 +74,7 @@ impl App {
             Theme::Light => style::ThemeConfig::new(style::Theme::Light),
             Theme::Auto => {
                 // 自动模式：根据系统主题判断
-                let is_system_dark = window_utils::get_system_color_mode();
+                let is_system_dark = platform::system_color_mode();
                 info!(
                     "[启动] [主题] 自动模式，系统主题: {}",
                     if is_system_dark { "深色" } else { "浅色" }

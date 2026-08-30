@@ -104,6 +104,33 @@ pub fn get_system_ui_font() -> &'static str {
     }
 }
 
+/// 应用数据根目录（config.toml / data / cache / db / logs 的存放基准）
+///
+/// - Windows: exe 同级目录（保持便携式布局，与历史版本一致）
+/// - macOS:   ~/Library/Application Support/WallWarp
+/// - Linux:   ~/.config/wallwarp（XDG；AppImage 挂载点只读，不能用 exe 同级目录）
+pub fn app_root_dir() -> std::path::PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|dir| dir.to_path_buf()))
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+    }
+    #[cfg(target_os = "macos")]
+    {
+        dirs::data_dir()
+            .map(|dir| dir.join("WallWarp"))
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+    }
+    #[cfg(target_os = "linux")]
+    {
+        dirs::config_dir()
+            .map(|dir| dir.join("wallwarp"))
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+    }
+}
+
 /// 检测运行环境
 pub fn is_running_via_cargo() -> bool {
     // 只要是 cargo 启动的，这个环境变量一定存在

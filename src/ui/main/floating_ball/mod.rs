@@ -7,9 +7,8 @@ mod view;
 pub use view::floating_ball_view;
 
 use crate::i18n::I18n;
+use crate::platform::menu::{self, MenuItemDef, MenuKind};
 use crate::utils::config::GlobalConfig;
-use std::collections::HashMap;
-use tray_icon::menu::{Menu, MenuItem, PredefinedMenuItem};
 
 /// 悬浮球贴边的屏幕边缘（仅支持左右贴边）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -134,102 +133,64 @@ impl FloatingBallState {
     }
 }
 
+/// 悬浮球菜单项定义：(菜单事件 id, i18n key, 初始可用状态)
+const BALL_ITEMS: [(&str, &str, bool); 6] = [
+    ("ball_show", "menu.tray-show", true),
+    ("ball_switch_previous", "menu.tray-switch-previous", false),
+    ("ball_switch_next", "menu.tray-switch-next", true),
+    ("ball_save_current", "menu.tray-save-current", true),
+    ("ball_settings", "menu.tray-settings", true),
+    ("ball_close", "menu.ball-close", true),
+];
+
 /// 悬浮球菜单管理器
 ///
 /// 菜单结构同托盘菜单，最后一项为“关闭悬浮球”（而非退出程序）；
 /// 菜单事件经由 muda 全局 channel 流入现有的 TrayMenuEvent 订阅。
 pub struct FloatingBallManager {
-    menu: Menu,
-    kv: HashMap<String, String>,
-    items: HashMap<String, MenuItem>,
+    menu: menu::Menu,
+    /// 菜单事件 id → i18n key（语言切换时刷新文本）
+    kv: Vec<(String, String)>,
 }
 
 impl FloatingBallManager {
     pub fn new(i18n: &I18n) -> Self {
-        let mut kv = HashMap::new();
-        let mut items = HashMap::new();
+        let kv: Vec<(String, String)> = BALL_ITEMS
+            .iter()
+            .map(|(id, key, _)| (id.to_string(), key.to_string()))
+            .collect();
+        let items: Vec<MenuItemDef> = BALL_ITEMS
+            .iter()
+            .map(|(id, key, enabled)| MenuItemDef {
+                id,
+                text: i18n.t(key),
+                enabled: *enabled,
+            })
+            .collect();
 
-        let add_item = |items: &mut HashMap<String, MenuItem>,
-                        kv: &mut HashMap<String, String>,
-                        id: &str,
-                        i18n_key: &str,
-                        enabled: bool| {
-            let item = MenuItem::with_id(id, i18n.t(i18n_key), enabled, None);
-            kv.insert(id.to_string(), i18n_key.to_string());
-            items.insert(id.to_string(), item);
-        };
+        // 分隔线：显示主窗口之后、保存当前之后（结构同托盘菜单）
+        let menu = menu::build_menu(MenuKind::Ball, items, &[0, 3]);
 
-        add_item(&mut items, &mut kv, "ball_show", "menu.tray-show", true);
-        add_item(
-            &mut items,
-            &mut kv,
-            "ball_switch_previous",
-            "menu.tray-switch-previous",
-            false,
-        );
-        add_item(
-            &mut items,
-            &mut kv,
-            "ball_switch_next",
-            "menu.tray-switch-next",
-            true,
-        );
-        add_item(
-            &mut items,
-            &mut kv,
-            "ball_save_current",
-            "menu.tray-save-current",
-            true,
-        );
-        add_item(
-            &mut items,
-            &mut kv,
-            "ball_settings",
-            "menu.tray-settings",
-            true,
-        );
-        add_item(&mut items, &mut kv, "ball_close", "menu.ball-close", true);
-
-        let menu = Menu::with_items(&[
-            items.get("ball_show").unwrap(),
-            &PredefinedMenuItem::separator(),
-            items.get("ball_switch_previous").unwrap(),
-            items.get("ball_switch_next").unwrap(),
-            items.get("ball_save_current").unwrap(),
-            &PredefinedMenuItem::separator(),
-            items.get("ball_settings").unwrap(),
-            items.get("ball_close").unwrap(),
-        ])
-        .unwrap();
-
-        Self { menu, kv, items }
+        Self { menu, kv }
     }
 
-    /// 在指定窗口句柄处弹出悬浮球菜单（须在拥有窗口的主线程调用）
-    pub fn show_popup_at(&self, hwnd: isize) -> bool {
-        use tray_icon::menu::ContextMenu;
-        unsafe { self.menu.show_context_menu_for_hwnd(hwnd, None) }
+    /// 在指定窗口锚点处弹出悬浮球菜单（须在拥有窗口的主线程调用）
+    pub fn show_popup_at(&self, anchor: crate::platform::WindowAnchor) -> bool {
+        self.menu.popup_at(anchor)
     }
 
     pub fn update_switch_previous_item(&mut self, history_count: usize) {
-        self.items
-            .get("ball_switch_previous")
-            .unwrap()
-            .set_enabled(history_count >= 2);
+        self.menu
+            .set_enabled("ball_switch_previous", history_count >= 2);
     }
 
     pub fn update_save_current_item(&mut self, can_save: bool) {
-        self.items
-            .get("ball_save_current")
-            .unwrap()
-            .set_enabled(can_save);
+        self.menu.set_enabled("ball_save_current", can_save);
     }
 
     pub fn update_i18n(&mut self, i18n: &I18n) {
         for (id, lang_key) in self.kv.iter() {
-            if let Some(item) = self.items.get_mut(id) {
-                item.set_text(i18n.t(lang_key));
-            }
+            self.menu.set_text(id, i18n.t(lang_key));
         }
     }
 }

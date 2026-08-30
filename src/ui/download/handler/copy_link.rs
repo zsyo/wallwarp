@@ -11,35 +11,19 @@ impl App {
             let success_message = self.i18n.t("download-tasks.copy-link-success").to_string();
             let failed_message = self.i18n.t("download-tasks.copy-link-failed").to_string();
 
-            // 异步复制到剪贴板
+            // 异步复制到剪贴板（arboard 原生实现，三平台通用）
             return Task::perform(
                 async move {
-                    #[cfg(target_os = "windows")]
-                    {
-                        use std::process::Command;
-                        let result = Command::new("cmd")
-                            .args(["/c", "echo", &url, "|", "clip"])
-                            .output();
-                        match result {
-                            Ok(_) => Ok(()),
-                            Err(_) => Err("复制失败".to_string()),
-                        }
-                    }
-                    #[cfg(not(target_os = "windows"))]
-                    {
-                        use std::process::Command;
-                        let result = Command::new("xclip")
-                            .args(["-selection", "clipboard"])
-                            .write_stdin(url.as_bytes())
-                            .output();
-                        match result {
-                            Ok(_) => Ok(()),
-                            Err(_) => Err("复制失败".to_string()),
-                        }
-                    }
+                    tokio::task::spawn_blocking(move || {
+                        arboard::Clipboard::new()
+                            .and_then(|mut clipboard| clipboard.set_text(&url))
+                            .map_err(|e| e.to_string())
+                    })
+                    .await
+                    .map_err(|e| format!("任务中断: {e}"))?
                 },
                 move |result| match result {
-                    Ok(_) => {
+                    Ok(()) => {
                         MainMessage::ShowNotification(success_message, NotificationType::Success)
                             .into()
                     }
