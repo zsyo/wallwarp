@@ -24,12 +24,19 @@ fn t_with_args_interpolates_placeholders() {
         "占位符未被插值: {}",
         text
     );
-    assert!(text.contains('3') && text.contains('5') && text.contains('/'), "插值结果异常: {}", text);
+    assert!(
+        text.contains('3') && text.contains('5') && text.contains('/'),
+        "插值结果异常: {}",
+        text
+    );
 }
 
 /// 验证缺失键回退：返回键名本身且不 panic
 #[test]
 fn t_missing_key_returns_key() {
     let i18n = I18n::new();
-    assert_eq!(i18n.t("definitely-not-exists.key"), "definitely-not-exists.key");
+    assert_eq!(
+        i18n.t("definitely-not-exists.key"),
+        "definitely-not-exists.key"
+    );
 }

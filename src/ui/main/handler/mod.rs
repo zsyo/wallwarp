@@ -3,6 +3,7 @@
 mod close_confirm;
 mod custom_title_bar;
 mod detect_color_mode;
+mod floating_ball;
 mod instance_trigger;
 mod minimize_to_tray;
 mod notice;

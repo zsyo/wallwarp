@@ -152,6 +152,7 @@ settings = Settings
     .app-language = Application Language:
     .auto-startup = Auto startup:
     .enable-logging = Runtime Logging:
+    .show-floating-ball = Show Floating Ball
     .logging-notice-enabled = Logging enabled, restart to take effect
     .logging-notice-disabled = Logging disabled, restart to take effect
     .close-action = Close button behavior:
@@ -265,6 +266,7 @@ menu =
     .tray-settings = Settings
     .tray-save-current = Save current wallpaper to library
     .tray-quit = Quit program
+    .ball-close = Close Floating Ball
 
 theme =
     .switch-to-light = Switch to light theme

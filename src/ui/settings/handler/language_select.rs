@@ -13,6 +13,7 @@ impl App {
         info!("[设置] [语言] 修改: {} -> {}", old_lang, lang);
         self.i18n.set_language(lang.clone());
         self.tray_manager.update_i18n(&self.i18n);
+        self.floating_ball.update_i18n(&self.i18n);
         // 同时更新配置
         self.config.set_language(lang);
         // 自动收起语言选择器

@@ -6,19 +6,17 @@ use iced::window;
 
 impl App {
     pub(in crate::ui::main) fn title_bar_drag(&mut self) -> Task<AppMessage> {
-        window::oldest().and_then(window::drag)
+        window::drag::<AppMessage>(self.main_window_id)
     }
 
     pub(in crate::ui::main) fn title_bar_minimize(&mut self) -> Task<AppMessage> {
-        window::oldest()
-            .and_then(|id: window::Id| window::minimize(id, true).map(|_: ()| AppMessage::None))
+        window::minimize(self.main_window_id, true).map(|_: ()| AppMessage::None)
     }
 
     pub(in crate::ui::main) fn title_bar_maximize(&mut self) -> Task<AppMessage> {
         let is_maximized = !self.main_state.is_maximized;
         self.main_state.is_maximized = is_maximized;
 
-        window::oldest()
-            .and_then(move |id| window::maximize(id, is_maximized).map(|_: ()| AppMessage::None))
+        window::maximize(self.main_window_id, is_maximized).map(|_: ()| AppMessage::None)
     }
 }

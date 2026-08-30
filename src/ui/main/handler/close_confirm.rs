@@ -33,7 +33,7 @@ impl App {
             CloseConfirmationAction::MinimizeToTray => {
                 Task::done(MainMessage::MinimizeToTray.into())
             }
-            CloseConfirmationAction::CloseApp => iced::exit(),
+            CloseConfirmationAction::CloseApp => self.quit_program(),
         }
     }
 

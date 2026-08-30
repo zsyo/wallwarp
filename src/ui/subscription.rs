@@ -36,15 +36,21 @@ impl App {
             };
 
         Subscription::batch(vec![
-            // 窗口事件监听
-            event::listen_with(|event, _status, _loop_status| match event {
-                Event::Window(window::Event::Resized(size)) => {
-                    Some(MainMessage::WindowResized(size.width as u32, size.height as u32).into())
-                }
+            // 窗口事件监听（携带窗口Id，由处理器按主窗口/悬浮球过滤）
+            event::listen_with(|event, _status, window_id| match event {
+                Event::Window(window::Event::Resized(size)) => Some(
+                    MainMessage::WindowResized(window_id, size.width as u32, size.height as u32)
+                        .into(),
+                ),
                 Event::Window(window::Event::CloseRequested) => {
-                    Some(MainMessage::WindowCloseRequested.into())
+                    Some(MainMessage::WindowCloseRequested(window_id).into())
                 }
-                Event::Window(window::Event::Focused) => Some(MainMessage::WindowFocused.into()),
+                Event::Window(window::Event::Focused) => {
+                    Some(MainMessage::WindowFocused(window_id).into())
+                }
+                Event::Window(window::Event::Moved(pos)) => {
+                    Some(MainMessage::WindowMoved(window_id, pos).into())
+                }
                 _ => None,
             }),
             // 托盘事件监听

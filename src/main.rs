@@ -2,11 +2,11 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use iced::{Size, Task, font, window};
+use iced::{Size, Task, font, theme, window};
 use tracing::{error, info};
 use wallwarp::i18n::I18n;
 use wallwarp::services::async_task::async_cleanup_cache;
-use wallwarp::ui::main::MainMessage;
+use wallwarp::ui::main::{MainMessage, window_settings};
 use wallwarp::ui::{App, AppMessage};
 use wallwarp::utils::{assets, config, helpers, logger, single_instance::SingleInstanceGuard};
 
@@ -39,27 +39,13 @@ fn main() -> iced::Result {
     let (rgba, width, height) = assets::get_logo(LOGO_SIZE);
     let icon = window::icon::from_rgba(rgba, width, height).expect("生成 Iced 图标失败");
 
-    let settings = window::Settings {
-        position: window::Position::Centered,
-        size: Size::new(cfg.display.width as f32, cfg.display.height as f32),
-        min_size: Some(Size::new(
-            config::MIN_WINDOW_WIDTH as f32,
-            config::MIN_WINDOW_HEIGHT as f32,
-        )),
-        icon: Some(icon),
-        exit_on_close_request: false,
-        visible: !start_hidden, // 如果是隐藏模式，初始不显示窗口
-        decorations: false,     // 隐藏默认标题栏，使用自定义标题栏
-        ..window::Settings::default()
-    };
-
     let system_ui_font = helpers::get_system_ui_font();
     info!("系统 UI 字体: {}", system_ui_font);
 
-    let init_data = std::cell::RefCell::new(Some((i18n, cfg)));
-    iced::application(
+    let init_data = std::cell::RefCell::new(Some((i18n, cfg, icon)));
+    iced::daemon(
         move || {
-            let (i18n, cfg) = init_data
+            let (i18n, cfg, icon) = init_data
                 .borrow_mut()
                 .take()
                 .expect("App can only be initialized once");
@@ -67,7 +53,37 @@ fn main() -> iced::Result {
             // 在 cfg 被移动之前先克隆一份用于清理任务
             let cleanup_config = cfg.clone();
 
-            let app = App::new_with_config(i18n, cfg);
+            let mut app = App::new_with_config(i18n, cfg);
+
+            // daemon 默认不开窗：主窗口在此显式打开并记录 Id
+            let main_settings = window::Settings {
+                position: window::Position::Centered,
+                size: Size::new(
+                    app.config.display.width as f32,
+                    app.config.display.height as f32,
+                ),
+                min_size: Some(Size::new(
+                    config::MIN_WINDOW_WIDTH as f32,
+                    config::MIN_WINDOW_HEIGHT as f32,
+                )),
+                icon: Some(icon),
+                exit_on_close_request: false,
+                visible: !start_hidden, // 如果是隐藏模式，初始不显示窗口
+                decorations: false,     // 隐藏默认标题栏，使用自定义标题栏
+                ..window::Settings::default()
+            };
+            let (main_id, open_main_task) = window::open(main_settings);
+            app.main_window_id = main_id;
+
+            let mut tasks: Vec<Task<AppMessage>> = vec![open_main_task.map(|_| AppMessage::None)];
+
+            // 按配置打开悬浮球窗口
+            if app.config.global.show_floating_ball {
+                let (ball_id, open_ball_task) = window::open(window_settings(&app.config.global));
+                app.floating_ball_id = Some(ball_id);
+                tasks.push(open_ball_task.map(|_| AppMessage::None));
+                info!("[启动] [悬浮球] 已按配置打开: {:?}", ball_id);
+            }
 
             // 创建启动任务
             let load_font_task = font::load(assets::ICON_FONT).discard();
@@ -94,22 +110,41 @@ fn main() -> iced::Result {
                 |msg| msg,
             );
 
-            (
-                app,
-                Task::batch(vec![
-                    load_font_task,
-                    enable_resize_task,
-                    listen_task,
-                    cleanup_task,
-                ]),
-            )
+            tasks.extend(vec![
+                load_font_task,
+                enable_resize_task,
+                listen_task,
+                cleanup_task,
+            ]);
+
+            (app, Task::batch(tasks))
         },
         App::update,
         App::view,
     )
     .subscription(|app: &App| app.subscription())
-    .window(settings)
-    .title(|app: &App| app.title())
+    .title(|app: &App, _id: window::Id| app.title())
+    // 悬浮球窗口使用“背景透明”的专用主题（style 闭包中识别），实现圆形透出
+    .theme(|app: &App, id: window::Id| {
+        if Some(id) == app.floating_ball_id {
+            let mut palette = iced::theme::Theme::Dark.palette();
+            palette.background = iced::Color::TRANSPARENT;
+            iced::theme::Theme::custom("wallwarp-floating-ball".to_string(), palette)
+        } else {
+            // 主窗口：跟随应用自身主题（深色/浅色）
+            match app.theme_config.get_theme() {
+                wallwarp::ui::style::Theme::Dark => iced::theme::Theme::Dark,
+                _ => iced::theme::Theme::Light,
+            }
+        }
+    })
+    .style(|_app: &App, theme: &iced::Theme| {
+        let mut style = theme::Base::base(theme);
+        if theme.palette().background == iced::Color::TRANSPARENT {
+            style.background_color = iced::Color::TRANSPARENT;
+        }
+        style
+    })
     .default_font(iced::Font {
         family: font::Family::Name(system_ui_font),
         ..iced::Font::DEFAULT

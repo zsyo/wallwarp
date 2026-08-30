@@ -6,16 +6,38 @@ use iced::Task;
 /// 主界面页面消息
 #[derive(Debug, Clone)]
 pub enum MainMessage {
-    /// 窗口大小改变事件
-    WindowResized(u32, u32),
+    /// 窗口大小改变事件（窗口Id, 宽, 高）
+    WindowResized(iced::window::Id, u32, u32),
     /// 执行延迟保存事件
     ExecutePendingSave,
     /// 页面选择事件
     PageSelected(ActivePage),
-    /// 窗口关闭请求事件
-    WindowCloseRequested,
-    /// 窗口聚焦事件
-    WindowFocused,
+    /// 窗口关闭请求事件（窗口Id）
+    WindowCloseRequested(iced::window::Id),
+    /// 窗口聚焦事件（窗口Id）
+    WindowFocused(iced::window::Id),
+    /// 窗口位置改变事件（窗口Id, 逻辑坐标）
+    WindowMoved(iced::window::Id, iced::Point),
+    /// 悬浮球鼠标按下
+    FloatingBallPressed,
+    /// 悬浮球内光标移动（窗口内坐标）
+    FloatingBallCursorMoved(iced::Point),
+    /// 悬浮球鼠标释放
+    FloatingBallReleased,
+    /// 悬浮球右键释放（弹出菜单）
+    FloatingBallRightReleased,
+    /// 执行退出程序（悬浮球清理完成后的延迟消息）
+    ExitProgram,
+    /// 悬浮球窗口句柄就绪（弹出菜单）
+    FloatingBallMenuReady(isize),
+    /// 悬浮球悬停状态变化
+    FloatingBallHovered(bool),
+    /// 悬浮球贴边请求（吸附到最近左右边缘并呈半圆形态）
+    FloatingBallSnapToEdge,
+    /// 悬浮球贴边完成（携带吸附上下文,由处理器存入状态）
+    FloatingBallSnapped(crate::ui::main::floating_ball::SnapState),
+    /// 悬浮球位置防抖保存
+    FloatingBallSavePosition,
     /// 窗口最小化到托盘事件
     MinimizeToTray,
     /// 窗口最小化到托盘最终隐藏事件
@@ -81,10 +103,21 @@ impl App {
     pub fn handle_main_message(&mut self, msg: MainMessage) -> Task<AppMessage> {
         match msg {
             MainMessage::PageSelected(page) => self.page_selected(page),
-            MainMessage::WindowResized(width, height) => self.window_resized(width, height),
+            MainMessage::WindowResized(id, width, height) => self.window_resized(id, width, height),
             MainMessage::ExecutePendingSave => self.execute_pending_save(),
-            MainMessage::WindowCloseRequested => self.window_close_requested(),
-            MainMessage::WindowFocused => self.window_focused(),
+            MainMessage::WindowCloseRequested(id) => self.window_close_requested(id),
+            MainMessage::WindowFocused(id) => self.window_focused(id),
+            MainMessage::WindowMoved(id, pos) => self.window_moved(id, pos),
+            MainMessage::FloatingBallPressed => self.floating_ball_pressed(),
+            MainMessage::FloatingBallCursorMoved(pos) => self.floating_ball_cursor_moved(pos),
+            MainMessage::FloatingBallReleased => self.floating_ball_released(),
+            MainMessage::FloatingBallRightReleased => self.floating_ball_right_released(),
+            MainMessage::ExitProgram => self.exit_program(),
+            MainMessage::FloatingBallMenuReady(hwnd) => self.floating_ball_menu_ready(hwnd),
+            MainMessage::FloatingBallHovered(hovered) => self.floating_ball_hovered(hovered),
+            MainMessage::FloatingBallSnapToEdge => self.floating_ball_snap_to_edge(),
+            MainMessage::FloatingBallSnapped(snap) => self.floating_ball_snapped(snap),
+            MainMessage::FloatingBallSavePosition => self.floating_ball_save_position(),
             MainMessage::MinimizeToTray => self.minimize_to_tray(),
             MainMessage::WindowHiddenReady(id) => self.window_hidden_ready(id),
             MainMessage::TrayIconClicked => self.show_window(),
@@ -118,7 +151,7 @@ impl App {
             MainMessage::TitleBarDrag => self.title_bar_drag(),
             MainMessage::TitleBarMinimize => self.title_bar_minimize(),
             MainMessage::TitleBarMaximize => self.title_bar_maximize(),
-            MainMessage::TitleBarClose => self.window_close_requested(),
+            MainMessage::TitleBarClose => self.window_close_requested(self.main_window_id),
             MainMessage::RestoreBorderResize(window_state) => {
                 self.restore_border_resize(window_state)
             }

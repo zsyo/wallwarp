@@ -39,6 +39,12 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                 &app.theme_config,
             ),
             super::create_setting_row(
+                app.i18n.t("settings.show-floating-ball"),
+                toggler(app.config.global.show_floating_ball)
+                    .on_toggle(|state| SettingsMessage::FloatingBallToggled(state).into()),
+                &app.theme_config,
+            ),
+            super::create_setting_row(
                 app.i18n.t("settings.close-action"),
                 row![
                     radio(

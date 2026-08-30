@@ -151,6 +151,7 @@ settings = 设置
     .app-language = 程序语言:
     .auto-startup = 随电脑启动:
     .enable-logging = 运行日志:
+    .show-floating-ball = 显示悬浮球
     .logging-notice-enabled = 已开启日志，重启程序后生效
     .logging-notice-disabled = 已关闭日志，重启程序后生效
     .close-action = 关闭按钮行为:
@@ -264,6 +265,7 @@ menu =
     .tray-settings = 设置
     .tray-save-current = 保存当前壁纸到库
     .tray-quit = 退出程序
+    .ball-close = 关闭悬浮球
 
 theme =
     .switch-to-light = 切换为浅色主题

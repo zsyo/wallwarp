@@ -16,6 +16,8 @@ pub enum SettingsMessage {
     AutoStartupToggled(bool),
     /// 日志状态更改
     LoggingToggled(bool),
+    /// 显示/隐藏桌面悬浮球
+    FloatingBallToggled(bool),
     /// 窗口关闭按钮行为选择
     CloseActionSelected(CloseAction),
     /// 打开链接
@@ -107,6 +109,9 @@ impl App {
                 self.settings_auto_startup_toggled(enabled)
             }
             SettingsMessage::LoggingToggled(enabled) => self.settings_logging_toggled(enabled),
+            SettingsMessage::FloatingBallToggled(enabled) => {
+                self.settings_floating_ball_toggled(enabled)
+            }
             SettingsMessage::CloseActionSelected(action) => {
                 self.settings_close_action_selected(action)
             }

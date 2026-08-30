@@ -3,6 +3,7 @@
 mod auto_startup_toggle;
 mod auto_wallpaper;
 mod close_action_select;
+mod floating_ball_toggle;
 mod language_select;
 mod logging_toggle;
 mod open_path;

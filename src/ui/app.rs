@@ -2,7 +2,7 @@
 
 use super::ActivePage;
 use crate::i18n::I18n;
-use crate::ui::main::TrayManager;
+use crate::ui::main::{FloatingBallManager, FloatingBallState, TrayManager};
 use crate::ui::style;
 use crate::utils::assets;
 use crate::utils::config::{Config, Theme};
@@ -16,6 +16,16 @@ pub struct App {
     pub config: Config,
     pub active_page: ActivePage,
     pub tray_manager: TrayManager,
+    /// 桌面悬浮球菜单管理器
+    pub floating_ball: FloatingBallManager,
+    /// 主窗口 Id（daemon 模式下多窗口，须显式区分）
+    pub main_window_id: iced::window::Id,
+    /// 悬浮球窗口 Id（None 表示未显示）
+    pub floating_ball_id: Option<iced::window::Id>,
+    /// 悬浮球交互状态（点击/拖动区分）
+    pub floating_ball_state: FloatingBallState,
+    /// 悬浮球位置防抖保存标志
+    pub(crate) floating_ball_save_pending: bool,
     /// 主题配置
     pub theme_config: crate::ui::style::ThemeConfig,
     /// 主题颜色缓存（仅在主题切换时更新）
@@ -56,6 +66,7 @@ impl App {
         i18n.set_language(config.global.language.clone());
 
         let tray_manager = TrayManager::new(&i18n);
+        let floating_ball = FloatingBallManager::new(&i18n);
 
         // 根据配置文件中的主题配置初始化主题
         let theme_config = match config.global.theme {
@@ -99,6 +110,11 @@ impl App {
             config: config.clone(),
             active_page: ActivePage::OnlineWallpapers,
             tray_manager,
+            floating_ball,
+            main_window_id: iced::window::Id::unique(),
+            floating_ball_id: None,
+            floating_ball_state: FloatingBallState::default(),
+            floating_ball_save_pending: false,
             theme_config,
             theme_colors,
             main_state: super::main::MainState::load_from_config(&config),
@@ -124,12 +140,16 @@ impl App {
         self.i18n.t("app-title")
     }
 
-    /// 更新托盘菜单项的状态
+    /// 更新托盘与悬浮球菜单项的状态
     fn update_tray_menu_items(&mut self) {
-        self.tray_manager
-            .update_switch_previous_item(self.wallpaper_history.len());
-        self.tray_manager
-            .update_save_current_item(self.can_save_current_wallpaper());
+        let history_count = self.wallpaper_history.len();
+        let can_save = self.can_save_current_wallpaper();
+
+        self.tray_manager.update_switch_previous_item(history_count);
+        self.tray_manager.update_save_current_item(can_save);
+        self.floating_ball
+            .update_switch_previous_item(history_count);
+        self.floating_ball.update_save_current_item(can_save);
     }
 
     /// 初始化下载任务数据库

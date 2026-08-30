@@ -39,6 +39,15 @@ pub struct GlobalConfig {
     pub proxy: String,
     #[serde(default = "default_proxy_enabled")]
     pub proxy_enabled: bool,
+    /// 是否显示桌面悬浮球
+    #[serde(default)]
+    pub show_floating_ball: bool,
+    /// 悬浮球位置 x（逻辑坐标，i32::MIN 表示未设置，使用默认位置）
+    #[serde(default = "default_floating_ball_pos")]
+    pub floating_ball_x: i32,
+    /// 悬浮球位置 y（逻辑坐标，i32::MIN 表示未设置，使用默认位置）
+    #[serde(default = "default_floating_ball_pos")]
+    pub floating_ball_y: i32,
 }
 
 impl Default for GlobalConfig {
@@ -50,6 +59,9 @@ impl Default for GlobalConfig {
             close_action: CloseAction::default(),
             proxy: String::new(),
             proxy_enabled: true,
+            show_floating_ball: false,
+            floating_ball_x: i32::MIN,
+            floating_ball_y: i32::MIN,
         }
     }
 }
@@ -60,6 +72,10 @@ fn default_language() -> String {
 
 fn default_proxy_enabled() -> bool {
     true
+}
+
+fn default_floating_ball_pos() -> i32 {
+    i32::MIN
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

@@ -28,6 +28,15 @@ pub fn restore_and_bring_to_front(hwnd: HWND) -> bool {
     }
 }
 
+/// 将指定句柄（isize 形式）的窗口设为前台
+///
+/// 供弹出原生菜单前调用（如悬浮球菜单），确保菜单能正常响应外部点击关闭
+pub fn set_foreground_window_by_isize(hwnd: isize) {
+    unsafe {
+        let _ = SetForegroundWindow(HWND(hwnd as *mut _));
+    }
+}
+
 /// 显示窗口并置顶
 pub fn show_and_bring_to_front(hwnd: HWND) -> bool {
     unsafe {
@@ -48,5 +57,39 @@ pub fn get_system_color_mode() -> bool {
             dark_light::Mode::Dark => true,
         },
         Err(_) => false,
+    }
+}
+
+/// 移除窗口的 DWM 系统边框与非客户区渲染
+///
+/// 用于悬浮球：Windows 11 会为圆角窗口绘制 1px 系统边框，
+/// 在透明窗口上表现为圆球外围的一圈方框，需显式禁用。
+///
+/// # 参数
+/// - `hwnd`: 窗口句柄
+pub fn remove_dwm_frame(hwnd: HWND) {
+    use windows::Win32::Graphics::Dwm::{
+        DWMNCRENDERINGPOLICY, DWMNCRP_DISABLED, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE,
+        DWMWA_NCRENDERING_POLICY, DwmSetWindowAttribute,
+    };
+
+    unsafe {
+        // 禁用非客户区渲染（系统阴影/边框）
+        let policy = DWMNCRENDERINGPOLICY(DWMNCRP_DISABLED.0);
+        let _ = DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_NCRENDERING_POLICY,
+            &policy as *const _ as *const std::ffi::c_void,
+            std::mem::size_of::<DWMNCRENDERINGPOLICY>() as u32,
+        );
+
+        // Win11 22000+：将边框颜色设为 NONE（旧系统调用失败可忽略）
+        let color_none = DWMWA_COLOR_NONE;
+        let _ = DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_BORDER_COLOR,
+            &color_none as *const _ as *const std::ffi::c_void,
+            std::mem::size_of::<u32>() as u32,
+        );
     }
 }

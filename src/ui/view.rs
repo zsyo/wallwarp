@@ -9,8 +9,14 @@ use iced::widget::{container, stack, text};
 use iced::{Element, Length, Task};
 
 impl App {
-    pub fn view(&self) -> Element<'_, AppMessage> {
-        // 先渲染底层内容
+    /// 按窗口 Id 分发视图（daemon 多窗口模式）
+    pub fn view(&self, window_id: iced::window::Id) -> Element<'_, AppMessage> {
+        // 悬浮球窗口：独立的轻量视图
+        if Some(window_id) == self.floating_ball_id {
+            return crate::ui::main::floating_ball_view(self);
+        }
+
+        // 主窗口：先渲染底层内容
         let base_content = main_view(self);
 
         // 如果显示任何确认对话框，则将对话框叠加在底层内容上

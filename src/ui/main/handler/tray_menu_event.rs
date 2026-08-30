@@ -29,8 +29,28 @@ impl App {
                 return self.show_window();
             }
             "tray_quit" => {
-                // 真正退出程序
-                return iced::exit();
+                // 真正退出程序（先关闭悬浮球窗口避免残影）
+                return self.quit_program();
+            }
+            // ===== 悬浮球菜单（动作与托盘菜单同源，末项为关闭悬浮球） =====
+            "ball_show" => {
+                return self.show_window();
+            }
+            "ball_switch_previous" => {
+                return Task::done(MainMessage::TraySwitchPreviousWallpaper.into());
+            }
+            "ball_switch_next" => {
+                return Task::done(MainMessage::TraySwitchNextWallpaper.into());
+            }
+            "ball_save_current" => {
+                return Task::done(MainMessage::TraySaveCurrentWallpaper.into());
+            }
+            "ball_settings" => {
+                self.active_page = ActivePage::Settings;
+                return self.show_window();
+            }
+            "ball_close" => {
+                return self.floating_ball_close();
             }
             _ => {}
         }
