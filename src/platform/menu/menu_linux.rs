@@ -78,8 +78,6 @@ pub(super) fn attach_tray(
 
 /// GTK 线程主循环：初始化 GTK → 轮询命令 → 运行 GLib 主循环
 fn gtk_thread(rx: Receiver<MenuCommand>) {
-    use gtk::prelude::*;
-
     if let Err(e) = gtk::init() {
         tracing::error!("[托盘] [GTK] 初始化失败，托盘与悬浮球菜单不可用: {e}");
         return;

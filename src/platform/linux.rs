@@ -35,7 +35,7 @@ pub fn window_anchor(mw: &dyn iced::window::Window) -> WindowAnchor {
 
     match mw.window_handle().map(|h| h.as_raw()) {
         Ok(RawWindowHandle::Xlib(handle)) => WindowAnchor::X11(handle.window as u32),
-        Ok(RawWindowHandle::Xcb(handle)) => WindowAnchor::X11(handle.window),
+        Ok(RawWindowHandle::Xcb(handle)) => WindowAnchor::X11(handle.window.get()),
         // Wayland：菜单锚点由 GTK 运行时内部窗口承担，几何查询不可用
         Ok(RawWindowHandle::Wayland(_)) => WindowAnchor::Gtk,
         _ => WindowAnchor::Unsupported,
@@ -96,11 +96,11 @@ pub fn work_area(mw: &dyn iced::window::Window) -> Option<iced::Rectangle> {
         monitor.height as f32,
     );
     // 与全局工作区求交集（取不到 _NET_WORKAREA 时退回显示器全区域）
-    let mut rect = iced::Rectangle::new(iced::Point::new(mx, my), iced::Size::new(mw, mh));
+    let mut rect = iced::Rectangle::new(iced::Point::new(mx, my), iced::Size::new(mw_, mh));
     if let Some(work) = net_workarea(conn, root) {
         let x0 = mx.max(work.x);
         let y0 = my.max(work.y);
-        let x1 = (mx + mw).min(work.x + work.width);
+        let x1 = (mx + mw_).min(work.x + work.width);
         let y1 = (my + mh).min(work.y + work.height);
         if x1 > x0 && y1 > y0 {
             rect =
@@ -120,6 +120,12 @@ pub fn move_window_to(mw: &dyn iced::window::Window, x: f32, y: f32) {
         let _ = conn.flush();
     }
 }
+
+/// 移除窗口的系统边框/非客户区修饰（Linux 无 DWM，无需处理）
+pub fn remove_dwm_frame(_mw: &dyn iced::window::Window) {}
+
+/// 为无边框窗口启用系统级边缘缩放（Linux 用自绘边缘感应层，无需处理）
+pub fn enable_resize_border(_mw: &dyn iced::window::Window) {}
 
 fn connection() -> Option<&'static RustConnection> {
     CONNECTION

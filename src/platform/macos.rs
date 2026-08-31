@@ -50,6 +50,12 @@ pub fn move_window_to(mw: &dyn iced::window::Window, x: f32, y: f32) {
     }
 }
 
+/// 移除窗口的系统边框/非客户区修饰（macOS 用原生 fullsize content view，无需处理）
+pub fn remove_dwm_frame(_mw: &dyn iced::window::Window) {}
+
+/// 为无边框窗口启用系统级边缘缩放（macOS 用原生 fullsize content view，无需处理）
+pub fn enable_resize_border(_mw: &dyn iced::window::Window) {}
+
 /// 悬浮球窗口支持（macOS 全平台支持）
 pub fn supports_floating_ball() -> bool {
     true
