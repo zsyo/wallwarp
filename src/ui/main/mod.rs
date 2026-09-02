@@ -3,6 +3,7 @@
 mod close_confirm;
 mod floating_ball;
 mod handler;
+mod main_window;
 mod message;
 mod state;
 mod tray;
@@ -14,6 +15,7 @@ pub use floating_ball::{
     FloatingBallManager, FloatingBallState, SnapEdge, SnapState, floating_ball_view,
     window_settings,
 };
+pub use main_window::main_window_settings;
 pub use message::MainMessage;
 pub use state::MainState;
 pub use tray::TrayManager;

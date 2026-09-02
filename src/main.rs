@@ -2,15 +2,13 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use iced::{Size, Task, font, theme, window};
+use iced::{Task, font, theme, window};
 use tracing::{error, info};
 use wallwarp::i18n::I18n;
 use wallwarp::services::async_task::async_cleanup_cache;
-use wallwarp::ui::main::{MainMessage, window_settings};
+use wallwarp::ui::main::{MainMessage, main_window_settings, window_settings};
 use wallwarp::ui::{App, AppMessage};
 use wallwarp::utils::{assets, config, helpers, logger, single_instance::SingleInstanceGuard};
-
-const LOGO_SIZE: u32 = 128;
 
 fn main() -> iced::Result {
     // 解析命令行参数，设置工作目录（用于开机自启动）
@@ -38,16 +36,13 @@ fn main() -> iced::Result {
     let cfg = config::Config::new(&i18n.current_lang, &i18n.lang_codes());
     let _log_guard = logger::init_logger(cfg.global.enable_logging);
 
-    let (rgba, width, height) = assets::get_logo(LOGO_SIZE);
-    let icon = window::icon::from_rgba(rgba, width, height).expect("生成 Iced 图标失败");
-
     let system_ui_font = helpers::get_system_ui_font();
     info!("系统 UI 字体: {}", system_ui_font);
 
-    let init_data = std::cell::RefCell::new(Some((i18n, cfg, icon)));
+    let init_data = std::cell::RefCell::new(Some((i18n, cfg)));
     iced::daemon(
         move || {
-            let (i18n, cfg, icon) = init_data
+            let (i18n, cfg) = init_data
                 .borrow_mut()
                 .take()
                 .expect("App can only be initialized once");
@@ -58,37 +53,8 @@ fn main() -> iced::Result {
             let mut app = App::new_with_config(i18n, cfg);
 
             // daemon 默认不开窗：主窗口在此显式打开并记录 Id
-            // （仅 macOS 的红绿灯叠加参数需要可变）
-            #[allow(unused_mut)]
-            let mut main_settings = window::Settings {
-                position: window::Position::Centered,
-                size: Size::new(
-                    app.config.display.width as f32,
-                    app.config.display.height as f32,
-                ),
-                min_size: Some(Size::new(
-                    config::MIN_WINDOW_WIDTH as f32,
-                    config::MIN_WINDOW_HEIGHT as f32,
-                )),
-                icon: Some(icon),
-                exit_on_close_request: false,
-                visible: !start_hidden, // 如果是隐藏模式，初始不显示窗口
-                decorations: cfg!(target_os = "macos"), // macOS：原生红绿灯叠加自绘标题栏；其余平台无边框
-                ..window::Settings::default()
-            };
-            #[cfg(target_os = "macos")]
-            {
-                // macOS：原生红绿灯叠加在自绘标题栏上，原生边缘缩放/全屏可用
-                main_settings.platform_specific.title_hidden = true;
-                main_settings.platform_specific.titlebar_transparent = true;
-                main_settings.platform_specific.fullsize_content_view = true;
-            }
-            #[cfg(target_os = "linux")]
-            {
-                // 与 .desktop 文件名保持一致，便于窗口管理器关联应用图标
-                main_settings.platform_specific.application_id = "wallwarp".to_string();
-            }
-            let (main_id, open_main_task) = window::open(main_settings);
+            let (main_id, open_main_task) =
+                window::open(main_window_settings(&app.config, !start_hidden));
             app.main_window_id = main_id;
 
             let mut tasks: Vec<Task<AppMessage>> = vec![open_main_task.map(|_| AppMessage::None)];

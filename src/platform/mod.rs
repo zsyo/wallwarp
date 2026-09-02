@@ -59,6 +59,22 @@ pub fn supports_floating_ball() -> bool {
     imp::supports_floating_ball()
 }
 
+/// 当前 Linux 会话是否为 Wayland（非 Linux 平台恒为 false）
+///
+/// Wayland 协议限制：客户端无法自行取消最小化/恢复隐藏窗口
+/// （winit 的 set_visible 为空操作、set_minimized(false) 被忽略），
+/// 依赖"恢复窗口"的场景（托盘唤醒主窗口）需按此分支改走重建窗口流程
+pub fn is_wayland() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        imp::is_wayland()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
+}
+
 /// 从 iced 窗口提取原生菜单锚点
 pub fn window_anchor(mw: &dyn iced::window::Window) -> WindowAnchor {
     imp::window_anchor(mw)
