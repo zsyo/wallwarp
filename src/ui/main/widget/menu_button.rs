@@ -64,6 +64,9 @@ pub fn create_menu_button<'a>(
             }),
     ]
     .spacing(10)
+    // 撑满按钮内容区（按钮高度固定，内容在 padding 内顶对齐），
+    // 使图标/文字/指示条在按钮块内垂直居中
+    .height(Length::Fill)
     .align_y(Alignment::Center);
 
     button(button_content)

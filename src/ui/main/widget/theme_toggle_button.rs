@@ -7,7 +7,7 @@ use crate::ui::{App, AppMessage};
 use crate::utils::config::Theme;
 use iced::border::{Border, Radius};
 use iced::widget::{button, text, tooltip};
-use iced::{Element, Length};
+use iced::{Alignment, Element, Length};
 
 /// 创建主题切换按钮
 pub fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
@@ -24,10 +24,15 @@ pub fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
     };
 
     let btn = button(
+        // 撑满按钮内容区并居中（按钮内容在 padding 内顶对齐）
         text(icon_char)
             .color(BUTTON_COLOR_YELLOW)
             .font(iced::Font::with_name("bootstrap-icons"))
-            .size(20),
+            .size(20)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center),
     )
     .on_press(MainMessage::ThemeSelected(target_theme).into())
     .width(Length::Fixed(40.0))

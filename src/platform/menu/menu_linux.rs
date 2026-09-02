@@ -121,9 +121,13 @@ fn handle_command(
                 .map(|_| PredefinedMenuItem::separator())
                 .collect();
             let mut list: Vec<&dyn IsMenuItem> = Vec::new();
+            let mut next_sep = separators.iter();
             for (idx, (_, item)) in ordered.iter().enumerate() {
                 list.push(item);
-                if let Some(sep) = separators.get(idx) {
+                // separator_after 存储项下标：在该下标的项之后插入对应分隔线
+                if separator_after.contains(&idx)
+                    && let Some(sep) = next_sep.next()
+                {
                     list.push(sep);
                 }
             }

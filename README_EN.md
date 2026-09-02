@@ -94,7 +94,7 @@ cargo packager --release --formats dmg --target aarch64-apple-darwin
 ```bash
 sudo apt install libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
   libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev libx11-dev \
-  libxcb1-dev libxrandr-dev libxi-dev cmake libssl-dev pkg-config
+  libxcb1-dev libxrandr-dev libxi-dev cmake libssl-dev pkg-config libxdo-dev
 
 # Required to run AppImages (Ubuntu 22.04+ ships without fuse2)
 sudo apt install libfuse2
