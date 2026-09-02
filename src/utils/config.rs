@@ -233,9 +233,11 @@ impl Default for WallpaperConfig {
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WallpaperAutoChangeMode {
+    // 默认在线模式：首次安装时本地壁纸库为空，在线模式保证
+    // 定时切换/托盘"切换下一张"开箱即用
     #[default]
-    Local,
     Online,
+    Local,
 }
 
 impl WallpaperAutoChangeMode {
@@ -250,7 +252,8 @@ impl WallpaperAutoChangeMode {
         match s {
             "local" => Some(WallpaperAutoChangeMode::Local),
             "online" => Some(WallpaperAutoChangeMode::Online),
-            _ => Some(WallpaperAutoChangeMode::Local),
+            // 未知取值回退到默认（在线）
+            _ => Some(WallpaperAutoChangeMode::Online),
         }
     }
 }
