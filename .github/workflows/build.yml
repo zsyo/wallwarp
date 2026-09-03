@@ -66,21 +66,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-          targets: ${{ matrix.target }}
+          # 输入名为 target（支持逗号分隔；此前误写 targets 未生效，
+          # 导致 macOS 交叉编译时目标标准库未安装）
+          target: ${{ matrix.target }}
           # 自动开启依赖缓存
           cache: true
-
-      - name: Ensure Rust target
-        # 兜底：macOS x64 任务在 arm64 runner 上交叉编译，
-        # setup-rust-toolchain 的 targets 输入在该组合下可能未安装目标
-        if: runner.os == 'Macos'
-        run: rustup target add ${{ matrix.target }}
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'

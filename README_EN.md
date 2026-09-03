@@ -71,24 +71,23 @@ WallWarp is a desktop wallpaper management application built with Rust and the m
 ### Linux Package Manager Installation
 
 Download the package for your architecture from the
-[Releases](https://github.com/zsyo/wallwarp/releases) page (`x86_64` for x64,
-`aarch64` for arm64) and install:
+[Releases](https://github.com/zsyo/wallwarp/releases) page (`x64` or `arm64`) and install:
 
 ```bash
 # deb (Debian / Ubuntu and derivatives)
-sudo apt install ./wallwarp_1.5.0_amd64.deb
+sudo apt install ./wallwarp_1.6.0_linux_x64.deb
 
 # rpm (Fedora / openSUSE / RHEL family)
-sudo rpm -i wallwarp-1.5.0-1.x86_64.rpm
+sudo rpm -i wallwarp-1.6.0-1-linux_x64.rpm
 # or dnf / zypper
-sudo dnf install ./wallwarp-1.5.0-1.x86_64.rpm
+sudo dnf install ./wallwarp-1.6.0-1-linux_x64.rpm
 
 # pacman (Arch / Manjaro etc., installs directly via pacman -U)
-sudo pacman -U wallwarp-1.5.0-1-x86_64.pkg.tar.zst
+sudo pacman -U wallwarp-1.6.0-1-linux_x64.pkg.tar.zst
 
 # AppImage (no installation — make executable and run)
-chmod +x wallwarp_1.5.0_amd64.AppImage
-./wallwarp_1.5.0_amd64.AppImage
+chmod +x wallwarp_1.6.0_linux_x64.AppImage
+./wallwarp_1.6.0_linux_x64.AppImage
 ```
 
 > File names use the version from the actual Release page; pre-release versions

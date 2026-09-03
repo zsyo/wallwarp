@@ -70,23 +70,23 @@ WallWarp 是一款用 Rust 开发的桌面壁纸管理应用程序，采用现�
 ### Linux 包管理器安装
 
 从 [Releases](https://github.com/zsyo/wallwarp/releases) 下载对应架构（x64 为
-`x86_64`，arm64 为 `aarch64`）的包后安装：
+`x64`，arm64 为 `arm64`）的包后安装：
 
 ```bash
 # deb（Debian / Ubuntu 及衍生版）
-sudo apt install ./wallwarp_1.5.0_amd64.deb
+sudo apt install ./wallwarp_1.6.0_linux_x64.deb
 
 # rpm（Fedora / openSUSE / RHEL 系）
-sudo rpm -i wallwarp-1.5.0-1.x86_64.rpm
+sudo rpm -i wallwarp-1.6.0-1-linux_x64.rpm
 # 或 dnf / zypper
-sudo dnf install ./wallwarp-1.5.0-1.x86_64.rpm
+sudo dnf install ./wallwarp-1.6.0-1-linux_x64.rpm
 
 # pacman（Arch / Manjaro 等，直接 pacman -U 安装）
-sudo pacman -U wallwarp-1.5.0-1-x86_64.pkg.tar.zst
+sudo pacman -U wallwarp-1.6.0-1-linux_x64.pkg.tar.zst
 
 # AppImage（免安装，下载后添加执行权限直接运行）
-chmod +x wallwarp_1.5.0_amd64.AppImage
-./wallwarp_1.5.0_amd64.AppImage
+chmod +x wallwarp_1.6.0_linux_x64.AppImage
+./wallwarp_1.6.0_linux_x64.AppImage
 ```
 
 > 文件名中的版本号以实际 Release 页面为准；预发布版本（tag 含 `_`，如

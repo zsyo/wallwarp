@@ -13,6 +13,9 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    outputs:
+      # 跨 job 传递预发布标志（release job 使用；矩阵各任务输出相同取其一）
+      prerelease: ${{ steps.version.outputs.prerelease }}
 
     strategy:
       fail-fast: false
@@ -67,22 +70,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-          targets: ${{ matrix.target }}
+          # 输入名为 target（支持逗号分隔；此前误写 targets 未生效，
+          # 导致 macOS 交叉编译时目标标准库未安装）
+          target: ${{ matrix.target }}
           # 自动开启依赖缓存
           cache: true
-
-      - name: Ensure Rust target
-        # 兜底：macOS x64 任务在 arm64 runner 上交叉编译，
-        # setup-rust-toolchain 的 targets 输入在该组合下可能未安装目标
-        # （Linux 任务保留原样，避免 x86-64-v3 等场景下多装目标）
-        if: runner.os == 'Macos'
-        run: rustup target add ${{ matrix.target }}
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
@@ -203,7 +201,7 @@ jobs:
             --format=mtree \
             --options='!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link' -T -)
 
-          pkg_file="dist/wallwarp-${pkgver}-1-${pkg_arch}.pkg.tar.zst"
+          pkg_file="dist/wallwarp-${pkgver}-1-linux_${pkg_arch}.pkg.tar.zst"
           # .PKGINFO 必须是首个条目；包内属主归零（makepkg/fakeroot 语义）
           tar --zstd --owner=0 --group=0 --numeric-owner -cf "$pkg_file" \
             -C pacman-pkg .PKGINFO .MTREE usr
@@ -253,17 +251,78 @@ jobs:
             -exec cp {} dist/ \; 2>/dev/null || true
           ls -la dist/
 
-      - name: Rename Windows installers
-        # cargo-packager 生成 wallwarp_{cargo_version}_{arch}-setup.exe：
-        # 1. 版本号替换为 tag 版本（Cargo.toml 恒为干净版本，预发布仅体现在 tag）
-        # 2. 补上平台名：wallwarp_{tag_version}_windows_{arch}-setup.exe
-        if: runner.os == 'Windows'
+      - name: Rename installers
+        # 统一产物命名：版本号替换为 tag 版本（Cargo.toml 恒为干净版本，
+        # 预发布仅体现在 tag），并在架构前补平台名（windows/macos/linux）。
+        # 各格式默认名与映射（matrix.arch 为 x64/arm64）：
+        #   NSIS      wallwarp_{v}_{arch}-setup.exe       -> wallwarp_{tv}_windows_{arch}-setup.exe
+        #   dmg       WallWarp_{v}_{arch}.dmg             -> wallwarp_{tv}_macos_{arch}.dmg
+        #   app       WallWarp.app.tar.gz（无版本无架构）  -> wallwarp_{tv}_macos_{arch}.app.tar.gz
+        #   AppImage  wallwarp_{v}_{deb_arch}.AppImage    -> wallwarp_{tv}_linux_{arch}.AppImage
+        #   deb       wallwarp_{v}_{deb_arch}.deb         -> wallwarp_{tv}_linux_{arch}.deb
+        #   rpm       wallwarp-{v}-1.{rpm_arch}.rpm       -> wallwarp-{tv}-1-linux_{arch}.rpm
+        # pacman 在 Package Pacman 步骤已按 linux_{arch} 生成
         shell: bash
         env:
           TAG_VERSION: ${{ steps.version.outputs.version }}
         run: |
+          set -euo pipefail
           cargo_version=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
-          echo "Cargo.toml 版本: $cargo_version -> tag 版本: $TAG_VERSION"
+          arch="${{ matrix.arch }}"
+          echo "Cargo.toml 版本: $cargo_version -> tag 版本: $TAG_VERSION (arch=$arch)"
+          rename() {
+            local base new
+            base=$(basename "$1")
+            new="${base/$cargo_version/$TAG_VERSION}"
+            [ "$base" != "$new" ] && mv "dist/$base" "dist/$new" && return
+            mv "dist/$base" "dist/$new"
+          }
+
+          # deb：Debian 架构名（amd64/arm64）+ 版本替换为 tag 版本
+          for f in dist/*.deb; do
+            [ -e "$f" ] || continue
+            new="${f/$cargo_version/$TAG_VERSION}"
+            new="${new/_amd64./_linux_x64.}"; new="${new/_arm64./_linux_arm64.}"
+            if [ "$f" != "$new" ]; then mv "$f" "$new"; fi
+          done
+
+          # AppImage：upstream arch（x86_64/aarch64）+ 版本替换为 tag 版本
+          for f in dist/*.AppImage; do
+            [ -e "$f" ] || continue
+            new="${f/$cargo_version/$TAG_VERSION}"
+            new="${new/_x86_64./_linux_x64.}"; new="${new/_aarch64./_linux_arm64.}"
+            if [ "$f" != "$new" ]; then mv "$f" "$new"; fi
+          done
+
+          # dmg：cargo-packager 用 product_name（WallWarp_）与 x64/aarch64 架构名
+          for f in dist/*.dmg; do
+            [ -e "$f" ] || continue
+            new="${f/WallWarp_/wallwarp_}"
+            new="${new/$cargo_version/$TAG_VERSION}"
+            new="${new/_x64./_macos_x64.}"; new="${new/_aarch64./_macos_arm64.}"
+            if [ "$f" != "$new" ]; then mv "$f" "$new"; fi
+          done
+
+          # app bundle 归档（WallWarp.app.tar.gz，无版本无架构）
+          for f in dist/*.app.tar.gz; do
+            [ -e "$f" ] || continue
+            mv "$f" "dist/wallwarp_${TAG_VERSION}_macos_${arch}.app.tar.gz"
+          done
+
+          # rpm：连字符风格，rpm 架构名（x86_64/aarch64）+ 版本替换为 tag 版本
+          # 输出如 wallwarp-1.6.0_beta.1-1-linux_x64.rpm
+          for f in dist/*.rpm; do
+            [ -e "$f" ] || continue
+            base=$(basename "$f")
+            new="${base/$cargo_version/$TAG_VERSION}"
+            new="${new/.x86_64.rpm/-linux_x64.rpm}"
+            new="${new/.aarch64.rpm/-linux_arm64.rpm}"
+            if [ "$base" != "$new" ]; then
+              mv "dist/$base" "dist/$new"
+            fi
+          done
+
+          # NSIS：沿用原逻辑（版本替换 + windows 平台名）
           for f in dist/*-setup.exe; do
             [ -e "$f" ] || continue
             base=$(basename "$f")
@@ -284,14 +343,28 @@ jobs:
             dist/*
             wallwarp_*-portable.zip
 
+  # 独立发布 job：全部构建任务成功后仅执行一次，避免 6 个矩阵任务
+  # 并发创建/更新同一 Release 导致 generate_release_notes 反复追加
+  # （Release 页出现多行 "Full Changelog"）
+  release:
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: release-packages-*
+
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/*
-            wallwarp_*-portable.zip
+          # artifacts/release-packages-*/ 下已包含全部平台的产物
+          # （含便携 zip）；dist/** 通配直接取到所有文件
+          files: artifacts/release-packages-*/**
           draft: false
           # tag 版本号含 '_'（如 v1.5.1_beta.1）时标记为预发布
-          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
+          prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
           generate_release_notes: true

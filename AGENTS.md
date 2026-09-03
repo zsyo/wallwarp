@@ -116,7 +116,13 @@
   CI 构建时经环境变量 `WALLWARP_DISPLAY_VERSION=<tag 版本>` 注入，build.rs
   据此生成 `WALLWARP_VERSION`（未注入回退 CARGO_PKG_VERSION），业务代码一律
   读 `env!("WALLWARP_VERSION")` 显示版本（Windows PE 数字版本 FILEVERSION
-  仍取干净版本）；NSIS 安装器文件名在 CI 里重写为 tag 版本
+  仍取干净版本）；全部产物文件名在 CI `Rename installers` 步骤统一重写：
+  版本号替换为 tag 版本 + 架构前补平台名（windows/macos/linux，如
+  `wallwarp_1.6.0_linux_x64.deb`、`wallwarp-1.6.0-1-linux_aarch64.rpm`、
+  `wallwarp_1.6.0_macos_x64.dmg`、`wallwarp_1.6.0_macos_x64.app.tar.gz`）；
+  上游默认名映射注意点：deb/AppImage 用 Debian/RPM 各自的架构名（amd64/
+  x86_64/aarch64），dmg 用 product_name（WallWarp_ 前缀，x86_64→x64），
+  app 归档名 WallWarp.app.tar.gz 无版本无架构
 - **Linux deb/rpm/pacman**：deb 由 cargo-packager 生成；rpm 由 cargo-generate-rpm
   按 `[package.metadata.generate-rpm]`（布局与 deb 对齐）单独生成——cargo-packager
   不支持 rpm；pacman 由 CI 在 cargo-packager 的 pacman 数据 tar.gz 基础上装配
