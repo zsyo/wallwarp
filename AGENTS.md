@@ -110,14 +110,21 @@
   --formats X --target T` 指定；macOS 的 icns 由 cargo-packager 从 PNG 自动生成；
   Linux 构建需 libssl-dev + pkg-config（native-tls 依赖 OpenSSL）及
   libarchive-tools/zstd
+- **版本与预发布**：Cargo.toml 恒为干净正式版本（如 1.5.1），预发布只经 tag
+  表达，分隔符用 `_` 不用 `-`（`v1.5.1_beta.1`/`v1.5.1_rc2` 为预发布，
+  `v1.5.1` 为正式；RPM Version 与 pacman pkgver 字段均禁止 `-`）。
+  CI 构建时经环境变量 `WALLWARP_DISPLAY_VERSION=<tag 版本>` 注入，build.rs
+  据此生成 `WALLWARP_VERSION`（未注入回退 CARGO_PKG_VERSION），业务代码一律
+  读 `env!("WALLWARP_VERSION")` 显示版本（Windows PE 数字版本 FILEVERSION
+  仍取干净版本）；NSIS 安装器文件名在 CI 里重写为 tag 版本
 - **Linux deb/rpm/pacman**：deb 由 cargo-packager 生成；rpm 由 cargo-generate-rpm
   按 `[package.metadata.generate-rpm]`（布局与 deb 对齐）单独生成——cargo-packager
   不支持 rpm；pacman 由 CI 在 cargo-packager 的 pacman 数据 tar.gz 基础上装配
   （上游只产出 PKGBUILD+数据包，非标准包）：写入 .PKGINFO（pkgver 带 -1 后缀，
-  depend=gtk3/libayatana-appindicator/openssl/xdotool，xdotool 提供 muda 运行时
-  动态链接的 libxdo）+ bsdtar 生成 .MTREE（文件+目录，md5/sha256 摘要）+
-  zstd 压缩（--owner=0 --group=0 归零属主，.PKGINFO 必须是 tar 首条目），
-  产物 `wallwarp-{ver}-1-{arch}.pkg.tar.zst` 可直接 `pacman -U` 安装
+  非法字符防御性替换为 _，depend=gtk3/libayatana-appindicator/openssl/xdotool，
+  xdotool 提供 muda 运行时动态链接的 libxdo）+ bsdtar 生成 .MTREE（文件+目录，
+  md5/sha256 摘要）+ zstd 压缩（--owner=0 --group=0 归零属主，.PKGINFO 必须是
+  tar 首条目），产物 `wallwarp-{ver}-1-{arch}.pkg.tar.zst` 可直接 `pacman -U` 安装
 
 ## 开发规范
 

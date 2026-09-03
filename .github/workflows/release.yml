@@ -103,7 +103,31 @@ jobs:
         if: runner.os == 'Linux'
         run: RUSTFLAGS="" cargo install cargo-generate-rpm --locked
 
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" =~ refs/tags/v(.*) ]]; then
+            version="${BASH_REMATCH[1]}"
+            echo "version=${version}" >> "$GITHUB_OUTPUT"
+            # 预发布判定：tag 版本号含 '_' 分隔符即为预发布
+            # （如 v1.5.1_beta.1 / v1.5.1_rc2；v1.5.1 这类不含 '_' 的为正式版）
+            # 注：不用 '-'，因为 RPM Version 字段与 pacman pkgver 均禁止 '-'
+            if [[ "$version" == *_* ]]; then
+              echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "version=latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build
+        env:
+          # 显示版本：Cargo.toml 恒为干净版本，预发布身份仅经此注入
+          # （未传时 build.rs 回退 CARGO_PKG_VERSION）
+          WALLWARP_DISPLAY_VERSION: ${{ steps.version.outputs.version }}
         run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package
@@ -117,25 +141,6 @@ jobs:
         if: runner.os == 'Linux'
         run: cargo generate-rpm --target ${{ matrix.target }}
 
-      - name: Get version
-        id: version
-        shell: bash
-        run: |
-          if [[ "${{ github.ref }}" =~ refs/tags/v(.*) ]]; then
-            version="${BASH_REMATCH[1]}"
-            echo "version=${version}" >> "$GITHUB_OUTPUT"
-            # 预发布判定：tag 版本号含 '-' 分隔符即为预发布
-            # （如 v1.5.1-beta.1 / v1.5.1-rc2；v1.5.1 这类不含 '-' 的为正式版）
-            if [[ "$version" == *-* ]]; then
-              echo "prerelease=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "prerelease=false" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "version=latest" >> "$GITHUB_OUTPUT"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Package Pacman
         # cargo-packager 的 pacman 格式只产出 PKGBUILD + 数据 tar.gz（用户仍需
         # 本机 makepkg），因此在其数据基础上直接装配标准 pacman 包：
@@ -146,6 +151,9 @@ jobs:
         run: |
           set -euo pipefail
           version="${{ steps.version.outputs.version }}"
+          # pacman pkgver 只允许字母数字与 . _ +（'-' 保留为 pkgrel 分隔符），
+          # 防御性清洗预发布 tag 中的非法字符（当前规范用 '_'，本身合法）
+          pkgver="${version//[^[:alnum:].+_]/_}"
           out_dir="target/${{ matrix.target }}/release"
           case "${{ matrix.arch }}" in
             x64) pkg_arch="x86_64" ;;
@@ -167,7 +175,7 @@ jobs:
           cat > pacman-pkg/.PKGINFO <<EOF
           pkgname = wallwarp
           pkgbase = wallwarp
-          pkgver = ${version}-1
+          pkgver = ${pkgver}-1
           pkgdesc = WallWarp 桌面壁纸管理软件
           url = https://github.com/zsyo/wallwarp
           builddate = $(date +%s)
@@ -188,7 +196,7 @@ jobs:
             --format=mtree \
             --options='!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link' -T -)
 
-          pkg_file="dist/wallwarp-${version}-1-${pkg_arch}.pkg.tar.zst"
+          pkg_file="dist/wallwarp-${pkgver}-1-${pkg_arch}.pkg.tar.zst"
           # .PKGINFO 必须是首个条目；包内属主归零（makepkg/fakeroot 语义）
           tar --zstd --owner=0 --group=0 --numeric-owner -cf "$pkg_file" \
             -C pacman-pkg .PKGINFO .MTREE usr
@@ -238,17 +246,25 @@ jobs:
           ls -la dist/
 
       - name: Rename Windows installers
-        # cargo-packager 生成 wallwarp_{version}_{arch}-setup.exe，
-        # 补上平台名：wallwarp_{version}_windows_{arch}-setup.exe
+        # cargo-packager 生成 wallwarp_{cargo_version}_{arch}-setup.exe：
+        # 1. 版本号替换为 tag 版本（Cargo.toml 恒为干净版本，预发布仅体现在 tag）
+        # 2. 补上平台名：wallwarp_{tag_version}_windows_{arch}-setup.exe
         if: runner.os == 'Windows'
         shell: bash
+        env:
+          TAG_VERSION: ${{ steps.version.outputs.version }}
         run: |
+          cargo_version=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+          echo "Cargo.toml 版本: $cargo_version -> tag 版本: $TAG_VERSION"
           for f in dist/*-setup.exe; do
             [ -e "$f" ] || continue
             base=$(basename "$f")
-            new="${base/_x64-setup.exe/_windows_x64-setup.exe}"
+            new="${base/$cargo_version/$TAG_VERSION}"
+            new="${new/_x64-setup.exe/_windows_x64-setup.exe}"
             new="${new/_arm64-setup.exe/_windows_arm64-setup.exe}"
-            mv "dist/$base" "dist/$new"
+            if [ "$base" != "$new" ]; then
+              mv "dist/$base" "dist/$new"
+            fi
           done
           ls -la dist/
 
@@ -268,6 +284,6 @@ jobs:
             dist/*
             wallwarp_*-portable.zip
           draft: false
-          # tag 版本号含 '-'（如 v1.5.1-beta.1）时标记为预发布
+          # tag 版本号含 '_'（如 v1.5.1_beta.1）时标记为预发布
           prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
           generate_release_notes: true

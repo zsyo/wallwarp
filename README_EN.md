@@ -53,19 +53,47 @@ WallWarp is a desktop wallpaper management application built with Rust and the m
 | Platform | Architecture | Installer | Notes |
 |----------|--------------|-----------|-------|
 | Windows 10+ | x64 | NSIS installer / portable zip | Full features |
-| Windows 11 | arm64 | NSIS installer | Full features |
+| Windows 11 | arm64 | NSIS installer / portable zip | Full features |
 | macOS 10.15+ | Apple Silicon (arm64) | dmg | Full features (wallpaper fit mode decided by the system) |
 | macOS 10.15+ | Intel (x64) | dmg | Full features (same as above) |
-| Linux (X11) | x64 | AppImage | Floating ball requires an X11 session |
-| Linux (X11) | arm64 | AppImage | Same as above |
+| Linux (X11) | x64 | AppImage / deb / rpm / pacman | Floating ball requires an X11 session |
+| Linux (X11) | arm64 | AppImage / deb / rpm / pacman | Same as above |
 
 > **Linux desktops**: wallpaper setting supports GNOME/KDE/XFCE/Cinnamon/MATE/LXDE/Deepin;
-> the tray icon relies on StatusNotifier (libayatana-appindicator is bundled with the AppImage).
+> the tray icon relies on StatusNotifier (libayatana-appindicator is bundled with the AppImage;
+> deb/rpm/pacman installs pull it in automatically via the system package manager).
 > **Wayland sessions**: the main window and tray work normally; the desktop floating ball is disabled
 > because window positioning/always-on-top is restricted.
 > **macOS**: the dmg is unsigned — right-click → Open on first launch.
 
 ## Installation
+
+### Linux Package Manager Installation
+
+Download the package for your architecture from the
+[Releases](https://github.com/zsyo/wallwarp/releases) page (`x86_64` for x64,
+`aarch64` for arm64) and install:
+
+```bash
+# deb (Debian / Ubuntu and derivatives)
+sudo apt install ./wallwarp_1.5.0_amd64.deb
+
+# rpm (Fedora / openSUSE / RHEL family)
+sudo rpm -i wallwarp-1.5.0-1.x86_64.rpm
+# or dnf / zypper
+sudo dnf install ./wallwarp-1.5.0-1.x86_64.rpm
+
+# pacman (Arch / Manjaro etc., installs directly via pacman -U)
+sudo pacman -U wallwarp-1.5.0-1-x86_64.pkg.tar.zst
+
+# AppImage (no installation — make executable and run)
+chmod +x wallwarp_1.5.0_amd64.AppImage
+./wallwarp_1.5.0_amd64.AppImage
+```
+
+> File names use the version from the actual Release page; pre-release versions
+> (tag contains `_`, e.g. `1.5.1_beta.1`) are marked as Pre-release on the
+> Releases page.
 
 ### Build from Source
 
@@ -102,7 +130,11 @@ sudo apt install libfuse2
 
 ### Download Pre-built Version
 
-Visit the [Releases](https://github.com/zsyo/wallwarp/releases) page to download the pre-built version for your system (x64 and arm64 builds are provided for every platform).
+Visit the [Releases](https://github.com/zsyo/wallwarp/releases) page to download the pre-built version for your system (x64 and arm64 builds are provided for every platform):
+
+- **Windows**: `*-setup.exe` (NSIS installer) or `*-portable.zip` (portable, extract and run)
+- **macOS**: `.dmg`
+- **Linux**: pick AppImage / deb / rpm / pacman by distribution (see install commands above)
 
 ## Usage
 

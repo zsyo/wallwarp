@@ -53,18 +53,44 @@ WallWarp 是一款用 Rust 开发的桌面壁纸管理应用程序，采用现�
 | 平台 | 架构 | 安装包 | 说明 |
 |------|------|--------|------|
 | Windows 10+ | x64 | NSIS 安装器 / 便携 zip | 完整功能 |
-| Windows 11 | arm64 | NSIS 安装器 | 完整功能 |
+| Windows 11 | arm64 | NSIS 安装器 / 便携 zip | 完整功能 |
 | macOS 10.15+ | Apple Silicon (arm64) | dmg | 完整功能（壁纸铺满方式由系统决定） |
 | macOS 10.15+ | Intel (x64) | dmg | 完整功能（同上） |
-| Linux (X11) | x64 | AppImage | 悬浮球/贴边需 X11 会话 |
-| Linux (X11) | arm64 | AppImage | 同上 |
+| Linux (X11) | x64 | AppImage / deb / rpm / pacman | 悬浮球/贴边需 X11 会话 |
+| Linux (X11) | arm64 | AppImage / deb / rpm / pacman | 同上 |
 
 > **Linux 桌面环境**：壁纸设置支持 GNOME/KDE/XFCE/Cinnamon/MATE/LXDE/Deepin；
-> 托盘图标依赖 StatusNotifier（libayatana-appindicator 已随 AppImage 打包）。
+> 托盘图标依赖 StatusNotifier（libayatana-appindicator 已随 AppImage 打包，
+> deb/rpm/pacman 安装方式经系统包管理器自动安装该依赖）。
 > **Wayland 会话**：主窗口与托盘正常，桌面悬浮球因窗口定位/置顶受限而禁用。
 > **macOS**：安装包未签名，首次打开需右键 → 打开。
 
 ## 安装
+
+### Linux 包管理器安装
+
+从 [Releases](https://github.com/zsyo/wallwarp/releases) 下载对应架构（x64 为
+`x86_64`，arm64 为 `aarch64`）的包后安装：
+
+```bash
+# deb（Debian / Ubuntu 及衍生版）
+sudo apt install ./wallwarp_1.5.0_amd64.deb
+
+# rpm（Fedora / openSUSE / RHEL 系）
+sudo rpm -i wallwarp-1.5.0-1.x86_64.rpm
+# 或 dnf / zypper
+sudo dnf install ./wallwarp-1.5.0-1.x86_64.rpm
+
+# pacman（Arch / Manjaro 等，直接 pacman -U 安装）
+sudo pacman -U wallwarp-1.5.0-1-x86_64.pkg.tar.zst
+
+# AppImage（免安装，下载后添加执行权限直接运行）
+chmod +x wallwarp_1.5.0_amd64.AppImage
+./wallwarp_1.5.0_amd64.AppImage
+```
+
+> 文件名中的版本号以实际 Release 页面为准；预发布版本（tag 含 `_`，如
+> `1.5.1_beta.1`）在 Release 页面会标记为 Pre-release。
 
 ### 从源码编译
 
@@ -101,7 +127,11 @@ sudo apt install libfuse2
 
 ### 下载预编译版本
 
-访问 [Releases](https://github.com/zsyo/wallwarp/releases) 页面下载适合你系统的预编译版本（每个平台均提供 x64 与 arm64 架构）。
+访问 [Releases](https://github.com/zsyo/wallwarp/releases) 页面下载适合你系统的预编译版本（每个平台均提供 x64 与 arm64 架构）：
+
+- **Windows**：`*-setup.exe`（NSIS 安装器）或 `*-portable.zip`（便携版，解压即用）
+- **macOS**：`.dmg`
+- **Linux**：按发行版选择 AppImage / deb / rpm / pacman 包（见上文安装命令）
 
 ## 使用说明
 

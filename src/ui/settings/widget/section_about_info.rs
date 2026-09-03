@@ -31,7 +31,9 @@ pub fn create_about_info_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
                         ),
                         super::create_info_row(
                             app.i18n.t("settings.about-version"),
-                            env!("CARGO_PKG_VERSION").to_string(),
+                            // build.rs 注入的显示版本：预发布 tag 下为
+                            // "1.5.1_beta.1" 形式，本地开发为 Cargo.toml 版本
+                            env!("WALLWARP_VERSION").to_string(),
                             theme_colors
                         ),
                         super::create_about_link_row(
