@@ -1,0 +1,7 @@
+[Desktop Entry]
+Categories=Graphics;
+Exec=wallwarp
+Icon=wallwarp
+Name=WallWarp
+Terminal=false
+Type=Application

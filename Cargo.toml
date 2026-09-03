@@ -110,3 +110,27 @@ icons = ["assets/logo-*.png"]
 # macOS：app bundle + dmg（CI 通过 --formats app,dmg 指定）
 [package.metadata.packager.macos]
 minimum_system_version = "10.15"
+
+# RPM 打包（cargo-generate-rpm；cargo-packager 不支持 rpm 格式）
+# 文件布局与 cargo-packager 生成的 deb 保持一致：
+#   二进制 /usr/bin/wallwarp、资源 /usr/lib/wallwarp、
+#   图标 /usr/share/icons/hicolor/<W>x<H>/apps/wallwarp.png、
+#   桌面项 /usr/share/applications/wallwarp.desktop
+# 二进制的 target/release/ 前缀会被 cargo-generate-rpm 按 --target
+# 自动改写到 target/<triple>/release/，因此双架构共用本配置
+[package.metadata.generate-rpm]
+summary = "WallWarp 桌面壁纸管理软件"
+release = "1"
+auto-req = "no"
+require-sh = false
+assets = [
+    { source = "target/release/wallwarp", dest = "/usr/bin/wallwarp", mode = "755" },
+    { source = "locales/*.ftl", dest = "/usr/lib/wallwarp/locales/", mode = "644" },
+    { source = "packaging/linux/wallwarp.desktop", dest = "/usr/share/applications/wallwarp.desktop", mode = "644" },
+    { source = "assets/logo-16.png", dest = "/usr/share/icons/hicolor/16x16/apps/wallwarp.png", mode = "644" },
+    { source = "assets/logo-32.png", dest = "/usr/share/icons/hicolor/32x32/apps/wallwarp.png", mode = "644" },
+    { source = "assets/logo-64.png", dest = "/usr/share/icons/hicolor/64x64/apps/wallwarp.png", mode = "644" },
+    { source = "assets/logo-128.png", dest = "/usr/share/icons/hicolor/128x128/apps/wallwarp.png", mode = "644" },
+    { source = "assets/logo-256.png", dest = "/usr/share/icons/hicolor/256x256/apps/wallwarp.png", mode = "644" },
+    { source = "assets/logo-512.png", dest = "/usr/share/icons/hicolor/512x512/apps/wallwarp.png", mode = "644" },
+]

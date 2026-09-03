@@ -108,7 +108,16 @@
 - **打包**：`[package.metadata.packager]` 三平台共用（product_name/identifier/
   icons=assets/logo-*.png/resources=locales），CI 用 `cargo packager --release
   --formats X --target T` 指定；macOS 的 icns 由 cargo-packager 从 PNG 自动生成；
-  Linux 构建需 libssl-dev + pkg-config（native-tls 依赖 OpenSSL）
+  Linux 构建需 libssl-dev + pkg-config（native-tls 依赖 OpenSSL）及
+  libarchive-tools/zstd
+- **Linux deb/rpm/pacman**：deb 由 cargo-packager 生成；rpm 由 cargo-generate-rpm
+  按 `[package.metadata.generate-rpm]`（布局与 deb 对齐）单独生成——cargo-packager
+  不支持 rpm；pacman 由 CI 在 cargo-packager 的 pacman 数据 tar.gz 基础上装配
+  （上游只产出 PKGBUILD+数据包，非标准包）：写入 .PKGINFO（pkgver 带 -1 后缀，
+  depend=gtk3/libayatana-appindicator/openssl/xdotool，xdotool 提供 muda 运行时
+  动态链接的 libxdo）+ bsdtar 生成 .MTREE（文件+目录，md5/sha256 摘要）+
+  zstd 压缩（--owner=0 --group=0 归零属主，.PKGINFO 必须是 tar 首条目），
+  产物 `wallwarp-{ver}-1-{arch}.pkg.tar.zst` 可直接 `pacman -U` 安装
 
 ## 开发规范
 

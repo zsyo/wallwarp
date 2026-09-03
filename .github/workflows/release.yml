@@ -23,35 +23,43 @@ jobs:
             os: windows-latest
             target: x86_64-pc-windows-msvc
             formats: nsis
+            arch: x64
             rustflags: "-C target-cpu=x86-64-v3"
-          # Windows arm64：NSIS 安装器
+          # Windows arm64：NSIS 安装器 + 便携 zip
           - name: windows-arm64
             os: windows-11-arm
             target: aarch64-pc-windows-msvc
             formats: nsis
+            arch: arm64
             rustflags: ""
           # macOS 双架构：app bundle + dmg（同机交叉编译 x64）
           - name: macOS-arm64
             os: macos-14
             target: aarch64-apple-darwin
             formats: app,dmg
+            arch: arm64
             rustflags: ""
           - name: macOS-x64
             os: macos-14
             target: x86_64-apple-darwin
             formats: app,dmg
+            arch: x64
             rustflags: ""
-          # Linux x64：AppImage（x86-64-v3 指令级优化）
+          # Linux x64：AppImage + deb + rpm + pacman（x86-64-v3 指令级优化）
+          # rpm 由 cargo-generate-rpm 单独生成（cargo-packager 不支持 rpm）；
+          # pacman 由 CI 在 cargo-packager 数据上装配（见 Package Pacman 步骤）
           - name: linux-x64
             os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            formats: appimage
+            formats: appimage,deb,pacman
+            arch: x64
             rustflags: "-C target-cpu=x86-64-v3"
-          # Linux arm64：AppImage（原生 arm runner）
+          # Linux arm64：AppImage + deb + rpm + pacman（原生 arm runner）
           - name: linux-arm64
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            formats: appimage
+            formats: appimage,deb,pacman
+            arch: arm64
             rustflags: ""
 
     env:
@@ -79,13 +87,21 @@ jobs:
             libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
             libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
             libx11-dev libxcb1-dev libxrandr-dev libxi-dev cmake \
-            libssl-dev pkg-config libxdo-dev
+            libssl-dev pkg-config libxdo-dev \
+            libarchive-tools zstd
 
       - name: Install Tools
         # 使用快速安装工具，避免从源码编译 cargo-packager
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-packager
+
+      - name: Install RPM packaging tool
+        # cargo-generate-rpm 无预编译发布产物（install-action/binstall 不可用），
+        # 源码安装；配合 Cargo.toml 的 [package.metadata.generate-rpm] 使用。
+        # 清空 RUSTFLAGS，避免 x86-64-v3 指令级优化影响工具在 runner 上的运行
+        if: runner.os == 'Linux'
+        run: RUSTFLAGS="" cargo install cargo-generate-rpm --locked
 
       - name: Build
         run: cargo build --release --target ${{ matrix.target }}
@@ -95,22 +111,99 @@ jobs:
           cargo packager --release --formats ${{ matrix.formats }}
           --target ${{ matrix.target }}
 
+      - name: Package RPM
+        # 布局见 Cargo.toml [package.metadata.generate-rpm]；
+        # 二进制路径会按 --target 自动改写为 target/<triple>/release/wallwarp
+        if: runner.os == 'Linux'
+        run: cargo generate-rpm --target ${{ matrix.target }}
+
       - name: Get version
         id: version
         shell: bash
         run: |
           if [[ "${{ github.ref }}" =~ refs/tags/v(.*) ]]; then
-            echo "version=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+            version="${BASH_REMATCH[1]}"
+            echo "version=${version}" >> "$GITHUB_OUTPUT"
+            # 预发布判定：tag 版本号含 '-' 分隔符即为预发布
+            # （如 v1.5.1-beta.1 / v1.5.1-rc2；v1.5.1 这类不含 '-' 的为正式版）
+            if [[ "$version" == *-* ]]; then
+              echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "version=latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create portable zip (Windows x64 only)
-        if: matrix.name == 'windows-x64'
+      - name: Package Pacman
+        # cargo-packager 的 pacman 格式只产出 PKGBUILD + 数据 tar.gz（用户仍需
+        # 本机 makepkg），因此在其数据基础上直接装配标准 pacman 包：
+        # .PKGINFO + .MTREE（bsdtar 生成，与 makepkg 同参，含 md5/sha256 摘要）
+        # + 数据目录 → zstd 压缩 tar，产物可直接 pacman -U 安装
+        # （xdotool 提供 libxdo，muda 菜单运行时动态链接）
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          out_dir="target/${{ matrix.target }}/release"
+          case "${{ matrix.arch }}" in
+            x64) pkg_arch="x86_64" ;;
+            arm64) pkg_arch="aarch64" ;;
+            *) echo "未知架构: ${{ matrix.arch }}"; exit 1 ;;
+          esac
+
+          shopt -s nullglob
+          data_tars=("$out_dir"/wallwarp_*_*.tar.gz)
+          shopt -u nullglob
+          if [ ${#data_tars[@]} -ne 1 ]; then
+            echo "期望恰好 1 个 pacman 数据包，实际 ${#data_tars[@]} 个"; exit 1
+          fi
+
+          mkdir -p pacman-pkg dist
+          tar -xzf "${data_tars[0]}" -C pacman-pkg
+          installed_size="$(du -sb pacman-pkg | cut -f1)"
+
+          cat > pacman-pkg/.PKGINFO <<EOF
+          pkgname = wallwarp
+          pkgbase = wallwarp
+          pkgver = ${version}-1
+          pkgdesc = WallWarp 桌面壁纸管理软件
+          url = https://github.com/zsyo/wallwarp
+          builddate = $(date +%s)
+          packager = zsyo <zephyr@aico.top>
+          size = ${installed_size}
+          arch = ${pkg_arch}
+          license = AGPL-3.0
+          depend = gtk3
+          depend = libayatana-appindicator
+          depend = openssl
+          depend = xdotool
+          xdata = pkgtype=pkg
+          EOF
+
+          # .MTREE 与 makepkg 相同方式生成（文件+目录，bsdtar mtree 格式）
+          (cd pacman-pkg && find .PKGINFO usr | LC_ALL=C sort | \
+            bsdtar --uid 0 --uname root --gid 0 --gname root -czf .MTREE \
+            --format=mtree \
+            --options='!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link' -T -)
+
+          pkg_file="dist/wallwarp-${version}-1-${pkg_arch}.pkg.tar.zst"
+          # .PKGINFO 必须是首个条目；包内属主归零（makepkg/fakeroot 语义）
+          tar --zstd --owner=0 --group=0 --numeric-owner -cf "$pkg_file" \
+            -C pacman-pkg .PKGINFO .MTREE usr
+          # 清理 cargo-packager 的中间产物（tar.gz + PKGBUILD）
+          rm -f "${data_tars[0]}" "$out_dir/PKGBUILD"
+          echo "[pacman] 已生成 $pkg_file"
+
+      - name: Create portable zip (Windows)
+        # 命名与安装器对齐：wallwarp_{version}_windows_{arch}-portable.zip
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.version }}"
-          $portableDir = "wallwarp-portable-windows-x64-$version"
+          $arch = "${{ matrix.arch }}"
+          $portableDir = "wallwarp_${version}_windows_${arch}-portable"
           New-Item -ItemType Directory -Force -Path $portableDir
 
           $filesToInclude = @("target/${{ matrix.target }}/release/wallwarp.exe", "locales")
@@ -138,6 +231,25 @@ jobs:
               -name "*.deb" -o \
               -name "*.app.tar.gz" \) \
             -exec cp {} dist/ \;
+          # rpm 由 cargo-generate-rpm 输出到 target/<triple>/generate-rpm/
+          find target/${{ matrix.target }}/generate-rpm \
+            -type f -name "*.rpm" \
+            -exec cp {} dist/ \;
+          ls -la dist/
+
+      - name: Rename Windows installers
+        # cargo-packager 生成 wallwarp_{version}_{arch}-setup.exe，
+        # 补上平台名：wallwarp_{version}_windows_{arch}-setup.exe
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          for f in dist/*-setup.exe; do
+            [ -e "$f" ] || continue
+            base=$(basename "$f")
+            new="${base/_x64-setup.exe/_windows_x64-setup.exe}"
+            new="${new/_arm64-setup.exe/_windows_arm64-setup.exe}"
+            mv "dist/$base" "dist/$new"
+          done
           ls -la dist/
 
       - name: Upload artifacts
@@ -146,7 +258,7 @@ jobs:
           name: release-packages-${{ matrix.name }}
           path: |
             dist/*
-            wallwarp-portable-windows-x64-*.zip
+            wallwarp_*-portable.zip
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -154,7 +266,8 @@ jobs:
         with:
           files: |
             dist/*
-            wallwarp-portable-windows-x64-*.zip
+            wallwarp_*-portable.zip
           draft: false
-          prerelease: false
+          # tag 版本号含 '-'（如 v1.5.1-beta.1）时标记为预发布
+          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
           generate_release_notes: true
