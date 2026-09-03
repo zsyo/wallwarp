@@ -25,10 +25,11 @@ pub fn window_anchor(mw: &dyn iced::window::Window) -> WindowAnchor {
 pub fn window_geometry(mw: &dyn iced::window::Window) -> Option<super::WindowGeometry> {
     let window = ns_window(mw)?;
     let frame = window.frame();
+    // CGFloat 为 f64，iced 几何类型为 f32
     Some(super::WindowGeometry {
-        x: frame.origin.x,
-        y: frame.origin.y,
-        size: frame.size.width.max(frame.size.height),
+        x: frame.origin.x as f32,
+        y: frame.origin.y as f32,
+        size: frame.size.width.max(frame.size.height) as f32,
     })
 }
 
@@ -38,15 +39,15 @@ pub fn work_area(mw: &dyn iced::window::Window) -> Option<iced::Rectangle> {
     let screen: Retained<NSScreen> = window.screen()?;
     let visible = screen.visibleFrame();
     Some(iced::Rectangle::new(
-        iced::Point::new(visible.origin.x, visible.origin.y),
-        iced::Size::new(visible.size.width, visible.size.height),
+        iced::Point::new(visible.origin.x as f32, visible.origin.y as f32),
+        iced::Size::new(visible.size.width as f32, visible.size.height as f32),
     ))
 }
 
 /// 以 AppKit 全局坐标移动窗口（保持尺寸不变）
 pub fn move_window_to(mw: &dyn iced::window::Window, x: f32, y: f32) {
     if let Some(window) = ns_window(mw) {
-        window.setFrameOrigin(objc2_foundation::NSPoint::new(x, y));
+        window.setFrameOrigin(objc2_foundation::NSPoint::new(x as f64, y as f64));
     }
 }
 
@@ -71,7 +72,9 @@ fn ns_window(mw: &dyn iced::window::Window) -> Option<Retained<NSWindow>> {
     view.window()
 }
 
-unsafe fn ns_view(mw: &dyn iced::window::Window) -> Option<Retained<NSView>> {
+/// 从 iced 窗口提取 NSView（指针安全性由主线程调用约定保证，
+/// retain_autoreleased 失败时返回 None）
+fn ns_view(mw: &dyn iced::window::Window) -> Option<Retained<NSView>> {
     let WindowAnchor::MacOs(ptr) = super::window_anchor(mw) else {
         return None;
     };

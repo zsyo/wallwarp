@@ -77,6 +77,13 @@ jobs:
           # 自动开启依赖缓存
           cache: true
 
+      - name: Ensure Rust target
+        # 兜底：macOS x64 任务在 arm64 runner 上交叉编译，
+        # setup-rust-toolchain 的 targets 输入在该组合下可能未安装目标
+        # （Linux 任务保留原样，避免 x86-64-v3 等场景下多装目标）
+        if: runner.os == 'Macos'
+        run: rustup target add ${{ matrix.target }}
+
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: |
@@ -240,9 +247,10 @@ jobs:
               -name "*.app.tar.gz" \) \
             -exec cp {} dist/ \;
           # rpm 由 cargo-generate-rpm 输出到 target/<triple>/generate-rpm/
+          # （仅 Linux 存在该目录，其它平台忽略 find 报错）
           find target/${{ matrix.target }}/generate-rpm \
             -type f -name "*.rpm" \
-            -exec cp {} dist/ \;
+            -exec cp {} dist/ \; 2>/dev/null || true
           ls -la dist/
 
       - name: Rename Windows installers
