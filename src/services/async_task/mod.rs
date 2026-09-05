@@ -3,6 +3,8 @@
 mod cache_cleanup;
 mod download_to_cache;
 mod download_wallpaper;
+mod file_copy;
+mod file_ops;
 mod get_supported_images;
 mod load_online_wallpaper;
 mod load_single_wallpaper;
@@ -15,6 +17,8 @@ use download_to_cache::*;
 
 pub use cache_cleanup::*;
 pub use download_wallpaper::*;
+pub use file_copy::*;
+pub use file_ops::*;
 pub use get_supported_images::*;
 pub use load_online_wallpaper::*;
 pub use load_single_wallpaper::*;

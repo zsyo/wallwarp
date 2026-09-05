@@ -42,11 +42,7 @@ impl App {
             return Task::done(OnlineMessage::LoadPage.into());
         }
 
-        let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
-            Some(self.config.global.proxy.clone())
-        } else {
-            None
-        };
+        let proxy = self.config.resolved_proxy();
 
         let cache_path = self.config.data.cache_path.clone();
 
@@ -78,11 +74,8 @@ impl App {
             ));
         }
 
-        self.online_state.wallpapers_data = wallpapers.clone();
-        self.online_state.wallpapers = wallpapers
-            .into_iter()
-            .map(|_w| WallpaperLoadStatus::Loading)
-            .collect();
+        self.online_state.wallpapers_data = wallpapers;
+        self.online_state.wallpapers = vec![WallpaperLoadStatus::Loading; self.online_state.wallpapers_data.len()];
         self.online_state.total_count = self.online_state.wallpapers.len();
 
         // 初始化 page_info，记录第一页的结束索引和页码

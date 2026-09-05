@@ -35,6 +35,8 @@ pub enum OnlineMessage {
     DownloadWallpaper(usize),
     /// 从缓存下载
     DownloadFromCache(usize),
+    /// 复制原图链接到剪贴板
+    CopyImageLink(usize),
     /// 从缓存设置为壁纸
     SetAsWallpaperFromCache(usize),
     /// 设置为壁纸
@@ -45,6 +47,8 @@ pub enum OnlineMessage {
     ModalImageDownloaded(iced::widget::image::Handle),
     /// 模态窗口图片下载失败
     ModalImageDownloadFailed(String),
+    /// 模态窗口图片下载进度（已下载字节, 总字节）
+    ModalImageProgress(u64, u64),
     /// 缩略图加载完成（内部消息，用于从异步任务传递 Handle）
     ThumbLoaded(usize, iced::widget::image::Handle),
     // 筛选条件相关消息
@@ -140,12 +144,16 @@ impl App {
             OnlineMessage::ModalImageDownloadFailed(error) => {
                 self.modal_image_download_failed(error)
             }
+            OnlineMessage::ModalImageProgress(downloaded, total) => {
+                self.modal_image_progress(downloaded, total)
+            }
             OnlineMessage::CloseModal => self.close_online_modal(),
             OnlineMessage::NextImage => self.next_online_image(),
             OnlineMessage::PreviousImage => self.previous_online_image(),
             OnlineMessage::ThumbLoaded(idx, handle) => self.online_thumb_loaded(idx, handle),
             OnlineMessage::DownloadWallpaper(index) => self.download_online_wallpaper(index),
             OnlineMessage::DownloadFromCache(index) => self.download_from_cache(index),
+            OnlineMessage::CopyImageLink(index) => self.copy_online_image_link(index),
             OnlineMessage::SetAsWallpaperFromCache(index) => self.set_wallpaper_from_cache(index),
             OnlineMessage::SetAsWallpaper(index) => self.set_online_wallpaper(index),
             OnlineMessage::CategoryToggled(category) => {

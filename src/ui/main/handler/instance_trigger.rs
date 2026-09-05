@@ -11,7 +11,7 @@ impl App {
         &mut self,
         payload: String,
     ) -> Task<AppMessage> {
-        info!("外部实例触发事件: {}", payload);
+        info!("[实例] 外部实例触发事件: {}", payload);
 
         let show_window_task = if payload.contains(WAKE_UP) {
             self.show_window()

@@ -82,6 +82,21 @@ pub fn parse_color(color: &str) -> ColorOption {
     }
 }
 
+/// 对 API key 进行脱敏处理
+///
+/// 长度达到8个字符时保留前4位与后4位，中间以4个星号代替；
+/// 不足8个字符时整体以4个星号代替
+pub fn mask_api_key(key: &str) -> String {
+    let chars: Vec<char> = key.chars().collect();
+    if chars.len() >= 8 {
+        let head: String = chars[..4].iter().collect();
+        let tail: String = chars[chars.len() - 4..].iter().collect();
+        format!("{}****{}", head, tail)
+    } else {
+        "****".to_string()
+    }
+}
+
 /// 解析时间范围
 pub fn parse_time_range(time_range: &str) -> TimeRange {
     match time_range {

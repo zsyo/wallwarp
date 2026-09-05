@@ -106,6 +106,7 @@ pub fn create_filter_bar<'a>(
         20,
         OnlineMessage::Refresh.into(),
     )
+    .height(Length::Fixed(FILTER_CONTROL_HEIGHT))
     .style(solid_icon_button_style(
         theme_colors.light_button,
         theme_colors.light_text,

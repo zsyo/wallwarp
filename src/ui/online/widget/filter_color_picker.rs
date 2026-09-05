@@ -81,6 +81,7 @@ pub fn create_color_picker<'a>(
     let color_trigger = button(color_underlay)
         .padding(6)
         .width(Length::Fixed(80.0))
+        .height(Length::Fixed(FILTER_CONTROL_HEIGHT))
         .on_press(OnlineMessage::ColorPickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(color_button_bg)),

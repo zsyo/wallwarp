@@ -3,7 +3,7 @@
 use crate::services::wallhaven::{Sorting, TimeRange};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{
-    CloseAction, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode,
+    CloseAction, LogLevel, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode,
 };
 use iced::Task;
 
@@ -16,6 +16,12 @@ pub enum SettingsMessage {
     AutoStartupToggled(bool),
     /// 日志状态更改
     LoggingToggled(bool),
+    /// 日志等级选择
+    LogLevelSelected(LogLevel),
+    /// 展开日志等级选择器
+    LogLevelPickerExpanded,
+    /// 关闭日志等级选择器
+    LogLevelPickerDismiss,
     /// 显示/隐藏桌面悬浮球
     FloatingBallToggled(bool),
     /// 窗口关闭按钮行为选择
@@ -40,6 +46,8 @@ pub enum SettingsMessage {
     RestoreDefaultPath(String),
     /// 壁纸API密钥更改
     WallhavenApiKeyChanged(String),
+    /// 切换壁纸API密钥显示/隐藏
+    ToggleWallhavenApiKeyVisible,
     /// 保存壁纸API密钥
     SaveWallhavenApiKey,
     /// 代理协议更改
@@ -66,12 +74,8 @@ pub enum SettingsMessage {
     SaveAutoChangeQuery,
     /// 定时切换排序方式变化
     AutoChangeSortingChanged(Sorting),
-    /// 保存定时切换排序方式
-    SaveAutoChangeSorting,
     /// 定时切换时间范围变化
     AutoChangeTimeRangeChanged(TimeRange),
-    /// 保存定时切换时间范围
-    SaveAutoChangeTimeRange,
     /// 展开语言选择器
     LanguagePickerExpanded,
     /// 关闭语言选择器
@@ -109,6 +113,9 @@ impl App {
                 self.settings_auto_startup_toggled(enabled)
             }
             SettingsMessage::LoggingToggled(enabled) => self.settings_logging_toggled(enabled),
+            SettingsMessage::LogLevelSelected(level) => self.settings_log_level_selected(level),
+            SettingsMessage::LogLevelPickerExpanded => self.settings_log_level_picker_expanded(),
+            SettingsMessage::LogLevelPickerDismiss => self.settings_log_level_picker_dismiss(),
             SettingsMessage::FloatingBallToggled(enabled) => {
                 self.settings_floating_ball_toggled(enabled)
             }
@@ -132,6 +139,9 @@ impl App {
             }
             SettingsMessage::WallhavenApiKeyChanged(api_key) => {
                 self.settings_wallhaven_api_key_changed(api_key)
+            }
+            SettingsMessage::ToggleWallhavenApiKeyVisible => {
+                self.settings_toggle_wallhaven_api_key_visible()
             }
             SettingsMessage::SaveWallhavenApiKey => self.settings_save_wallhaven_api_key(),
             SettingsMessage::ProxyProtocolChanged(protocol) => {
@@ -162,11 +172,9 @@ impl App {
             SettingsMessage::AutoChangeSortingChanged(sorting) => {
                 self.settings_auto_change_sorting_changed(sorting)
             }
-            SettingsMessage::SaveAutoChangeSorting => self.settings_save_auto_change_sorting(),
             SettingsMessage::AutoChangeTimeRangeChanged(time_range) => {
                 self.settings_auto_change_time_range_changed(time_range)
             }
-            SettingsMessage::SaveAutoChangeTimeRange => self.settings_save_auto_change_time_range(),
             SettingsMessage::LanguagePickerExpanded => self.settings_language_picker_expanded(),
             SettingsMessage::LanguagePickerDismiss => self.settings_language_picker_dismiss(),
             SettingsMessage::ProxyProtocolPickerExpanded => {

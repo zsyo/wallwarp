@@ -18,7 +18,7 @@ impl App {
         if let Some(index) = self.download_state.find_task_index(id)
             && let Some(task) = self.download_state.get_task_by_index(index)
         {
-            tracing::info!(
+            tracing::debug!(
                 "[下载任务] [ID:{}] 暂停：status = {:?}, total_size = {} bytes, downloaded_size = {} bytes",
                 id,
                 task.task.status,

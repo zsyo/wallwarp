@@ -159,13 +159,6 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::settings) fn settings_save_auto_change_sorting(
-        &mut self,
-    ) -> Task<AppMessage> {
-        // 此方法已不再使用，保留以避免编译错误
-        Task::none()
-    }
-
     pub(in crate::ui::settings) fn settings_auto_change_time_range_changed(
         &mut self,
         time_range: TimeRange,
@@ -183,13 +176,6 @@ impl App {
 
         // 选择后关闭选择器
         self.settings_state.time_range_picker_expanded = false;
-        Task::none()
-    }
-
-    pub(in crate::ui::settings) fn settings_save_auto_change_time_range(
-        &mut self,
-    ) -> Task<AppMessage> {
-        // 此方法已不再使用，保留以避免编译错误
         Task::none()
     }
 

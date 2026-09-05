@@ -5,7 +5,7 @@ use crate::ui::auto_change::AutoChangeMessage;
 use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 impl App {
     /// 处理获取支持的图片文件列表成功
@@ -51,7 +51,8 @@ impl App {
         &mut self,
         path: String,
     ) -> Task<AppMessage> {
-        info!("[定时切换] [成功] 已设置壁纸: {}", path);
+        // 成功事件由 service 层"壁纸设置成功"日志记录，此处仅调试细节
+        debug!("[定时切换] [成功] 已设置壁纸: {}", path);
 
         // 将壁纸路径添加到历史记录
         Task::done(MainMessage::AddToWallpaperHistory(path).into())

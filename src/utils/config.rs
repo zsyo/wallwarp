@@ -33,6 +33,9 @@ pub struct GlobalConfig {
     pub theme: Theme,
     #[serde(default)]
     pub enable_logging: bool,
+    /// 日志等级（运行日志开启时生效，可在设置页实时调整）
+    #[serde(default)]
+    pub log_level: LogLevel,
     #[serde(default)]
     pub close_action: CloseAction,
     #[serde(default)]
@@ -56,6 +59,7 @@ impl Default for GlobalConfig {
             language: default_language(),
             theme: Theme::default(),
             enable_logging: false,
+            log_level: LogLevel::default(),
             close_action: CloseAction::default(),
             proxy: String::new(),
             proxy_enabled: true,
@@ -109,6 +113,12 @@ pub struct DisplayConfig {
     pub width: u32,
     #[serde(default = "default_window_height")]
     pub height: u32,
+    /// 主窗口位置 x（逻辑坐标，i32::MIN 表示未设置，使用系统默认位置）
+    #[serde(default = "default_window_pos")]
+    pub x: i32,
+    /// 主窗口位置 y（逻辑坐标，i32::MIN 表示未设置，使用系统默认位置）
+    #[serde(default = "default_window_pos")]
+    pub y: i32,
 }
 
 impl Default for DisplayConfig {
@@ -116,8 +126,14 @@ impl Default for DisplayConfig {
         Self {
             width: default_window_width(),
             height: default_window_height(),
+            x: i32::MIN,
+            y: i32::MIN,
         }
     }
+}
+
+fn default_window_pos() -> i32 {
+    i32::MIN
 }
 
 fn default_window_width() -> u32 {
@@ -411,6 +427,35 @@ impl std::fmt::Display for WallpaperMode {
     }
 }
 
+/// 日志等级配置
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum LogLevel {
+    Error,
+    Warn,
+    #[default]
+    Info,
+    Debug,
+    Trace,
+}
+
+impl LogLevel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            LogLevel::Error => "error",
+            LogLevel::Warn => "warn",
+            LogLevel::Info => "info",
+            LogLevel::Debug => "debug",
+            LogLevel::Trace => "trace",
+        }
+    }
+
+    /// 按严重程度从高到低排列的全部档位，供设置页下拉框遍历
+    pub fn all() -> [LogLevel; 5] {
+        [LogLevel::Error, LogLevel::Warn, LogLevel::Info, LogLevel::Debug, LogLevel::Trace]
+    }
+}
+
 /// 主题配置
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, Default, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -495,16 +540,42 @@ impl Config {
         if let Ok(content) = fs::read_to_string(config_path) {
             match toml::from_str::<Config>(&content) {
                 Ok(mut local_config) => {
-                    local_config.fix_config();
+                    // 仅在修复逻辑实际修改过内容时才回写，避免抹掉用户手动添加的注释
+                    let mut modified = local_config.fix_config();
                     if !available_langs.contains(&local_config.global.language) {
                         local_config.global.language = lang.to_string();
+                        modified = true;
                     }
-                    local_config.save_to_file();
+                    if modified {
+                        local_config.save_to_file();
+                    }
                     return local_config;
                 }
                 Err(e) => {
-                    // 配置文件出错, 终止程序
-                    panic!("配置文件出错 {}", e);
+                    // 配置文件损坏：备份留证后以默认配置启动，不再直接终止程序
+                    error!(
+                        "[Config] 配置文件解析失败: {}，将备份为 {}.bak 并使用默认配置",
+                        e,
+                        config_path.display()
+                    );
+                    if let Err(rename_err) =
+                        fs::rename(config_path, format!("{}.bak", config_path.display()))
+                    {
+                        error!(
+                            "[Config] 备份损坏的配置文件失败: {}，原因: {}",
+                            config_path.display(),
+                            rename_err
+                        );
+                    }
+                    let default_config = Config {
+                        global: GlobalConfig {
+                            language: lang.to_string(),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    };
+                    default_config.save_to_file();
+                    return default_config;
                 }
             }
         }
@@ -521,11 +592,25 @@ impl Config {
         default_config
     }
 
-    fn fix_config(&mut self) {
+    /// 当前生效的代理地址（未启用代理或地址为空时返回 None）
+    pub fn resolved_proxy(&self) -> Option<String> {
+        if self.global.proxy_enabled && !self.global.proxy.is_empty() {
+            Some(self.global.proxy.clone())
+        } else {
+            None
+        }
+    }
+
+    /// 修复越界的配置项
+    ///
+    /// 返回是否实际修改过内容
+    fn fix_config(&mut self) -> bool {
         if self.display.width < MIN_WINDOW_WIDTH || self.display.height < MIN_WINDOW_HEIGHT {
             self.display.width = MIN_WINDOW_WIDTH;
             self.display.height = MIN_WINDOW_HEIGHT;
-        };
+            return true;
+        }
+        false
     }
 
     pub fn save_to_file(&self) {
@@ -542,9 +627,21 @@ impl Config {
 
                 // 2. 将 header 和 content 拼接在一起
                 let full_content = format!("{}{}", header, content);
-                let _ = fs::write(CONFIG_FILE, full_content);
+
+                // 3. 先写临时文件再替换，避免写盘中断留下损坏的配置文件
+                let tmp_file = format!("{}.tmp", CONFIG_FILE);
+                let write_result = fs::write(&tmp_file, full_content).and_then(|_| {
+                    // Windows 上 rename 不允许覆盖已存在的目标，需先移除旧文件
+                    if fs::metadata(CONFIG_FILE).is_ok() {
+                        fs::remove_file(CONFIG_FILE)?;
+                    }
+                    fs::rename(&tmp_file, CONFIG_FILE)
+                });
+                if let Err(e) = write_result {
+                    error!("[Config] 配置文件写入失败: {}，原因: {}", CONFIG_FILE, e);
+                }
             }
-            Err(e) => error!("TOML 序化失败: {}", e),
+            Err(e) => error!("[Config] TOML 序化失败: {}", e),
         }
     }
 

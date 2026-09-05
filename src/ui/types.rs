@@ -13,6 +13,7 @@ pub enum AppMessage {
     Download(crate::ui::download::DownloadMessage),
     Settings(crate::ui::settings::SettingsMessage),
     AutoChange(crate::ui::auto_change::AutoChangeMessage),
+    History(crate::ui::history::HistoryMessage),
 }
 
 #[derive(Debug, Clone)]
@@ -27,5 +28,6 @@ pub enum ActivePage {
     OnlineWallpapers,
     LocalList,
     DownloadProgress,
+    WallpaperHistory,
     Settings,
 }

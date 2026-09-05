@@ -26,10 +26,11 @@ impl App {
                     PathBuf::from(&t.task.save_path),
                     t.proxy.clone(),
                     t.task.id,
+                    t.task.total_size,
                 )
             });
 
-        if let Some((url, save_path, proxy, task_id)) = task_data {
+        if let Some((url, save_path, proxy, task_id, total_size)) = task_data {
             if can_start {
                 if let Some(task_full) = self
                     .download_state
@@ -51,9 +52,10 @@ impl App {
                     }
 
                     // 清空缓存文件（cache_path/online中的文件）
+                    // 临时缓存路径由 URL+总大小哈希生成,必须用任务的真实 total_size 定位
                     let cache_path = self.config.data.cache_path.clone();
                     if let Ok(cache_file_path) =
-                        DownloadService::get_online_image_cache_path(&cache_path, &url, 0)
+                        DownloadService::get_online_image_cache_path(&cache_path, &url, total_size)
                     {
                         let _ = std::fs::remove_file(&cache_file_path);
                         tracing::info!(
@@ -71,19 +73,16 @@ impl App {
 
                 self.download_state.increment_downloading();
 
-                // 获取取消令牌和文件总大小（已下载大小为0，因为要重新下载）
-                let (cancel_token, total_size) = if let Some(task) = self
+                // 获取取消令牌（已下载大小为0，因为要重新下载）
+                let cancel_token = if let Some(task) = self
                     .download_state
                     .tasks
                     .iter()
                     .find(|t| t.task.id == task_id)
                 {
-                    (
-                        task.task.cancel_token.clone().unwrap(),
-                        task.task.total_size,
-                    )
+                    task.task.cancel_token.clone().unwrap()
                 } else {
-                    (Arc::new(AtomicBool::new(false)), 0)
+                    Arc::new(AtomicBool::new(false))
                 };
 
                 let cache_path = self.config.data.cache_path.clone();
@@ -100,7 +99,8 @@ impl App {
                     }),
                     move |result| match result {
                         Ok(size) => {
-                            tracing::info!(
+                            // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
+                            tracing::debug!(
                                 "[下载任务] [ID:{}] 重新下载成功, 文件大小: {} bytes",
                                 task_id,
                                 size

@@ -20,10 +20,17 @@ impl App {
                 Task::done(MainMessage::ScrollToTop("online_wallpapers_scroll".to_string()).into())
             }
             ActivePage::LocalList => {
-                // 重置本地状态，以便重新加载壁纸
-                self.local_state = local::LocalState::default();
+                // 本地列表状态跨页保留，避免每次进入都全量重扫+重建缩略图；
+                // 仅当数据路径变化或尚未加载过时重新加载
+                let need_reload = self.local_state.loaded_data_path.as_deref()
+                    != Some(self.config.data.data_path.as_str());
+                let reload_task = if need_reload {
+                    Task::done(local::LocalMessage::LoadWallpapers.into())
+                } else {
+                    Task::none()
+                };
                 Task::batch(vec![
-                    Task::done(local::LocalMessage::LoadWallpapers.into()),
+                    reload_task,
                     Task::done(
                         MainMessage::ScrollToTop("local_wallpapers_scroll".to_string()).into(),
                     ),
@@ -69,6 +76,18 @@ impl App {
 
                 // 滚动到顶部
                 Task::done(MainMessage::ScrollToTop("settings_scroll".to_string()).into())
+            }
+            ActivePage::WallpaperHistory => {
+                // 会话内首次进入时从数据库加载历史
+                let load_task = if !self.history_state.loaded {
+                    Task::done(crate::ui::history::HistoryMessage::Load.into())
+                } else {
+                    Task::none()
+                };
+                Task::batch(vec![
+                    load_task,
+                    Task::done(MainMessage::ScrollToTop("history_scroll".to_string()).into()),
+                ])
             }
             _ => Task::none(),
         }

@@ -45,11 +45,10 @@ impl App {
         &mut self,
         is_maximized: bool,
     ) -> Task<AppMessage> {
-        if self.main_state.is_maximized != is_maximized {
-            self.main_state.is_maximized = is_maximized;
-            window::maximize(self.main_window_id, is_maximized).map(|_: ()| AppMessage::None)
-        } else {
-            Task::none()
-        }
+        // 仅同步缓存状态(供标题栏按钮图标与边缘缩放禁用判断使用)。
+        // 不能调用 window::maximize 强制应用该状态：查询结果在"最大化↔还原"
+        // 切换瞬间可能滞后，此时强行写入会把刚还原的窗口再次最大化
+        self.main_state.is_maximized = is_maximized;
+        Task::none()
     }
 }

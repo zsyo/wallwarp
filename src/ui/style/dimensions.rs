@@ -119,6 +119,9 @@ pub const TEXT_INPUT_SIZE: f32 = 14.0;
 /// 输入框高度
 pub const INPUT_HEIGHT: f32 = 30.0;
 
+/// 在线壁纸筛选栏控件统一高度（下拉触发按钮/刷新按钮等）
+pub const FILTER_CONTROL_HEIGHT: f32 = 30.0;
+
 /// 设置行间距
 pub const ROW_SPACING: f32 = 10.0;
 
@@ -148,6 +151,9 @@ pub const LANG_PICK_LIST_WIDTH: f32 = 120.0;
 
 /// 主题选择器列表宽度
 pub const THEME_PICK_LIST_WIDTH: f32 = 120.0;
+
+/// 日志等级选择器列表宽度
+pub const LOG_LEVEL_PICK_LIST_WIDTH: f32 = 120.0;
 
 /// 端口输入框宽度
 pub const PORT_INPUT_WIDTH: f32 = 80.0;

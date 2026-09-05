@@ -101,7 +101,7 @@ impl App {
                             let size = metadata.len();
                             // 减去 1KB 作为安全边界
                             let safe_size = size.saturating_sub(1024);
-                            tracing::info!(
+                            tracing::debug!(
                                 "[下载任务] [ID:{}] 恢复：实际文件大小 = {} bytes, 安全偏移量 = {} bytes",
                                 task_id,
                                 size,
@@ -131,7 +131,7 @@ impl App {
                         task_full.task.progress = actual_file_size as f32 / total_size as f32;
                     }
                 }
-                tracing::info!(
+                tracing::debug!(
                     "[下载任务] [ID:{}] 恢复：使用偏移量 = {} bytes, total_size = {} bytes",
                     task_id,
                     actual_file_size,
@@ -152,7 +152,8 @@ impl App {
                     }),
                     move |result| match result {
                         Ok(size) => {
-                            tracing::info!(
+                            // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
+                            tracing::debug!(
                                 "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
                                 task_id,
                                 size

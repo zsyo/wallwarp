@@ -10,13 +10,14 @@ use iced::widget::image::Handle;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-/// 壁纸加载状态
-#[derive(Debug, Clone)]
+/// 壁纸缩略图加载状态（仅作标记；壁纸数据统一存于 [`OnlineState::wallpapers_data`]，
+/// 两个 Vec 索引一一对应，避免同一份数据存两份）
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WallpaperLoadStatus {
     /// 加载中
     Loading,
-    /// 已加载（包含缓存的图片 Handle）
-    Loaded(Box<wallhaven::OnlineWallpaper>),
+    /// 已加载（缩略图 Handle 已缓存到 wallpapers_data 对应项的 image_handle 字段）
+    Loaded,
 }
 
 /// 分页信息，记录每页的结束索引和对应的页码

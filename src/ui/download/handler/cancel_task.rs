@@ -8,12 +8,13 @@ use iced::Task;
 impl App {
     pub(in crate::ui::download) fn cancel_download_task(&mut self, id: usize) -> Task<AppMessage> {
         // 先保存任务信息，因为取消后可能无法访问
+        // (临时缓存路径由 URL+总大小哈希生成,必须携带任务的真实 total_size)
         let task_info = self
             .download_state
             .tasks
             .iter()
             .find(|t| t.task.id == id)
-            .map(|t| (t.task.url.clone(), t.task.status.clone()));
+            .map(|t| (t.task.url.clone(), t.task.status.clone(), t.task.total_size));
 
         // 取消任务
         self.download_state.cancel_task(id);
@@ -22,7 +23,7 @@ impl App {
             .update_status(id, DownloadStatus::Cancelled);
 
         // 清除未完成的下载文件（仅删除 .download 缓存文件）
-        if let Some((url, status)) = task_info {
+        if let Some((url, status, total_size)) = task_info {
             // 只有在下载中、等待中或暂停时才清除缓存文件
             if status == DownloadStatus::Downloading
                 || status == DownloadStatus::Waiting
@@ -32,7 +33,7 @@ impl App {
 
                 // 删除缓存文件（cache_path/online中的 .download 文件）
                 if let Ok(cache_file_path) =
-                    DownloadService::get_online_image_cache_path(&cache_path, &url, 0)
+                    DownloadService::get_online_image_cache_path(&cache_path, &url, total_size)
                     && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
                 {
                     let _ = std::fs::remove_file(&cache_file_path);

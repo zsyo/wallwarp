@@ -4,10 +4,10 @@ use crate::i18n::I18n;
 use crate::services::wallhaven::TimeRange;
 use crate::ui::AppMessage;
 use crate::ui::common::drop_down::{
-    self, DropDown, dropdown_option_style, dropdown_panel_style, dropdown_trigger_button,
+    self, DropDown, dropdown_option_style, dropdown_panel_style, flat_dropdown_trigger_button,
 };
 use crate::ui::online::{DisplayableTimeRange, OnlineMessage, OnlineState};
-use crate::ui::style::ThemeColors;
+use crate::ui::style::{FILTER_CONTROL_HEIGHT, ThemeColors};
 use iced::widget::{button, column, container, opaque, text};
 use iced::{Element, Length};
 
@@ -30,12 +30,13 @@ pub fn create_time_range_picker<'a>(
     };
 
     // 触发按钮（underlay）
-    let time_range_trigger = dropdown_trigger_button(
+    let time_range_trigger = flat_dropdown_trigger_button(
         current_time_range.display.to_string(),
         130.0,
         theme_colors,
         OnlineMessage::TimeRangePickerExpanded.into(),
-    );
+    )
+    .height(Length::Fixed(FILTER_CONTROL_HEIGHT));
 
     // 时间范围选项（overlay）
     let time_range_options_content = column(time_range_options.iter().map(|option| {

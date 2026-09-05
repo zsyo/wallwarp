@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::{App, AppMessage, NotificationType};
+use crate::ui::{App, AppMessage};
+use crate::utils::logger;
 use iced::Task;
 use tracing::info;
 
@@ -14,12 +15,9 @@ impl App {
         self.config.global.enable_logging = enabled;
         self.config.save_to_file();
 
-        // 发送通知
-        let message = if enabled {
-            self.i18n.t("settings.logging-notice-enabled")
-        } else {
-            self.i18n.t("settings.logging-notice-disabled")
-        };
-        self.show_notification(message, NotificationType::Info)
+        // 实时生效：挂载/卸载文件输出层
+        logger::update_log_config(enabled, self.config.global.log_level);
+
+        Task::none()
     }
 }

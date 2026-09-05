@@ -24,6 +24,7 @@ impl App {
             AppMessage::Download(message) => self.handle_download_message(message),
             AppMessage::AutoChange(message) => self.handle_auto_change_message(message),
             AppMessage::Settings(message) => self.handle_settings_message(message),
+            AppMessage::History(message) => self.handle_history_message(message),
         }
     }
 }

@@ -1,10 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::async_task::{self, DownloadTaskParams};
-use crate::services::download::DownloadService;
 use crate::ui::download::{DownloadMessage, DownloadStatus};
-use crate::ui::main::MainMessage;
-use crate::ui::{App, AppMessage, NotificationType};
+use crate::ui::{App, AppMessage};
 use iced::Task;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -18,13 +16,6 @@ impl App {
     ) -> Task<AppMessage> {
         let task_index = self.download_state.find_task_index(id);
         if let Some(index) = task_index {
-            // 先保存URL和大小等数据，避免借用冲突
-            let url = if let Some(task) = self.download_state.tasks.get(index) {
-                task.task.url.clone()
-            } else {
-                String::new()
-            };
-
             if let Some(task) = self.download_state.get_task_by_index(index) {
                 // 检查当前状态
                 let current_status = task.task.status.clone();
@@ -35,7 +26,7 @@ impl App {
                     // 下载失败
                     let error_msg = error.unwrap();
                     // 检查是否是用户取消
-                    if error_msg == "下载已取消" {
+                    if error_msg == crate::services::download::DOWNLOAD_CANCELLED {
                         // 检查任务是否在暂停状态被取消
                         // 如果任务原本是暂停状态，则保持暂停，否则设置为已取消
                         // 如果不是暂停状态，设置为已取消
@@ -43,23 +34,9 @@ impl App {
                             task.task.status = DownloadStatus::Cancelled;
                         }
                     } else {
+                        // 失败状态的临时文件清理在下载任务错误路径中完成
+                        // (那里持有真实临时路径,此处无法可靠定位)
                         task.task.status = DownloadStatus::Failed(error_msg.clone());
-
-                        // 清除未完成的下载文件
-                        let cache_path = self.config.data.cache_path.clone();
-
-                        // 删除缓存文件（cache_path/online中的.download文件）
-                        if let Ok(cache_file_path) =
-                            DownloadService::get_online_image_cache_path(&cache_path, &url, size)
-                            && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
-                        {
-                            let _ = std::fs::remove_file(&cache_file_path);
-                            tracing::info!(
-                                "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
-                                id,
-                                cache_file_path
-                            );
-                        }
                     }
                 } else {
                     // 下载成功
@@ -75,6 +52,8 @@ impl App {
                     task.task.progress = 1.0;
                     task.task.total_size = actual_size;
                     task.task.downloaded_size = actual_size;
+                    // 壁纸库新增了文件，本地页列表缓存失效
+                    self.local_state.loaded_data_path = None;
 
                     // 检查是否需要自动设置壁纸
                     let file_name = std::path::Path::new(&task.task.save_path)
@@ -89,25 +68,11 @@ impl App {
                         // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
                         let full_path =
                             crate::utils::helpers::get_absolute_path(&task.task.save_path);
-                        let wallpaper_mode = self.config.wallpaper.mode;
-                        let failed_message =
-                            self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
                         // 清除待设置壁纸的文件名
                         self.online_state.pending_set_wallpaper_filename = None;
 
-                        // 异步设置壁纸
-                        return Task::perform(
-                            async_task::async_set_wallpaper(full_path.clone(), wallpaper_mode),
-                            move |result| match result {
-                                Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
-                                Err(e) => MainMessage::ShowNotification(
-                                    format!("{}: {}", failed_message, e),
-                                    NotificationType::Error,
-                                )
-                                .into(),
-                            },
-                        );
+                        return self.apply_wallpaper(full_path);
                     }
                 }
 
@@ -159,7 +124,8 @@ impl App {
                 }),
                 move |result| match result {
                     Ok(s) => {
-                        tracing::info!(
+                        // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
+                        tracing::debug!(
                             "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
                             next_task_id,
                             s

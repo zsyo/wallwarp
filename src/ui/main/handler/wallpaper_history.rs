@@ -32,6 +32,11 @@ impl App {
         &mut self,
         path: String,
     ) -> Task<AppMessage> {
+        // 统一以"绝对路径 + 去除 \\?\ 前缀"的规范形态入库：
+        // 同一文件若以不同写法（相对/绝对）记录会绕过主键去重，产生重复历史
+        let path =
+            crate::utils::helpers::normalize_path(&crate::utils::helpers::get_absolute_path(&path));
+
         // 检查历史记录中是否已存在该路径，如果存在则先移除
         if let Some(pos) = self.wallpaper_history.iter().position(|p| p == &path) {
             self.wallpaper_history.remove(pos);
@@ -54,43 +59,47 @@ impl App {
             self.wallpaper_history.len()
         );
 
-        // 如果开启了定时切换壁纸,那么重新计算下次切换时间
-        if self.auto_change_state.auto_change_enabled
-            && let Some(minutes) = self.config.wallpaper.auto_change_interval.get_minutes()
-            && minutes > 0
-        {
-            self.auto_change_state.next_execute_time =
-                Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
-        }
+        // 如果开启了定时切换壁纸，重置下次切换时间
+        self.reset_auto_change_next_execute_time();
 
         // 更新托盘与悬浮球菜单项的启用状态
         self.update_menu_items();
 
-        Task::none()
-    }
+        // 历史页缓存失效
+        self.history_state.invalidate();
 
-    pub(in crate::ui::main) fn remove_last_from_wallpaper_history(&mut self) -> Task<AppMessage> {
-        // 从历史记录末尾移除壁纸
-        if let Some(removed) = self.wallpaper_history.pop() {
-            info!(
-                "[壁纸历史] 移除记录: {}, 当前记录数: {}",
-                removed,
-                self.wallpaper_history.len()
-            );
-        }
+        // 正处于历史页时自动重新加载列表（新记录置顶），避免列表清空后不恢复
+        let reload_history_page = if self.active_page == crate::ui::ActivePage::WallpaperHistory {
+            Task::done(crate::ui::history::HistoryMessage::Load.into())
+        } else {
+            Task::none()
+        };
 
-        // 如果开启了定时切换壁纸,那么重新计算下次切换时间
-        if self.auto_change_state.auto_change_enabled
-            && let Some(minutes) = self.config.wallpaper.auto_change_interval.get_minutes()
-            && minutes > 0
-        {
-            self.auto_change_state.next_execute_time =
-                Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
-        }
+        // 持久化历史记录（失败仅告警，不影响主流程）
+        let db_path = path_for_log.clone();
+        Task::perform(
+            async move {
+                tokio::task::spawn_blocking(move || -> Result<(), String> {
+                    use crate::services::database::wallpaper_history::HISTORY_MAX_ENTRIES;
+                    use crate::services::database::{DatabaseManager, WallpaperHistoryRepository};
 
-        // 更新托盘与悬浮球菜单项的启用状态
-        self.update_menu_items();
-
-        Task::none()
+                    let Some(db) = DatabaseManager::try_get() else {
+                        return Err("数据库未初始化".to_string());
+                    };
+                    let repo = WallpaperHistoryRepository::new(db.connection().clone());
+                    repo.upsert(&db_path, chrono::Utc::now().timestamp())?;
+                    repo.prune(HISTORY_MAX_ENTRIES)
+                })
+                .await
+                .map_err(|e| e.to_string())?
+            },
+            |result| {
+                if let Err(e) = result {
+                    tracing::warn!("[壁纸历史] [DB] 写入失败: {}", e);
+                }
+                AppMessage::None.into()
+            },
+        )
+        .chain(reload_history_page)
     }
 }

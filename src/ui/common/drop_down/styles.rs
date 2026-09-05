@@ -5,13 +5,33 @@
 //! 全项目的下拉选择器（设置页/在线筛选/下载筛选）应使用此处提供的
 //! 样式函数与触发按钮构造器，保证面板、选项、悬停与选中态一致。
 
-use crate::ui::style::{RADIUS_MD, RADIUS_SM, ThemeColors, shadows::DIALOG_SHADOW, tint};
+use crate::ui::style::{RADIUS_MD, RADIUS_SM, ThemeColors, darken, shadows::DIALOG_SHADOW, tint};
 use iced::border::{Border, Radius};
-use iced::widget::{Space, button, container, row, text};
+use iced::widget::{Row, Space, button, container, row, text};
 use iced::{Alignment, Color, Font, Length};
 
 /// 下拉箭头图标（bootstrap-icons chevron-down）
 pub const CHEVRON_DOWN: &str = "\u{F282}";
+
+/// 触发按钮内容：左侧文字 + 右侧 chevron 图标
+fn trigger_underlay<'a, Message>(
+    label: String,
+    theme_colors: ThemeColors,
+) -> Row<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    row![
+        text(label).size(14).color(theme_colors.light_text),
+        Space::new().width(Length::Fill),
+        text(CHEVRON_DOWN)
+            .font(Font::with_name("bootstrap-icons"))
+            .size(12)
+            .color(theme_colors.light_text_sub),
+    ]
+    .spacing(4)
+    .align_y(Alignment::Center)
+}
 
 /// 标准下拉触发按钮：左侧文字 + 右侧 chevron 图标
 ///
@@ -25,18 +45,7 @@ pub fn dropdown_trigger_button<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    let underlay = row![
-        text(label).size(14).color(theme_colors.light_text),
-        Space::new().width(Length::Fill),
-        text(CHEVRON_DOWN)
-            .font(Font::with_name("bootstrap-icons"))
-            .size(12)
-            .color(theme_colors.light_text_sub),
-    ]
-    .spacing(4)
-    .align_y(Alignment::Center);
-
-    button(underlay)
+    button(trigger_underlay(label, theme_colors))
         .padding(iced::Padding {
             top: 6.0,
             bottom: 6.0,
@@ -57,6 +66,46 @@ where
                 border: Border {
                     color: border_color,
                     width: 1.0,
+                    radius: Radius::from(RADIUS_SM),
+                },
+                ..button::text(_theme, status)
+            }
+        })
+}
+
+/// 扁平下拉触发按钮：无边框浅底样式，与在线筛选栏的分辨率/比例/颜色触发按钮一致
+///
+/// 悬停/按下时背景轻微加深。
+pub fn flat_dropdown_trigger_button<'a, Message>(
+    label: String,
+    width: f32,
+    theme_colors: ThemeColors,
+    on_press: Message,
+) -> button::Button<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    button(trigger_underlay(label, theme_colors))
+        .padding(iced::Padding {
+            top: 6.0,
+            bottom: 6.0,
+            left: 8.0,
+            right: 8.0,
+        })
+        .width(Length::Fixed(width))
+        .on_press(on_press)
+        .style(move |_theme: &iced::Theme, status| {
+            let bg = match status {
+                button::Status::Hovered => darken(theme_colors.light_button, 0.05),
+                button::Status::Pressed => darken(theme_colors.light_button, 0.10),
+                _ => theme_colors.light_button,
+            };
+            button::Style {
+                background: Some(iced::Background::Color(bg)),
+                text_color: theme_colors.light_text,
+                border: Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
                     radius: Radius::from(RADIUS_SM),
                 },
                 ..button::text(_theme, status)

@@ -1,12 +1,11 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::common;
 use crate::ui::style::{
     BUTTON_COLOR_RED, RADIUS_SM, SEPARATOR_WIDTH, TITLE_BAR_BUTTON_SPACING, TITLE_BAR_HEIGHT,
     TITLE_BAR_ICON_SIZE, TITLE_BAR_TITLE_SIZE, ThemeColors, ThemeConfig, darken,
 };
 use iced::border::{Border, Radius};
-use iced::widget::{button, column, container, mouse_area, row, space::Space, text, tooltip};
+use iced::widget::{button, column, container, mouse_area, row, space::Space, text};
 use iced::{Alignment, Color, Element, Font, Length};
 
 /// macOS 原生红绿灯按钮占据的标题栏左侧宽度
@@ -20,8 +19,6 @@ const TRAFFIC_LIGHT_INSET: f32 = 0.0;
 pub struct TitleBarActions<Message> {
     /// 拖拽窗口
     pub drag: Message,
-    /// 最小化到托盘
-    pub minimize_to_tray: Message,
     /// 最小化
     pub minimize: Message,
     /// 最大化/还原
@@ -91,13 +88,11 @@ where
 /// - `title`: 窗口标题
 /// - `is_maximized`: 是否已最大化
 /// - `theme_config`: 主题配置
-/// - `minimize_to_tray_tooltip`: 最小化到托盘按钮的提示文本
 /// - `actions`: 各按钮消息集合
 pub fn create_title_bar<'a, Message>(
     title: String,
     is_maximized: bool,
     theme_config: &'a ThemeConfig,
-    minimize_to_tray_tooltip: String,
     actions: TitleBarActions<Message>,
 ) -> Element<'a, Message>
 where
@@ -105,7 +100,6 @@ where
 {
     let TitleBarActions {
         drag: drag_message,
-        minimize_to_tray: minimize_to_tray_message,
         minimize: minimize_message,
         maximize: maximize_message,
         close: close_message,
@@ -128,19 +122,6 @@ where
             .align_y(Alignment::Center),
     )
     .on_press(drag_message);
-
-    // 创建最小化到托盘按钮（带 tooltip）
-    let minimize_to_tray_btn = common::create_button_with_tooltip(
-        window_button(
-            "\u{F2EA}", // bootstrap-icons: dash
-            theme_colors,
-            None,
-            minimize_to_tray_message,
-        ),
-        minimize_to_tray_tooltip,
-        tooltip::Position::Bottom,
-        theme_config,
-    );
 
     // 创建最小化按钮
     let minimize_btn = window_button(
@@ -169,7 +150,7 @@ where
     // 创建标题栏内容
     let title_bar_content = row![
         drag_area,
-        row![minimize_to_tray_btn, minimize_btn, maximize_btn, close_btn,]
+        row![minimize_btn, maximize_btn, close_btn,]
             .spacing(TITLE_BAR_BUTTON_SPACING)
             .align_y(Alignment::Center)
             .height(Length::Fill),

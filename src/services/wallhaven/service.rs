@@ -28,21 +28,11 @@ impl WallhavenService {
             let key_start = start + 7; // "apikey=" 的长度
             if let Some(end) = url[key_start..].find('&') {
                 let key_end = key_start + end;
-                let key = &url[key_start..key_end];
-                let masked_key = if key.len() >= 8 {
-                    format!("{}****{}", &key[..4], &key[key.len() - 4..])
-                } else {
-                    "****".to_string()
-                };
+                let masked_key = super::mask_api_key(&url[key_start..key_end]);
                 return format!("{}{}{}", &url[..key_start], masked_key, &url[key_end..]);
             } else {
                 // API key 是最后一个参数
-                let key = &url[key_start..];
-                let masked_key = if key.len() >= 8 {
-                    format!("{}****{}", &key[..4], &key[key.len() - 4..])
-                } else {
-                    "****".to_string()
-                };
+                let masked_key = super::mask_api_key(&url[key_start..]);
                 return format!("{}{}", &url[..key_start], masked_key);
             }
         }

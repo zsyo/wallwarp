@@ -42,6 +42,8 @@ pub enum LocalMessage {
     CloseDeleteConfirm,
     /// 确认删除
     ConfirmDelete(usize),
+    /// 壁纸文件删除完成
+    LocalFileDeleted { index: usize, result: Result<(), String> },
     /// 模态窗口图片加载完成
     ModalImageLoaded(Handle),
 }
@@ -82,6 +84,9 @@ impl App {
             LocalMessage::ShowDeleteConfirm(index) => self.show_local_delete_confirm(index),
             LocalMessage::CloseDeleteConfirm => self.close_local_delete_confirm(),
             LocalMessage::ConfirmDelete(index) => self.confirm_local_delete(index),
+            LocalMessage::LocalFileDeleted { index, result } => {
+                self.local_file_deleted(index, result)
+            }
             LocalMessage::SetWallpaper(index) => self.local_set_as_wallpaper(index),
         }
     }

@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::task::spawn_blocking;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 /// 异步设置壁纸函数
 pub async fn async_set_wallpaper(
@@ -56,7 +56,7 @@ pub async fn async_set_random_online_wallpaper(
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_ok()
     {
-        info!("[定时切换] [在线] 已有任务在执行，跳过本次切换");
+        debug!("[定时切换] [在线] 已有任务在执行，跳过本次切换");
         return Err("已有任务在执行".into());
     }
 
@@ -99,11 +99,7 @@ pub async fn async_set_random_online_wallpaper(
         Some(config.wallhaven.api_key.clone())
     };
 
-    let proxy = if config.global.proxy_enabled && !config.global.proxy.is_empty() {
-        Some(config.global.proxy.clone())
-    } else {
-        None
-    };
+    let proxy = config.resolved_proxy();
     // 创建请求上下文
     let context = RequestContext::new();
 
@@ -123,7 +119,7 @@ pub async fn async_set_random_online_wallpaper(
     let mut wallpapers = Vec::new();
 
     for page in 1..=max_pages {
-        info!(
+        debug!(
             "[定时切换] [在线] 请求第 {} 页壁纸，关键词: {}",
             page,
             if query.is_empty() { "(无)" } else { &query }
@@ -149,14 +145,14 @@ pub async fn async_set_random_online_wallpaper(
         {
             Ok((data, is_last_page, _total_pages, current_page)) => {
                 if data.is_empty() {
-                    info!("[定时切换] [在线] 第 {} 页返回空数据", page);
+                    debug!("[定时切换] [在线] 第 {} 页返回空数据", page);
                     if is_last_page || current_page >= max_pages {
                         break;
                     }
                     continue;
                 }
 
-                info!(
+                debug!(
                     "[定时切换] [在线] 第 {} 页获取到 {} 张壁纸",
                     page,
                     data.len()
@@ -200,7 +196,7 @@ pub async fn async_set_random_online_wallpaper(
         let actual_size = metadata.len();
         if actual_size == selected.file_size {
             // 文件已存在且大小匹配，直接设置壁纸
-            info!(
+            debug!(
                 "[定时切换] [在线] 文件已存在于auto_change目录，直接设置: {}",
                 target_path.display()
             );
@@ -225,7 +221,7 @@ pub async fn async_set_random_online_wallpaper(
             if cache_size == selected.file_size {
                 // 缓存文件存在且大小匹配，移动到 cache_path/auto_change
                 // 因为这是原图且非主动浏览，不需要在 online 目录中保存对应的缓存
-                info!(
+                debug!(
                     "[定时切换] [在线] 从online缓存移动到auto_change目录: {} -> {}",
                     cache_file_path_obj.display(),
                     target_path.display()
@@ -260,7 +256,7 @@ pub async fn async_set_random_online_wallpaper(
         selected.file_size,
     )?;
     let cache_file_path_obj = PathBuf::from(&cache_file_path);
-    info!(
+    debug!(
         "[定时切换] [在线] 缓存不存在，开始下载到online缓存: {}",
         cache_file_path_obj.display()
     );
@@ -268,7 +264,7 @@ pub async fn async_set_random_online_wallpaper(
 
     // 下载完成后，移动到 cache_path/auto_change
     // 因为这是原图且非主动浏览，不需要在 online 目录中保存对应的缓存
-    info!(
+    debug!(
         "[定时切换] [在线] 下载完成，移动到auto_change目录: {} -> {}",
         cache_file_path_obj.display(),
         target_path.display()

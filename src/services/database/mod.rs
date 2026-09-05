@@ -8,9 +8,11 @@
 
 pub mod connection;
 pub mod download_tasks;
+pub mod wallpaper_history;
 
 pub use connection::DatabaseConnection;
 pub use download_tasks::{DownloadTaskDB, DownloadTasksRepository};
+pub use wallpaper_history::{WallpaperHistoryDB, WallpaperHistoryRepository};
 
 use std::sync::OnceLock;
 
@@ -37,6 +39,7 @@ impl DatabaseManager {
 
         // 创建所有需要的表
         DownloadTasksRepository::create_tables(&connection)?;
+        WallpaperHistoryRepository::create_tables(&connection)?;
 
         GLOBAL_DATABASE.get_or_init(|| DatabaseManager { connection });
 
@@ -54,6 +57,13 @@ impl DatabaseManager {
         GLOBAL_DATABASE
             .get()
             .expect("DatabaseManager 未初始化，请先调用 init()")
+    }
+
+    /// 尝试获取全局数据库管理器实例
+    ///
+    /// 数据库初始化失败时返回 None（历史记录等非关键功能据此优雅降级）
+    pub fn try_get() -> Option<&'static DatabaseManager> {
+        GLOBAL_DATABASE.get()
     }
 
     /// 获取数据库连接

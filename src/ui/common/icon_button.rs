@@ -79,6 +79,28 @@ where
     .on_press(message)
 }
 
+/// 创建禁用状态的图标按钮：仅展示置灰图标，无点击事件与悬停反馈
+///
+/// 按钮底色与启用态一致（透明），仅图标颜色弱化，保证布局占位不变。
+pub fn create_icon_button_disabled<'a, Message>(
+    icon_char: &'static str,
+    icon_color: Color,
+) -> button::Button<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    button(
+        text(icon_char)
+            .color(icon_color)
+            .font(Font::with_name("bootstrap-icons"))
+            .size(ICON_BUTTON_TEXT_SIZE)
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center),
+    )
+    .padding(ICON_BUTTON_PADDING)
+    .style(icon_button_style(icon_color))
+}
+
 /// 创建带图标的操作按钮
 ///
 /// # 参数

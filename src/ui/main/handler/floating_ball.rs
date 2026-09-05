@@ -153,7 +153,7 @@ impl App {
     /// Linux：GTK 线程非阻塞弹出，用"菜单打开守卫 + 延迟复位"近似阻塞语义
     pub(crate) fn floating_ball_menu_ready(&mut self, anchor: WindowAnchor) -> Task<AppMessage> {
         if anchor == WindowAnchor::Unsupported {
-            tracing::warn!("[悬浮球] [menu] 无法获取窗口锚点，弹出菜单失败");
+            tracing::warn!("[悬浮球] [菜单] 无法获取窗口锚点，弹出菜单失败");
             return Task::none();
         }
 
@@ -164,7 +164,7 @@ impl App {
             let shown = self.floating_ball.show_popup_at(anchor);
             self.floating_ball_state.set_menu_open(false);
             if !shown {
-                tracing::warn!("[悬浮球] [menu] 弹出菜单失败");
+                tracing::warn!("[悬浮球] [菜单] 弹出菜单失败");
             }
             // 菜单期间鼠标可能已移出球且 on_exit 已被消费，关闭后需补充贴边调度
             if !self.floating_ball_state.is_hovered() {
@@ -209,8 +209,18 @@ impl App {
         Task::none()
     }
 
-    /// 窗口位置改变：仅处理悬浮球窗口，更新配置并防抖持久化
+    /// 窗口位置改变：主窗口记忆位置（防抖持久化）；悬浮球窗口更新配置并防抖持久化
     pub(crate) fn window_moved(&mut self, id: window::Id, pos: iced::Point) -> Task<AppMessage> {
+        // 主窗口：位置记忆（最大化状态下 Windows 会报出还原矩形之外的位置，跳过）
+        if id == self.main_window_id {
+            if self.main_state.is_maximized {
+                return Task::none();
+            }
+            self.config.display.x = pos.x as i32;
+            self.config.display.y = pos.y as i32;
+            return self.request_config_save();
+        }
+
         if Some(id) != self.floating_ball_id {
             return Task::none();
         }

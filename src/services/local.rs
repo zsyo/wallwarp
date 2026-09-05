@@ -7,7 +7,7 @@ use std::fs;
 use std::io::Read;
 use std::num::NonZeroU32;
 use std::path::Path;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 use xxhash_rust::xxh3::xxh3_128;
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "bmp", "webp"];
@@ -97,23 +97,23 @@ impl LocalWallpaperService {
                 .to_string()
         };
 
-        debug!("设置壁纸路径: {}, 模式: {:?}", absolute_path, mode);
+        debug!("[本地壁纸] 设置壁纸路径: {}, 模式: {:?}", absolute_path, mode);
 
         // 1. 先告诉系统：我要用什么样的方式显示壁纸（修改布局设置）
         let wallpaper_mode = Self::convert_wallpaper_mode(mode);
         wallpaper::set_mode(wallpaper_mode).map_err(|e| {
-            error!("设置壁纸模式失败: {}", e);
+            error!("[本地壁纸] 设置壁纸模式失败: {}", e);
             format!("设置壁纸模式失败: {}", e)
         })?;
 
         // 2. 再告诉系统：壁纸文件在哪里（触发系统刷新渲染）
         match wallpaper::set_from_path(&absolute_path) {
             Ok(_) => {
-                debug!("壁纸设置成功");
+                debug!("[本地壁纸] 壁纸设置成功");
                 Ok(())
             }
             Err(e) => {
-                error!("壁纸设置失败: {}", e);
+                error!("[本地壁纸] 壁纸设置失败: {}", e);
                 Err(format!("设置壁纸失败: {}", e).into())
             }
         }
@@ -141,7 +141,7 @@ impl LocalWallpaperService {
             }
         }
 
-        debug!("找到 {} 张支持的壁纸", image_paths.len());
+        debug!("[本地壁纸] 找到 {} 张支持的壁纸", image_paths.len());
         Ok(image_paths)
     }
 
@@ -160,11 +160,11 @@ impl LocalWallpaperService {
             .choose(&mut rand::rng())
             .ok_or("随机选择壁纸失败")?;
 
-        debug!("随机选择壁纸: {}", selected_path);
+        debug!("[本地壁纸] 随机选择壁纸: {}", selected_path);
 
         // 在设置壁纸前验证图片是否可以正常加载
         if image::open(selected_path).is_err() {
-            debug!("跳过损坏的图片: {}", selected_path);
+            debug!("[本地壁纸] 跳过损坏的图片: {}", selected_path);
             return Err("选择的图片已损坏".into());
         }
 
@@ -306,14 +306,19 @@ impl LocalWallpaperService {
 
         let start = std::time::Instant::now();
         let img = image::open(file_path)?.into_rgba8();
-        debug!("{thumbnail_path:?}Load image: {:?}", start.elapsed());
+        debug!(
+            "[缩略图] [文件:{}] 加载图片耗时: {:?}",
+            file_path.display(),
+            start.elapsed()
+        );
         let (src_w, src_h) = img.dimensions();
 
         let ratio = (THUMBNAIL_MAX_WIDTH as f64 / src_w as f64)
             .min(THUMBNAIL_MAX_HEIGHT as f64 / src_h as f64)
             .min(1.0);
-        let dst_w = NonZeroU32::new((src_w as f64 * ratio) as u32).unwrap();
-        let dst_h = NonZeroU32::new((src_h as f64 * ratio) as u32).unwrap();
+        // 极端长宽比可能使缩放后尺寸向下取整为 0,钳制为 1 避免构造 NonZeroU32 时 panic
+        let dst_w = NonZeroU32::new(((src_w as f64 * ratio) as u32).max(1)).unwrap();
+        let dst_h = NonZeroU32::new(((src_h as f64 * ratio) as u32).max(1)).unwrap();
 
         let src_image =
             fr::images::Image::from_vec_u8(src_w, src_h, img.into_raw(), fr::PixelType::U8x4)?;
@@ -322,9 +327,17 @@ impl LocalWallpaperService {
             fr::images::Image::new(dst_w.get(), dst_h.get(), src_image.pixel_type());
 
         let mut resizer = fr::Resizer::new();
-        debug!("{thumbnail_path:?}Create resizer: {:?}", start.elapsed());
+        debug!(
+            "[缩略图] [文件:{}] 创建 resizer 耗时: {:?}",
+            file_path.display(),
+            start.elapsed()
+        );
         resizer.resize(&src_image, &mut dst_image, None)?;
-        debug!("{thumbnail_path:?}Resize image: {:?}", start.elapsed());
+        debug!(
+            "[缩略图] [文件:{}] 缩放图片耗时: {:?}",
+            file_path.display(),
+            start.elapsed()
+        );
 
         let raw_parts = dst_image.into_vec();
         image::save_buffer_with_format(
@@ -356,7 +369,14 @@ impl LocalWallpaperService {
             {
                 let file_size = fs::metadata(&file_path).map_err(to_boxed_error)?.len();
 
-                let (width, height) = image::image_dimensions(&file_path).unwrap_or((0, 0));
+                // 头信息读取失败说明文件损坏或不是有效图片,跳过并记录日志
+                let (width, height) = match image::image_dimensions(&file_path) {
+                    Ok(dims) => dims,
+                    Err(e) => {
+                        warn!("[本地壁纸] [文件:{}] 读取图片尺寸失败,已跳过: {}", name, e);
+                        continue;
+                    }
+                };
 
                 wallpapers.push(Wallpaper::new(
                     file_path.to_string_lossy().to_string(),

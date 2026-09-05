@@ -12,9 +12,9 @@ impl App {
     ) -> Task<AppMessage> {
         // 切换分类：使用位掩码而不是枚举索引值
         self.online_state.categories ^= category.bit_value();
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_sorting_changed(
@@ -22,9 +22,9 @@ impl App {
         sorting: wallhaven::Sorting,
     ) -> Task<AppMessage> {
         self.online_state.sorting = sorting;
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_purity_toggled(
@@ -33,9 +33,9 @@ impl App {
     ) -> Task<AppMessage> {
         // 切换纯净度：使用位掩码而不是枚举索引值
         self.online_state.purities ^= purity.bit_value();
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_search_text_changed(
@@ -51,9 +51,9 @@ impl App {
         resolution: wallhaven::Resolution,
     ) -> Task<AppMessage> {
         self.online_state.resolution = resolution;
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_ratio_changed(
@@ -61,9 +61,9 @@ impl App {
         ratio: wallhaven::Ratio,
     ) -> Task<AppMessage> {
         self.online_state.ratio = ratio;
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_color_changed(
@@ -71,11 +71,11 @@ impl App {
         color: wallhaven::ColorOption,
     ) -> Task<AppMessage> {
         self.online_state.color = color;
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
         // 选择颜色后自动关闭颜色选择器
         self.online_state.color_picker_expanded = false;
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_time_range_changed(
@@ -83,9 +83,9 @@ impl App {
         time_range: wallhaven::TimeRange,
     ) -> Task<AppMessage> {
         self.online_state.time_range = time_range;
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_resolution_mode_changed(
@@ -97,9 +97,9 @@ impl App {
         // 切换模式时清空之前的选择
         self.online_state.selected_resolutions.clear();
         self.online_state.atleast_resolution = None;
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_resolution_toggled(
@@ -119,9 +119,9 @@ impl App {
             // 如果未选中，则添加到选中列表
             self.online_state.selected_resolutions.push(resolution);
         }
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_resolution_atleast_selected(
@@ -130,9 +130,9 @@ impl App {
     ) -> Task<AppMessage> {
         // AtLeast模式：选择分辨率（不自动关闭）
         self.online_state.atleast_resolution = Some(resolution);
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_ratio_toggled(
@@ -152,9 +152,9 @@ impl App {
             // 如果未选中，则添加到选中列表
             self.online_state.selected_ratios.push(ratio);
         }
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_ratio_landscape_toggled(
@@ -177,9 +177,9 @@ impl App {
             });
         }
 
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_ratio_portrait_toggled(
@@ -200,9 +200,9 @@ impl App {
             });
         }
 
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::online) fn online_filter_ratio_all_toggled(&mut self) -> Task<AppMessage> {
@@ -216,8 +216,8 @@ impl App {
             self.online_state.selected_ratios.clear();
         }
 
-        // 保存到配置文件
+        // 同步到配置（内存），磁盘写入经防抖合并
         self.online_state.save_to_config(&mut self.config);
-        Task::none()
+        self.request_config_save()
     }
 }

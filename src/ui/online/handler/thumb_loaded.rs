@@ -14,11 +14,9 @@ impl App {
         if idx < self.online_state.wallpapers.len()
             && let Some(wallpaper) = self.online_state.wallpapers_data.get_mut(idx)
         {
-            // 缓存 Handle
+            // 缓存 Handle 并标记加载完成（数据单源存放，这里只翻转标记）
             wallpaper.image_handle = Some(handle);
-            // 更新状态为 Loaded（Handle 已缓存到 wallpaper 中）
-            self.online_state.wallpapers[idx] =
-                WallpaperLoadStatus::Loaded(Box::new(wallpaper.clone()));
+            self.online_state.wallpapers[idx] = WallpaperLoadStatus::Loaded;
         }
         Task::none()
     }

@@ -31,21 +31,20 @@ pub fn create_wallpaper_grid<'a>(
         let end_index = page_info.end_index;
         let page_wallpapers = &online_state.wallpapers[start_index..end_index];
 
-        // 渲染当前页的壁纸
+        // 渲染当前页的壁纸（chunk_start 累加页内偏移，enumerate 直接携带全局索引，
+        // 避免每张卡片反查 O(n²)）
+        let mut chunk_start = 0;
         for chunk in page_wallpapers.chunks(items_per_row) {
             let mut row_container = row![].spacing(IMAGE_SPACING).align_y(Alignment::Center);
 
-            for wallpaper_status in chunk {
+            for (offset, wallpaper_status) in chunk.iter().enumerate() {
+                let wallpaper_index = start_index + chunk_start + offset;
                 let image_element = match wallpaper_status {
                     WallpaperLoadStatus::Loading => {
                         super::create_loading_placeholder(i18n, theme_config)
                     }
-                    WallpaperLoadStatus::Loaded(wallpaper) => {
-                        let wallpaper_index = online_state
-                            .wallpapers
-                            .iter()
-                            .position(|w| matches!(w, WallpaperLoadStatus::Loaded(wp) if wp.id == wallpaper.id))
-                            .unwrap_or(0);
+                    WallpaperLoadStatus::Loaded => {
+                        let wallpaper = &online_state.wallpapers_data[wallpaper_index];
                         super::create_loaded_wallpaper_with_thumb(
                             i18n,
                             wallpaper,
@@ -62,6 +61,8 @@ pub fn create_wallpaper_grid<'a>(
                 .width(Length::Fill)
                 .center_x(Length::Fill);
             content = content.push(centered_row);
+
+            chunk_start += chunk.len();
         }
 
         // 在当前页数据后添加分页分隔线

@@ -28,21 +28,18 @@ pub fn create_content<'a>(
         .width(Length::Fill)
         .align_x(Alignment::Center);
 
+    // enumerate 直接携带全局索引，避免每张卡片按路径反查 O(n²)
+    let mut chunk_start = 0;
     for chunk in local_state.wallpapers.chunks(items_per_row) {
         let mut row_container = row![].spacing(IMAGE_SPACING).align_y(Alignment::Center);
 
-        for wallpaper_status in chunk {
+        for (offset, wallpaper_status) in chunk.iter().enumerate() {
+            let wallpaper_index = chunk_start + offset;
             let image_element = match wallpaper_status {
                 WallpaperLoadStatus::Loading => {
                     super::create_loading_placeholder(i18n, theme_config)
                 }
                 WallpaperLoadStatus::Loaded(wallpaper) => {
-                    let wallpaper_index = local_state
-                        .all_paths
-                        .iter()
-                        .position(|p| p == &wallpaper.path)
-                        .unwrap_or(0);
-
                     if wallpaper.name == "加载失败" {
                         super::create_error_placeholder(
                             i18n,
@@ -68,6 +65,8 @@ pub fn create_content<'a>(
             .width(Length::Fill)
             .center_x(Length::Fill);
         content = content.push(centered_row);
+
+        chunk_start += chunk.len();
     }
 
     // 如果已加载全部，显示提示文本

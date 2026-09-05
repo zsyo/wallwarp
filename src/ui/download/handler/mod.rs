@@ -2,10 +2,12 @@
 
 mod add_task;
 mod batch_operations;
+mod cancel_pending_cleanup;
 mod cancel_task;
 mod completed;
 mod copy_link;
 mod delete_task;
+mod manual_add;
 mod pause_task;
 mod progress;
 mod resume_task;

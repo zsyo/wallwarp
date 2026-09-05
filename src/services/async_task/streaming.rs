@@ -3,13 +3,11 @@
 use iced::futures::StreamExt;
 use iced::widget::image::Handle;
 use std::error::Error;
-use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::io::AsyncWriteExt;
 use tracing::{debug, error, info};
-use xxhash_rust::xxh3::xxh3_128;
 
 /// 异步加载在线壁纸图片函数（流式下载，支持取消）
 pub async fn async_load_online_wallpaper_image_with_streaming(
@@ -24,15 +22,16 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
         url, file_size
     );
 
-    // 步骤1: 计算缓存文件路径
-    let hash_input = format!("{}{}", url, file_size);
-    let hash = xxh3_128(hash_input.as_bytes());
-    let extension = Path::new(&url)
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or("jpg");
-    let cache_dir = PathBuf::from(&cache_path).join("online");
-    let cache_file = cache_dir.join(format!("{:x}.{}", hash, extension));
+    // 步骤1: 计算缓存文件路径（复用 DownloadService 的哈希规则）
+    let cache_file = PathBuf::from(
+        crate::services::download::DownloadService::get_online_image_cache_final_path(
+            &cache_path, &url, file_size,
+        )
+        .map_err(|e| {
+            error!("[模态窗口图片下载] [URL:{}] 获取缓存路径失败: {}", url, e);
+            e
+        })?,
+    );
 
     // 步骤2: 检查缓存是否存在且大小匹配
     if cache_file.exists()
@@ -101,7 +100,7 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
             let _ = tokio::fs::remove_file(&cache_file).await;
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Interrupted,
-                "下载已取消",
+                crate::services::download::DOWNLOAD_CANCELLED,
             )) as Box<dyn Error + Send + Sync>);
         }
 
@@ -122,6 +121,7 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
             // 每完成5%发送一次进度更新
             if percent >= progress_sent + 5 {
                 progress_sent = percent;
+                crate::services::send_modal_image_progress(downloaded, total_size);
             }
         }
 

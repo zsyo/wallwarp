@@ -47,26 +47,27 @@ async fn main() {
     println!("配置代理: {proxy:?}");
 
     if let Some(p) = &proxy {
-        match proxy::create_optimized_client_with_proxy(p) {
-            Ok(client) => {
-                try_request("走配置代理（与 App 一致）", client, url).await;
-            }
-            Err(e) => println!("代理客户端创建失败: {e}"),
-        }
+        // 与 App 一致：配置代理 + 统一超时/压缩配置
+        try_request(
+            "走配置代理（与 App 一致）",
+            proxy::create_proxy_client(Some(p.clone()), true, false),
+            url,
+        )
+        .await;
 
         // SOCKS5 代理附带测试 socks5h 变体（DNS 由代理解析）
         if let Some(remote_dns) = p
             .strip_prefix("socks5://")
             .map(|rest| format!("socks5h://{rest}"))
         {
-            match proxy::create_optimized_client_with_proxy(&remote_dns) {
-                Ok(client) => {
-                    try_request("socks5h 变体（远端 DNS）", client, url).await;
-                }
-                Err(e) => println!("socks5h 客户端创建失败: {e}"),
-            }
+            try_request(
+                "socks5h 变体（远端 DNS）",
+                proxy::create_proxy_client(Some(remote_dns), true, false),
+                url,
+            )
+            .await;
         }
     }
 
-    try_request("直连（对照）", proxy::create_optimized_client(), url).await;
+    try_request("直连（对照）", proxy::create_proxy_client(None, false, false), url).await;
 }

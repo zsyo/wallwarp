@@ -27,12 +27,7 @@ impl App {
             let url = wallpaper.path.clone();
             let file_size = wallpaper.file_size;
             let cache_path = self.config.data.cache_path.clone();
-            let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty()
-            {
-                Some(self.config.global.proxy.clone())
-            } else {
-                None
-            };
+            let proxy = self.config.resolved_proxy();
 
             // 创建取消令牌
             let cancel_token = Arc::new(AtomicBool::new(false));

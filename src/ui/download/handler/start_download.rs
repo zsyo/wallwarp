@@ -15,11 +15,7 @@ impl App {
             wallhaven::generate_file_name(id, file_type.split('/').next_back().unwrap_or("jpg"));
         let data_path = self.config.data.data_path.clone();
         let cache_path = self.config.data.cache_path.clone();
-        let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
-            Some(self.config.global.proxy.clone())
-        } else {
-            None
-        };
+        let proxy = self.config.resolved_proxy();
         let file_type = file_type
             .split('/')
             .next_back()
@@ -84,7 +80,8 @@ impl App {
                         ),
                         move |result| match result {
                             Ok(size) => {
-                                tracing::info!(
+                                // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
+                                tracing::debug!(
                                     "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
                                     task_id,
                                     size

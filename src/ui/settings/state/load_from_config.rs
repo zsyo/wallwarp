@@ -21,15 +21,18 @@ impl SettingsState {
         let auto_change_time_range =
             TimeRange::parse(&config.wallpaper.auto_change_top_range).unwrap_or(TimeRange::Month);
 
-        Self {
+        let mut state = Self {
             language_picker_expanded: false,
             proxy_protocol_picker_expanded: false,
             theme_picker_expanded: false,
+            log_level_picker_expanded: false,
             proxy_enabled,
             proxy_protocol,
             proxy_address,
             proxy_port,
             wallhaven_api_key: config.wallhaven.api_key.clone(),
+            wallhaven_api_key_masked: String::new(),
+            wallhaven_api_key_visible: false,
             wallpaper_mode: config.wallpaper.mode,
             auto_change_mode: config.wallpaper.auto_change_mode,
             auto_change_interval: config.wallpaper.auto_change_interval,
@@ -45,7 +48,10 @@ impl SettingsState {
             time_range_picker_expanded: false,
             show_path_clear_confirmation: false,
             path_to_clear: String::new(),
-        }
+        };
+        // 初始化 API Key 脱敏显示串（默认隐藏状态）
+        state.refresh_wallhaven_api_key_masked();
+        state
     }
 
     /// 解析代理字符串为协议、地址和端口

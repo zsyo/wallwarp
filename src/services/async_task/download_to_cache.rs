@@ -5,7 +5,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
-use tracing::{error, info};
+use tracing::{debug, error, info, warn};
+
+use crate::services::download::DOWNLOAD_CANCELLED;
 
 /// 辅助函数：下载图片到缓存目录
 pub(super) async fn download_to_cache(
@@ -28,7 +30,7 @@ pub(super) async fn download_to_cache(
     let response = if downloaded_size > 0 {
         // 断点续传：使用 Range 请求头
         let range_header = format!("bytes={}-", downloaded_size);
-        info!(
+        debug!(
             "[下载任务] [ID:{}] 断点续传：Range = {}",
             task_id, range_header
         );
@@ -50,9 +52,21 @@ pub(super) async fn download_to_cache(
     };
 
     // 检查响应状态
-    if !response.status().is_success() && response.status() != reqwest::StatusCode::PARTIAL_CONTENT
-    {
-        return Err(format!("HTTP错误: {}", response.status()));
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!("HTTP错误: {}", status));
+    }
+
+    // 断点续传请求若未返回 206,说明服务器忽略了 Range 头(常见于部分代理或
+    // 不支持续传的图床)。此时响应体是完整文件,若继续向已下载位置追加会产出
+    // 重复前缀的损坏文件,必须放弃续传、从头下载
+    let mut downloaded_size = downloaded_size;
+    if downloaded_size > 0 && status != reqwest::StatusCode::PARTIAL_CONTENT {
+        warn!(
+            "[下载任务] [ID:{}] 服务器未返回 206(实际 {}),放弃已下载部分,从头下载",
+            task_id, status
+        );
+        downloaded_size = 0;
     }
 
     // 获取文件大小
@@ -90,7 +104,7 @@ pub(super) async fn download_to_cache(
             .await
             .map_err(|e| format!("移动文件指针失败: {}", e))?;
 
-        info!(
+        debug!(
             "[下载任务] [ID:{}] 断点续传：文件指针移动到位置 {} bytes",
             task_id, downloaded_size
         );
@@ -119,7 +133,7 @@ pub(super) async fn download_to_cache(
         // 检查是否被取消
         if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
             info!("[下载任务] [ID:{}] 下载被取消", task_id);
-            return Err("下载已取消".to_string());
+            return Err(DOWNLOAD_CANCELLED.to_string());
         }
 
         let chunk = chunk_result.map_err(|e| format!("读取数据流失败: {}", e))?;

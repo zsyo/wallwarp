@@ -4,7 +4,7 @@
 //!
 //! 定义本地壁纸页面的界面渲染逻辑
 
-use super::message::LocalMessage;
+use super::message::{LocalMessage, WallpaperLoadStatus};
 use super::state::LocalState;
 use super::widget;
 use crate::i18n::I18n;
@@ -72,9 +72,36 @@ pub fn local_view<'a>(
 
     let mut layers = vec![base_layer.into()];
 
-    // 图片预览模态窗口
+    // 图片预览模态窗口（共用预览组件）
     if local_state.modal_visible && !local_state.all_paths.is_empty() {
-        let modal_content = widget::create_modal(i18n, local_state, theme_config);
+        let index = local_state.current_image_index;
+        let wallpaper = match local_state.wallpapers.get(index) {
+            Some(WallpaperLoadStatus::Loaded(wallpaper)) => Some(wallpaper),
+            _ => None,
+        };
+        let modal_content = common::create_preview_modal(
+            i18n,
+            theme_config,
+            local_state.modal_image_handle.as_ref(),
+            wallpaper,
+            local_state.find_next_valid_image_index(index, -1).is_some(),
+            local_state.find_next_valid_image_index(index, 1).is_some(),
+            common::PreviewModalMessages {
+                previous: LocalMessage::PreviousImage.into(),
+                next: LocalMessage::NextImage.into(),
+                set_wallpaper: LocalMessage::SetWallpaper(index).into(),
+                view_in_folder: LocalMessage::ViewInFolder(index).into(),
+                close: LocalMessage::CloseModal.into(),
+            },
+            common::PreviewModalTexts {
+                loading: i18n.t("local-list.image-loading"),
+                previous: i18n.t("local-list.tooltip-prev"),
+                next: i18n.t("local-list.tooltip-next"),
+                set_wallpaper: i18n.t("local-list.tooltip-set-wallpaper"),
+                view_in_folder: i18n.t("local-list.tooltip-locate"),
+                close: i18n.t("local-list.tooltip-close"),
+            },
+        );
         layers.push(container(iced::widget::opaque(modal_content)).into());
     }
 

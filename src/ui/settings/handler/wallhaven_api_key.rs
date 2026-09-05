@@ -11,6 +11,19 @@ impl App {
         api_key: String,
     ) -> Task<AppMessage> {
         self.settings_state.wallhaven_api_key = api_key;
+        // 输入过程中保持显示状态，避免输入内容被脱敏展示替换
+        self.settings_state.wallhaven_api_key_visible = true;
+        Task::none()
+    }
+
+    /// 切换 API Key 输入框内容的显示/隐藏状态（仅内存状态，重启后恢复隐藏）
+    pub(in crate::ui::settings) fn settings_toggle_wallhaven_api_key_visible(
+        &mut self,
+    ) -> Task<AppMessage> {
+        self.settings_state.wallhaven_api_key_visible =
+            !self.settings_state.wallhaven_api_key_visible;
+        // 切回隐藏时同步刷新脱敏显示串
+        self.settings_state.refresh_wallhaven_api_key_masked();
         Task::none()
     }
 
@@ -23,10 +36,8 @@ impl App {
         let mask_key = |key: &str| -> String {
             if key.is_empty() {
                 "(空)".to_string()
-            } else if key.len() >= 8 {
-                format!("{}****{}", &key[..4], &key[key.len() - 4..])
             } else {
-                "****".to_string()
+                wallhaven::mask_api_key(key)
             }
         };
 
@@ -43,6 +54,12 @@ impl App {
             self.online_state.purities &= !wallhaven::Purity::NSFW.bit_value();
             // 保存到配置文件
             self.online_state.save_to_config(&mut self.config);
+        }
+
+        // 保存后内容非空时自动切换为隐藏状态；内容为空则维持显示以便后续输入
+        if !self.settings_state.wallhaven_api_key.is_empty() {
+            self.settings_state.wallhaven_api_key_visible = false;
+            self.settings_state.refresh_wallhaven_api_key_masked();
         }
 
         // 显示成功通知

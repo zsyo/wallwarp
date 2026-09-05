@@ -8,13 +8,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 impl DownloadStateFull {
-    /// 初始化HTTP客户端
-    pub fn init_client(&mut self) {
-        if self.client.is_none() {
-            self.client = Some(reqwest::Client::new());
-        }
-    }
-
     /// 初始化数据库
     ///
     /// # 参数
@@ -208,6 +201,8 @@ impl DownloadStateFull {
     }
 
     /// 添加新下载任务（倒序插入到列表开头）
+    ///
+    /// 返回新任务的 id
     pub fn add_task(
         &mut self,
         url: String,
@@ -215,9 +210,10 @@ impl DownloadStateFull {
         file_name: String,
         proxy: Option<String>,
         file_type: String,
-    ) {
+    ) -> usize {
+        let id = self.next_id;
         let task = DownloadTask {
-            id: self.next_id,
+            id,
             file_name: file_name.clone(),
             url: url.clone(),
             save_path: save_path.clone(),
@@ -246,6 +242,8 @@ impl DownloadStateFull {
 
         self.next_id += 1;
         self.queue_counter += 1;
+
+        id
     }
 
     /// 获取下一个等待中的任务（按排队顺序，先排队的先开始）
@@ -257,7 +255,8 @@ impl DownloadStateFull {
             .min_by(|a, b| a.task.queue_order.cmp(&b.task.queue_order))
     }
 
-    /// 更新任务进度
+    /// 更新任务进度（仅内存；进度不落库——启动恢复时进度一律归零，
+    /// 断点信息只依赖磁盘上的 .download 临时文件，逐 tick 写库纯属浪费）
     pub fn update_progress(&mut self, id: usize, downloaded: u64, total: u64, speed: u64) {
         if let Some(index) = self.tasks.iter().position(|t| t.task.id == id) {
             self.tasks[index].task.downloaded_size = downloaded;
@@ -266,9 +265,6 @@ impl DownloadStateFull {
             if total > 0 {
                 self.tasks[index].task.progress = downloaded as f32 / total as f32;
             }
-
-            // 保存到数据库
-            let _ = self.save_to_database(&self.tasks[index]);
         }
     }
 

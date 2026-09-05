@@ -27,9 +27,9 @@ pub enum MenuKind {
 }
 
 /// 单个菜单项的定义
-pub struct MenuItemDef<'a> {
+pub struct MenuItemDef {
     /// 菜单事件 id（与现有 TrayMenuEvent 处理器中的 id 一致）
-    pub id: &'a str,
+    pub id: String,
     /// 显示文本（i18n 已翻译）
     pub text: String,
     /// 初始可用状态
@@ -65,7 +65,7 @@ pub fn build_menu(kind: MenuKind, items: Vec<MenuItemDef>, separator_after: &[us
             .into_iter()
             .map(|def| {
                 (
-                    def.id.to_string(),
+                    def.id.clone(),
                     MenuItem::with_id(def.id, def.text, def.enabled, None),
                 )
             })
@@ -98,7 +98,7 @@ pub fn build_menu(kind: MenuKind, items: Vec<MenuItemDef>, separator_after: &[us
     {
         let texts: Vec<(String, String, bool)> = items
             .into_iter()
-            .map(|def| (def.id.to_string(), def.text, def.enabled))
+            .map(|def| (def.id, def.text, def.enabled))
             .collect();
         menu_linux::build_menu(kind, texts, separator_after)
     }

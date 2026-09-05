@@ -3,7 +3,7 @@
 use crate::ui::main::{MainMessage, widget};
 use crate::ui::style::{APP_NAME_SIZE, LOGO_DISPLAY_SIZE, LOGO_SPACING, SIDEBAR_WIDTH};
 use crate::ui::{ActivePage, App, AppMessage};
-use crate::ui::{download, local, online, settings};
+use crate::ui::{download, history, local, online, settings};
 use iced::widget::{Space, column, container, image, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -32,6 +32,12 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
             &app.download_state,
             &app.theme_config,
         ),
+        ActivePage::WallpaperHistory => history::history_view(
+            &app.i18n,
+            &app.history_state,
+            &app.theme_config,
+            functional_area_width as u32,
+        ),
         ActivePage::Settings => settings::settings_view(app),
     };
 
@@ -40,10 +46,8 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
         app.title(),
         app.main_state.is_maximized,
         &app.theme_config,
-        app.i18n.t("titlebar.minimize-to-tray"),
         widget::TitleBarActions {
             drag: MainMessage::TitleBarDrag.into(),
-            minimize_to_tray: MainMessage::MinimizeToTray.into(),
             minimize: MainMessage::TitleBarMinimize.into(),
             maximize: MainMessage::TitleBarMaximize.into(),
             close: MainMessage::TitleBarClose.into(),
@@ -79,6 +83,12 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
                 app.i18n.t("download-tasks.title"),
                 app.active_page,
                 ActivePage::DownloadProgress,
+                &app.theme_config
+            ),
+            widget::create_menu_button(
+                app.i18n.t("history.title"),
+                app.active_page,
+                ActivePage::WallpaperHistory,
                 &app.theme_config
             ),
             widget::create_menu_button(

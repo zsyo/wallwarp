@@ -29,6 +29,7 @@ impl App {
     ) -> Task<AppMessage> {
         // 更新本地状态，初始化壁纸加载状态列表
         self.local_state.all_paths = paths;
+        self.local_state.loaded_data_path = Some(self.config.data.data_path.clone());
         self.local_state.total_count = self.local_state.all_paths.len();
 
         // 初始化壁纸状态为Loading，并加载第一页

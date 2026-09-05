@@ -16,7 +16,9 @@ mod list_page_separator;
 mod list_wallpaper_grid;
 mod list_wallpapers;
 mod modal;
+mod modal_info;
 mod modal_loading_placeholder;
+mod modal_progress_ring;
 
 use {
     diagonal_line::DiagonalLine, filter_color_grid_options::create_color_grid_options,
@@ -34,7 +36,9 @@ use {
     list_page_separator::create_page_separator, list_wallpaper_grid::create_wallpaper_grid,
 };
 
+use modal_info::create_modal_info;
 use modal_loading_placeholder::create_modal_loading_placeholder;
+use modal_progress_ring::progress_ring_image;
 
 pub(in crate::ui::online) use {
     filter::create_filter_bar, list_wallpapers::create_wallpaper_list, modal::create_modal,

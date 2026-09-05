@@ -120,8 +120,6 @@ pub struct DownloadStateFull {
     pub tasks: Vec<DownloadTaskFull>,
     /// 任务计数器
     pub next_id: usize,
-    /// HTTP客户端
-    pub client: Option<reqwest::Client>,
     /// 当前正在下载的任务数
     pub downloading_count: usize,
     /// 最大并行下载数
@@ -129,6 +127,8 @@ pub struct DownloadStateFull {
     /// 数据库实例
     pub database: Option<crate::ui::download::database::DownloadDatabase>,
     /// 状态筛选：None表示显示所有状态，Some表示筛选特定状态
+    /// 手动添加任务的 URL 输入框内容
+    pub manual_url: String,
     pub status_filter: Option<DownloadStatus>,
     /// 状态筛选下拉框展开状态
     pub status_filter_expanded: bool,
@@ -152,10 +152,10 @@ impl DownloadStateFull {
         Self {
             tasks: Vec::new(),
             next_id: 0,
-            client: None,
             downloading_count: 0,
             max_concurrent_downloads: 3,
             database: None,
+            manual_url: String::new(),
             status_filter: None,
             status_filter_expanded: false,
             sort_column: Some(SortColumn::CreatedAt), // 默认按添加时间排序

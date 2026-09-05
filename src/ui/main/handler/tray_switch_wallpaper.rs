@@ -6,46 +6,30 @@ use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::config::WallpaperAutoChangeMode;
 use iced::Task;
-use tracing::{info, warn};
+use tracing::info;
 
 impl App {
     pub(in crate::ui::main) fn tray_switch_previous_wallpaper(&mut self) -> Task<AppMessage> {
         // 检查历史记录是否为空
         if self.wallpaper_history.is_empty() {
-            warn!("[托盘菜单] 壁纸历史记录为空，无法切换上一张");
+            info!("[托盘菜单] 壁纸历史记录为空，无法切换上一张");
             return Task::none();
         }
 
         // 查找上一张壁纸（历史记录中的倒数第二条）
         if self.wallpaper_history.len() < 2 {
-            warn!("[托盘菜单] 壁纸历史记录不足2条，无法切换上一张");
+            info!("[托盘菜单] 壁纸历史记录不足2条，无法切换上一张");
             return Task::none();
         }
 
         let previous_wallpaper = self.wallpaper_history[self.wallpaper_history.len() - 2].clone();
 
-        // 设置壁纸
-        let wallpaper_mode = self.config.wallpaper.mode;
-
         info!("[托盘菜单] 切换上一张壁纸: {}", previous_wallpaper);
 
-        // 提前获取翻译文本，避免线程安全问题
-        let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
-
-        iced::Task::perform(
-            async_task::async_set_wallpaper(previous_wallpaper.clone(), wallpaper_mode),
-            move |result| match result {
-                Ok(_) => {
-                    // 切换成功，将当前壁纸从历史记录末尾移除
-                    MainMessage::RemoveLastFromWallpaperHistory.into()
-                }
-                Err(e) => MainMessage::ShowNotification(
-                    format!("{}: {}", failed_message, e),
-                    NotificationType::Error,
-                )
-                .into(),
-            },
-        )
+        // 切换成功后将该壁纸记录提升到历史最顶层（刷新应用时间并联动历史页）
+        self.set_wallpaper_task(previous_wallpaper.clone(), move || {
+            MainMessage::AddToWallpaperHistory(previous_wallpaper).into()
+        })
     }
 
     pub(in crate::ui::main) fn tray_switch_next_wallpaper(&mut self) -> Task<AppMessage> {

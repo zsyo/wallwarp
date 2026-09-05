@@ -74,6 +74,7 @@ pub fn create_resolution_picker<'a>(
     let resolution_trigger = button(resolution_underlay)
         .padding(6)
         .width(Length::Fixed(110.0))
+        .height(Length::Fixed(FILTER_CONTROL_HEIGHT))
         .on_press(OnlineMessage::ResolutionPickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(theme_colors.light_button)),

@@ -5,21 +5,13 @@
 //! 菜单操作经由 `platform::menu` 跨平台封装：
 //! Windows/macOS 主线程直连，Linux 在专用 GTK 线程中执行。
 //! 菜单激活事件经 muda 全局 channel 流入 subscription 轮询。
+//! 菜单项定义与悬浮球菜单共享（见 [`crate::ui::main::menu_defs`]）。
 
-use crate::i18n;
-use crate::platform::menu::{self, MenuItemDef, MenuKind};
+use crate::i18n::I18n;
+use crate::platform::menu::{self, MenuKind};
+use crate::ui::main::menu_defs;
 use crate::utils::assets;
 use std::collections::HashMap;
-
-/// 菜单项定义：(菜单事件 id, i18n key, 初始可用状态)
-const TRAY_ITEMS: [(&str, &str, bool); 6] = [
-    ("tray_show", "menu.tray-show", true),
-    ("tray_switch_previous", "menu.tray-switch-previous", false),
-    ("tray_switch_next", "menu.tray-switch-next", true),
-    ("tray_save_current", "menu.tray-save-current", true),
-    ("tray_settings", "menu.tray-settings", true),
-    ("tray_quit", "menu.tray-quit", true),
-];
 
 pub struct TrayManager {
     tray_icon: menu::TrayIconHandle,
@@ -29,27 +21,17 @@ pub struct TrayManager {
 }
 
 impl TrayManager {
-    pub fn new(i18n: &i18n::I18n) -> Self {
-        let items: Vec<MenuItemDef> = TRAY_ITEMS
-            .iter()
-            .map(|(id, key, enabled)| MenuItemDef {
-                id,
-                text: i18n.t(key),
-                enabled: *enabled,
-            })
-            .collect();
-        let kv: HashMap<String, String> = TRAY_ITEMS
-            .iter()
-            .map(|(id, key, _)| (id.to_string(), key.to_string()))
-            .collect();
+    pub fn new(i18n: &I18n) -> Self {
+        // 5 个公共动作项 + 退出程序
+        let (items, kv) =
+            menu_defs::build_menu_defs(menu_defs::TRAY_ID_PREFIX, ("tray_quit", "menu.tray-quit"), i18n);
 
-        // 分隔线：显示主窗口之后、保存当前之后
-        let menu = menu::build_menu(MenuKind::Tray, items, &[0, 3]);
+        let menu = menu::build_menu(MenuKind::Tray, items, menu_defs::MENU_SEPARATOR_AFTER);
 
         let (rgba, width, height) = assets::get_logo(32);
         let tray_icon = menu::attach_tray(rgba, width, height, menu.clone(), &i18n.t("app-title"))
             .unwrap_or_else(|e| {
-                tracing::error!("[托盘] {e}");
+                tracing::error!("[托盘] 附加托盘图标失败: {e}");
                 menu::disabled_tray()
             });
 
@@ -61,15 +43,22 @@ impl TrayManager {
     }
 
     pub fn update_switch_previous_item(&mut self, history_count: usize) {
-        self.menu
-            .set_enabled("tray_switch_previous", history_count >= 2);
+        let id = menu_defs::menu_item_id(
+            menu_defs::TRAY_ID_PREFIX,
+            menu_defs::MenuAction::SwitchPrevious,
+        );
+        self.menu.set_enabled(&id, history_count >= 2);
     }
 
     pub fn update_save_current_item(&mut self, can_save: bool) {
-        self.menu.set_enabled("tray_save_current", can_save);
+        let id = menu_defs::menu_item_id(
+            menu_defs::TRAY_ID_PREFIX,
+            menu_defs::MenuAction::SaveCurrent,
+        );
+        self.menu.set_enabled(&id, can_save);
     }
 
-    pub fn update_i18n(&mut self, i18n: &i18n::I18n) {
+    pub fn update_i18n(&mut self, i18n: &I18n) {
         for (id, lang_key) in self.kv.iter() {
             self.menu.set_text(id, i18n.t(lang_key));
         }

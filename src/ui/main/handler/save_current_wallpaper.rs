@@ -58,6 +58,9 @@ impl App {
             .to_string();
         let target_path = Path::new(&data_path).join(&wallpaper_file_name);
 
+        // 壁纸库将新增文件，本地页列表缓存失效
+        self.local_state.loaded_data_path = None;
+
         // 执行复制操作
         let source_path = current_wallpaper.clone();
         let target_path_str = target_path.to_string_lossy().to_string();

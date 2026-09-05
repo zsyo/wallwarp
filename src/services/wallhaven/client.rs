@@ -5,7 +5,7 @@
 //! 处理 HTTP 请求和重试逻辑
 
 use crate::services::request_context::RequestContext;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 const BASE_URL: &str = "https://wallhaven.cc/api/v1";
 
@@ -60,58 +60,25 @@ impl WallhavenClient {
         Self { api_key, client }
     }
 
-    /// 执行带重试的 HTTP 请求
+    /// 执行带重试的 HTTP 请求（委托给通用重试封装）
     ///
     /// # 参数
     /// - `identifier`: 请求标识符（用于日志）
     /// - `operation_name`: 操作名称
     /// - `max_retries`: 最大重试次数
     /// - `operation`: 要执行的异步操作
-    ///
-    /// # 返回
-    /// 返回操作结果或错误信息
     pub async fn retry_with_backoff<F, T, Fut>(
         identifier: &str,
-        _operation_name: &str,
+        operation_name: &str,
         max_retries: usize,
-        mut operation: F,
+        operation: F,
     ) -> Result<T, String>
     where
         F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<T, String>>,
     {
-        let mut last_error = String::new();
-
-        for attempt in 0..=max_retries {
-            match operation().await {
-                Ok(result) => {
-                    if attempt > 0 {
-                        info!("[Wallhaven API] [{}] 重试第 {} 次成功", identifier, attempt);
-                    }
-                    return Ok(result);
-                }
-                Err(e) => {
-                    last_error = e;
-                    if attempt < max_retries {
-                        warn!(
-                            "[Wallhaven API] [{}] 第 {} 次尝试失败，将在1秒后重试: {}",
-                            identifier,
-                            attempt + 1,
-                            last_error
-                        );
-                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-                    } else {
-                        error!(
-                            "[Wallhaven API] [{}] 所有重试失败，共尝试 {} 次",
-                            identifier,
-                            max_retries + 1
-                        );
-                    }
-                }
-            }
-        }
-
-        Err(last_error)
+        crate::services::retry::retry_with_backoff(identifier, operation_name, max_retries, operation)
+            .await
     }
 
     /// 构建搜索 URL
@@ -221,18 +188,19 @@ impl WallhavenClient {
 
         let response = request.send().await.map_err(|e| {
             // 检查是否是超时错误
+            // 中间失败仅 warn 记录，由 retry 层在重试耗尽后统一 error 收口
             if e.is_timeout() {
-                error!(
+                warn!(
                     "[Wallhaven API] [{}] 请求超时（{}秒）",
                     identifier,
                     timeout_secs.unwrap_or(0)
                 );
                 "请求超时，请检查网络连接或设置代理".to_string()
             } else if e.is_connect() {
-                error!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
+                warn!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
                 "连接失败，请检查网络连接或设置代理".to_string()
             } else {
-                error!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
+                warn!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
                 format!("请求失败: {}", e)
             }
         })?;

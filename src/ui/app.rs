@@ -9,7 +9,7 @@ use crate::utils::assets;
 use crate::utils::config::{Config, Theme};
 use iced::widget::image::Handle;
 use std::path::PathBuf;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 pub struct App {
     pub i18n: I18n,
@@ -26,6 +26,10 @@ pub struct App {
     pub floating_ball_state: FloatingBallState,
     /// 悬浮球位置防抖保存标志
     pub(crate) floating_ball_save_pending: bool,
+    /// 配置文件待写盘标志（300ms 防抖）
+    pub config_save_dirty: bool,
+    /// 配置文件防抖计时器
+    pub config_save_debounce_timer: std::time::Instant,
     /// 主题配置
     pub theme_config: crate::ui::style::ThemeConfig,
     /// 主题颜色缓存（仅在主题切换时更新）
@@ -44,6 +48,8 @@ pub struct App {
     pub auto_change_state: crate::ui::auto_change::AutoChangeState,
     /// 壁纸切换历史记录（最多50条）
     pub wallpaper_history: Vec<String>,
+    /// 壁纸历史页面状态
+    pub history_state: crate::ui::history::HistoryState,
     /// 图标资源
     pub logo_handle: Handle,
 }
@@ -100,7 +106,7 @@ impl App {
                 "[壁纸历史] 初始化，添加当前壁纸: {}",
                 crate::utils::helpers::normalize_path(&current_wallpaper)
             );
-            wallpaper_history.push(current_wallpaper);
+            wallpaper_history.push(crate::utils::helpers::normalize_path(&current_wallpaper));
         }
 
         let (img, width, height) = assets::get_logo(style::LOGO_SIZE);
@@ -115,6 +121,8 @@ impl App {
             floating_ball_id: None,
             floating_ball_state: FloatingBallState::default(),
             floating_ball_save_pending: false,
+            config_save_dirty: false,
+            config_save_debounce_timer: std::time::Instant::now(),
             theme_config,
             theme_colors,
             main_state: super::main::MainState::load_from_config(&config),
@@ -124,11 +132,15 @@ impl App {
             auto_change_state: super::auto_change::AutoChangeState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
             wallpaper_history,
+            history_state: crate::ui::history::HistoryState::default(),
             logo_handle: Handle::from_rgba(width, height, img),
         };
 
         // 初始化下载任务数据库
         app.init_download_database();
+
+        // 从数据库恢复壁纸历史（供托盘/悬浮球"上一张"跨会话使用）
+        app.load_wallpaper_history_from_db();
 
         // 初始化托盘与悬浮球菜单项的状态
         app.update_menu_items();
@@ -138,6 +150,49 @@ impl App {
 
     pub fn title(&self) -> String {
         self.i18n.t("app-title")
+    }
+
+    /// 从数据库恢复壁纸历史（过滤已不存在的文件）
+    ///
+    /// 供托盘/悬浮球"上一张"跨会话使用；数据库不可用时静默跳过
+    fn load_wallpaper_history_from_db(&mut self) {
+        use crate::services::database::wallpaper_history::HISTORY_MAX_ENTRIES;
+        use crate::services::database::{DatabaseManager, WallpaperHistoryRepository};
+        use std::path::Path;
+        use tracing::{info, warn};
+
+        let Some(db) = DatabaseManager::try_get() else {
+            warn!("[壁纸历史] [DB] 数据库未初始化，跳过启动恢复");
+            return;
+        };
+        let repo = WallpaperHistoryRepository::new(db.connection().clone());
+        match repo.load_latest(HISTORY_MAX_ENTRIES) {
+            Ok(rows) => {
+                // 数据库按新→旧返回；先规范化路径写法（同文件不同写法保留最新一条），再反转为旧→新
+                let mut seen = std::collections::HashSet::new();
+                let mut paths: Vec<String> = Vec::new();
+                for row in rows {
+                    let canonical = crate::utils::helpers::normalize_path(
+                        &crate::utils::helpers::get_absolute_path(&row.path),
+                    );
+                    if seen.insert(canonical.clone()) {
+                        paths.push(canonical);
+                    }
+                }
+                paths.reverse();
+                // 过滤磁盘上已不存在的文件
+                paths.retain(|p| Path::new(p).exists());
+                // 保留启动时已记录的当前壁纸（升级后首次启动，数据库可能还没有记录）
+                for p in std::mem::take(&mut self.wallpaper_history) {
+                    if !paths.contains(&p) {
+                        paths.push(p);
+                    }
+                }
+                info!("[壁纸历史] [DB] 启动恢复 {} 条记录", paths.len());
+                self.wallpaper_history = paths;
+            }
+            Err(e) => warn!("[壁纸历史] [DB] 启动恢复失败: {}", e),
+        }
     }
 
     /// 更新托盘与悬浮球菜单项的状态
@@ -169,7 +224,7 @@ impl App {
             .init_database(&db_path.to_string_lossy())
         {
             Ok(_) => {
-                info!("[启动] [下载任务数据库] 数据库初始化成功");
+                debug!("[启动] [下载任务数据库] 数据库初始化成功");
 
                 // 从数据库加载任务
                 match self.download_state.load_from_database() {

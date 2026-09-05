@@ -5,6 +5,7 @@ pub mod database;
 pub mod download;
 pub mod local;
 pub mod proxy;
+pub mod retry;
 pub mod request_context;
 pub mod wallhaven;
 
@@ -81,5 +82,25 @@ pub fn send_download_progress(task_id: usize, downloaded: u64, total: u64, speed
             speed,
         };
         let _ = tx.send(update);
+    }
+}
+
+/// 全局模态窗口图片下载进度channel发送器（载荷 = (已下载字节, 总字节)）
+pub static MODAL_IMAGE_PROGRESS_TX: std::sync::OnceLock<
+    tokio::sync::broadcast::Sender<(u64, u64)>,
+> = std::sync::OnceLock::new();
+
+/// 初始化模态窗口图片下载进度channel
+pub fn init_modal_image_progress_channel() {
+    MODAL_IMAGE_PROGRESS_TX.get_or_init(|| {
+        let (tx, _rx) = tokio::sync::broadcast::channel(16);
+        tx
+    });
+}
+
+/// 发送模态窗口图片下载进度更新（无订阅者时静默丢弃）
+pub fn send_modal_image_progress(downloaded: u64, total: u64) {
+    if let Some(tx) = MODAL_IMAGE_PROGRESS_TX.get() {
+        let _ = tx.send((downloaded, total));
     }
 }

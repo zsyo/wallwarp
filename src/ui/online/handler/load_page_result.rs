@@ -42,11 +42,7 @@ impl App {
             return self.load_online_page();
         }
 
-        let proxy = if self.config.global.proxy_enabled && !self.config.global.proxy.is_empty() {
-            Some(self.config.global.proxy.clone())
-        } else {
-            None
-        };
+        let proxy = self.config.resolved_proxy();
 
         let cache_path = self.config.data.cache_path.clone();
 
@@ -80,17 +76,16 @@ impl App {
             ));
         }
 
-        // 保存原始数据
-        for wallpaper in &wallpapers {
-            self.online_state.wallpapers_data.push(wallpaper.clone());
-            self.online_state
-                .wallpapers
-                .push(WallpaperLoadStatus::Loading);
-        }
+        // 保存原始数据（数据单源存放，状态只压入标记）
+        let added_count = wallpapers.len();
+        self.online_state.wallpapers_data.extend(wallpapers);
+        self.online_state
+            .wallpapers
+            .extend(std::iter::repeat_n(WallpaperLoadStatus::Loading, added_count));
 
         // 在添加完当前页数据后记录分页信息
         // 这样分页标识就可以在当前页数据的下面显示
-        if !wallpapers.is_empty() {
+        if added_count > 0 {
             self.online_state.page_info.push(PageInfo {
                 end_index: self.online_state.wallpapers.len(),
                 page_num: current_page,

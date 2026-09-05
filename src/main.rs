@@ -34,10 +34,10 @@ fn main() -> iced::Result {
 
     let i18n = I18n::new();
     let cfg = config::Config::new(&i18n.current_lang, &i18n.lang_codes());
-    let _log_guard = logger::init_logger(cfg.global.enable_logging);
+    logger::init_logger(cfg.global.enable_logging, cfg.global.log_level);
 
     let system_ui_font = helpers::get_system_ui_font();
-    info!("系统 UI 字体: {}", system_ui_font);
+    info!("[启动] 系统 UI 字体: {}", system_ui_font);
 
     let init_data = std::cell::RefCell::new(Some((i18n, cfg)));
     iced::daemon(
@@ -80,13 +80,9 @@ fn main() -> iced::Result {
                 async move {
                     // 延迟 2 秒后执行清理，避免影响启动性能
                     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                    match async_cleanup_cache(cleanup_config).await {
-                        Ok(_) => {
-                            info!("[启动] 缓存清理任务完成");
-                        }
-                        Err(e) => {
-                            error!("[启动] 缓存清理任务失败: {}", e);
-                        }
+                    // 完成情况由 async_cleanup_cache 内部记录日志
+                    if let Err(e) = async_cleanup_cache(cleanup_config).await {
+                        error!("[启动] 缓存清理任务失败: {}", e);
                     }
                     AppMessage::None // 返回一个空消息
                 },
@@ -133,5 +129,7 @@ fn main() -> iced::Result {
         ..iced::Font::DEFAULT
     })
     .font(iced_aw::ICED_AW_FONT_BYTES)
+    // 退出前落盘文件日志缓冲
     .run()
+    .inspect(|_| logger::flush())
 }

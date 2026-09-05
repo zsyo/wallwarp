@@ -1,5 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+mod apply_wallpaper;
+mod clipboard;
 mod close_confirm;
 mod custom_title_bar;
 mod detect_color_mode;

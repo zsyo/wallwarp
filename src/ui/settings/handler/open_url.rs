@@ -7,7 +7,7 @@ use tracing::error;
 impl App {
     pub(in crate::ui::settings) fn settings_open_url(&mut self, url: String) -> Task<AppMessage> {
         if let Err(e) = open::that(&url) {
-            error!("打开链接失败 {}: {}", url, e);
+            error!("[设置] [链接] 打开链接失败 {}: {}", url, e);
         }
         Task::none()
     }

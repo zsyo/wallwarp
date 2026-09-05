@@ -6,6 +6,8 @@ use iced::widget::image::Handle;
 #[derive(Debug)]
 pub struct LocalState {
     pub wallpapers: Vec<WallpaperLoadStatus>,
+    /// 已加载数据来源路径(None 表示尚未加载过)；与当前 data_path 不一致时需重扫
+    pub loaded_data_path: Option<String>,
     pub all_paths: Vec<String>,
     pub loading_page: bool,
     pub current_page: usize,
@@ -22,6 +24,7 @@ impl Default for LocalState {
     fn default() -> Self {
         Self {
             wallpapers: Vec::new(),
+            loaded_data_path: None,
             all_paths: Vec::new(),
             loading_page: false,
             current_page: 0,

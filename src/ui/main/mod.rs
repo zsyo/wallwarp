@@ -4,6 +4,7 @@ mod close_confirm;
 mod floating_ball;
 mod handler;
 mod main_window;
+mod menu_defs;
 mod message;
 mod state;
 mod tray;

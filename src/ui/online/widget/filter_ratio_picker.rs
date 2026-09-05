@@ -78,6 +78,7 @@ pub fn create_ratio_picker<'a>(
     let ratio_trigger = button(ratio_underlay)
         .padding(6)
         .width(Length::Fixed(120.0))
+        .height(Length::Fixed(FILTER_CONTROL_HEIGHT))
         .on_press(OnlineMessage::RatioPickerExpanded.into())
         .style(move |_theme, _status| button::Style {
             background: Some(iced::Background::Color(theme_colors.light_button)),

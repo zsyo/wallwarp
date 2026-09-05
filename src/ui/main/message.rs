@@ -10,6 +10,8 @@ pub enum MainMessage {
     WindowResized(iced::window::Id, u32, u32),
     /// 执行延迟保存事件
     ExecutePendingSave,
+    /// 配置文件防抖写盘到期
+    ExecutePendingConfigSave,
     /// 页面选择事件
     PageSelected(ActivePage),
     /// 窗口关闭请求事件（窗口Id）
@@ -76,8 +78,6 @@ pub enum MainMessage {
     TraySaveCurrentWallpaper,
     /// 添加壁纸到历史记录
     AddToWallpaperHistory(String),
-    /// 从历史记录末尾移除壁纸
-    RemoveLastFromWallpaperHistory,
     /// 外部实例触发事件
     ExternalInstanceTriggered(String),
     /// 拖拽自定义标题栏事件
@@ -107,6 +107,7 @@ impl App {
             MainMessage::PageSelected(page) => self.page_selected(page),
             MainMessage::WindowResized(id, width, height) => self.window_resized(id, width, height),
             MainMessage::ExecutePendingSave => self.execute_pending_save(),
+            MainMessage::ExecutePendingConfigSave => self.execute_pending_config_save(),
             MainMessage::WindowCloseRequested(id) => self.window_close_requested(id),
             MainMessage::WindowFocused(id) => self.window_focused(id),
             MainMessage::WindowMoved(id, pos) => self.window_moved(id, pos),
@@ -145,9 +146,6 @@ impl App {
             MainMessage::TraySwitchNextWallpaper => self.tray_switch_next_wallpaper(),
             MainMessage::TraySaveCurrentWallpaper => self.tray_save_current_wallpaper(),
             MainMessage::AddToWallpaperHistory(path) => self.add_to_wallpaper_history(path),
-            MainMessage::RemoveLastFromWallpaperHistory => {
-                self.remove_last_from_wallpaper_history()
-            }
             MainMessage::ExternalInstanceTriggered(payload) => {
                 self.external_instance_triggered(payload)
             }

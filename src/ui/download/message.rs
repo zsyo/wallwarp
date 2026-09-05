@@ -11,6 +11,10 @@ use crate::ui::{App, AppMessage};
 pub enum DownloadMessage {
     /// 添加新下载任务 (url, save_path, file_name, proxy, file_type)
     AddTask(String, String, String, Option<String>, String),
+    /// 手动添加任务的 URL 输入变化
+    ManualUrlChanged(String),
+    /// 提交手动添加的任务
+    ManualUrlSubmitted,
     /// 暂停任务
     PauseTask(usize),
     /// 继续任务（断点续传）
@@ -72,6 +76,11 @@ impl App {
             DownloadMessage::AddTask(url, save_path, file_name, _proxy, file_type) => {
                 self.add_download_task(url, save_path, file_name, file_type)
             }
+            DownloadMessage::ManualUrlChanged(url) => {
+                self.download_state.manual_url = url;
+                iced::Task::none()
+            }
+            DownloadMessage::ManualUrlSubmitted => self.manual_url_submitted(),
             DownloadMessage::PauseTask(id) => self.pause_download_task(id),
             DownloadMessage::ResumeTask(id) => self.resume_download_task(id),
             DownloadMessage::RetryTask(id) => self.retry_download_task(id),

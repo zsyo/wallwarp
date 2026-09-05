@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tokio::io::AsyncWriteExt;
-use tracing::info;
+use tracing::{debug, info, warn};
 
 /// 异步下载壁纸任务函数
 pub async fn async_download_wallpaper_task(
@@ -107,7 +107,7 @@ pub async fn async_download_wallpaper_task_with_progress(
         cache_path,
     } = params;
     info!("[下载任务] [ID:{}] 开始下载: {}", task_id, url);
-    info!(
+    debug!(
         "[下载任务] [ID:{}] 参数：downloaded_size = {} bytes, total_size = {} bytes",
         task_id, downloaded_size, total_size
     );
@@ -160,7 +160,7 @@ pub async fn async_download_wallpaper_task_with_progress(
             .map_err(|e| format!("获取缓存路径失败: {}", e))?
     };
 
-    info!("[下载任务] [ID:{}] 缓存路径: {}", task_id, temp_cache_path);
+    debug!("[下载任务] [ID:{}] 缓存路径: {}", task_id, temp_cache_path);
 
     // 步骤2: 确保缓存目录存在
     let cache_file_path = PathBuf::from(&temp_cache_path);
@@ -171,7 +171,7 @@ pub async fn async_download_wallpaper_task_with_progress(
     }
 
     // 步骤3: 下载图片到缓存目录
-    let actual_size = super::download_to_cache(
+    let actual_size = match super::download_to_cache(
         &url,
         &temp_cache_path,
         proxy.clone(),
@@ -179,14 +179,53 @@ pub async fn async_download_wallpaper_task_with_progress(
         cancel_token.clone(),
         downloaded_size,
     )
-    .await?;
+    .await
+    {
+        Ok(size) => size,
+        Err(e) => {
+            // 非取消类失败时清理半成品临时文件;取消/暂停场景必须保留文件以支持
+            // 续传,其清理由 UI 层(取消/重试)按任务总大小定位删除
+            if e != crate::services::download::DOWNLOAD_CANCELLED {
+                match tokio::fs::remove_file(&cache_file_path).await {
+                    Ok(()) => info!(
+                        "[下载任务] [ID:{}] 已清理未完成的临时文件: {}",
+                        task_id,
+                        cache_file_path.display()
+                    ),
+                    Err(err) if err.kind() != std::io::ErrorKind::NotFound => warn!(
+                        "[下载任务] [ID:{}] 清理临时文件失败: {}, 原因: {}",
+                        task_id,
+                        cache_file_path.display(),
+                        err
+                    ),
+                    Err(_) => {}
+                }
+            }
+            return Err(e);
+        }
+    };
 
     // 步骤4: 下载完成后，移除.download后缀
     let final_cache_path =
         DownloadService::get_online_image_cache_final_path(&cache_path, &url, actual_size)
             .map_err(|e| format!("获取最终缓存路径失败: {}", e))?;
 
-    info!(
+    // 目标同名文件已存在时先移除(Windows 上 rename 不允许覆盖),
+    // 否则重复下载同一壁纸会报"重命名缓存文件失败"
+    if tokio::fs::try_exists(&final_cache_path)
+        .await
+        .map_err(|e| format!("检查缓存文件失败: {}", e))?
+    {
+        debug!(
+            "[下载任务] [ID:{}] 最终缓存文件已存在,先移除: {}",
+            task_id, final_cache_path
+        );
+        tokio::fs::remove_file(&final_cache_path)
+            .await
+            .map_err(|e| format!("移除已存在的缓存文件失败: {}", e))?;
+    }
+
+    debug!(
         "[下载任务] [ID:{}] 重命名文件: {} -> {}",
         task_id, temp_cache_path, final_cache_path
     );
@@ -202,7 +241,7 @@ pub async fn async_download_wallpaper_task_with_progress(
             .map_err(|e| format!("创建目标目录失败: {}", e))?;
     }
 
-    info!(
+    debug!(
         "[下载任务] [ID:{}] 复制文件: {} -> {}",
         task_id,
         final_cache_path,

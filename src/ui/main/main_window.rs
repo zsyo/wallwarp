@@ -18,7 +18,15 @@ pub fn main_window_settings(config: &Config, visible: bool) -> window::Settings 
 
     #[allow(unused_mut)] // Windows 平台无 platform_specific 定制
     let mut settings = window::Settings {
-        position: window::Position::Centered,
+        // 位置记忆：仅记录过位置时恢复；最大化状态下保存的越界值不生效
+        position: if config.display.x != i32::MIN && config.display.y != i32::MIN {
+            window::Position::Specific(iced::Point::new(
+                config.display.x as f32,
+                config.display.y as f32,
+            ))
+        } else {
+            window::Position::Centered
+        },
         size: Size::new(config.display.width as f32, config.display.height as f32),
         min_size: Some(Size::new(
             config::MIN_WINDOW_WIDTH as f32,

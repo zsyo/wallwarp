@@ -11,7 +11,7 @@ impl App {
         enabled: bool,
     ) -> Task<AppMessage> {
         if let Err(e) = startup::set_auto_startup(enabled) {
-            error!("设置开机启动失败: {}", e);
+            error!("[设置] [自启动] 设置开机启动失败: {}", e);
         }
         Task::none()
     }

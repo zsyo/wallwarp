@@ -17,6 +17,7 @@ fn page_icon(page: ActivePage) -> &'static str {
         ActivePage::OnlineWallpapers => "\u{F423}", // bootstrap-icons: house-door
         ActivePage::LocalList => "\u{F3D7}",        // bootstrap-icons: folder
         ActivePage::DownloadProgress => "\u{F30A}", // bootstrap-icons: download
+        ActivePage::WallpaperHistory => "\u{F292}", // bootstrap-icons: clock-history
         ActivePage::Settings => "\u{F3E5}",         // bootstrap-icons: gear
     }
 }

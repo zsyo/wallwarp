@@ -10,6 +10,10 @@ use std::time::Duration;
 #[derive(std::hash::Hash)]
 struct DownloadProgressSubscription;
 
+// 用于模态窗口图片下载进度订阅的唯一类型标识
+#[derive(std::hash::Hash)]
+struct ModalImageProgressSubscription;
+
 impl App {
     /// 订阅事件
     pub fn subscription(&self) -> Subscription<AppMessage> {
@@ -53,26 +57,43 @@ impl App {
                 }
                 _ => None,
             }),
-            // 托盘事件监听
+            // 托盘事件监听（事件驱动：专用线程阻塞接收后转发，空闲时零唤醒）
             Subscription::run(|| {
                 use tray_icon::{TrayIconEvent, menu::MenuEvent};
 
                 async_stream::stream! {
-                    loop {
-                        // 1. 消耗并发送所有菜单事件
-                        while let Ok(menu_event) = MenuEvent::receiver().try_recv() {
-                            yield MainMessage::TrayMenuEvent(menu_event.id.0).into();
-                        }
+                    // muda/tray-icon 的接收端是全局同步 channel，无法直接 .await；
+                    // 用两个专用线程阻塞 recv 并转发到 async channel
+                    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<AppMessage>();
 
-                        // 2. 消耗并发送所有托盘图标事件
-                        while let Ok(tray_event) = TrayIconEvent::receiver().try_recv() {
-                            if let TrayIconEvent::DoubleClick { .. } = tray_event {
-                                yield MainMessage::TrayIconClicked.into();
+                    // 菜单事件（托盘菜单 + 悬浮球菜单共用 muda 全局通道）
+                    let menu_tx = tx.clone();
+                    std::thread::spawn(move || {
+                        let receiver = MenuEvent::receiver();
+                        while let Ok(event) = receiver.recv() {
+                            if menu_tx
+                                .send(MainMessage::TrayMenuEvent(event.id.0).into())
+                                .is_err()
+                            {
+                                break;
                             }
                         }
+                    });
 
-                        // 3. 这里的休眠保证了即使窗口最小化，后台流依然以 10hz 频率清理队列
-                        tokio::time::sleep(Duration::from_millis(100)).await;
+                    // 托盘图标事件（双击显示主窗口）
+                    std::thread::spawn(move || {
+                        let receiver = TrayIconEvent::receiver();
+                        while let Ok(event) = receiver.recv() {
+                            if let TrayIconEvent::DoubleClick { .. } = event
+                                && tx.send(MainMessage::TrayIconClicked.into()).is_err()
+                            {
+                                break;
+                            }
+                        }
+                    });
+
+                    while let Some(message) = rx.recv().await {
+                        yield message;
                     }
                 }
             }),
@@ -98,6 +119,28 @@ impl App {
                         }
                     } else {
                         // 如果channel未初始化，返回空stream
+                        std::future::pending::<()>().await;
+                    }
+                }
+            }),
+            // 添加模态窗口图片下载进度监听
+            Subscription::run_with(ModalImageProgressSubscription, |_state| {
+                // 初始化模态图片进度channel
+                crate::services::init_modal_image_progress_channel();
+
+                let rx = crate::services::MODAL_IMAGE_PROGRESS_TX
+                    .get()
+                    .map(|tx| tx.subscribe());
+
+                async_stream::stream! {
+                    if let Some(mut rx) = rx {
+                        while let Ok((downloaded, total)) = rx.recv().await {
+                            yield crate::ui::online::OnlineMessage::ModalImageProgress(
+                                downloaded, total,
+                            )
+                            .into();
+                        }
+                    } else {
                         std::future::pending::<()>().await;
                     }
                 }

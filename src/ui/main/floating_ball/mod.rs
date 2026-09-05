@@ -7,7 +7,8 @@ mod view;
 pub use view::floating_ball_view;
 
 use crate::i18n::I18n;
-use crate::platform::menu::{self, MenuItemDef, MenuKind};
+use crate::platform::menu::{self, MenuKind};
+use crate::ui::main::menu_defs;
 use crate::utils::config::GlobalConfig;
 
 /// 悬浮球贴边的屏幕边缘（仅支持左右贴边）
@@ -133,20 +134,11 @@ impl FloatingBallState {
     }
 }
 
-/// 悬浮球菜单项定义：(菜单事件 id, i18n key, 初始可用状态)
-const BALL_ITEMS: [(&str, &str, bool); 6] = [
-    ("ball_show", "menu.tray-show", true),
-    ("ball_switch_previous", "menu.tray-switch-previous", false),
-    ("ball_switch_next", "menu.tray-switch-next", true),
-    ("ball_save_current", "menu.tray-save-current", true),
-    ("ball_settings", "menu.tray-settings", true),
-    ("ball_close", "menu.ball-close", true),
-];
-
 /// 悬浮球菜单管理器
 ///
-/// 菜单结构同托盘菜单，最后一项为“关闭悬浮球”（而非退出程序）；
-/// 菜单事件经由 muda 全局 channel 流入现有的 TrayMenuEvent 订阅。
+/// 菜单动作项与托盘菜单同源（见 `crate::ui::main::menu_defs`），末项为
+/// “关闭悬浮球”（而非退出程序）；菜单事件经由 muda 全局 channel 流入
+/// 现有的 TrayMenuEvent 订阅。
 pub struct FloatingBallManager {
     menu: menu::Menu,
     /// 菜单事件 id → i18n key（语言切换时刷新文本）
@@ -155,21 +147,16 @@ pub struct FloatingBallManager {
 
 impl FloatingBallManager {
     pub fn new(i18n: &I18n) -> Self {
-        let kv: Vec<(String, String)> = BALL_ITEMS
-            .iter()
-            .map(|(id, key, _)| (id.to_string(), key.to_string()))
-            .collect();
-        let items: Vec<MenuItemDef> = BALL_ITEMS
-            .iter()
-            .map(|(id, key, enabled)| MenuItemDef {
-                id,
-                text: i18n.t(key),
-                enabled: *enabled,
-            })
-            .collect();
+        // 5 个公共动作项 + 关闭悬浮球
+        let (items, kv) = menu_defs::build_menu_defs(
+            menu_defs::BALL_ID_PREFIX,
+            ("ball_close", "menu.ball-close"),
+            i18n,
+        );
+        let kv: Vec<(String, String)> = kv.into_iter().collect();
 
         // 分隔线：显示主窗口之后、保存当前之后（结构同托盘菜单）
-        let menu = menu::build_menu(MenuKind::Ball, items, &[0, 3]);
+        let menu = menu::build_menu(MenuKind::Ball, items, menu_defs::MENU_SEPARATOR_AFTER);
 
         Self { menu, kv }
     }
@@ -180,12 +167,19 @@ impl FloatingBallManager {
     }
 
     pub fn update_switch_previous_item(&mut self, history_count: usize) {
-        self.menu
-            .set_enabled("ball_switch_previous", history_count >= 2);
+        let id = menu_defs::menu_item_id(
+            menu_defs::BALL_ID_PREFIX,
+            menu_defs::MenuAction::SwitchPrevious,
+        );
+        self.menu.set_enabled(&id, history_count >= 2);
     }
 
     pub fn update_save_current_item(&mut self, can_save: bool) {
-        self.menu.set_enabled("ball_save_current", can_save);
+        let id = menu_defs::menu_item_id(
+            menu_defs::BALL_ID_PREFIX,
+            menu_defs::MenuAction::SaveCurrent,
+        );
+        self.menu.set_enabled(&id, can_save);
     }
 
     pub fn update_i18n(&mut self, i18n: &I18n) {

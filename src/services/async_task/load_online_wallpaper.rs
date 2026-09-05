@@ -83,7 +83,7 @@ pub async fn async_load_online_wallpaper_thumb_with_cache_with_cancel(
     if cancel_token.load(Ordering::Relaxed) {
         return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::Interrupted,
-            "下载已取消",
+            crate::services::download::DOWNLOAD_CANCELLED,
         )) as Box<dyn Error + Send + Sync>);
     }
 

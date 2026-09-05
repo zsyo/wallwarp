@@ -4,6 +4,7 @@ pub mod app;
 pub mod auto_change;
 pub mod common;
 pub mod download;
+pub mod history;
 pub mod local;
 pub mod main;
 pub mod online;

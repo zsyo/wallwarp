@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use std::path::Path;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 /// 在文件管理器中打开并选中指定文件
 ///
@@ -144,7 +144,7 @@ pub fn is_running_via_cargo() -> bool {
 /// - `dir_name`: 目录名称（用于日志记录）
 ///
 /// # 行为
-/// - 如果目录已存在，记录信息日志
+/// - 如果目录已存在，记录调试日志
 /// - 如果目录不存在，创建目录并记录信息日志
 /// - 如果创建失败，记录错误日志
 pub fn ensure_directory_exists(path: &str, dir_name: &str) {
@@ -156,7 +156,7 @@ pub fn ensure_directory_exists(path: &str, dir_name: &str) {
             info!("[{}] 目录已创建: {}", dir_name, path);
         }
     } else {
-        info!("[{}] 目录已存在: {}", dir_name, path);
+        debug!("[{}] 目录已存在: {}", dir_name, path);
     }
 }
 
