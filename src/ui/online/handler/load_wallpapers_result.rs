@@ -75,7 +75,8 @@ impl App {
         }
 
         self.online_state.wallpapers_data = wallpapers;
-        self.online_state.wallpapers = vec![WallpaperLoadStatus::Loading; self.online_state.wallpapers_data.len()];
+        self.online_state.wallpapers =
+            vec![WallpaperLoadStatus::Loading; self.online_state.wallpapers_data.len()];
         self.online_state.total_count = self.online_state.wallpapers.len();
 
         // 初始化 page_info，记录第一页的结束索引和页码

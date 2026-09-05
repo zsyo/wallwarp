@@ -36,8 +36,7 @@ pub async fn async_cleanup_cache(config: Config) -> Result<(), Box<dyn Error + S
     if auto_change_dir.exists() {
         // 获取当前正在使用的壁纸路径
         let current_wallpaper = get_current_wallpaper().await.ok();
-        let deleted =
-            cleanup_directory_by_age(auto_change_dir, 3, current_wallpaper, None).await?;
+        let deleted = cleanup_directory_by_age(auto_change_dir, 3, current_wallpaper, None).await?;
         info!(
             "[缓存清理] auto_change 目录清理完成，删除了 {} 个文件",
             deleted
@@ -62,8 +61,7 @@ pub async fn async_cleanup_cache(config: Config) -> Result<(), Box<dyn Error + S
     let current_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let logs_dir = current_dir.join("logs");
     if logs_dir.exists() {
-        let deleted =
-            cleanup_directory_by_age(logs_dir, 3, None, Some(is_rotated_log)).await?;
+        let deleted = cleanup_directory_by_age(logs_dir, 3, None, Some(is_rotated_log)).await?;
         info!("[缓存清理] logs 目录清理完成，删除了 {} 个文件", deleted);
     } else {
         debug!("[缓存清理] logs 目录不存在，跳过");

@@ -5,8 +5,8 @@ pub mod database;
 pub mod download;
 pub mod local;
 pub mod proxy;
-pub mod retry;
 pub mod request_context;
+pub mod retry;
 pub mod wallhaven;
 
 use std::sync::Arc;

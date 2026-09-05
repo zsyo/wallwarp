@@ -39,7 +39,11 @@ pub fn download_view<'a>(
     let content = content.push(widget::create_toolbar(i18n, download_state, theme_config));
 
     // 添加手动添加任务输入行
-    let content = content.push(widget::create_manual_add_row(i18n, download_state, theme_config));
+    let content = content.push(widget::create_manual_add_row(
+        i18n,
+        download_state,
+        theme_config,
+    ));
 
     // 添加垂直间距
     let content = content.push(container(Space::new()).height(Length::Fixed(10.0)));

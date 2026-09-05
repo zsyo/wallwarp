@@ -45,8 +45,7 @@ impl App {
                         file_name
                     );
                     // 提前获取翻译文本，避免闭包中访问 self
-                    let copy_failed_message =
-                        self.i18n.t("download-tasks.copy-failed").to_string();
+                    let copy_failed_message = self.i18n.t("download-tasks.copy-failed").to_string();
                     let id_for_log = id;
                     let target = location.target_path.to_string_lossy().to_string();
                     Task::perform(

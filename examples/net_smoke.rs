@@ -69,5 +69,10 @@ async fn main() {
         }
     }
 
-    try_request("直连（对照）", proxy::create_proxy_client(None, false, false), url).await;
+    try_request(
+        "直连（对照）",
+        proxy::create_proxy_client(None, false, false),
+        url,
+    )
+    .await;
 }

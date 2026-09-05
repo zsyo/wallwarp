@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 mod build_search_params;
+mod copy_image_link;
 mod download_from_cache;
 mod download_wallpaper;
 mod filter;
@@ -15,7 +16,6 @@ mod modal_image_download;
 mod modal_image_progress;
 mod next_image;
 mod previous_image;
-mod copy_image_link;
 mod refresh;
 mod resolve_online_file;
 mod scroll_to_bottom;

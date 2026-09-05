@@ -3,11 +3,11 @@
 //! 壁纸历史页面视图（SnowShot 式列表布局）
 
 use crate::i18n::I18n;
+use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::history::widget;
 use crate::ui::history::{HistoryMessage, HistoryState};
 use crate::ui::style::{EMPTY_STATE_TEXT_SIZE, IMAGE_SPACING, ThemeConfig};
-use crate::ui::AppMessage;
 use iced::widget::{Id, column, container, rule, scrollable, text};
 use iced::{Element, Length};
 
@@ -23,7 +23,11 @@ pub fn history_view<'a>(
     let mut content = column![].spacing(8).width(Length::Fill);
 
     // 顶部工具条（统计 + 刷新 + 清空）
-    content = content.push(widget::create_history_toolbar(i18n, history_state, theme_config));
+    content = content.push(widget::create_history_toolbar(
+        i18n,
+        history_state,
+        theme_config,
+    ));
 
     if history_state.entries.is_empty() {
         content = content.push(
@@ -57,8 +61,11 @@ pub fn history_view<'a>(
 
     let base_layer = container(
         scrollable(
-            column![content, container(iced::widget::Space::new()).height(IMAGE_SPACING)]
-                .width(Length::Fill),
+            column![
+                content,
+                container(iced::widget::Space::new()).height(IMAGE_SPACING)
+            ]
+            .width(Length::Fill),
         )
         .id(Id::new("history_scroll"))
         .width(Length::Fill)

@@ -93,7 +93,10 @@ impl App {
     }
 
     /// 清空完成：清空列表状态
-    pub(in crate::ui::history) fn history_cleared(&mut self, result: Result<(), String>) -> Task<AppMessage> {
+    pub(in crate::ui::history) fn history_cleared(
+        &mut self,
+        result: Result<(), String>,
+    ) -> Task<AppMessage> {
         match result {
             Ok(()) => {
                 self.history_state.entries.clear();

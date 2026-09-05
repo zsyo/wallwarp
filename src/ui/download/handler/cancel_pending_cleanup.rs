@@ -1,8 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::download::DownloadService;
-use crate::ui::download::DownloadStatus;
 use crate::ui::App;
+use crate::ui::download::DownloadStatus;
 use tracing::info;
 
 impl App {
@@ -30,7 +30,13 @@ impl App {
                 .tasks
                 .iter()
                 .find(|t| t.task.id == task_id)
-                .map(|t| (t.task.url.clone(), t.task.save_path.clone(), t.task.total_size));
+                .map(|t| {
+                    (
+                        t.task.url.clone(),
+                        t.task.save_path.clone(),
+                        t.task.total_size,
+                    )
+                });
 
             // 取消任务
             self.download_state.cancel_task(task_id);

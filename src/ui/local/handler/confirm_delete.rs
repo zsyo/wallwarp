@@ -16,10 +16,9 @@ impl App {
         // 删除壁纸（异步执行：网络盘/杀毒扫描下同步删除可能卡 UI 数秒）
         if let Some(path) = self.local_state.all_paths.get(index).cloned() {
             let full_path = helpers::get_absolute_path(&path);
-            return Task::perform(
-                async_task::async_delete_file(full_path),
-                move |result| LocalMessage::LocalFileDeleted { index, result }.into(),
-            );
+            return Task::perform(async_task::async_delete_file(full_path), move |result| {
+                LocalMessage::LocalFileDeleted { index, result }.into()
+            });
         }
         Task::none()
     }
@@ -38,9 +37,7 @@ impl App {
                 self.local_state.total_count -= 1;
 
                 // 如果删除的是当前显示的图片，关闭模态窗口
-                if self.local_state.modal_visible
-                    && self.local_state.current_image_index == index
-                {
+                if self.local_state.modal_visible && self.local_state.current_image_index == index {
                     self.local_state.modal_visible = false;
                 } else if self.local_state.modal_visible
                     && self.local_state.current_image_index > index

@@ -3,7 +3,9 @@
 use crate::ui::common;
 use crate::ui::common::styled_text_input;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, PORT_INPUT_WIDTH, ROW_SPACING, with_alpha};
+use crate::ui::style::{
+    BUTTON_COLOR_BLUE, INPUT_PADDING, PORT_INPUT_WIDTH, ROW_SPACING, with_alpha,
+};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::CloseAction;
 use crate::utils::startup;
@@ -11,7 +13,9 @@ use iced::widget::{Space, container, radio, row, text_input, toggler};
 use iced::{Alignment, Color, Element, Length};
 
 /// 关闭动作单选按钮样式（透明背景 + 指定文字色）
-fn radio_style(text_color: Color) -> impl Fn(&iced::Theme, iced::widget::radio::Status) -> iced::widget::radio::Style {
+fn radio_style(
+    text_color: Color,
+) -> impl Fn(&iced::Theme, iced::widget::radio::Status) -> iced::widget::radio::Style {
     move |theme: &iced::Theme, status| iced::widget::radio::Style {
         text_color: Some(text_color),
         background: iced::Background::Color(Color::TRANSPARENT),
@@ -91,7 +95,8 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
     rows.push(super::create_setting_row(
         app.i18n.t("settings.proxy"),
         row![
-            toggler(app.settings_state.proxy_enabled).on_toggle(|state| SettingsMessage::ProxyToggled(state).into()),
+            toggler(app.settings_state.proxy_enabled)
+                .on_toggle(|state| SettingsMessage::ProxyToggled(state).into()),
             container(Space::new()).width(Length::Fixed(ROW_SPACING)),
             super::create_proxy_protocol_picker(app),
             container(Space::new()).width(Length::Fixed(ROW_SPACING)),
@@ -112,28 +117,34 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
             {
                 let proxy_enabled = app.settings_state.proxy_enabled;
                 container(
-                    iced_aw::NumberInput::new(&app.settings_state.proxy_port, 1..=65535, move |n| {
-                        if proxy_enabled {
-                            SettingsMessage::ProxyPortChanged(n).into()
-                        } else {
-                            SettingsMessage::ProxyToggled(false).into()
-                        }
-                    })
+                    iced_aw::NumberInput::new(
+                        &app.settings_state.proxy_port,
+                        1..=65535,
+                        move |n| {
+                            if proxy_enabled {
+                                SettingsMessage::ProxyPortChanged(n).into()
+                            } else {
+                                SettingsMessage::ProxyToggled(false).into()
+                            }
+                        },
+                    )
                     .width(Length::Fill)
                     .align_x(Alignment::Start)
                     .padding(INPUT_PADDING)
                     .input_style(styled_text_input(theme_colors))
-                    .style(move |_theme: &iced::Theme, _status| iced_aw::number_input::Style {
-                        button_background: Some(iced::Background::Color(with_alpha(
-                            theme_colors.text_input_background,
-                            if proxy_enabled { 1.0 } else { 0.45 },
-                        ))),
-                        icon_color: if proxy_enabled {
-                            theme_colors.light_text_sub
-                        } else {
-                            theme_colors.disabled_color
+                    .style(
+                        move |_theme: &iced::Theme, _status| iced_aw::number_input::Style {
+                            button_background: Some(iced::Background::Color(with_alpha(
+                                theme_colors.text_input_background,
+                                if proxy_enabled { 1.0 } else { 0.45 },
+                            ))),
+                            icon_color: if proxy_enabled {
+                                theme_colors.light_text_sub
+                            } else {
+                                theme_colors.disabled_color
+                            },
                         },
-                    }),
+                    ),
                 )
                 .width(Length::Fixed(PORT_INPUT_WIDTH))
             },
@@ -150,5 +161,9 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
         &app.theme_config,
     ));
 
-    super::create_config_section(app.i18n.t("settings.system-config"), rows, &app.theme_config)
+    super::create_config_section(
+        app.i18n.t("settings.system-config"),
+        rows,
+        &app.theme_config,
+    )
 }

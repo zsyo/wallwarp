@@ -88,8 +88,11 @@ impl WallpaperHistoryRepository {
             .lock()
             .map_err(|e| format!("获取数据库锁失败: {}", e))?;
 
-        conn.execute("DELETE FROM wallpaper_history WHERE path = ?1", params![path])
-            .map_err(|e| format!("删除壁纸历史失败: {}", e))?;
+        conn.execute(
+            "DELETE FROM wallpaper_history WHERE path = ?1",
+            params![path],
+        )
+        .map_err(|e| format!("删除壁纸历史失败: {}", e))?;
 
         Ok(())
     }
@@ -103,8 +106,10 @@ impl WallpaperHistoryRepository {
             .map_err(|e| format!("获取数据库锁失败: {}", e))?;
 
         let mut stmt = conn
-            .prepare("SELECT path, applied_at FROM wallpaper_history
-                      ORDER BY applied_at DESC LIMIT ?1")
+            .prepare(
+                "SELECT path, applied_at FROM wallpaper_history
+                      ORDER BY applied_at DESC LIMIT ?1",
+            )
             .map_err(|e| format!("查询壁纸历史失败: {}", e))?;
 
         let rows = stmt

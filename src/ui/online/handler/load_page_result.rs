@@ -79,9 +79,10 @@ impl App {
         // 保存原始数据（数据单源存放，状态只压入标记）
         let added_count = wallpapers.len();
         self.online_state.wallpapers_data.extend(wallpapers);
-        self.online_state
-            .wallpapers
-            .extend(std::iter::repeat_n(WallpaperLoadStatus::Loading, added_count));
+        self.online_state.wallpapers.extend(std::iter::repeat_n(
+            WallpaperLoadStatus::Loading,
+            added_count,
+        ));
 
         // 在添加完当前页数据后记录分页信息
         // 这样分页标识就可以在当前页数据的下面显示

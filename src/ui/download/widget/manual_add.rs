@@ -3,12 +3,12 @@
 //! 手动添加下载任务的输入行
 
 use crate::i18n::I18n;
+use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::common::create_colored_button;
-use crate::ui::download::state::DownloadStateFull;
 use crate::ui::download::DownloadMessage;
+use crate::ui::download::state::DownloadStateFull;
 use crate::ui::style::{BUTTON_COLOR_BLUE, ThemeConfig};
-use crate::ui::AppMessage;
 use iced::widget::{column, container, row, space, text_input};
 use iced::{Alignment, Element, Length};
 
@@ -37,11 +37,13 @@ pub fn create_manual_add_row<'a>(
         DownloadMessage::ManualUrlSubmitted.into(),
     );
 
-    let input_row = row![url_input, space::Space::new().width(10), add_button,]
-        .align_y(Alignment::Center);
+    let input_row =
+        row![url_input, space::Space::new().width(10), add_button,].align_y(Alignment::Center);
 
-    container(column![input_row.width(Length::Fill), space::Space::new().height(4)].width(Length::Fill))
-        .width(Length::Fill)
-        .padding(iced::Padding::new(10.0).top(14.0))
-        .into()
+    container(
+        column![input_row.width(Length::Fill), space::Space::new().height(4)].width(Length::Fill),
+    )
+    .width(Length::Fill)
+    .padding(iced::Padding::new(10.0).top(14.0))
+    .into()
 }

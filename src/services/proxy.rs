@@ -97,9 +97,7 @@ pub fn create_proxy_client(
     }
 
     // 优先级2: 使用环境变量代理（如果启用回退）
-    if use_env_fallback
-        && let Some(env_proxy_url) = get_proxy_from_env()
-    {
+    if use_env_fallback && let Some(env_proxy_url) = get_proxy_from_env() {
         info!("[代理客户端] 使用环境变量代理: {}", env_proxy_url);
         return build_client(Some(&env_proxy_url)).unwrap_or_else(|e| {
             warn!("[代理客户端] 环境变量代理客户端创建失败: {}，回退到直连", e);

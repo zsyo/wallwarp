@@ -452,7 +452,13 @@ impl LogLevel {
 
     /// 按严重程度从高到低排列的全部档位，供设置页下拉框遍历
     pub fn all() -> [LogLevel; 5] {
-        [LogLevel::Error, LogLevel::Warn, LogLevel::Info, LogLevel::Debug, LogLevel::Trace]
+        [
+            LogLevel::Error,
+            LogLevel::Warn,
+            LogLevel::Info,
+            LogLevel::Debug,
+            LogLevel::Trace,
+        ]
     }
 }
 

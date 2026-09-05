@@ -23,8 +23,11 @@ pub struct TrayManager {
 impl TrayManager {
     pub fn new(i18n: &I18n) -> Self {
         // 5 个公共动作项 + 退出程序
-        let (items, kv) =
-            menu_defs::build_menu_defs(menu_defs::TRAY_ID_PREFIX, ("tray_quit", "menu.tray-quit"), i18n);
+        let (items, kv) = menu_defs::build_menu_defs(
+            menu_defs::TRAY_ID_PREFIX,
+            ("tray_quit", "menu.tray-quit"),
+            i18n,
+        );
 
         let menu = menu::build_menu(MenuKind::Tray, items, menu_defs::MENU_SEPARATOR_AFTER);
 

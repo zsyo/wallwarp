@@ -14,10 +14,7 @@ use iced::{Alignment, Color, Font, Length};
 pub const CHEVRON_DOWN: &str = "\u{F282}";
 
 /// 触发按钮内容：左侧文字 + 右侧 chevron 图标
-fn trigger_underlay<'a, Message>(
-    label: String,
-    theme_colors: ThemeColors,
-) -> Row<'a, Message>
+fn trigger_underlay<'a, Message>(label: String, theme_colors: ThemeColors) -> Row<'a, Message>
 where
     Message: Clone + 'a,
 {

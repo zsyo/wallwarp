@@ -28,8 +28,7 @@ impl App {
             },
             move |result| match result {
                 Ok(()) => {
-                    MainMessage::ShowNotification(success_message, NotificationType::Success)
-                        .into()
+                    MainMessage::ShowNotification(success_message, NotificationType::Success).into()
                 }
                 Err(e) => MainMessage::ShowNotification(
                     format!("{}: {}", failed_message_prefix, e),

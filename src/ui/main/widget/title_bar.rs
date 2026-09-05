@@ -1,12 +1,14 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::ui::common::rotated_icon;
 use crate::ui::style::{
     BUTTON_COLOR_RED, RADIUS_SM, SEPARATOR_WIDTH, TITLE_BAR_BUTTON_SPACING, TITLE_BAR_HEIGHT,
-    TITLE_BAR_ICON_SIZE, TITLE_BAR_TITLE_SIZE, ThemeColors, ThemeConfig, darken,
+    TITLE_BAR_ICON_SIZE, TITLE_BAR_TITLE_SIZE, TITLE_BAR_WINDOW_ICON_SIZE, ThemeColors,
+    ThemeConfig, darken,
 };
 use iced::border::{Border, Radius};
 use iced::widget::{button, column, container, mouse_area, row, space::Space, text};
-use iced::{Alignment, Color, Element, Font, Length};
+use iced::{Alignment, Color, Element, Font, Length, Radians};
 
 /// macOS 原生红绿灯按钮占据的标题栏左侧宽度
 /// （fullsize_content_view 模式下红绿灯叠加在自绘标题栏上，需预留空间）
@@ -59,9 +61,19 @@ fn window_button_style(
     }
 }
 
+/// 构建 bootstrap 图标文本元素
+fn icon_text(glyph: &'static str, size: f32, color: Color) -> text::Text<'static> {
+    text(glyph)
+        .size(size)
+        .align_x(Alignment::Center)
+        .align_y(Alignment::Center)
+        .font(Font::with_name("bootstrap-icons"))
+        .color(color)
+}
+
 /// 创建标题栏窗口图标按钮
 fn window_button<'a, Message>(
-    icon: &'static str,
+    icon: Element<'a, Message>,
     theme_colors: ThemeColors,
     hover_override: Option<(Color, Color)>,
     message: Message,
@@ -69,17 +81,10 @@ fn window_button<'a, Message>(
 where
     Message: Clone + 'a,
 {
-    button(
-        text(icon)
-            .size(TITLE_BAR_ICON_SIZE)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::Center)
-            .font(Font::with_name("bootstrap-icons"))
-            .color(theme_colors.text),
-    )
-    .padding([4, 8])
-    .style(window_button_style(theme_colors, hover_override))
-    .on_press(message)
+    button(icon)
+        .padding([4, 8])
+        .style(window_button_style(theme_colors, hover_override))
+        .on_press(message)
 }
 
 /// 创建自定义标题栏
@@ -125,23 +130,29 @@ where
 
     // 创建最小化按钮
     let minimize_btn = window_button(
-        "\u{F63B}", // bootstrap-icons: dash-lg
+        icon_text("\u{F63B}", TITLE_BAR_ICON_SIZE, theme_colors.text).into(), // bootstrap-icons: dash-lg
         theme_colors,
         None,
         minimize_message,
     );
 
-    // 创建最大化/还原按钮
+    // 创建最大化/还原按钮（图标缩小 20%；还原图标旋转 180 度贴近原生窗口按钮观感）
     let maximize_icon = if is_maximized {
-        "\u{F149}" // bootstrap-icons: arrows-angle-contract
+        // bootstrap-icons: copy 旋转 180 度
+        rotated_icon(
+            "\u{F759}",
+            TITLE_BAR_WINDOW_ICON_SIZE,
+            theme_colors.text,
+            Radians::PI,
+        )
     } else {
-        "\u{F14A}" // bootstrap-icons: arrows-angle-expand
+        icon_text("\u{F584}", TITLE_BAR_WINDOW_ICON_SIZE, theme_colors.text).into() // bootstrap-icons: square
     };
     let maximize_btn = window_button(maximize_icon, theme_colors, None, maximize_message);
 
     // 创建关闭按钮（悬停红色背景 + 白色图标）
     let close_btn = window_button(
-        "\u{F659}", // bootstrap-icons: x-lg
+        icon_text("\u{F659}", TITLE_BAR_ICON_SIZE, theme_colors.text).into(), // bootstrap-icons: x-lg
         theme_colors,
         Some((BUTTON_COLOR_RED, Color::WHITE)),
         close_message,

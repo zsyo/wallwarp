@@ -57,14 +57,13 @@ pub fn create_preview_modal<'a>(
     let theme_colors = theme_config.get_theme_colors();
 
     // 加载占位层
-    let loading_layer: Element<_> = container(
-        text(texts.loading).size(24).color(COLOR_OVERLAY_TEXT),
-    )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .center_x(Length::Fill)
-    .center_y(Length::Fill)
-    .into();
+    let loading_layer: Element<_> =
+        container(text(texts.loading).size(24).color(COLOR_OVERLAY_TEXT))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .into();
 
     // 原图层（等比缩放，未加载完成时透出占位层）
     let image_layer: Element<_> = if let Some(handle) = image_handle {
@@ -195,7 +194,9 @@ fn toolbar_button<'a>(
 fn info_overlay<'a>(i18n: &'a I18n, wallpaper: &Wallpaper) -> Element<'a, AppMessage> {
     let info_row = |label: &str, value: String| -> Element<'a, AppMessage> {
         row![
-            text(format!("{label}: ")).size(12).color(COLOR_OVERLAY_TEXT),
+            text(format!("{label}: "))
+                .size(12)
+                .color(COLOR_OVERLAY_TEXT),
             text(value).size(12).color(COLOR_OVERLAY_TEXT),
         ]
         .spacing(2)

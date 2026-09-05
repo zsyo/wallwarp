@@ -2,9 +2,9 @@
 
 use super::progress_ring_image;
 use crate::i18n::I18n;
-use crate::ui::style::*;
-use crate::ui::online::OnlineState;
 use crate::ui::AppMessage;
+use crate::ui::online::OnlineState;
+use crate::ui::style::*;
 use crate::utils::helpers;
 use iced::widget::{column, container, image, stack, text};
 use iced::{Alignment, Element, Length};
@@ -65,9 +65,7 @@ pub fn create_modal_loading_placeholder<'a>(
 
     let content = column![
         ring_content,
-        text(detail_text)
-            .size(16)
-            .color(COLOR_OVERLAY_TEXT),
+        text(detail_text).size(16).color(COLOR_OVERLAY_TEXT),
     ]
     .spacing(14)
     .align_x(Alignment::Center);

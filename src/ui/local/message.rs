@@ -43,7 +43,10 @@ pub enum LocalMessage {
     /// 确认删除
     ConfirmDelete(usize),
     /// 壁纸文件删除完成
-    LocalFileDeleted { index: usize, result: Result<(), String> },
+    LocalFileDeleted {
+        index: usize,
+        result: Result<(), String>,
+    },
     /// 模态窗口图片加载完成
     ModalImageLoaded(Handle),
 }

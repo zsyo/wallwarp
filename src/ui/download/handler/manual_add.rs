@@ -59,7 +59,9 @@ fn derive_file_name_from_url(url: &str) -> (String, String) {
 
     let stem = match last_segment.rsplit_once('.') {
         Some((stem, ext)) if !stem.is_empty() && (2..=5).contains(&ext.len()) => stem.to_string(),
-        _ => chrono::Local::now().format("wallpaper_%Y%m%d_%H%M%S%3f").to_string(),
+        _ => chrono::Local::now()
+            .format("wallpaper_%Y%m%d_%H%M%S%3f")
+            .to_string(),
     };
 
     let file_type = match extension.as_str() {

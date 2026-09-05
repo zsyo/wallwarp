@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::main::menu_defs::{MenuAction, menu_action_from_id};
 use crate::ui::main::MainMessage;
+use crate::ui::main::menu_defs::{MenuAction, menu_action_from_id};
 use crate::ui::{ActivePage, App, AppMessage};
 use iced::Task;
 

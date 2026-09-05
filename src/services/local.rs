@@ -97,7 +97,10 @@ impl LocalWallpaperService {
                 .to_string()
         };
 
-        debug!("[本地壁纸] 设置壁纸路径: {}, 模式: {:?}", absolute_path, mode);
+        debug!(
+            "[本地壁纸] 设置壁纸路径: {}, 模式: {:?}",
+            absolute_path, mode
+        );
 
         // 1. 先告诉系统：我要用什么样的方式显示壁纸（修改布局设置）
         let wallpaper_mode = Self::convert_wallpaper_mode(mode);

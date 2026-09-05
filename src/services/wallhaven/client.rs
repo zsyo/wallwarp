@@ -77,8 +77,13 @@ impl WallhavenClient {
         F: FnMut() -> Fut,
         Fut: std::future::Future<Output = Result<T, String>>,
     {
-        crate::services::retry::retry_with_backoff(identifier, operation_name, max_retries, operation)
-            .await
+        crate::services::retry::retry_with_backoff(
+            identifier,
+            operation_name,
+            max_retries,
+            operation,
+        )
+        .await
     }
 
     /// 构建搜索 URL

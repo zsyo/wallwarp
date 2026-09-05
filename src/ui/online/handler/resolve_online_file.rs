@@ -38,10 +38,8 @@ impl App {
         file_size: u64,
     ) -> OnlineFileLocation {
         // 生成 data_path 中的目标文件路径
-        let file_name = wallhaven::generate_file_name(
-            id,
-            file_type.split('/').next_back().unwrap_or("jpg"),
-        );
+        let file_name =
+            wallhaven::generate_file_name(id, file_type.split('/').next_back().unwrap_or("jpg"));
         let data_path = self.config.data.data_path.clone();
         let target_path = PathBuf::from(&data_path).join(&file_name);
 

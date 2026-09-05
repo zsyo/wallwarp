@@ -24,7 +24,9 @@ pub fn create_modal_info<'a>(
 ) -> Element<'a, AppMessage> {
     let info_row = |label: &str, value: String| -> Element<'a, AppMessage> {
         row![
-            text(format!("{label}: ")).size(12).color(iced::Color::WHITE),
+            text(format!("{label}: "))
+                .size(12)
+                .color(iced::Color::WHITE),
             text(value).size(12).color(iced::Color::WHITE),
         ]
         .spacing(2)
@@ -44,8 +46,14 @@ pub fn create_modal_info<'a>(
     );
 
     let info_column = column![
-        info_row(i18n.t("wallpaper-info.resolution").as_str(), format!("{} x {}", wallpaper.width, wallpaper.height)),
-        info_row(i18n.t("wallpaper-info.purity").as_str(), wallpaper.purity.to_uppercase()),
+        info_row(
+            i18n.t("wallpaper-info.resolution").as_str(),
+            format!("{} x {}", wallpaper.width, wallpaper.height)
+        ),
+        info_row(
+            i18n.t("wallpaper-info.purity").as_str(),
+            wallpaper.purity.to_uppercase()
+        ),
         info_row(
             i18n.t("wallpaper-info.favorites").as_str(),
             wallpaper.favorites.to_string()

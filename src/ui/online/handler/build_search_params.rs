@@ -2,8 +2,8 @@
 
 use crate::services::async_task;
 use crate::services::request_context::RequestContext;
-use crate::ui::online::ResolutionMode;
 use crate::ui::App;
+use crate::ui::online::ResolutionMode;
 
 impl App {
     /// 根据当前筛选状态组装在线搜索参数

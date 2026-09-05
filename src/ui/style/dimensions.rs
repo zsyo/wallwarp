@@ -330,3 +330,6 @@ pub const TITLE_BAR_TITLE_SIZE: f32 = 13.0;
 
 /// 标题栏图标大小
 pub const TITLE_BAR_ICON_SIZE: f32 = 14.0;
+
+/// 标题栏最大化/还原图标尺寸（缩小 20% 贴近原生窗口按钮观感）
+pub const TITLE_BAR_WINDOW_ICON_SIZE: f32 = TITLE_BAR_ICON_SIZE * 0.8;

@@ -18,8 +18,7 @@ impl App {
         self.online_state.modal_downloaded_bytes = downloaded;
         self.online_state.modal_total_bytes = total;
         if total > 0 {
-            self.online_state.modal_download_progress =
-                (downloaded as f32 / total as f32).min(1.0);
+            self.online_state.modal_download_progress = (downloaded as f32 / total as f32).min(1.0);
         }
         Task::none()
     }

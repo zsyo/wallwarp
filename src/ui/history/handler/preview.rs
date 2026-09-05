@@ -9,17 +9,19 @@ use iced::widget::image::Handle;
 
 impl App {
     /// 打开预览模态并异步加载原图
-    pub(in crate::ui::history) fn preview_history_entry(&mut self, index: usize) -> Task<AppMessage> {
+    pub(in crate::ui::history) fn preview_history_entry(
+        &mut self,
+        index: usize,
+    ) -> Task<AppMessage> {
         if let Some(entry) = self.history_state.entries.get(index) {
             self.history_state.modal_visible = true;
             self.history_state.modal_index = index;
             self.history_state.modal_handle = None;
 
             let path = crate::utils::helpers::get_absolute_path(&entry.path);
-            return Task::perform(
-                async move { Handle::from_path(&path) },
-                |handle| HistoryMessage::ModalImageLoaded(handle).into(),
-            );
+            return Task::perform(async move { Handle::from_path(&path) }, |handle| {
+                HistoryMessage::ModalImageLoaded(handle).into()
+            });
         }
         Task::none()
     }
@@ -43,7 +45,10 @@ impl App {
     }
 
     /// 预览原图加载完成
-    pub(in crate::ui::history) fn history_modal_image_loaded(&mut self, handle: Handle) -> Task<AppMessage> {
+    pub(in crate::ui::history) fn history_modal_image_loaded(
+        &mut self,
+        handle: Handle,
+    ) -> Task<AppMessage> {
         if self.history_state.modal_visible {
             self.history_state.modal_handle = Some(handle);
         }

@@ -25,7 +25,9 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
     // 步骤1: 计算缓存文件路径（复用 DownloadService 的哈希规则）
     let cache_file = PathBuf::from(
         crate::services::download::DownloadService::get_online_image_cache_final_path(
-            &cache_path, &url, file_size,
+            &cache_path,
+            &url,
+            file_size,
         )
         .map_err(|e| {
             error!("[模态窗口图片下载] [URL:{}] 获取缓存路径失败: {}", url, e);

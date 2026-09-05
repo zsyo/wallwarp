@@ -31,7 +31,10 @@ where
         match operation().await {
             Ok(result) => {
                 if attempt > 0 {
-                    info!("[{}] [{}] 重试第 {} 次成功", operation_name, identifier, attempt);
+                    info!(
+                        "[{}] [{}] 重试第 {} 次成功",
+                        operation_name, identifier, attempt
+                    );
                 }
                 return Ok(result);
             }
@@ -39,7 +42,10 @@ where
                 if attempt < max_retries {
                     warn!(
                         "[{}] [{}] 第 {} 次尝试失败，将在1秒后重试: {}",
-                        operation_name, identifier, attempt + 1, e
+                        operation_name,
+                        identifier,
+                        attempt + 1,
+                        e
                     );
                     last_error = Some(e);
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;

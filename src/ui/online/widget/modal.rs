@@ -128,22 +128,26 @@ pub fn create_modal<'a>(
     .style(common::modal_overlay_style);
 
     // 壁纸信息浮层（左上角，数据存在时显示）
-    let info_layer: Element<_> = if let Some(wallpaper) =
-        online_state.wallpapers_data.get(wallpaper_index)
-    {
-        container(super::create_modal_info(i18n, wallpaper, wallpaper_index, theme_config))
+    let info_layer: Element<_> =
+        if let Some(wallpaper) = online_state.wallpapers_data.get(wallpaper_index) {
+            container(super::create_modal_info(
+                i18n,
+                wallpaper,
+                wallpaper_index,
+                theme_config,
+            ))
             .width(Length::Fill)
             .height(Length::Fill)
             .align_x(Alignment::Start)
             .align_y(Alignment::Start)
             .padding(16.0)
             .into()
-    } else {
-        container(Space::new())
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
-    };
+        } else {
+            container(Space::new())
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
+        };
 
     // 工具栏悬浮于图片底部居中
     let toolbar_layer = container(toolbar)
