@@ -130,8 +130,8 @@ impl App {
         // 初始化下载任务数据库
         app.init_download_database();
 
-        // 初始化托盘菜单项的状态
-        app.update_tray_menu_items();
+        // 初始化托盘与悬浮球菜单项的状态
+        app.update_menu_items();
 
         app
     }
@@ -141,7 +141,7 @@ impl App {
     }
 
     /// 更新托盘与悬浮球菜单项的状态
-    fn update_tray_menu_items(&mut self) {
+    pub(in crate::ui) fn update_menu_items(&mut self) {
         let history_count = self.wallpaper_history.len();
         let can_save = self.can_save_current_wallpaper();
 

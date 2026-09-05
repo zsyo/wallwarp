@@ -63,11 +63,8 @@ impl App {
                 Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
         }
 
-        // 更新托盘菜单项的启用状态
-        self.tray_manager
-            .update_switch_previous_item(self.wallpaper_history.len());
-        self.tray_manager
-            .update_save_current_item(self.can_save_current_wallpaper());
+        // 更新托盘与悬浮球菜单项的启用状态
+        self.update_menu_items();
 
         Task::none()
     }
@@ -91,11 +88,8 @@ impl App {
                 Some(chrono::Local::now() + chrono::Duration::minutes(minutes as i64));
         }
 
-        // 更新托盘菜单项的启用状态
-        self.tray_manager
-            .update_switch_previous_item(self.wallpaper_history.len());
-        self.tray_manager
-            .update_save_current_item(self.can_save_current_wallpaper());
+        // 更新托盘与悬浮球菜单项的启用状态
+        self.update_menu_items();
 
         Task::none()
     }
