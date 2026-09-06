@@ -5,7 +5,7 @@ use crate::ui::settings::SettingsMessage;
 use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
-use iced::widget::{container, row, text, text_input, tooltip};
+use iced::widget::{checkbox, container, row, text, text_input, tooltip};
 use iced::{Alignment, Element, Length};
 
 /// 单选选项数据：(标签词条, 选项值, 提示词条)
@@ -40,6 +40,41 @@ where
 /// 创建壁纸配置区块
 pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
     let theme_colors = app.theme_colors;
+
+    // 定时切换周期行的值区域：周期单选（不含关闭，启停由独立开关控制）+ 自定义分钟输入 + 启用开关
+    let interval_value_row = row![
+        create_radio_row(
+            app,
+            &[
+                (
+                    "auto-change-interval-options.ten-min",
+                    WallpaperAutoChangeInterval::Minutes(10),
+                    "auto-change-interval-options.ten-min-tooltip",
+                ),
+                (
+                    "auto-change-interval-options.thirty-min",
+                    WallpaperAutoChangeInterval::Minutes(30),
+                    "auto-change-interval-options.thirty-min-tooltip",
+                ),
+                (
+                    "auto-change-interval-options.one-hour",
+                    WallpaperAutoChangeInterval::Minutes(60),
+                    "auto-change-interval-options.one-hour-tooltip",
+                ),
+                (
+                    "auto-change-interval-options.two-hour",
+                    WallpaperAutoChangeInterval::Minutes(120),
+                    "auto-change-interval-options.two-hour-tooltip",
+                ),
+            ],
+            Some(app.settings_state.auto_change_interval),
+            |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
+        ),
+        create_custom_interval_tooltip(app),
+        create_auto_change_toggle(app),
+    ]
+    .spacing(ROW_SPACING);
+
     super::create_config_section(
         app.i18n.t("settings.wallpaper-config"),
         vec![
@@ -107,42 +142,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
             ),
             super::create_setting_row(
                 app.i18n.t("settings.auto-change-interval"),
-                row![
-                    create_radio_row(
-                        app,
-                        &[
-                            (
-                                "auto-change-interval-options.off",
-                                WallpaperAutoChangeInterval::Off,
-                                "auto-change-interval-options.off-tooltip",
-                            ),
-                            (
-                                "auto-change-interval-options.ten-min",
-                                WallpaperAutoChangeInterval::Minutes(10),
-                                "auto-change-interval-options.ten-min-tooltip",
-                            ),
-                            (
-                                "auto-change-interval-options.thirty-min",
-                                WallpaperAutoChangeInterval::Minutes(30),
-                                "auto-change-interval-options.thirty-min-tooltip",
-                            ),
-                            (
-                                "auto-change-interval-options.one-hour",
-                                WallpaperAutoChangeInterval::Minutes(60),
-                                "auto-change-interval-options.one-hour-tooltip",
-                            ),
-                            (
-                                "auto-change-interval-options.two-hour",
-                                WallpaperAutoChangeInterval::Minutes(120),
-                                "auto-change-interval-options.two-hour-tooltip",
-                            ),
-                        ],
-                        Some(app.settings_state.auto_change_interval),
-                        |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
-                    ),
-                    create_custom_interval_tooltip(app),
-                ]
-                .spacing(ROW_SPACING),
+                interval_value_row,
                 &app.theme_config,
             ),
             super::create_setting_row(
@@ -174,6 +174,29 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
         ],
         &app.theme_config,
     )
+}
+
+/// 创建"启用定时切换"开关（启停状态持久化到配置，配置的周期不受影响）
+///
+/// 与行内单选项同规格：16px 框、8px 间距、默认字号文字、30px 高容器垂直居中
+fn create_auto_change_toggle<'a>(app: &'a App) -> Element<'a, AppMessage> {
+    let theme_colors = app.theme_colors;
+    let is_enabled = app.auto_change_state.auto_change_enabled;
+
+    let toggle = row![
+        checkbox(is_enabled)
+            .size(16)
+            .on_toggle(move |_state| SettingsMessage::AutoChangeToggled(!is_enabled).into())
+            .style(common::checkbox_style(theme_colors, is_enabled)),
+        text(app.i18n.t("settings.auto-change-toggle")).color(theme_colors.text),
+    ]
+    .spacing(8)
+    .align_y(Alignment::Center);
+
+    container(toggle)
+        .height(Length::Fixed(30.0))
+        .align_y(Alignment::Center)
+        .into()
 }
 
 /// 创建自定义分钟数单选项（带数字输入框的复合控件）

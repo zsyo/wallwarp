@@ -107,7 +107,7 @@ impl DownloadService {
         debug!("[缩略图缓存] [URL:{}] 缓存不存在，开始下载", url);
 
         // 下载并保存到缓存
-        Self::download_thumb_to_cache(&url, &cache_path, proxy).await?;
+        Self::download_image_to_cache(&url, &cache_path, proxy).await?;
 
         // 返回缓存的图片Handle
         Ok(iced::widget::image::Handle::from_path(Path::new(
@@ -143,7 +143,7 @@ impl DownloadService {
         debug!("[缩略图缓存] [URL:{}] 缓存不存在，开始下载", url);
 
         // 下载并保存到缓存（带取消支持）
-        Self::download_thumb_to_cache_with_cancel(&url, &cache_path, proxy, cancel_token.clone())
+        Self::download_image_to_cache_with_cancel(&url, &cache_path, proxy, cancel_token.clone())
             .await?;
 
         // 再次检查取消状态（下载完成后）
@@ -160,29 +160,31 @@ impl DownloadService {
         )))
     }
 
-    /// 下载缩略图到缓存目录（带重试机制，最多重试3次）
-    pub async fn download_thumb_to_cache(
+    /// 下载图片到缓存目录（带重试机制，最多重试3次）
+    ///
+    /// 通用下载入口：缩略图加载与在线原图（定时切换/设为壁纸）共用
+    pub async fn download_image_to_cache(
         url: &str,
         cache_path: &str,
         proxy: Option<String>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        Self::save_thumb(url, cache_path, proxy, None).await
+        Self::save_image_to_cache(url, cache_path, proxy, None).await
     }
 
-    /// 下载缩略图到缓存目录（带取消支持，不使用重试机制）
-    pub async fn download_thumb_to_cache_with_cancel(
+    /// 下载图片到缓存目录（带取消支持，不使用重试机制）
+    pub async fn download_image_to_cache_with_cancel(
         url: &str,
         cache_path: &str,
         proxy: Option<String>,
         cancel_token: std::sync::Arc<std::sync::atomic::AtomicBool>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        Self::save_thumb(url, cache_path, proxy, Some(cancel_token)).await
+        Self::save_image_to_cache(url, cache_path, proxy, Some(cancel_token)).await
     }
 
-    /// 缩略图下载共用主体：获取并发许可、确保目录、下载、落盘
+    /// 图片下载共用主体：获取并发许可、确保目录、下载、落盘
     ///
     /// `cancel_token` 为 Some 时支持中途取消(取消不重试)；为 None 时带重试机制
-    async fn save_thumb(
+    async fn save_image_to_cache(
         url: &str,
         cache_path: &str,
         proxy: Option<String>,
@@ -193,38 +195,38 @@ impl DownloadService {
             .acquire()
             .await;
 
-        debug!("[缩略图缓存] [URL:{}] 开始下载到: {}", url, cache_path);
+        debug!("[图片缓存] [URL:{}] 开始下载到: {}", url, cache_path);
 
         // 确保缓存目录存在
         let cache_file_path = Path::new(cache_path);
         if let Some(cache_dir) = cache_file_path.parent() {
             fs::create_dir_all(cache_dir).map_err(|e| {
-                error!("[缩略图缓存] [URL:{}] 创建缓存目录失败: {}", url, e);
+                error!("[图片缓存] [URL:{}] 创建缓存目录失败: {}", url, e);
                 Box::new(e) as Box<dyn std::error::Error + Send + Sync>
             })?;
         }
 
-        let bytes = Self::download_thumb_bytes(url, proxy, cancel_token).await?;
+        let bytes = Self::download_image_bytes(url, proxy, cancel_token).await?;
 
         debug!(
-            "[缩略图缓存] [URL:{}] 下载成功，数据大小: {} bytes",
+            "[图片缓存] [URL:{}] 下载成功，数据大小: {} bytes",
             url,
             bytes.len()
         );
 
         // 保存到缓存
         fs::write(cache_path, bytes).map_err(|e| {
-            error!("[缩略图缓存] [URL:{}] 保存文件失败: {}", url, e);
+            error!("[图片缓存] [URL:{}] 保存文件失败: {}", url, e);
             Box::new(e) as Box<dyn std::error::Error + Send + Sync>
         })?;
 
-        debug!("[缩略图缓存] [URL:{}] 文件保存成功: {}", url, cache_path);
+        debug!("[图片缓存] [URL:{}] 文件保存成功: {}", url, cache_path);
 
         Ok(())
     }
 
-    /// 下载缩略图数据
-    async fn download_thumb_bytes(
+    /// 下载图片数据
+    async fn download_image_bytes(
         url: &str,
         proxy: Option<String>,
         cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -241,7 +243,7 @@ impl DownloadService {
         let client = crate::services::proxy::create_client_with_env_fallback(
             proxy,
             url,
-            "缩略图缓存",
+            "图片缓存",
             false, // 使用 debug 级别
         );
 
@@ -259,15 +261,15 @@ impl DownloadService {
             }
 
             let response = client.get(&url).send().await.map_err(|e| {
-                error!("[缩略图缓存] [URL:{}] 请求失败: {}", url, e);
+                error!("[图片缓存] [URL:{}] 请求失败: {}", url, e);
                 Box::new(e) as Box<dyn std::error::Error + Send + Sync>
             })?;
 
-            debug!("[缩略图缓存] [URL:{}] 响应状态: {}", url, response.status());
+            debug!("[图片缓存] [URL:{}] 响应状态: {}", url, response.status());
 
             if !response.status().is_success() {
                 let error_msg = format!("下载失败: {}", response.status());
-                error!("[缩略图缓存] [URL:{}] {}", url, error_msg);
+                error!("[图片缓存] [URL:{}] {}", url, error_msg);
                 return Err(Box::new(std::io::Error::other(error_msg))
                     as Box<dyn std::error::Error + Send + Sync>);
             }
@@ -286,7 +288,7 @@ impl DownloadService {
                 }
 
                 let chunk = chunk_result.map_err(|e| {
-                    error!("[缩略图缓存] [URL:{}] 读取数据流失败: {}", url, e);
+                    error!("[图片缓存] [URL:{}] 读取数据流失败: {}", url, e);
                     Box::new(e) as Box<dyn std::error::Error + Send + Sync>
                 })?;
 
@@ -301,7 +303,7 @@ impl DownloadService {
                 // 带重试机制（最多重试3次）
                 crate::services::retry::retry_with_backoff(
                     &format!("URL:{}", url),
-                    "缩略图缓存",
+                    "图片缓存",
                     3,
                     || {
                         let client = client.clone();

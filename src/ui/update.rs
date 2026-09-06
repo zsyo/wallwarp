@@ -8,15 +8,20 @@ impl App {
     /// 主更新方法 - 处理所有应用消息
     pub fn update(&mut self, msg: AppMessage) -> Task<AppMessage> {
         // 检查是否需要加载初始任务（只在第一次运行时）
-        if !self.main_state.initial_loaded {
+        let initial_task = if !self.main_state.initial_loaded {
             self.main_state.initial_loaded = true;
             // 如果默认页面是在线壁纸，则加载初始数据
             if self.active_page == super::ActivePage::OnlineWallpapers {
-                return Task::done(OnlineMessage::LoadWallpapers.into());
+                Some(Task::done(OnlineMessage::LoadWallpapers.into()))
+            } else {
+                None
             }
-        }
+        } else {
+            None
+        };
 
-        match msg {
+        // 首条消息不丢弃：与初始加载任务合并后一并处理
+        let msg_task = match msg {
             AppMessage::None => Task::none(),
             AppMessage::Main(message) => self.handle_main_message(message),
             AppMessage::Local(message) => self.handle_local_message(message),
@@ -25,6 +30,11 @@ impl App {
             AppMessage::AutoChange(message) => self.handle_auto_change_message(message),
             AppMessage::Settings(message) => self.handle_settings_message(message),
             AppMessage::History(message) => self.handle_history_message(message),
+        };
+
+        match initial_task {
+            Some(initial) => Task::batch([initial, msg_task]),
+            None => msg_task,
         }
     }
 }

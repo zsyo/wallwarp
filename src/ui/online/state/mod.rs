@@ -18,6 +18,8 @@ pub enum WallpaperLoadStatus {
     Loading,
     /// 已加载（缩略图 Handle 已缓存到 wallpapers_data 对应项的 image_handle 字段）
     Loaded,
+    /// 加载失败（缩略图下载/解码出错，网格显示失败占位卡片）
+    Failed,
 }
 
 /// 分页信息，记录每页的结束索引和对应的页码

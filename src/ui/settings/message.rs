@@ -68,6 +68,8 @@ pub enum SettingsMessage {
     AutoChangeModeSelected(WallpaperAutoChangeMode),
     /// 定时切换周期选择
     AutoChangeIntervalSelected(WallpaperAutoChangeInterval),
+    /// 定时切换启停切换（状态持久化到配置）
+    AutoChangeToggled(bool),
     /// 自定义切换周期分钟数变化
     CustomIntervalMinutesChanged(u32),
     /// 定时切换关键词变化
@@ -166,6 +168,9 @@ impl App {
             }
             SettingsMessage::AutoChangeIntervalSelected(interval) => {
                 self.settings_auto_change_interval_selected(interval)
+            }
+            SettingsMessage::AutoChangeToggled(enabled) => {
+                self.settings_auto_change_toggled(enabled)
             }
             SettingsMessage::CustomIntervalMinutesChanged(minutes) => {
                 self.settings_custom_interval_minutes_changed(minutes)

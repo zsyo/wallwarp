@@ -2,6 +2,7 @@
 
 mod bordered_container;
 mod card_style;
+mod checkbox;
 mod colored_button;
 mod confirmation_dialog;
 pub mod icon_button;
@@ -18,6 +19,7 @@ pub mod drop_down;
 
 pub use bordered_container::*;
 pub use card_style::*;
+pub use checkbox::*;
 pub use colored_button::*;
 pub use confirmation_dialog::*;
 pub use icon_button::*;

@@ -50,6 +50,9 @@ pub fn create_wallpaper_grid<'a>(
                             theme_config,
                         )
                     }
+                    WallpaperLoadStatus::Failed => {
+                        super::create_load_failed_placeholder(i18n, theme_config)
+                    }
                 };
 
                 row_container = row_container.push(image_element);

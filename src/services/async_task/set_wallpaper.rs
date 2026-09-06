@@ -272,7 +272,7 @@ pub async fn async_set_random_online_wallpaper(
             "[定时切换] [在线] 缓存不存在，开始下载到online缓存: {}",
             cache_file_path_obj.display()
         );
-        DownloadService::download_thumb_to_cache(&selected.path, &cache_file_path, proxy).await?;
+        DownloadService::download_image_to_cache(&selected.path, &cache_file_path, proxy).await?;
 
         // 下载完成后，移动到 cache_path/auto_change
         // 因为这是原图且非主动浏览，不需要在 online 目录中保存对应的缓存

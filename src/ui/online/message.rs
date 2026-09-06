@@ -51,6 +51,8 @@ pub enum OnlineMessage {
     ModalImageProgress(u64, u64),
     /// 缩略图加载完成（内部消息，用于从异步任务传递 Handle）
     ThumbLoaded(usize, iced::widget::image::Handle),
+    /// 缩略图加载失败（内部消息，网格显示失败占位卡片）
+    ThumbLoadFailed(usize),
     // 筛选条件相关消息
     /// 切换分类选择状态
     CategoryToggled(wallhaven::Category),
@@ -151,6 +153,7 @@ impl App {
             OnlineMessage::NextImage => self.next_online_image(),
             OnlineMessage::PreviousImage => self.previous_online_image(),
             OnlineMessage::ThumbLoaded(idx, handle) => self.online_thumb_loaded(idx, handle),
+            OnlineMessage::ThumbLoadFailed(idx) => self.online_thumb_load_failed(idx),
             OnlineMessage::DownloadWallpaper(index) => self.download_online_wallpaper(index),
             OnlineMessage::DownloadFromCache(index) => self.download_from_cache(index),
             OnlineMessage::CopyImageLink(index) => self.copy_online_image_link(index),

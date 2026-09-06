@@ -24,7 +24,7 @@ impl App {
 
         // 清除未完成的下载文件（仅删除 .download 缓存文件）
         // 文件删除放入阻塞线程池执行，避免阻塞 UI 线程
-        let cleanup_task = if let Some((url, status, total_size)) = task_info {
+        if let Some((url, status, total_size)) = task_info {
             // 只有在下载中、等待中或暂停时才清除缓存文件
             if status == DownloadStatus::Downloading
                 || status == DownloadStatus::Waiting
@@ -55,7 +55,6 @@ impl App {
             }
         } else {
             Task::none()
-        };
-        cleanup_task
+        }
     }
 }

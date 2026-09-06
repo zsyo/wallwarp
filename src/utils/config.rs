@@ -217,6 +217,14 @@ fn default_auto_change_top_range() -> String {
     "1M".to_string()
 }
 
+/// 定时切换启用的持久化默认值
+///
+/// 旧版本配置中没有该字段，旧语义是"周期非 Off 即启用"，
+/// 因此缺字段时按 true 迁移；旧配置周期为 Off 的由 fix_config 修正为 false
+fn default_auto_change_enabled() -> bool {
+    true
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WallpaperConfig {
     #[serde(default)]
@@ -225,6 +233,8 @@ pub struct WallpaperConfig {
     pub auto_change_mode: WallpaperAutoChangeMode,
     #[serde(default)]
     pub auto_change_interval: WallpaperAutoChangeInterval,
+    #[serde(default = "default_auto_change_enabled")]
+    pub auto_change_enabled: bool,
     #[serde(default)]
     pub auto_change_query: String,
     #[serde(default = "default_auto_change_sorting")]
@@ -239,6 +249,7 @@ impl Default for WallpaperConfig {
             mode: WallpaperMode::default(),
             auto_change_mode: WallpaperAutoChangeMode::default(),
             auto_change_interval: WallpaperAutoChangeInterval::default(),
+            auto_change_enabled: false,
             auto_change_query: String::new(),
             auto_change_sorting: default_auto_change_sorting(),
             auto_change_top_range: default_auto_change_top_range(),
@@ -548,16 +559,28 @@ impl Config {
         }
     }
 
-    /// 修复越界的配置项
+    /// 修复越界的配置项与旧版本字段迁移
     ///
     /// 返回是否实际修改过内容
     fn fix_config(&mut self) -> bool {
+        let mut modified = false;
         if self.display.width < MIN_WINDOW_WIDTH || self.display.height < MIN_WINDOW_HEIGHT {
             self.display.width = MIN_WINDOW_WIDTH;
             self.display.height = MIN_WINDOW_HEIGHT;
-            return true;
+            modified = true;
         }
-        false
+        // 旧版本用"周期 = off"表达停用；迁移到独立开关字段后，
+        // "启用 + 无有效周期"只可能是旧配置的缺字段默认值，修正为停用。
+        // 新 UI 下启用的前提是周期有效，不会出现该组合
+        if matches!(
+            self.wallpaper.auto_change_interval,
+            WallpaperAutoChangeInterval::Off
+        ) && self.wallpaper.auto_change_enabled
+        {
+            self.wallpaper.auto_change_enabled = false;
+            modified = true;
+        }
+        modified
     }
 
     pub fn save_to_file(&self) {

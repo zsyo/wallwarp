@@ -7,6 +7,8 @@ use std::fs;
 use std::io::Read;
 use std::num::NonZeroU32;
 use std::path::Path;
+use std::sync::{LazyLock, Mutex, PoisonError};
+use std::time::{Duration, Instant};
 use tracing::{debug, error, warn};
 use xxhash_rust::xxh3::xxh3_128;
 
@@ -15,6 +17,17 @@ const THREAD_POOL_SIZE: usize = 3;
 const HASH_CHUNK_SIZE: u64 = 64 * 1024;
 const THUMBNAIL_MAX_WIDTH: u32 = 256;
 const THUMBNAIL_MAX_HEIGHT: u32 = 150;
+
+/// 支持图片列表的缓存条目：(扫描时间, 数据目录, 路径列表)
+type SupportedPathsCache = Option<(Instant, String, Vec<String>)>;
+
+/// 支持图片列表的短 TTL 缓存（数据目录 → 扫描时间 + 列表）
+///
+/// 定时切换与托盘"下一张"每 tick 都会拉取列表；TTL 内直接复用上次扫描
+/// 结果，避免每次全量重扫目录。新增/删除壁纸最迟 TTL 后生效。
+static SUPPORTED_PATHS_CACHE: LazyLock<Mutex<SupportedPathsCache>> =
+    LazyLock::new(|| Mutex::new(None));
+const SUPPORTED_PATHS_CACHE_TTL: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone)]
 pub struct Wallpaper {
@@ -127,9 +140,23 @@ impl LocalWallpaperService {
     }
 
     /// 获取支持的图片文件列表（仅根据文件后缀筛选）
+    ///
+    /// 结果带短 TTL 缓存（见 [`SUPPORTED_PATHS_CACHE`]），缓存按数据目录区分，
+    /// 切换数据目录立即重新扫描。
     pub fn get_supported_image_paths(
         data_path: &str,
     ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+        // 锁中毒仅说明其他线程持锁时 panic，缓存数据本身仍可用，取回继续
+        let mut cache = SUPPORTED_PATHS_CACHE
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        if let Some((scanned_at, cached_path, paths)) = cache.as_ref()
+            && cached_path == data_path
+            && scanned_at.elapsed() < SUPPORTED_PATHS_CACHE_TTL
+        {
+            return Ok(paths.clone());
+        }
+
         let path = Path::new(data_path);
 
         if !path.exists() {
@@ -149,6 +176,9 @@ impl LocalWallpaperService {
         }
 
         debug!("[本地壁纸] 找到 {} 张支持的壁纸", image_paths.len());
+
+        *cache = Some((Instant::now(), data_path.to_string(), image_paths.clone()));
+
         Ok(image_paths)
     }
 
@@ -169,8 +199,9 @@ impl LocalWallpaperService {
 
         debug!("[本地壁纸] 随机选择壁纸: {}", selected_path);
 
-        // 在设置壁纸前验证图片是否可以正常加载
-        if image::open(selected_path).is_err() {
+        // 在设置壁纸前验证图片有效性：只读图片头（整图解码代价高，
+        // 头信息都无法解析的文件必然损坏；内容损坏由设置失败时暴露）
+        if image::image_dimensions(selected_path).is_err() {
             debug!("[本地壁纸] 跳过损坏的图片: {}", selected_path);
             return Err("选择的图片已损坏".into());
         }

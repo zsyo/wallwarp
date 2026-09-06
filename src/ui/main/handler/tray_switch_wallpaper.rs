@@ -10,16 +10,19 @@ use tracing::info;
 
 impl App {
     pub(in crate::ui::main) fn tray_switch_previous_wallpaper(&mut self) -> Task<AppMessage> {
+        // 提前获取翻译文本，避免线程安全问题
+        let no_previous_message = self.i18n.t("notification.no-previous-wallpaper").to_string();
+
         // 检查历史记录是否为空
         if self.wallpaper_history.is_empty() {
             info!("[托盘菜单] 壁纸历史记录为空，无法切换上一张");
-            return Task::none();
+            return self.show_notification(no_previous_message, NotificationType::Error);
         }
 
         // 查找上一张壁纸（历史记录中的倒数第二条）
         if self.wallpaper_history.len() < 2 {
             info!("[托盘菜单] 壁纸历史记录不足2条，无法切换上一张");
-            return Task::none();
+            return self.show_notification(no_previous_message, NotificationType::Error);
         }
 
         let previous_wallpaper = self.wallpaper_history[self.wallpaper_history.len() - 2].clone();

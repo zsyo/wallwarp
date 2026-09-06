@@ -5,7 +5,6 @@ use crate::services::wallhaven;
 use crate::ui::online::{OnlineMessage, PageInfo, WallpaperLoadStatus};
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
-use iced::widget::image::Handle;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use tracing::error;
@@ -69,7 +68,7 @@ impl App {
                 ),
                 move |result| match result {
                     Ok(handle) => OnlineMessage::ThumbLoaded(idx, handle).into(),
-                    Err(_) => OnlineMessage::ThumbLoaded(idx, Handle::from_bytes(vec![])).into(),
+                    Err(_) => OnlineMessage::ThumbLoadFailed(idx).into(),
                 },
             ));
         }

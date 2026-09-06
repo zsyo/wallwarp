@@ -97,7 +97,7 @@ impl App {
                 if let Err(e) = result {
                     tracing::warn!("[壁纸历史] [DB] 写入失败: {}", e);
                 }
-                AppMessage::None.into()
+                AppMessage::None
             },
         )
         .chain(reload_history_page)

@@ -11,6 +11,7 @@ mod filter_resolution_grid_options;
 mod filter_resolution_picker;
 mod filter_sorting_picker;
 mod filter_time_range_picker;
+mod list_failed_placeholder;
 mod list_loaded_wallpaper_with_thumb;
 mod list_loading_placeholder;
 mod list_page_separator;
@@ -32,6 +33,7 @@ use {
 };
 
 use {
+    list_failed_placeholder::create_load_failed_placeholder,
     list_loaded_wallpaper_with_thumb::create_loaded_wallpaper_with_thumb,
     list_loading_placeholder::create_loading_placeholder,
     list_page_separator::create_page_separator, list_wallpaper_grid::create_wallpaper_grid,

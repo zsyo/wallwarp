@@ -147,7 +147,9 @@ impl App {
         match path_type {
             "data" => &self.config.data.data_path,
             "cache" => &self.config.data.cache_path,
-            _ => "",
+            // path_to_clear 仅由数据/缓存两个清空按钮写入，出现其他值说明状态被破坏，
+            // 直接暴露而非返回空字符串掩盖
+            other => unreachable!("未知的路径类型: {}（仅支持 data/cache）", other),
         }
     }
 

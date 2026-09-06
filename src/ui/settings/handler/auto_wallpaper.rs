@@ -4,7 +4,7 @@ use crate::services::wallhaven::{Sorting, TimeRange};
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 use iced::Task;
-use tracing::info;
+use tracing::{info, warn};
 
 impl App {
     pub(in crate::ui::settings) fn settings_wallpaper_mode_selected(
@@ -42,31 +42,55 @@ impl App {
         self.settings_state.auto_change_interval = interval;
         self.config.wallpaper.auto_change_interval = interval;
 
-        // 根据选择的间隔启动或停止定时任务
-        if matches!(
-            self.settings_state.auto_change_interval,
-            WallpaperAutoChangeInterval::Off
-        ) {
-            // 选择关闭，停止定时任务
-            self.auto_change_state.auto_change_enabled = false;
-            self.auto_change_state.next_execute_time = None;
-            info!("[定时切换] [停止] 定时任务已停止");
-        } else {
-            // 选择其他选项，启动定时任务
-            self.auto_change_state.auto_change_enabled = true;
-
-            // 计算并记录下次执行时间
-            if let Some(minutes) = self.settings_state.auto_change_interval.get_minutes() {
-                let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
-                info!(
-                    "[定时切换] [启动] 间隔: {}分钟, 下次执行时间: {}",
-                    minutes,
-                    next_time.format("%Y-%m-%d %H:%M:%S")
-                );
-                self.auto_change_state.next_execute_time = Some(next_time);
-            }
+        // 已启用时按新周期重新计时；停用状态仅更新周期，不改开关
+        if self.auto_change_state.auto_change_enabled
+            && let Some(minutes) = interval.get_minutes()
+        {
+            let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+            info!(
+                "[定时切换] [重置] 间隔: {}分钟, 下次执行时间: {}",
+                minutes,
+                next_time.format("%Y-%m-%d %H:%M:%S")
+            );
+            self.auto_change_state.next_execute_time = Some(next_time);
         }
 
+        // 磁盘写入经防抖合并
+        self.request_config_save()
+    }
+
+    /// 定时切换启停切换（状态持久化到配置）
+    ///
+    /// 启动时按当前周期重新计时（不立刻换壁纸）；停用时清除下次执行时间
+    pub(in crate::ui::settings) fn settings_auto_change_toggled(
+        &mut self,
+        enabled: bool,
+    ) -> Task<AppMessage> {
+        if enabled {
+            // 启用的前提是已有有效周期（如旧配置迁移后周期为 off，先选择周期再启用）
+            let Some(minutes) = self.settings_state.auto_change_interval.get_minutes() else {
+                warn!("[定时切换] [启停] 尚未选择有效周期，忽略启用操作");
+                return Task::none();
+            };
+            self.auto_change_state.auto_change_enabled = true;
+
+            // 按当前周期重新计算下次执行时间
+            let next_time = chrono::Local::now() + chrono::Duration::minutes(minutes as i64);
+            info!(
+                "[定时切换] [手动启动] 间隔: {}分钟, 下次执行时间: {}",
+                minutes,
+                next_time.format("%Y-%m-%d %H:%M:%S")
+            );
+            self.auto_change_state.next_execute_time = Some(next_time);
+        } else {
+            self.auto_change_state.auto_change_enabled = false;
+            self.auto_change_state.next_execute_time = None;
+            info!("[定时切换] [手动停止] 定时任务已停用");
+        }
+
+        // 开关状态持久化
+        self.config.wallpaper.auto_change_enabled =
+            self.auto_change_state.auto_change_enabled;
         // 磁盘写入经防抖合并
         self.request_config_save()
     }
