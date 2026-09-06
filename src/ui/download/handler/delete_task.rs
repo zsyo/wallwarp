@@ -8,6 +8,7 @@ use iced::Task;
 impl App {
     pub(in crate::ui::download) fn delete_download_task(&mut self, id: usize) -> Task<AppMessage> {
         // 先保存任务信息，因为删除后可能无法访问
+        // (临时缓存路径由 URL+总大小哈希生成,必须携带任务的真实 total_size)
         let task_info = self
             .download_state
             .tasks
@@ -18,11 +19,12 @@ impl App {
                     t.task.url.clone(),
                     t.task.save_path.clone(),
                     t.task.status.clone(),
+                    t.task.total_size,
                 )
             });
 
         // 检查任务状态
-        let current_status = task_info.as_ref().map(|(_, _, status)| status.clone());
+        let current_status = task_info.as_ref().map(|(_, _, status, _)| status.clone());
 
         // 如果任务处于下载中、等待中或暂停状态，需要取消网络请求
         if let Some(status) = current_status
@@ -40,31 +42,38 @@ impl App {
         }
 
         // 清除未完成的下载文件（对于下载中、等待中或暂停的任务）
-        if let Some((url, _save_path, status)) = task_info
+        // 文件删除放入阻塞线程池执行，避免阻塞 UI 线程
+        let cleanup_task = if let Some((url, _save_path, status, total_size)) = task_info
             && (status == DownloadStatus::Downloading
                 || status == DownloadStatus::Waiting
                 || status == DownloadStatus::Paused)
         {
             let cache_path = self.config.data.cache_path.clone();
-
-            // 删除缓存文件（cache_path/online中的 .download 文件）
-            if let Ok(cache_file_path) =
-                DownloadService::get_online_image_cache_path(&cache_path, &url, 0)
-                && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
-            {
-                let _ = std::fs::remove_file(&cache_file_path);
-                tracing::info!(
-                    "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
-                    id,
-                    cache_file_path
-                );
-            }
-        }
+            Task::perform(
+                tokio::task::spawn_blocking(move || {
+                    // 删除缓存文件（cache_path/online中的 .download 文件）
+                    if let Ok(cache_file_path) =
+                        DownloadService::get_online_image_cache_path(&cache_path, &url, total_size)
+                        && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
+                    {
+                        let _ = std::fs::remove_file(&cache_file_path);
+                        tracing::info!(
+                            "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
+                            id,
+                            cache_file_path
+                        );
+                    }
+                }),
+                |_| AppMessage::None,
+            )
+        } else {
+            Task::none()
+        };
 
         // 最后删除任务记录
         self.download_state.remove_task(id);
 
-        Task::none()
+        cleanup_task
     }
 
     pub(in crate::ui::download) fn clear_download_completed_tasks(&mut self) -> Task<AppMessage> {

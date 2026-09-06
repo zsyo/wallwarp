@@ -23,28 +23,39 @@ impl App {
             .update_status(id, DownloadStatus::Cancelled);
 
         // 清除未完成的下载文件（仅删除 .download 缓存文件）
-        if let Some((url, status, total_size)) = task_info {
+        // 文件删除放入阻塞线程池执行，避免阻塞 UI 线程
+        let cleanup_task = if let Some((url, status, total_size)) = task_info {
             // 只有在下载中、等待中或暂停时才清除缓存文件
             if status == DownloadStatus::Downloading
                 || status == DownloadStatus::Waiting
                 || status == DownloadStatus::Paused
             {
                 let cache_path = self.config.data.cache_path.clone();
-
-                // 删除缓存文件（cache_path/online中的 .download 文件）
-                if let Ok(cache_file_path) =
-                    DownloadService::get_online_image_cache_path(&cache_path, &url, total_size)
-                    && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
-                {
-                    let _ = std::fs::remove_file(&cache_file_path);
-                    tracing::info!(
-                        "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
-                        id,
-                        cache_file_path
-                    );
-                }
+                Task::perform(
+                    tokio::task::spawn_blocking(move || {
+                        // 删除缓存文件（cache_path/online中的 .download 文件）
+                        if let Ok(cache_file_path) = DownloadService::get_online_image_cache_path(
+                            &cache_path,
+                            &url,
+                            total_size,
+                        ) && let Ok(_metadata) = std::fs::metadata(&cache_file_path)
+                        {
+                            let _ = std::fs::remove_file(&cache_file_path);
+                            tracing::info!(
+                                "[下载任务] [ID:{}] 已删除未完成的缓存文件: {}",
+                                id,
+                                cache_file_path
+                            );
+                        }
+                    }),
+                    |_| AppMessage::None,
+                )
+            } else {
+                Task::none()
             }
-        }
-        Task::none()
+        } else {
+            Task::none()
+        };
+        cleanup_task
     }
 }

@@ -4,12 +4,15 @@
 //!
 //! 所有 HTTP 请求路径共用同一套客户端配置（[`build_client`] 单一构建入口），
 //! 代理来源优先级：配置文件代理 > 环境变量代理（回退）> 直连。
+//! 创建出的客户端按最终生效代理配置缓存复用（[`cached_client`]）。
 //!
 //! 注意：不使用 `http2_prior_knowledge`（跳过 ALPN 协商对不支持 HTTP/2 的
 //! 图床与代理会导致全部请求失败），依赖 TLS ALPN 自动协商协议版本。
 
+use std::collections::HashMap;
+use std::sync::{LazyLock, Mutex, PoisonError};
 use std::time::Duration;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 /// 连接超时
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
@@ -17,6 +20,35 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(300);
 /// 空闲连接保活时长
 const POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(90);
+
+/// 按最终生效代理配置缓存的 HTTP 客户端池（键：代理 URL，None=直连）
+///
+/// reqwest::Client 内部为 Arc，克隆廉价；高频路径（缩略图加载、流式下载等）
+/// 若每次请求都新建 Client，TLS 握手与连接池会反复初始化且完全失去连接复用。
+/// 缓存键为解析后的代理 URL，代理设置变更自然产生新键，无需失效逻辑
+static CLIENT_CACHE: LazyLock<Mutex<HashMap<Option<String>, reqwest::Client>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+/// 获取（或首次创建并缓存）指定代理配置的 HTTP 客户端
+///
+/// # 参数
+/// - `resolved_proxy`: 最终生效的代理 URL（None=直连）
+fn cached_client(resolved_proxy: Option<String>) -> reqwest::Client {
+    // 锁中毒仅说明其他线程持锁时 panic，map 数据本身仍可用，取回继续
+    let mut cache = CLIENT_CACHE.lock().unwrap_or_else(PoisonError::into_inner);
+    if let Some(client) = cache.get(&resolved_proxy) {
+        return client.clone();
+    }
+    let client = build_client(resolved_proxy.as_deref()).unwrap_or_else(|e| {
+        error!(
+            "[代理客户端] 客户端创建失败 (proxy: {:?}): {}，回退到默认客户端",
+            resolved_proxy, e
+        );
+        reqwest::Client::new()
+    });
+    cache.insert(resolved_proxy, client.clone());
+    client
+}
 
 /// 统一的 HTTP 客户端构建入口
 ///
@@ -68,7 +100,7 @@ pub fn get_proxy_from_env() -> Option<String> {
     None
 }
 
-/// 创建带代理的 HTTP 客户端
+/// 创建带代理的 HTTP 客户端（结果经 [`cached_client`] 缓存复用）
 ///
 /// # 参数
 /// - `proxy`: 配置文件中的代理 URL（可选）
@@ -84,36 +116,26 @@ pub fn create_proxy_client(
     proxy_enabled: bool,
     use_env_fallback: bool,
 ) -> reqwest::Client {
-    // 优先级1: 使用配置文件代理
-    if proxy_enabled
+    // 解析最终生效的代理（优先级：配置文件代理 > 环境变量代理 > 直连）
+    let resolved_proxy = if proxy_enabled
         && let Some(proxy_url) = proxy
         && !proxy_url.is_empty()
     {
         info!("[代理客户端] 使用配置文件代理: {}", proxy_url);
-        return build_client(Some(&proxy_url)).unwrap_or_else(|e| {
-            warn!("[代理客户端] 代理客户端创建失败: {}，回退到直连", e);
-            reqwest::Client::new()
-        });
-    }
-
-    // 优先级2: 使用环境变量代理（如果启用回退）
-    if use_env_fallback && let Some(env_proxy_url) = get_proxy_from_env() {
+        Some(proxy_url)
+    } else if use_env_fallback && let Some(env_proxy_url) = get_proxy_from_env() {
         info!("[代理客户端] 使用环境变量代理: {}", env_proxy_url);
-        return build_client(Some(&env_proxy_url)).unwrap_or_else(|e| {
-            warn!("[代理客户端] 环境变量代理客户端创建失败: {}，回退到直连", e);
-            reqwest::Client::new()
-        });
-    }
+        Some(env_proxy_url)
+    } else {
+        debug!("[代理客户端] 使用直连客户端");
+        None
+    };
 
-    // 优先级3: 无代理
-    debug!("[代理客户端] 使用直连客户端");
-    build_client(None).unwrap_or_else(|e| {
-        error!("[代理客户端] 直连客户端创建失败: {}", e);
-        reqwest::Client::new()
-    })
+    cached_client(resolved_proxy)
 }
 
-/// 创建带代理和环境变量回退的 HTTP 客户端（下载路径通用版本）
+/// 创建带代理和环境变量回退的 HTTP 客户端（下载路径通用版本，
+/// 结果经 [`cached_client`] 缓存复用）
 ///
 /// # 参数
 /// - `proxy`: 配置文件中的代理 URL（可选）
@@ -126,58 +148,28 @@ pub fn create_client_with_env_fallback(
     log_prefix: &str,
     log_level_info: bool,
 ) -> reqwest::Client {
-    // 尝试使用配置文件代理
-    if let Some(proxy_url) = proxy
-        && !proxy_url.is_empty()
-    {
+    // 按调用方的日志级别要求输出代理选择结果
+    let log_choice = |message: String| {
         if log_level_info {
-            info!(
-                "[{}] [URL:{}] 使用配置文件代理: {}",
-                log_prefix, url, proxy_url
-            );
+            info!("[{}] [URL:{}] {}", log_prefix, url, message);
         } else {
-            debug!(
-                "[{}] [URL:{}] 使用配置文件代理: {}",
-                log_prefix, url, proxy_url
-            );
+            debug!("[{}] [URL:{}] {}", log_prefix, url, message);
         }
-        return build_client(Some(&proxy_url)).unwrap_or_else(|e| {
-            warn!(
-                "[{}] [URL:{}] 代理客户端创建失败: {}，回退到直连",
-                log_prefix, url, e
-            );
-            reqwest::Client::new()
-        });
-    }
+    };
 
-    // 尝试使用环境变量代理
-    if let Some(env_proxy_url) = get_proxy_from_env() {
-        if log_level_info {
-            info!(
-                "[{}] [URL:{}] 使用环境变量代理: {}",
-                log_prefix, url, env_proxy_url
-            );
-        } else {
-            debug!(
-                "[{}] [URL:{}] 使用环境变量代理: {}",
-                log_prefix, url, env_proxy_url
-            );
-        }
-        return build_client(Some(&env_proxy_url)).unwrap_or_else(|e| {
-            warn!(
-                "[{}] [URL:{}] 环境变量代理客户端创建失败: {}，回退到直连",
-                log_prefix, url, e
-            );
-            reqwest::Client::new()
-        });
-    }
+    // 解析最终生效的代理（优先级：配置文件代理 > 环境变量代理 > 直连）
+    let resolved_proxy = if let Some(proxy_url) = proxy.filter(|p| !p.is_empty()) {
+        log_choice(format!("使用配置文件代理: {}", proxy_url));
+        Some(proxy_url)
+    } else if let Some(env_proxy_url) = get_proxy_from_env() {
+        log_choice(format!("使用环境变量代理: {}", env_proxy_url));
+        Some(env_proxy_url)
+    } else {
+        log_choice("使用直连客户端".to_string());
+        None
+    };
 
-    // 回退到直连
-    debug!("[{}] [URL:{}] 使用直连客户端", log_prefix, url);
-    build_client(None).unwrap_or_else(|e| {
-        error!("[{}] [URL:{}] 直连客户端创建失败: {}", log_prefix, url, e);
-        reqwest::Client::new()
-    })
+    cached_client(resolved_proxy)
 }
 
 /// 检测环境变量代理配置

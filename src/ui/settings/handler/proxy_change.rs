@@ -37,12 +37,12 @@ impl App {
     ) -> Task<AppMessage> {
         self.settings_state.proxy_enabled = enabled;
         self.config.global.proxy_enabled = enabled;
-        self.config.save_to_file();
         info!(
             "[设置] [代理] 开关状态已切换: {}",
             if enabled { "开启" } else { "关闭" }
         );
-        Task::none()
+        // 磁盘写入经防抖合并
+        self.request_config_save()
     }
 
     pub(in crate::ui::settings) fn settings_save_proxy(&mut self) -> Task<AppMessage> {
@@ -66,9 +66,9 @@ impl App {
                     "[设置] [代理] 保存（已启用）: {} -> {}",
                     old_proxy, proxy_url
                 );
-                self.config.set_proxy(proxy_url);
+                // 先更新开关状态再设置代理，set_proxy 内部落盘时可一并写入
                 self.config.global.proxy_enabled = true;
-                self.config.save_to_file();
+                self.config.set_proxy(proxy_url);
                 // 显示成功通知
                 self.show_notification(
                     self.i18n.t("settings.proxy-save-success"),
@@ -90,12 +90,12 @@ impl App {
                 old_proxy
             );
             self.config.global.proxy_enabled = false;
-            self.config.save_to_file();
-            // 显示成功通知
+            // 显示成功通知，磁盘写入经防抖合并
             self.show_notification(
                 self.i18n.t("settings.proxy-disabled"),
                 NotificationType::Success,
             )
+            .chain(self.request_config_save())
         }
     }
 }

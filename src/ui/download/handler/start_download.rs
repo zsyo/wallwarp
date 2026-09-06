@@ -48,7 +48,8 @@ impl App {
                     let save_path = PathBuf::from(&task_full.task.save_path);
                     let proxy = task_full.proxy.clone();
                     let task_id = task_full.task.id;
-                    let cancel_token = task_full.task.cancel_token.clone().unwrap();
+                    // 开启新一轮下载：换发新的取消令牌并递增代数
+                    let (cancel_token, generation) = task_full.task.begin_new_round();
                     let downloaded_size = task_full.task.downloaded_size;
                     let total_size = task_full.task.total_size;
                     let cache_path = cache_path.clone();
@@ -76,6 +77,7 @@ impl App {
                                 downloaded_size,
                                 total_size,
                                 cache_path,
+                                generation,
                             },
                         ),
                         move |result| match result {
@@ -86,11 +88,13 @@ impl App {
                                     task_id,
                                     size
                                 );
-                                DownloadMessage::DownloadCompleted(task_id, size, None).into()
+                                DownloadMessage::DownloadCompleted(task_id, size, None, generation)
+                                    .into()
                             }
                             Err(e) => {
                                 tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                DownloadMessage::DownloadCompleted(task_id, 0, Some(e)).into()
+                                DownloadMessage::DownloadCompleted(task_id, 0, Some(e), generation)
+                                    .into()
                             }
                         },
                     );

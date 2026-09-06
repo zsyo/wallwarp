@@ -61,13 +61,13 @@ impl App {
         // 壁纸库将新增文件，本地页列表缓存失效
         self.local_state.loaded_data_path = None;
 
-        // 执行复制操作
+        // 执行复制操作（原图复制为耗时 IO，放入阻塞线程池执行）
         let source_path = current_wallpaper.clone();
         let target_path_str = target_path.to_string_lossy().to_string();
         let failed_message_clone = failed_message.clone();
 
         Task::perform(
-            async move {
+            tokio::task::spawn_blocking(move || {
                 // 检查源文件是否存在
                 if !Path::new(&source_path).exists() {
                     return Err(file_not_found_message);
@@ -94,11 +94,16 @@ impl App {
                 );
 
                 Ok(())
-            },
+            }),
             move |result| match result {
-                Ok(_) => {
+                Ok(Ok(())) => {
                     MainMessage::ShowNotification(success_message, NotificationType::Success).into()
                 }
+                Ok(Err(e)) => MainMessage::ShowNotification(
+                    format!("{}: {}", failed_message, e),
+                    NotificationType::Error,
+                )
+                .into(),
                 Err(e) => MainMessage::ShowNotification(
                     format!("{}: {}", failed_message, e),
                     NotificationType::Error,

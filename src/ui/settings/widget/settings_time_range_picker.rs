@@ -12,10 +12,10 @@ use iced::widget::{button, column, container, opaque, text, tooltip};
 use iced::{Element, Length};
 
 /// 显示用的时间范围包装类型，用于 pick_list 显示翻译后的文本
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisplayableTimeRange {
     pub value: TimeRange,
-    pub display: &'static str,
+    pub display: String,
 }
 
 impl std::fmt::Display for DisplayableTimeRange {
@@ -33,15 +33,14 @@ pub fn create_time_range_picker<'a>(
         .iter()
         .map(|t| DisplayableTimeRange {
             value: *t,
-            display: app.i18n.t(t.display_name()).leak(),
+            display: app.i18n.t(t.display_name()),
         })
         .collect();
     let current_time_range = DisplayableTimeRange {
         value: app.settings_state.auto_change_time_range,
         display: app
             .i18n
-            .t(app.settings_state.auto_change_time_range.display_name())
-            .leak(),
+            .t(app.settings_state.auto_change_time_range.display_name()),
     };
 
     // 触发按钮（underlay）
@@ -68,7 +67,7 @@ pub fn create_time_range_picker<'a>(
     // 时间范围选项（overlay）
     let time_range_options_content = column(time_range_options.iter().map(|option| {
         let is_selected = app.settings_state.auto_change_time_range == option.value;
-        button(text(option.display).size(14))
+        button(text(option.display.clone()).size(14))
             .padding(6)
             .width(Length::Fill)
             .on_press(SettingsMessage::AutoChangeTimeRangeChanged(option.value).into())

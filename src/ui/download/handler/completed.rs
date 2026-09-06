@@ -13,12 +13,31 @@ impl App {
         id: usize,
         size: u64,
         error: Option<String>,
+        generation: u64,
     ) -> Task<AppMessage> {
+        // 下载完成后需要自动设为壁纸的目标路径（状态收尾后再执行）
+        let mut pending_wallpaper_path: Option<String> = None;
+        // 当前完成事件是否负责释放并发槽位（仅当任务仍处于"下载中"时）
+        let release_slot;
         let task_index = self.download_state.find_task_index(id);
         if let Some(index) = task_index {
             if let Some(task) = self.download_state.get_task_by_index(index) {
+                // 过期完成事件（旧一轮下载循环）：直接忽略，避免覆盖新一轮下载的状态
+                if task.task.generation != generation {
+                    tracing::debug!(
+                        "[下载任务] [ID:{}] 忽略过期的完成事件：事件代数 {}，任务当前代数 {}",
+                        id,
+                        generation,
+                        task.task.generation
+                    );
+                    return Task::none();
+                }
+
                 // 检查当前状态
                 let current_status = task.task.status.clone();
+                // 仅当完成事件本身把任务从"下载中"切走时才释放并发槽位；
+                // 暂停/取消/删除路径已提前释放，避免重复扣减
+                release_slot = current_status == DownloadStatus::Downloading;
 
                 if current_status == DownloadStatus::Paused {
                     // 任务已暂停，保持暂停状态
@@ -66,13 +85,11 @@ impl App {
                         && pending_filename == file_name
                     {
                         // 当前下载的文件是待设置壁纸的文件，自动设置壁纸
-                        let full_path =
-                            crate::utils::helpers::get_absolute_path(&task.task.save_path);
-
                         // 清除待设置壁纸的文件名
                         self.online_state.pending_set_wallpaper_filename = None;
-
-                        return self.apply_wallpaper(full_path);
+                        pending_wallpaper_path = Some(crate::utils::helpers::get_absolute_path(
+                            &task.task.save_path,
+                        ));
                     }
                 }
 
@@ -80,11 +97,24 @@ impl App {
                 if let Some(task_full) = self.download_state.tasks.get(index) {
                     let _ = self.download_state.save_to_database(task_full);
                 }
+            } else {
+                // 任务已被删除，槽位由删除路径负责释放
+                return Task::none();
             }
+        } else {
+            // 任务不存在（已被删除），槽位由删除路径负责释放
+            return Task::none();
         }
 
-        // 减少正在下载的任务计数
-        self.download_state.decrement_downloading();
+        // 释放正在下载的任务计数
+        if release_slot {
+            self.download_state.decrement_downloading();
+        }
+
+        // 下载完成的文件被标记为自动设为壁纸：跳过自动启动下一个任务
+        if let Some(full_path) = pending_wallpaper_path {
+            return self.apply_wallpaper(full_path);
+        }
 
         // 检查是否有等待中的任务需要开始
         if let Some(next_task) = self.download_state.get_next_waiting_task() {
@@ -92,7 +122,9 @@ impl App {
             let next_save_path = PathBuf::from(&next_task.task.save_path);
             let next_proxy = next_task.proxy.clone();
             let next_task_id = next_task.task.id;
-            let next_cancel_token = next_task.task.cancel_token.clone().unwrap();
+            // 开启新一轮下载：换发新的取消令牌
+            // (排队任务可能残留旧轮次的取消令牌，直接复用会导致下载立即自我取消)
+            let (next_cancel_token, next_generation) = next_task.task.begin_new_round();
             let next_downloaded_size = next_task.task.downloaded_size;
             let next_total_size = next_task.task.total_size;
             next_task.task.status = DownloadStatus::Downloading;
@@ -121,6 +153,7 @@ impl App {
                     downloaded_size: next_downloaded_size,
                     total_size: next_total_size,
                     cache_path,
+                    generation: next_generation,
                 }),
                 move |result| match result {
                     Ok(s) => {
@@ -130,11 +163,18 @@ impl App {
                             next_task_id,
                             s
                         );
-                        DownloadMessage::DownloadCompleted(next_task_id, s, None).into()
+                        DownloadMessage::DownloadCompleted(next_task_id, s, None, next_generation)
+                            .into()
                     }
                     Err(e) => {
                         tracing::error!("[下载任务] [ID:{}] 下载失败: {}", next_task_id, e);
-                        DownloadMessage::DownloadCompleted(next_task_id, 0, Some(e)).into()
+                        DownloadMessage::DownloadCompleted(
+                            next_task_id,
+                            0,
+                            Some(e),
+                            next_generation,
+                        )
+                        .into()
                     }
                 },
             );

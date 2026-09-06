@@ -6,20 +6,17 @@ use crate::ui::download::DownloadStatus;
 use tracing::info;
 
 impl App {
-    /// 取消所有等待中/已暂停的下载任务，并清理其半成品文件
+    /// 取消所有等待中的下载任务，并清理其半成品文件
     ///
-    /// 用于新搜索/刷新在线列表前，丢弃不再需要的排队任务及其部分下载文件
+    /// 用于新搜索/刷新在线列表前，丢弃不再需要的排队任务及其部分下载文件。
+    /// 用户主动暂停的任务不在此列：暂停通常意味着刻意保留断点，
+    /// 不应因一次搜索/刷新而被静默取消
     pub(in crate::ui) fn cancel_pending_tasks_and_cleanup(&mut self) {
         let waiting_tasks: Vec<usize> = self
             .download_state
             .tasks
             .iter()
-            .filter(|t| {
-                matches!(
-                    t.task.status,
-                    DownloadStatus::Waiting | DownloadStatus::Paused
-                )
-            })
+            .filter(|t| t.task.status == DownloadStatus::Waiting)
             .map(|t| t.task.id)
             .collect();
 

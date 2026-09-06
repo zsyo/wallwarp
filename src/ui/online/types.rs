@@ -3,10 +3,10 @@
 use crate::services::wallhaven;
 
 /// 显示用的时间范围包装类型，用于 pick_list 显示翻译后的文本
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisplayableTimeRange {
     pub value: wallhaven::TimeRange,
-    pub display: &'static str,
+    pub display: String,
 }
 
 impl std::fmt::Display for DisplayableTimeRange {
@@ -16,10 +16,10 @@ impl std::fmt::Display for DisplayableTimeRange {
 }
 
 /// 显示用的排序方式包装类型，用于 pick_list 显示翻译后的文本
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisplayableSorting {
     pub value: wallhaven::Sorting,
-    pub display: &'static str,
+    pub display: String,
 }
 
 impl std::fmt::Display for DisplayableSorting {

@@ -18,14 +18,13 @@ impl App {
             level.as_str()
         );
         self.config.global.log_level = level;
-        self.config.save_to_file();
 
         // 实时生效：同步刷新控制台层与文件层
         logger::update_log_config(self.config.global.enable_logging, level);
 
-        // 自动收起选择器
+        // 自动收起选择器，磁盘写入经防抖合并
         self.settings_state.log_level_picker_expanded = false;
 
-        Task::none()
+        self.request_config_save()
     }
 }

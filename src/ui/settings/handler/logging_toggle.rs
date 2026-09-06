@@ -13,11 +13,11 @@ impl App {
         let old_value = self.config.global.enable_logging;
         info!("[设置] [运行日志] 修改: {} -> {}", old_value, enabled);
         self.config.global.enable_logging = enabled;
-        self.config.save_to_file();
 
         // 实时生效：挂载/卸载文件输出层
         logger::update_log_config(enabled, self.config.global.log_level);
 
-        Task::none()
+        // 磁盘写入经防抖合并
+        self.request_config_save()
     }
 }

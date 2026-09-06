@@ -29,8 +29,8 @@ pub enum DownloadMessage {
     OpenFileLocation(usize),
     /// 清空已完成的任务
     ClearCompleted,
-    /// 下载完成 (任务ID, 文件大小, 错误信息)
-    DownloadCompleted(usize, u64, Option<String>),
+    /// 下载完成 (任务ID, 文件大小, 错误信息, 下载代数)
+    DownloadCompleted(usize, u64, Option<String>, u64),
     /// 下载进度更新
     DownloadProgress(usize, u64, u64, u64),
     /// 更新下载速度（定时触发）
@@ -88,8 +88,8 @@ impl App {
             DownloadMessage::DeleteTask(id) => self.delete_download_task(id),
             DownloadMessage::OpenFileLocation(id) => self.view_downloaded_file(id),
             DownloadMessage::ClearCompleted => self.clear_download_completed_tasks(),
-            DownloadMessage::DownloadCompleted(id, size, error) => {
-                self.download_completed(id, size, error)
+            DownloadMessage::DownloadCompleted(id, size, error, generation) => {
+                self.download_completed(id, size, error, generation)
             }
             DownloadMessage::DownloadProgress(id, downloaded, total, speed) => {
                 self.update_download_progress(id, downloaded, total, speed)
@@ -121,19 +121,10 @@ impl App {
                 iced::Task::none()
             }
             DownloadMessage::BatchStart => self.batch_start_selected_tasks(),
-            DownloadMessage::BatchPause => {
-                self.batch_pause_selected_tasks();
-                iced::Task::none()
-            }
+            DownloadMessage::BatchPause => self.batch_pause_selected_tasks(),
             DownloadMessage::BatchRetry => self.batch_retry_selected_tasks(),
-            DownloadMessage::BatchCancel => {
-                self.batch_cancel_selected_tasks();
-                iced::Task::none()
-            }
-            DownloadMessage::BatchDelete => {
-                self.batch_delete_selected_tasks();
-                iced::Task::none()
-            }
+            DownloadMessage::BatchCancel => self.batch_cancel_selected_tasks(),
+            DownloadMessage::BatchDelete => self.batch_delete_selected_tasks(),
         }
     }
 }

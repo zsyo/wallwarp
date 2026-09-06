@@ -36,40 +36,45 @@ impl App {
             if let Some(task_full) = self.download_state.get_task(task_id) {
                 task_full.task.status = DownloadStatus::Downloading;
                 task_full.task.start_time = Some(Instant::now());
-            }
-            self.download_state.increment_downloading();
+                // 开启新一轮下载，代数语义与在线下载路径保持一致
+                // (手动任务当前不支持取消，令牌换发仅维持结构一致)
+                let (_cancel_token, generation) = task_full.task.begin_new_round();
+                self.download_state.increment_downloading();
 
-            if let Some(task_full) = self
-                .download_state
-                .tasks
-                .iter()
-                .find(|t| t.task.id == task_id)
-            {
-                // 保存状态到数据库
-                let _ = self.download_state.save_to_database(task_full);
+                if let Some(task_full) = self
+                    .download_state
+                    .tasks
+                    .iter()
+                    .find(|t| t.task.id == task_id)
+                {
+                    // 保存状态到数据库
+                    let _ = self.download_state.save_to_database(task_full);
 
-                let url = task_full.task.url.clone();
-                let save_path = PathBuf::from(&task_full.task.save_path);
-                let proxy = task_full.proxy.clone();
+                    let url = task_full.task.url.clone();
+                    let save_path = PathBuf::from(&task_full.task.save_path);
+                    let proxy = task_full.proxy.clone();
 
-                return Task::perform(
-                    async_task::async_download_wallpaper_task(url, save_path, proxy, task_id),
-                    move |result| match result {
-                        Ok(size) => {
-                            // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
-                            tracing::debug!(
-                                "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
-                                task_id,
-                                size
-                            );
-                            DownloadMessage::DownloadCompleted(task_id, size, None).into()
-                        }
-                        Err(e) => {
-                            tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                            DownloadMessage::DownloadCompleted(task_id, 0, Some(e)).into()
-                        }
-                    },
-                );
+                    return Task::perform(
+                        async_task::async_download_wallpaper_task(url, save_path, proxy, task_id),
+                        move |result| match result {
+                            Ok(size) => {
+                                // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
+                                tracing::debug!(
+                                    "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
+                                    task_id,
+                                    size
+                                );
+                                DownloadMessage::DownloadCompleted(task_id, size, None, generation)
+                                    .into()
+                            }
+                            Err(e) => {
+                                tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
+                                DownloadMessage::DownloadCompleted(task_id, 0, Some(e), generation)
+                                    .into()
+                            }
+                        },
+                    );
+                }
             }
         }
         Task::none()

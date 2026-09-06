@@ -5,7 +5,10 @@ use crate::ui::online::ResolutionMode;
 use crate::utils::config::Config;
 
 impl OnlineState {
-    /// 保存当前筛选条件到配置文件
+    /// 将当前筛选条件同步到内存中的配置
+    ///
+    /// 只更新内存中的 config，磁盘写入统一由 App 层的
+    /// request_config_save()（300ms 防抖）合并执行，调用方负责触发
     pub fn save_to_config(&self, config: &mut Config) {
         config.wallhaven.category = format!("{:03b}", self.categories);
         config.wallhaven.purity = format!("{:03b}", self.purities);
@@ -51,7 +54,5 @@ impl OnlineState {
         }
 
         config.wallhaven.ratios = ratios_vec.join(",");
-
-        config.save_to_file();
     }
 }

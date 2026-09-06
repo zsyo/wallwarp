@@ -60,7 +60,7 @@ impl crate::ui::App {
     /// 批量暂停选中的任务
     ///
     /// 仅对下载中和排队中的任务生效
-    pub fn batch_pause_selected_tasks(&mut self) {
+    pub fn batch_pause_selected_tasks(&mut self) -> Task<AppMessage> {
         // 收集所有可以暂停的任务ID
         let task_ids: Vec<usize> = self
             .download_state
@@ -78,14 +78,18 @@ impl crate::ui::App {
             .map(|task| task.task.id)
             .collect();
 
-        // 暂停每个任务
+        // 暂停每个任务并收集返回的 Task
+        let mut tasks: Vec<Task<AppMessage>> = Vec::new();
         for task_id in task_ids {
-            let _ = self.pause_download_task(task_id);
+            tasks.push(self.pause_download_task(task_id));
         }
 
         // 清空选中状态
         self.download_state.selected_task_ids.clear();
         self.download_state.select_all = false;
+
+        // 合并所有 Task 并返回
+        Task::batch(tasks)
     }
 
     /// 批量重新开始选中的任务
@@ -144,7 +148,7 @@ impl crate::ui::App {
     /// 批量取消选中的任务
     ///
     /// 对排队中、下载中、暂停中的任务生效
-    pub fn batch_cancel_selected_tasks(&mut self) {
+    pub fn batch_cancel_selected_tasks(&mut self) -> Task<AppMessage> {
         // 收集所有可以取消的任务ID
         let task_ids: Vec<usize> = self
             .download_state
@@ -164,20 +168,24 @@ impl crate::ui::App {
             .map(|task| task.task.id)
             .collect();
 
-        // 取消每个任务
+        // 取消每个任务并收集返回的 Task（含半成品文件清理任务）
+        let mut tasks: Vec<Task<AppMessage>> = Vec::new();
         for task_id in task_ids {
-            let _ = self.cancel_download_task(task_id);
+            tasks.push(self.cancel_download_task(task_id));
         }
 
         // 清空选中状态
         self.download_state.selected_task_ids.clear();
         self.download_state.select_all = false;
+
+        // 合并所有 Task 并返回
+        Task::batch(tasks)
     }
 
     /// 批量删除选中的任务
     ///
     /// 对所有状态的任务都生效
-    pub fn batch_delete_selected_tasks(&mut self) {
+    pub fn batch_delete_selected_tasks(&mut self) -> Task<AppMessage> {
         // 收集所有要删除的任务ID
         let task_ids: Vec<usize> = self
             .download_state
@@ -186,13 +194,17 @@ impl crate::ui::App {
             .cloned()
             .collect();
 
-        // 删除每个任务
+        // 删除每个任务并收集返回的 Task（含半成品文件清理任务）
+        let mut tasks: Vec<Task<AppMessage>> = Vec::new();
         for task_id in task_ids {
-            let _ = self.delete_download_task(task_id);
+            tasks.push(self.delete_download_task(task_id));
         }
 
         // 清空选中状态
         self.download_state.selected_task_ids.clear();
         self.download_state.select_all = false;
+
+        // 合并所有 Task 并返回
+        Task::batch(tasks)
     }
 }

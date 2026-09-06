@@ -89,6 +89,8 @@ pub struct DownloadTaskParams {
     pub total_size: u64,
     /// 缓存基础路径
     pub cache_path: String,
+    /// 下载代数（UI 层用于识别迟到的完成事件，服务层不使用）
+    pub generation: u64,
 }
 
 /// 带进度更新的异步下载壁纸任务函数
@@ -105,6 +107,7 @@ pub async fn async_download_wallpaper_task_with_progress(
         downloaded_size,
         total_size,
         cache_path,
+        generation: _,
     } = params;
     info!("[下载任务] [ID:{}] 开始下载: {}", task_id, url);
     debug!(
@@ -120,35 +123,13 @@ pub async fn async_download_wallpaper_task_with_progress(
             .map_err(|e| format!("获取缓存路径失败: {}", e))?
     } else {
         // 新下载：先发送HEAD请求获取文件大小
-        let create_client = || -> reqwest::Client {
-            reqwest::Client::builder()
-                .pool_max_idle_per_host(10)
-                .pool_idle_timeout(std::time::Duration::from_secs(90))
-                .connect_timeout(std::time::Duration::from_secs(30))
-                .timeout(std::time::Duration::from_secs(300))
-                .tcp_nodelay(true)
-                .http2_prior_knowledge()
-                .gzip(true)
-                .brotli(true)
-                .build()
-                .unwrap_or_else(|_| reqwest::Client::new())
-        };
-
-        let client = if let Some(proxy_url) = &proxy {
-            if !proxy_url.is_empty() {
-                match reqwest::Proxy::all(proxy_url) {
-                    Ok(p) => reqwest::Client::builder()
-                        .proxy(p)
-                        .build()
-                        .unwrap_or_else(|_| create_client()),
-                    Err(_) => create_client(),
-                }
-            } else {
-                create_client()
-            }
-        } else {
-            create_client()
-        };
+        // 客户端统一走代理模块（含缓存复用），不使用 http2_prior_knowledge
+        let client = crate::services::proxy::create_client_with_env_fallback(
+            proxy.clone(),
+            &url,
+            "[下载任务]",
+            false,
+        );
 
         let head_response = client
             .head(&url)

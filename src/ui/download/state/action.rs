@@ -67,6 +67,7 @@ impl DownloadStateFull {
                     status,
                     start_time: None,
                     cancel_token: Some(Arc::new(AtomicBool::new(false))),
+                    generation: 0,
                     created_at: chrono::DateTime::from_timestamp(task_db.created_at, 0)
                         .map(|dt| dt.with_timezone(&chrono::Local))
                         .unwrap_or_else(chrono::Local::now),
@@ -224,6 +225,7 @@ impl DownloadStateFull {
             status: DownloadStatus::Waiting,
             start_time: None,
             cancel_token: Some(Arc::new(AtomicBool::new(false))),
+            generation: 0,
             created_at: chrono::Local::now(),
             queue_order: self.queue_counter,
         };

@@ -13,14 +13,14 @@ impl App {
 
         // 更新配置
         self.config.global.theme = theme;
-        self.config.save_to_file();
 
         // 关闭选择器
         self.settings_state.theme_picker_expanded = false;
 
         self.auto_change_state.auto_detect_color_mode = theme == Theme::Auto;
 
-        self.toggle_theme(theme)
+        // 磁盘写入经防抖合并
+        self.request_config_save().chain(self.toggle_theme(theme))
     }
 
     pub(super) fn toggle_theme(&mut self, theme: Theme) -> Task<AppMessage> {

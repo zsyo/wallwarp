@@ -12,12 +12,14 @@ impl App {
         let old_value = self.config.global.show_floating_ball;
         info!("[设置] [显示悬浮球] 修改: {} -> {}", old_value, enabled);
         self.config.global.show_floating_ball = enabled;
-        self.config.save_to_file();
 
         if enabled {
-            self.open_floating_ball_window()
+            // 磁盘写入经防抖合并
+            self.request_config_save()
+                .chain(self.open_floating_ball_window())
         } else {
-            self.close_floating_ball_window()
+            self.request_config_save()
+                .chain(self.close_floating_ball_window())
         }
     }
 }

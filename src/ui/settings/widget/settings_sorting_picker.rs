@@ -12,10 +12,10 @@ use iced::widget::{button, column, container, opaque, text, tooltip};
 use iced::{Element, Length};
 
 /// 显示用的排序方式包装类型，用于 pick_list 显示翻译后的文本
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisplayableSorting {
     pub value: Sorting,
-    pub display: &'static str,
+    pub display: String,
 }
 
 impl std::fmt::Display for DisplayableSorting {
@@ -33,15 +33,14 @@ pub fn create_sorting_picker<'a>(
         .iter()
         .map(|s| DisplayableSorting {
             value: *s,
-            display: app.i18n.t(s.display_name()).leak(),
+            display: app.i18n.t(s.display_name()),
         })
         .collect();
     let current_sorting = DisplayableSorting {
         value: app.settings_state.auto_change_sorting,
         display: app
             .i18n
-            .t(app.settings_state.auto_change_sorting.display_name())
-            .leak(),
+            .t(app.settings_state.auto_change_sorting.display_name()),
     };
 
     // 触发按钮（underlay）
@@ -69,7 +68,7 @@ pub fn create_sorting_picker<'a>(
     // 排序选项（overlay）
     let sorting_options_content = column(sorting_options.iter().map(|option| {
         let is_selected = app.settings_state.auto_change_sorting == option.value;
-        button(text(option.display).size(14))
+        button(text(option.display.clone()).size(14))
             .padding(6)
             .width(Length::Fill)
             .on_press(SettingsMessage::AutoChangeSortingChanged(option.value).into())

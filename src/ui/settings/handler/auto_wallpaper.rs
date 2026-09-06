@@ -26,8 +26,8 @@ impl App {
         info!("[设置] [定时切换模式] 修改: {:?} -> {:?}", old_mode, mode);
         self.settings_state.auto_change_mode = mode;
         self.config.wallpaper.auto_change_mode = mode;
-        self.config.save_to_file();
-        Task::none()
+        // 磁盘写入经防抖合并
+        self.request_config_save()
     }
 
     pub(in crate::ui::settings) fn settings_auto_change_interval_selected(
@@ -67,8 +67,8 @@ impl App {
             }
         }
 
-        self.config.save_to_file();
-        Task::none()
+        // 磁盘写入经防抖合并
+        self.request_config_save()
     }
 
     pub(in crate::ui::settings) fn settings_custom_interval_minutes_changed(
@@ -84,11 +84,10 @@ impl App {
             self.settings_state.auto_change_interval,
             WallpaperAutoChangeInterval::Custom(_)
         ) {
-            // 同时更新 UI 状态和配置文件
+            // 同时更新 UI 状态和配置
             self.settings_state.auto_change_interval = WallpaperAutoChangeInterval::Custom(minutes);
             self.config.wallpaper.auto_change_interval =
                 WallpaperAutoChangeInterval::Custom(minutes);
-            self.config.save_to_file();
 
             // 重置定时任务并记录下次执行时间
             if self.auto_change_state.auto_change_enabled {
@@ -100,6 +99,9 @@ impl App {
                 );
                 self.auto_change_state.next_execute_time = Some(next_time);
             }
+
+            // 数字输入连续加减时避免每次都同步写盘，磁盘写入经防抖合并
+            return self.request_config_save();
         }
         Task::none()
     }
@@ -132,11 +134,11 @@ impl App {
         );
         self.config.wallpaper.auto_change_query = new_query;
 
-        self.config.save_to_file();
-
+        // 磁盘写入经防抖合并
         // 显示保存成功通知
         let success_message = self.i18n.t("settings.save-success").to_string();
         self.show_notification(success_message, NotificationType::Success)
+            .chain(self.request_config_save())
     }
 
     pub(in crate::ui::settings) fn settings_auto_change_sorting_changed(
@@ -150,13 +152,11 @@ impl App {
         );
         self.settings_state.auto_change_sorting = sorting;
 
-        // 立即保存到配置文件
         self.config.wallpaper.auto_change_sorting = sorting.to_string();
-        self.config.save_to_file();
 
-        // 选择后关闭选择器
+        // 选择后关闭选择器，磁盘写入经防抖合并
         self.settings_state.sorting_picker_expanded = false;
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::settings) fn settings_auto_change_time_range_changed(
@@ -170,13 +170,11 @@ impl App {
         );
         self.settings_state.auto_change_time_range = time_range;
 
-        // 立即保存到配置文件
         self.config.wallpaper.auto_change_top_range = time_range.value().to_string();
-        self.config.save_to_file();
 
-        // 选择后关闭选择器
+        // 选择后关闭选择器，磁盘写入经防抖合并
         self.settings_state.time_range_picker_expanded = false;
-        Task::none()
+        self.request_config_save()
     }
 
     pub(in crate::ui::settings) fn settings_sorting_picker_expanded(&mut self) -> Task<AppMessage> {

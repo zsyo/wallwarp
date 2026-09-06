@@ -21,12 +21,12 @@ pub fn create_time_range_picker<'a>(
         .iter()
         .map(|t| DisplayableTimeRange {
             value: *t,
-            display: i18n.t(t.display_name()).leak(),
+            display: i18n.t(t.display_name()),
         })
         .collect();
     let current_time_range = DisplayableTimeRange {
         value: state.time_range,
-        display: i18n.t(state.time_range.display_name()).leak(),
+        display: i18n.t(state.time_range.display_name()),
     };
 
     // 触发按钮（underlay）
@@ -41,7 +41,7 @@ pub fn create_time_range_picker<'a>(
     // 时间范围选项（overlay）
     let time_range_options_content = column(time_range_options.iter().map(|option| {
         let is_selected = state.time_range == option.value;
-        button(text(option.display).size(14))
+        button(text(option.display.clone()).size(14))
             .padding(6)
             .width(Length::Fill)
             .on_press(OnlineMessage::TimeRangeChanged(option.value).into())

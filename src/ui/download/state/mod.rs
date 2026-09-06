@@ -66,10 +66,26 @@ pub struct DownloadTask {
     pub start_time: Option<std::time::Instant>,
     /// 取消令牌（用于终止下载）
     pub cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    /// 下载代数（每实际启动一轮下载递增一次，用于识别旧一轮下载迟到的完成事件）
+    pub generation: u64,
     /// 任务创建时间
     pub created_at: chrono::DateTime<chrono::Local>,
     /// 排队顺序（用于记录用户加入排队的顺序，越小越先执行）
     pub queue_order: usize,
+}
+
+impl DownloadTask {
+    /// 开启新一轮下载：递增代数并换发新的取消令牌
+    ///
+    /// 每次实际启动下载前必须调用：旧令牌保持取消状态让旧下载循环自行退出，
+    /// 旧循环迟到的 DownloadCompleted 因代数不匹配会被 download_completed 忽略，
+    /// 避免覆盖新一轮下载的状态
+    pub fn begin_new_round(&mut self) -> (std::sync::Arc<std::sync::atomic::AtomicBool>, u64) {
+        self.generation += 1;
+        let token = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        self.cancel_token = Some(token.clone());
+        (token, self.generation)
+    }
 }
 
 impl Default for DownloadTask {
@@ -86,6 +102,7 @@ impl Default for DownloadTask {
             status: DownloadStatus::Waiting,
             start_time: None,
             cancel_token: None,
+            generation: 0,
             created_at: chrono::Local::now(),
             queue_order: 0,
         }

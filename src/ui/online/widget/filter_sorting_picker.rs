@@ -21,12 +21,12 @@ pub fn create_sorting_picker<'a>(
         .iter()
         .map(|s| DisplayableSorting {
             value: *s,
-            display: i18n.t(s.display_name()).leak(),
+            display: i18n.t(s.display_name()),
         })
         .collect();
     let current_sorting = DisplayableSorting {
         value: state.sorting,
-        display: i18n.t(state.sorting.display_name()).leak(),
+        display: i18n.t(state.sorting.display_name()),
     };
 
     // 触发按钮（underlay）
@@ -41,7 +41,7 @@ pub fn create_sorting_picker<'a>(
     // 排序选项（overlay）
     let sorting_options_content = column(sorting_options.iter().map(|option| {
         let is_selected = state.sorting == option.value;
-        button(text(option.display).size(14))
+        button(text(option.display.clone()).size(14))
             .padding(6)
             .width(Length::Fill)
             .on_press(OnlineMessage::SortingChanged(option.value).into())
