@@ -4,7 +4,6 @@ use super::{App, AppMessage};
 use crate::ui::download::DownloadMessage;
 use crate::ui::main::MainMessage;
 use iced::{Event, Subscription, event, window};
-use std::time::Duration;
 
 // 用于下载进度订阅的唯一类型标识
 #[derive(std::hash::Hash)]
@@ -30,11 +29,36 @@ impl App {
             Subscription::none()
         };
 
-        // 定时检测系统颜色模式任务
+        // 系统颜色模式变化监听（事件驱动：Windows 注册表通知 / Linux D-Bus 信号，
+        // macOS 由 dark-light 内部线程轮询），替代逐秒轮询
         let auto_detect_color_mode =
             if self.auto_change_state.auto_detect_color_mode && self.main_state.is_visible {
-                iced::time::every(Duration::from_secs(1))
-                    .map(|_| MainMessage::AutoDetectColorModeTick.into())
+                Subscription::run(|| {
+                    async_stream::stream! {
+                        // Watcher 仅上报变化事件：先同步一次当前模式
+                        yield MainMessage::AutoDetectColorModeTick.into();
+
+                        let Ok(watcher) = crate::platform::subscribe_color_mode() else {
+                            tracing::warn!("[主题监听] 订阅系统颜色模式变化失败，自动检测停用");
+                            return;
+                        };
+
+                        // recv 为阻塞调用（注册表通知/D-Bus 等待），经专用线程转发，
+                        // 避免阻塞订阅执行器线程
+                        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<()>();
+                        std::thread::spawn(move || {
+                            while watcher.recv().is_some() {
+                                if tx.send(()).is_err() {
+                                    break;
+                                }
+                            }
+                        });
+
+                        while rx.recv().await.is_some() {
+                            yield MainMessage::AutoDetectColorModeTick.into();
+                        }
+                    }
+                })
             } else {
                 Subscription::none()
             };

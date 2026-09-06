@@ -7,6 +7,9 @@
 //! （应用 logo 与壁纸缩略图均走此管线）。按像素生成 96x96 抗锯齿
 //! 透明底环形图，经 `iced::widget::image` 显示。
 
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
+
 use iced::Color;
 use iced::widget::image::Handle;
 
@@ -16,12 +19,59 @@ const RING_SIZE: u32 = 96;
 /// 环带线宽（逻辑像素）
 const RING_STROKE: f32 = 6.0;
 
+/// 进度量化步进（1%）：下载进行中消息高频，未量化则每次 view 重建
+/// 都重新分配并绘制位图
+const PROGRESS_STEP: f32 = 0.01;
+
+/// 位图缓存键：1% 量化进度档位 + 弧/轨道颜色（8bit RGBA）
+type RingCacheKey = (u32, [u8; 4], [u8; 4]);
+
 /// 渲染环形进度指示器图像（透明底、边缘抗锯齿）
 ///
 /// - `progress`: 进度 0.0~1.0，<=0 或未知时仅绘制轨道圈；
 /// - `ring_color`: 进度弧颜色（强调色）；
 /// - `track_color`: 轨道圈颜色（如遮罩文字色 25% 透明度）。
+///
+/// 结果按 1% 步进量化缓存，同一档位与配色的重复请求直接复用 `Handle`
 pub fn progress_ring_image(progress: f32, ring_color: Color, track_color: Color) -> Handle {
+    let steps = ((progress.clamp(0.0, 1.0) / PROGRESS_STEP).round() as u32).min(100);
+    let key: RingCacheKey = (steps, color_key(ring_color), color_key(track_color));
+
+    let mut cache = ring_cache().lock().unwrap();
+    if let Some(handle) = cache.get(&key) {
+        return handle.clone();
+    }
+    let handle = render_progress_ring(steps as f32 * PROGRESS_STEP, ring_color, track_color);
+    // 进度环同一时刻仅存在一个实例，配色随明暗主题切换而变化：
+    // 换配色时旧条目整体过期，清空以把缓存内存上界控制在单套配色（约 3.7MB）
+    if !cache.is_empty() && !cache.keys().all(|k| k.1 == key.1 && k.2 == key.2) {
+        cache.clear();
+    }
+    cache.insert(key, handle.clone());
+    handle
+}
+
+fn ring_cache() -> &'static Mutex<HashMap<RingCacheKey, Handle>> {
+    static CACHE: OnceLock<Mutex<HashMap<RingCacheKey, Handle>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// 颜色转 8bit RGBA 作为缓存键（与位图像素写入口径一致）
+fn color_key(color: Color) -> [u8; 4] {
+    [
+        (color.r * 255.0).round() as u8,
+        (color.g * 255.0).round() as u8,
+        (color.b * 255.0).round() as u8,
+        (color.a * 255.0).round() as u8,
+    ]
+}
+
+/// 按像素绘制环形进度位图
+///
+/// - `progress`: 进度 0.0~1.0，<=0 或未知时仅绘制轨道圈；
+/// - `ring_color`: 进度弧颜色（强调色）；
+/// - `track_color`: 轨道圈颜色（如遮罩文字色 25% 透明度）。
+fn render_progress_ring(progress: f32, ring_color: Color, track_color: Color) -> Handle {
     let size = RING_SIZE;
     let mut pixels = vec![0u8; (size * size * 4) as usize];
 

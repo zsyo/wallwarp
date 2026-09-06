@@ -117,3 +117,37 @@ pub fn system_color_mode() -> bool {
         Err(_) => false,
     }
 }
+
+/// 系统颜色模式监听器（三平台通用）
+///
+/// 事件驱动：Windows 为注册表变更通知（`RegNotifyChangeKeyValue`）、
+/// macOS 为 dark-light 内部线程按固定间隔轮询 NSUserDefaults、
+/// Linux 为 XDG desktop portal 的 D-Bus 信号。仅上报变化事件，不含初始状态。
+///
+/// Drop 时停止底层监听线程
+pub struct ColorModeWatcher {
+    watcher: dark_light::Watcher,
+}
+
+impl ColorModeWatcher {
+    /// 阻塞等待下一次颜色模式变化
+    ///
+    /// # 返回
+    /// `Some(true)` 表示深色、`Some(false)` 表示浅色；底层监听结束后返回 `None`
+    pub fn recv(&self) -> Option<bool> {
+        self.watcher
+            .recv()
+            .ok()
+            .map(|mode| matches!(mode, dark_light::Mode::Dark))
+    }
+}
+
+/// 订阅系统颜色模式变化（深浅色切换）
+///
+/// 调用方需在专用线程中 [`ColorModeWatcher::recv`]（阻塞调用），
+/// 不应直接在异步执行器线程上等待
+pub fn subscribe_color_mode() -> Result<ColorModeWatcher, String> {
+    dark_light::subscribe()
+        .map(|watcher| ColorModeWatcher { watcher })
+        .map_err(|error| error.to_string())
+}

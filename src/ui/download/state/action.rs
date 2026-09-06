@@ -108,9 +108,10 @@ impl DownloadStateFull {
     /// - `task_full`: 要保存的完整任务
     ///
     /// # 返回
-    /// 成功返回 Ok(())，失败返回错误信息
+    /// 成功返回 Ok(())，失败返回错误信息（失败时输出携带任务 ID 的 warn 日志，
+    /// 磁盘满/锁超时等写库失败不允许静默）
     pub fn save_to_database(&self, task_full: &DownloadTaskFull) -> Result<(), String> {
-        if let Some(db) = &self.database {
+        let result = if let Some(db) = &self.database {
             let task_db = crate::ui::download::database::DownloadTaskDB {
                 id: task_full.task.id,
                 file_name: task_full.task.file_name.clone(),
@@ -125,7 +126,15 @@ impl DownloadStateFull {
             db.save_task(&task_db)
         } else {
             Err("数据库未初始化".to_string())
+        };
+        if let Err(error) = &result {
+            tracing::warn!(
+                "[下载任务] [ID:{}] 状态写入数据库失败: {}",
+                task_full.task.id,
+                error
+            );
         }
+        result
     }
 
     /// 从数据库删除任务
