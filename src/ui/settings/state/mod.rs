@@ -3,11 +3,14 @@
 mod load_from_config;
 
 use crate::services::wallhaven::{self, Sorting, TimeRange};
+use crate::ui::SettingsCategory;
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 
 /// 设置页面相关状态
 #[derive(Debug, Clone)]
 pub struct SettingsState {
+    /// 当前分类导航选中项（内存态，不持久化）
+    pub active_category: SettingsCategory,
     // 下拉框展开状态
     pub language_picker_expanded: bool,
     pub proxy_protocol_picker_expanded: bool,
@@ -46,6 +49,7 @@ pub struct SettingsState {
 impl Default for SettingsState {
     fn default() -> Self {
         Self {
+            active_category: SettingsCategory::General,
             language_picker_expanded: false,
             proxy_protocol_picker_expanded: false,
             theme_picker_expanded: false,

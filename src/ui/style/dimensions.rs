@@ -105,10 +105,25 @@ pub const TOGGLE_SPACING: f32 = 5.0;
 // ============================================================================
 
 /// 设置区块标题文字大小
-pub const SECTION_TITLE_SIZE: f32 = 20.0;
+pub const SECTION_TITLE_SIZE: f32 = 16.0;
 
-/// 设置区块内容间距
-pub const SECTION_CONTENT_SPACING: f32 = 5.0;
+/// 设置区块头图标大小
+pub const SECTION_ICON_SIZE: f32 = 16.0;
+
+/// 设置区块头与内容的间距
+pub const SECTION_CONTENT_SPACING: f32 = 12.0;
+
+/// 设置子分类菜单项高度（主侧栏"设置"项下展开）
+pub const SETTINGS_SUBMENU_ITEM_HEIGHT: f32 = 30.0;
+
+/// 设置子分类菜单文字大小
+pub const SETTINGS_SUBMENU_TEXT_SIZE: f32 = 13.0;
+
+/// 设置行说明文字大小
+pub const SETTING_ROW_DESC_SIZE: f32 = 12.0;
+
+/// 设置行上下内边距（行高自适应）
+pub const SETTING_ROW_PADDING_Y: f32 = 8.0;
 
 /// 按钮文字大小
 pub const BUTTON_TEXT_SIZE: f32 = 14.0;
@@ -116,23 +131,14 @@ pub const BUTTON_TEXT_SIZE: f32 = 14.0;
 /// 文本输入框文字大小
 pub const TEXT_INPUT_SIZE: f32 = 14.0;
 
-/// 输入框高度
-pub const INPUT_HEIGHT: f32 = 30.0;
-
 /// 在线壁纸筛选栏控件统一高度（下拉触发按钮/刷新按钮等）
 pub const FILTER_CONTROL_HEIGHT: f32 = 30.0;
 
 /// 设置行间距
 pub const ROW_SPACING: f32 = 10.0;
 
-/// 设置行间距
-pub const SETTINGS_ROW_SPACING: f32 = 20.0;
-
 /// 设置区块内边距
 pub const SECTION_PADDING: f32 = 15.0;
-
-/// 设置区块间距
-pub const SECTION_SPACING: f32 = 10.0;
 
 /// 输入框内边距
 pub const INPUT_PADDING: u16 = 5;

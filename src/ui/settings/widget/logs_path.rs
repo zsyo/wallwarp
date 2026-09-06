@@ -6,46 +6,37 @@ use crate::ui::common;
 use crate::ui::common::styled_text_input;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::ThemeColors;
-use crate::ui::style::{
-    BUTTON_COLOR_GREEN, BUTTON_SPACING, INPUT_HEIGHT, INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE,
-};
+use crate::ui::style::{INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE};
 use crate::utils::helpers;
-use iced::widget::{Space, container, row, text, text_input};
+use iced::widget::{row, text_input};
 use iced::{Alignment, Element, Length};
 
+/// 创建日志目录行（标签+说明在上，输入框与打开按钮占满整行）
 pub fn create_logs_path_row<'a>(
     i18n: &I18n,
     label: String,
+    description: String,
     theme_colors: ThemeColors,
 ) -> Element<'a, AppMessage> {
     let logs_path = helpers::get_absolute_path("logs");
 
-    row![
-        text(label)
-            .width(Length::FillPortion(1))
-            .style(move |_theme: &iced::Theme| text::Style {
-                color: Some(theme_colors.text),
-            }),
-        row![
-            text_input("", &logs_path)
-                .width(Length::Fill)
-                .size(TEXT_INPUT_SIZE)
-                .align_x(Alignment::Center)
-                .padding(INPUT_PADDING)
-                .style(styled_text_input(theme_colors)),
-            container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.open-path"),
-                BUTTON_COLOR_GREEN,
-                SettingsMessage::OpenLogsPath.into()
-            )
-            .width(Length::Fixed(210.0)),
-        ]
-        .width(Length::FillPortion(4))
-        .spacing(0),
+    let controls = row![
+        text_input("", &logs_path)
+            .width(Length::Fill)
+            .size(TEXT_INPUT_SIZE)
+            .align_x(Alignment::Center)
+            .padding(INPUT_PADDING)
+            .style(styled_text_input(theme_colors)),
+        common::create_icon_button_with_tooltip(
+            "\u{F1C5}", // box-arrow-up-right (打开日志目录)
+            theme_colors.primary,
+            SettingsMessage::OpenLogsPath.into(),
+            i18n.t("settings.open-path"),
+            theme_colors,
+        ),
     ]
-    .height(Length::Fixed(INPUT_HEIGHT))
-    .width(Length::Fill)
-    .spacing(ROW_SPACING)
-    .into()
+    .spacing(ROW_SPACING / 2.0)
+    .align_y(Alignment::Center);
+
+    super::create_full_width_row(label, Some(description), controls, theme_colors)
 }

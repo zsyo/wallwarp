@@ -9,11 +9,13 @@ use iced::Element;
 pub fn create_data_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
     let theme_colors = app.theme_colors;
     super::create_config_section(
-        app.i18n.t("settings.data-config"),
+        "\u{F412}", // hdd
+        app.i18n.t("settings.category-data"),
         vec![
             super::create_path_config_row(
                 &app.i18n,
                 app.i18n.t("settings.data-path"),
+                app.i18n.t("settings.data-path-desc"),
                 &helpers::get_absolute_path(&app.config.data.data_path),
                 super::PathRowActions {
                     select: SettingsMessage::DataPathSelected("SELECT_DATA_PATH".to_string())
@@ -27,6 +29,7 @@ pub fn create_data_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
             super::create_path_config_row(
                 &app.i18n,
                 app.i18n.t("settings.cache-path"),
+                app.i18n.t("settings.cache-path-desc"),
                 &helpers::get_absolute_path(&app.config.data.cache_path),
                 super::PathRowActions {
                     select: SettingsMessage::CachePathSelected("SELECT_CACHE_PATH".to_string())
@@ -37,7 +40,12 @@ pub fn create_data_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
                 },
                 theme_colors,
             ),
-            super::create_logs_path_row(&app.i18n, app.i18n.t("settings.logs-path"), theme_colors),
+            super::create_logs_path_row(
+                &app.i18n,
+                app.i18n.t("settings.logs-path"),
+                app.i18n.t("settings.logs-path-desc"),
+                theme_colors,
+            ),
         ],
         &app.theme_config,
     )

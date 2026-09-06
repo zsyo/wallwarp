@@ -31,3 +31,22 @@ pub enum ActivePage {
     WallpaperHistory,
     Settings,
 }
+
+/// 设置页内部分类导航项
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SettingsCategory {
+    /// 通用：语言、主题、自启、悬浮球、关闭行为、日志
+    General,
+    /// 壁纸：模式与定时切换（预留多显示器独立壁纸）
+    Wallpaper,
+    /// 图源：壁纸在线来源与 API 密钥（预留多图源管理）
+    Sources,
+    /// 快捷键：占位，功能开发中
+    Hotkeys,
+    /// 网络：代理设置
+    Network,
+    /// 数据：路径配置
+    Data,
+    /// 关于：版本信息（预留检查更新）
+    About,
+}

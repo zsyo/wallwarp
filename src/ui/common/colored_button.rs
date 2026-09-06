@@ -60,3 +60,22 @@ where
         .on_press(message)
         .style(colored_button_style(color))
 }
+
+/// 创建禁用态彩色按钮（不挂点击事件，呈现 Disabled 样式）
+///
+/// 用于预留功能行的占位按钮，布局占位与可用按钮一致。
+pub fn create_disabled_colored_button<'a, Message>(
+    label: String,
+    color: Color,
+) -> button::Button<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    button(
+        text(label)
+            .size(BUTTON_TEXT_SIZE)
+            .align_x(Alignment::Center)
+            .align_y(Alignment::Center),
+    )
+    .style(colored_button_style(color))
+}

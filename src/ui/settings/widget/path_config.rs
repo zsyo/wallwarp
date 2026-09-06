@@ -6,11 +6,8 @@ use crate::ui::common;
 use crate::ui::common::styled_text_input;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::ThemeColors;
-use crate::ui::style::{
-    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_SPACING,
-    INPUT_HEIGHT, INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE,
-};
-use iced::widget::{Space, container, row, text, text_input};
+use crate::ui::style::{INPUT_PADDING, ROW_SPACING, TEXT_INPUT_SIZE};
+use iced::widget::{row, text_input};
 use iced::{Alignment, Element, Length};
 
 /// 路径配置行各按钮触发的消息集合
@@ -25,17 +22,23 @@ pub struct PathRowActions {
     pub restore: AppMessage,
 }
 
-/// 创建路径配置行
+/// 创建路径配置行（标签+说明在上，输入框与操作按钮占满整行）
+///
+/// 操作按钮为带 tooltip 的图标按钮：
+/// 选择=folder2-open(f3d8)、查看=box-arrow-up-right(f1c5)、
+/// 清空=trash3(f78b)、默认=arrow-counterclockwise(f117)。
 ///
 /// # 参数
 /// - `i18n`: 国际化实例
 /// - `label`: 标签文本
+/// - `description`: 说明文本
 /// - `path`: 当前路径（用于展示）
 /// - `actions`: 各按钮消息集合
 /// - `theme_colors`: 主题颜色
 pub fn create_path_config_row<'a>(
     i18n: &I18n,
     label: String,
+    description: String,
     path: &str,
     actions: PathRowActions,
     theme_colors: ThemeColors,
@@ -46,50 +49,46 @@ pub fn create_path_config_row<'a>(
         clear: clear_msg,
         restore: restore_msg,
     } = actions;
-    row![
-        text(label)
-            .width(Length::FillPortion(1))
-            .style(move |_theme: &iced::Theme| text::Style {
-                color: Some(theme_colors.text),
-            }),
-        row![
-            text_input("", path)
-                .width(Length::Fill)
-                .size(TEXT_INPUT_SIZE)
-                .align_x(Alignment::Center)
-                .on_input(|_| SettingsMessage::DataPathSelected("".to_string()).into())
-                .padding(INPUT_PADDING)
-                .style(styled_text_input(theme_colors)),
-            container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.select-path"),
-                BUTTON_COLOR_BLUE,
-                select_msg
-            ),
-            container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.open-path"),
-                BUTTON_COLOR_GREEN,
-                open_msg
-            ),
-            container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.clear-path"),
-                BUTTON_COLOR_RED,
-                clear_msg
-            ),
-            container(Space::new()).width(Length::Fixed(BUTTON_SPACING)),
-            common::create_colored_button(
-                i18n.t("settings.restore-default"),
-                BUTTON_COLOR_GRAY,
-                restore_msg
-            ),
-        ]
-        .width(Length::FillPortion(4))
-        .spacing(0),
+
+    let controls = row![
+        text_input("", path)
+            .width(Length::Fill)
+            .size(TEXT_INPUT_SIZE)
+            .align_x(Alignment::Center)
+            .on_input(|_| SettingsMessage::DataPathSelected("".to_string()).into())
+            .padding(INPUT_PADDING)
+            .style(styled_text_input(theme_colors)),
+        common::create_icon_button_with_tooltip(
+            "\u{F3D8}", // folder2-open (选择路径)
+            theme_colors.primary,
+            select_msg,
+            i18n.t("settings.select-path"),
+            theme_colors,
+        ),
+        common::create_icon_button_with_tooltip(
+            "\u{F1C5}", // box-arrow-up-right (打开路径)
+            theme_colors.primary,
+            open_msg,
+            i18n.t("settings.open-path"),
+            theme_colors,
+        ),
+        common::create_icon_button_with_tooltip(
+            "\u{F78B}", // trash3 (清空路径)
+            theme_colors.notification_error_bg,
+            clear_msg,
+            i18n.t("settings.clear-path"),
+            theme_colors,
+        ),
+        common::create_icon_button_with_tooltip(
+            "\u{F117}", // arrow-counterclockwise (恢复默认)
+            theme_colors.secondary,
+            restore_msg,
+            i18n.t("settings.restore-default"),
+            theme_colors,
+        ),
     ]
-    .height(Length::Fixed(INPUT_HEIGHT))
-    .width(Length::Fill)
-    .spacing(ROW_SPACING)
-    .into()
+    .spacing(ROW_SPACING / 2.0)
+    .align_y(Alignment::Center);
+
+    super::create_full_width_row(label, Some(description), controls, theme_colors)
 }

@@ -2,6 +2,7 @@
 
 mod auto_startup_toggle;
 mod auto_wallpaper;
+mod category_select;
 mod close_action_select;
 mod floating_ball_toggle;
 mod language_select;

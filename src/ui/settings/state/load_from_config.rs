@@ -2,6 +2,7 @@
 
 use super::SettingsState;
 use crate::services::wallhaven::{Sorting, TimeRange};
+use crate::ui::SettingsCategory;
 use crate::utils::config::Config;
 
 impl SettingsState {
@@ -22,6 +23,7 @@ impl SettingsState {
             TimeRange::parse(&config.wallpaper.auto_change_top_range).unwrap_or(TimeRange::Month);
 
         let mut state = Self {
+            active_category: SettingsCategory::General,
             language_picker_expanded: false,
             proxy_protocol_picker_expanded: false,
             theme_picker_expanded: false,

@@ -97,6 +97,12 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
                 ActivePage::Settings,
                 &app.theme_config
             ),
+            // 设置子分类菜单：仅设置页激活时在"设置"项下展开
+            if app.active_page == ActivePage::Settings {
+                settings::create_category_submenu(app)
+            } else {
+                Space::new().width(Length::Fill).into()
+            },
             container(Space::new()).height(Length::Fill), // 占位符，将主题按钮推到底部
             widget::create_theme_toggle_button(app),
             container(Space::new()).height(Length::Fixed(20.0)),

@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::wallhaven::{Sorting, TimeRange};
-use crate::ui::{App, AppMessage};
+use crate::ui::{App, AppMessage, SettingsCategory};
 use crate::utils::config::{
     CloseAction, LogLevel, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode,
 };
@@ -10,6 +10,8 @@ use iced::Task;
 /// 主界面页面消息
 #[derive(Debug, Clone)]
 pub enum SettingsMessage {
+    /// 设置页分类导航切换
+    SettingsCategorySelected(SettingsCategory),
     /// 语言选择
     LanguageSelected(String),
     /// 开机自启状态更改
@@ -112,6 +114,9 @@ impl App {
     /// 处理本地壁纸相关消息
     pub fn handle_settings_message(&mut self, msg: SettingsMessage) -> Task<AppMessage> {
         match msg {
+            SettingsMessage::SettingsCategorySelected(category) => {
+                self.settings_category_selected(category)
+            }
             SettingsMessage::LanguageSelected(lang) => self.settings_language_selected(lang),
             SettingsMessage::AutoStartupToggled(enabled) => {
                 self.settings_auto_startup_toggled(enabled)
