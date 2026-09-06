@@ -16,6 +16,8 @@ impl App {
         success_message: String,
         failed_message_prefix: String,
     ) -> Task<AppMessage> {
+        // 提前获取翻译文本，避免线程安全问题
+        let task_interrupted = self.i18n.t("notification.task-interrupted").to_string();
         Task::perform(
             async move {
                 tokio::task::spawn_blocking(move || {
@@ -24,7 +26,7 @@ impl App {
                         .map_err(|e| e.to_string())
                 })
                 .await
-                .map_err(|e| format!("任务中断: {e}"))?
+                .map_err(|e| format!("{}: {task_interrupted}", e))?
             },
             move |result| match result {
                 Ok(()) => {

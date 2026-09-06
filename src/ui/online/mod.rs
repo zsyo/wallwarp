@@ -3,11 +3,9 @@
 mod handler;
 mod message;
 mod state;
-mod types;
 mod view;
 mod widget;
 
 pub use message::OnlineMessage;
 pub use state::*;
-use types::*;
 pub use view::online_view;

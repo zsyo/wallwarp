@@ -149,46 +149,22 @@ impl App {
 
     /// 收到球窗口锚点：弹出菜单（主线程）
     ///
-    /// Windows/macOS：muda 弹出为阻塞调用，返回即代表菜单已关闭；
-    /// Linux：GTK 线程非阻塞弹出，用"菜单打开守卫 + 延迟复位"近似阻塞语义
+    /// 三平台弹出均为阻塞调用，返回即代表菜单已关闭；
+    /// Linux 经命令通道 + oneshot 回执获得与 Windows/macOS 一致的语义
     pub(crate) fn floating_ball_menu_ready(&mut self, anchor: WindowAnchor) -> Task<AppMessage> {
         if anchor == WindowAnchor::Unsupported {
             tracing::warn!("[悬浮球] [菜单] 无法获取窗口锚点，弹出菜单失败");
             return Task::none();
         }
 
-        #[cfg(not(target_os = "linux"))]
-        {
-            // 菜单打开期间（阻塞式弹出）禁止贴边隐藏
-            self.floating_ball_state.set_menu_open(true);
-            let shown = self.floating_ball.show_popup_at(anchor);
-            self.floating_ball_state.set_menu_open(false);
-            if !shown {
-                tracing::warn!("[悬浮球] [菜单] 弹出菜单失败");
-            }
-            // 菜单期间鼠标可能已移出球且 on_exit 已被消费，关闭后需补充贴边调度
-            if !self.floating_ball_state.is_hovered() {
-                return Task::perform(
-                    tokio::time::sleep(tokio::time::Duration::from_millis(200)),
-                    |_| MainMessage::FloatingBallSnapToEdge.into(),
-                );
-            }
-            Task::none()
-        }
-        #[cfg(target_os = "linux")]
-        {
-            let _ = self.floating_ball.show_popup_at(anchor);
-            // 复位延迟须大于菜单典型交互时长；期间鼠标重新进入球体也会解除守卫
-            Task::perform(
-                tokio::time::sleep(tokio::time::Duration::from_millis(2500)),
-                |_| MainMessage::FloatingBallMenuClosed.into(),
-            )
-        }
-    }
-
-    /// 菜单打开守卫解除：恢复贴边调度（Linux 非阻塞弹出路径）
-    pub(crate) fn floating_ball_menu_closed(&mut self) -> Task<AppMessage> {
+        // 菜单打开期间（阻塞式弹出）禁止贴边隐藏
+        self.floating_ball_state.set_menu_open(true);
+        let shown = self.floating_ball.show_popup_at(anchor);
         self.floating_ball_state.set_menu_open(false);
+        if !shown {
+            tracing::warn!("[悬浮球] [菜单] 弹出菜单失败");
+        }
+        // 菜单期间鼠标可能已移出球且 on_exit 已被消费，关闭后需补充贴边调度
         if !self.floating_ball_state.is_hovered() {
             return Task::perform(
                 tokio::time::sleep(tokio::time::Duration::from_millis(200)),

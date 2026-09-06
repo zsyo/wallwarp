@@ -140,7 +140,7 @@ where
     let maximize_icon = if is_maximized {
         // bootstrap-icons: copy 旋转 180 度
         rotated_icon(
-            "\u{F759}",
+            "\u{F759}", // copy
             TITLE_BAR_WINDOW_ICON_SIZE,
             theme_colors.text,
             Radians::PI,

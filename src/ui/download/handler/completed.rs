@@ -1,11 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::services::async_task::{self, DownloadTaskParams};
-use crate::ui::download::{DownloadMessage, DownloadStatus};
+use crate::ui::download::DownloadStatus;
 use crate::ui::{App, AppMessage};
 use iced::Task;
-use std::path::PathBuf;
-use std::time::Instant;
 
 impl App {
     pub(in crate::ui::download) fn download_completed(
@@ -117,67 +114,12 @@ impl App {
         }
 
         // 检查是否有等待中的任务需要开始
-        if let Some(next_task) = self.download_state.get_next_waiting_task() {
-            let next_url = next_task.task.url.clone();
-            let next_save_path = PathBuf::from(&next_task.task.save_path);
-            let next_proxy = next_task.proxy.clone();
-            let next_task_id = next_task.task.id;
-            // 开启新一轮下载：换发新的取消令牌
-            // (排队任务可能残留旧轮次的取消令牌，直接复用会导致下载立即自我取消)
-            let (next_cancel_token, next_generation) = next_task.task.begin_new_round();
-            let next_downloaded_size = next_task.task.downloaded_size;
-            let next_total_size = next_task.task.total_size;
-            next_task.task.status = DownloadStatus::Downloading;
-            next_task.task.start_time = Some(Instant::now());
-            self.download_state.increment_downloading();
-
-            // 保存状态到数据库
-            if let Some(task_full) = self
-                .download_state
-                .tasks
-                .iter()
-                .find(|t| t.task.id == next_task_id)
-            {
-                let _ = self.download_state.save_to_database(task_full);
-            }
-            let cache_path = self.config.data.cache_path.clone();
-
-            // 启动下一个下载任务
-            return Task::perform(
-                async_task::async_download_wallpaper_task_with_progress(DownloadTaskParams {
-                    url: next_url.to_string(),
-                    save_path: next_save_path,
-                    proxy: next_proxy,
-                    task_id: next_task_id,
-                    cancel_token: next_cancel_token,
-                    downloaded_size: next_downloaded_size,
-                    total_size: next_total_size,
-                    cache_path,
-                    generation: next_generation,
-                }),
-                move |result| match result {
-                    Ok(s) => {
-                        // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
-                        tracing::debug!(
-                            "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
-                            next_task_id,
-                            s
-                        );
-                        DownloadMessage::DownloadCompleted(next_task_id, s, None, next_generation)
-                            .into()
-                    }
-                    Err(e) => {
-                        tracing::error!("[下载任务] [ID:{}] 下载失败: {}", next_task_id, e);
-                        DownloadMessage::DownloadCompleted(
-                            next_task_id,
-                            0,
-                            Some(e),
-                            next_generation,
-                        )
-                        .into()
-                    }
-                },
-            );
+        let next_waiting = self
+            .download_state
+            .get_next_waiting_task()
+            .map(|next| (next.task.id, next.task.downloaded_size));
+        if let Some((next_task_id, next_downloaded_size)) = next_waiting {
+            return self.spawn_download(next_task_id, next_downloaded_size, Task::none());
         }
         Task::none()
     }

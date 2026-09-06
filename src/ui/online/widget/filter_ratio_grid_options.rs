@@ -3,11 +3,12 @@
 use crate::i18n::I18n;
 use crate::services::wallhaven::AspectRatio;
 use crate::ui::AppMessage;
-use crate::ui::common::drop_down::{dropdown_cell_style, dropdown_panel_style};
+use crate::ui::common::drop_down::dropdown_cell_style;
+use crate::ui::online::widget::filter_grouped_grid::{grid_cell_button, grouped_grid_options};
 use crate::ui::online::{OnlineMessage, OnlineState};
 use crate::ui::style::ThemeColors;
-use iced::widget::{Space, button, column, container, opaque, row, text};
-use iced::{Alignment, Element, Length};
+use iced::Element;
+use iced::widget::{button, text};
 
 /// 创建比例网格选择器内容
 pub fn create_ratio_grid_options<'a>(
@@ -48,28 +49,27 @@ pub fn create_ratio_grid_options<'a>(
         ),
     ];
 
-    // 判断分组是否应该被禁用
-    let is_wide_disabled = state.ratio_landscape_selected;
-    let is_ultrawide_disabled = state.ratio_landscape_selected;
-    let is_portrait_disabled = state.ratio_portrait_selected;
-    let is_square_disabled = state.ratio_all_selected;
+    // 按分组顺序的禁用条件：宽屏/超宽跟随横屏模式，竖屏跟随竖屏模式，
+    // 方形跟随全部模式；全部选中时所有网格单元一并禁用
+    let group_disabled = [
+        state.ratio_landscape_selected,
+        state.ratio_landscape_selected,
+        state.ratio_portrait_selected,
+        state.ratio_all_selected,
+    ];
     let is_all_disabled = state.ratio_all_selected;
 
-    // 判断额外选项是否应该被禁用
-    let is_landscape_button_disabled = state.ratio_all_selected;
-    let is_portrait_button_disabled = state.ratio_all_selected;
-
-    // 创建顶部额外选项按钮（水平居中）
+    // 创建顶部额外选项按钮（横屏/竖屏/全部）
     let mode_options: [(bool, bool, &str, OnlineMessage); 3] = [
         (
             state.ratio_landscape_selected,
-            is_landscape_button_disabled,
+            state.ratio_all_selected,
             "online-wallpapers.ratio-mode-landscape",
             OnlineMessage::RatioLandscapeToggled,
         ),
         (
             state.ratio_portrait_selected,
-            is_portrait_button_disabled,
+            state.ratio_all_selected,
             "online-wallpapers.ratio-mode-portrait",
             OnlineMessage::RatioPortraitToggled,
         ),
@@ -80,109 +80,46 @@ pub fn create_ratio_grid_options<'a>(
             OnlineMessage::RatioAllToggled,
         ),
     ];
-    let option_buttons = container(
-        row(mode_options
-            .iter()
-            .map(|(is_selected, is_disabled, key, msg)| {
-                button(text(i18n.t(key)).size(14))
-                    .padding(6)
-                    .on_press(if *is_disabled {
-                        AppMessage::None
-                    } else {
-                        msg.clone().into()
-                    })
-                    .style(dropdown_cell_style(
-                        theme_colors,
-                        *is_selected,
-                        *is_disabled,
-                    ))
-                    .into()
-            }))
-        .spacing(4),
-    )
-    .width(Length::Fill)
-    .center_x(Length::Fill);
-
-    // 创建比例表格（水平排列分组）
-    let mut group_columns: Vec<Element<'a, AppMessage>> = Vec::new();
-
-    for (group_name, ratios) in RATIO_GROUPS.iter() {
-        // 确定该分组是否应该被禁用
-        let is_group_disabled = match *group_name {
-            "online-wallpapers.ratio-group-wide" => is_wide_disabled,
-            "online-wallpapers.ratio-group-ultrawide" => is_ultrawide_disabled,
-            "online-wallpapers.ratio-group-portrait" => is_portrait_disabled,
-            "online-wallpapers.ratio-group-square" => is_square_disabled,
-            _ => false,
-        };
-
-        // 创建分组标题（水平居中）
-        let group_header = container(
-            text(i18n.t(group_name))
-                .size(14)
-                .color(theme_colors.light_text),
-        )
-        .width(Length::Fill)
-        .center_x(Length::Fill);
-
-        // 创建分组内的比例按钮（每一行一个）
-        let mut group_column = column![].spacing(2);
-        for (ratio, label) in ratios.iter() {
-            let is_selected = state.selected_ratios.contains(ratio);
-
-            let button_content = container(text(*label).size(13))
-                .align_x(Alignment::Center)
-                .align_y(Alignment::Center)
-                .width(Length::Fill);
-
-            let ratio_button: Element<'a, AppMessage> = button(button_content)
+    let mode_buttons: Vec<Element<'a, AppMessage>> = mode_options
+        .iter()
+        .map(|(is_selected, is_disabled, key, msg)| {
+            button(text(i18n.t(key)).size(14))
                 .padding(6)
+                .on_press_maybe(if *is_disabled {
+                    None
+                } else {
+                    Some(msg.clone().into())
+                })
                 .style(dropdown_cell_style(
                     theme_colors,
-                    is_selected,
-                    is_all_disabled || is_group_disabled,
+                    *is_selected,
+                    *is_disabled,
                 ))
-                .on_press(if is_all_disabled || is_group_disabled {
-                    AppMessage::None
-                } else {
-                    OnlineMessage::RatioToggled(*ratio).into()
+                .into()
+        })
+        .collect();
+
+    // 分组内容
+    let groups: Vec<(String, Vec<Element<'a, AppMessage>>)> = RATIO_GROUPS
+        .iter()
+        .zip(group_disabled)
+        .map(|((group_name, ratios), is_group_disabled)| {
+            let cells = ratios
+                .iter()
+                .map(|(ratio, label)| {
+                    let is_selected = state.selected_ratios.contains(ratio);
+                    grid_cell_button(
+                        label,
+                        is_selected,
+                        is_all_disabled || is_group_disabled,
+                        Some(OnlineMessage::RatioToggled(*ratio).into()),
+                        theme_colors,
+                    )
                 })
-                .into();
+                .collect();
+            (i18n.t(group_name).to_string(), cells)
+        })
+        .collect();
 
-            group_column = group_column.push(ratio_button);
-        }
-
-        // 将分组标题和内容组合，使用固定宽度
-        let group_section = container(
-            column![
-                group_header,
-                Space::new().height(Length::Fixed(4.0)),
-                group_column,
-            ]
-            .spacing(0),
-        )
-        .width(Length::Fixed(100.0));
-
-        group_columns.push(group_section.into());
-    }
-
-    // 将所有分组水平排列
-    let table_content = row(group_columns).spacing(2);
-
-    // 创建比例选择器容器
-    let picker_content = container(
-        column![
-            option_buttons,
-            Space::new().height(Length::Fixed(12.0)),
-            table_content,
-        ]
-        .spacing(0)
-        .align_x(Alignment::Center),
-    )
-    .padding(6)
-    .width(Length::Fixed(460.0))
-    .align_x(Alignment::Center)
-    .style(dropdown_panel_style(theme_colors));
-
-    opaque(picker_content)
+    grouped_grid_options(mode_buttons, groups, 460.0, 6.0, theme_colors)
 }

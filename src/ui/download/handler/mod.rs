@@ -15,6 +15,7 @@ mod retry_task;
 mod selection;
 mod set_wallpaper;
 mod sort;
+mod spawn_download;
 mod start_download;
 mod update_speed;
 mod view_file;

@@ -180,9 +180,6 @@ pub const DISABLED_BUTTON_BG: Color = Color::from_rgba8(107, 114, 128, 0.25);
 /// 模态窗口背景色（半透明黑色）
 pub const COLOR_MODAL_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.85);
 
-/// 遮罩层背景色（半透明黑色）
-pub const COLOR_OVERLAY_BG: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.6);
-
 /// 遮罩层文字颜色
 pub const COLOR_OVERLAY_TEXT: Color = Color::WHITE;
 

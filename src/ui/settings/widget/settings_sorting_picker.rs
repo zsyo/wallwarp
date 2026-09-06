@@ -2,93 +2,54 @@
 
 use crate::services::wallhaven::Sorting;
 use crate::ui::common::create_tooltip_style;
-use crate::ui::common::drop_down::{
-    self, DropDown, dropdown_option_style, dropdown_panel_style, dropdown_trigger_button,
-};
+use crate::ui::common::drop_down::{self, Displayable, dropdown_picker, dropdown_trigger_button};
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::ThemeColors;
 use crate::ui::{App, AppMessage};
-use iced::widget::{button, column, container, opaque, text, tooltip};
-use iced::{Element, Length};
-
-/// 显示用的排序方式包装类型，用于 pick_list 显示翻译后的文本
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DisplayableSorting {
-    pub value: Sorting,
-    pub display: String,
-}
-
-impl std::fmt::Display for DisplayableSorting {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.display)
-    }
-}
+use iced::Element;
+use iced::widget::{text, tooltip};
 
 /// 创建排序方式选择器
 pub fn create_sorting_picker<'a>(
     app: &'a App,
     theme_colors: ThemeColors,
 ) -> Element<'a, AppMessage> {
-    let sorting_options: Vec<DisplayableSorting> = Sorting::all()
+    let options: Vec<Displayable<Sorting>> = Sorting::all()
         .iter()
-        .map(|s| DisplayableSorting {
+        .map(|s| Displayable {
             value: *s,
             display: app.i18n.t(s.display_name()),
         })
         .collect();
-    let current_sorting = DisplayableSorting {
-        value: app.settings_state.auto_change_sorting,
-        display: app
-            .i18n
-            .t(app.settings_state.auto_change_sorting.display_name()),
-    };
 
-    // 触发按钮（underlay）
-    let sorting_trigger = dropdown_trigger_button(
-        current_sorting.display.to_string(),
+    // 触发按钮（underlay），用 tooltip 包裹
+    let trigger = dropdown_trigger_button(
+        app.i18n
+            .t(app.settings_state.auto_change_sorting.display_name())
+            .to_string(),
         100.0,
         theme_colors,
         SettingsMessage::SortingPickerExpanded.into(),
     );
 
-    // 用 tooltip 包裹排序方式选择器
-    let sorting_tooltip_text = text(app.i18n.t("settings.auto-change-sorting-tooltip")).style(
+    let tooltip_text = text(app.i18n.t("settings.auto-change-sorting-tooltip")).style(
         move |_theme: &iced::Theme| text::Style {
             color: Some(theme_colors.text),
         },
     );
 
-    let sorting_trigger_with_tooltip = tooltip(
-        sorting_trigger,
-        sorting_tooltip_text,
-        tooltip::Position::Top,
-    )
-    .style(create_tooltip_style(theme_colors));
+    let trigger_with_tooltip = tooltip(trigger, tooltip_text, tooltip::Position::Top)
+        .style(create_tooltip_style(theme_colors));
 
-    // 排序选项（overlay）
-    let sorting_options_content = column(sorting_options.iter().map(|option| {
-        let is_selected = app.settings_state.auto_change_sorting == option.value;
-        button(text(option.display.clone()).size(14))
-            .padding(6)
-            .width(Length::Fill)
-            .on_press(SettingsMessage::AutoChangeSortingChanged(option.value).into())
-            .style(dropdown_option_style(theme_colors, is_selected))
-            .into()
-    }))
-    .spacing(2);
-
-    let picker_content = container(sorting_options_content)
-        .padding(8)
-        .width(Length::Fixed(120.0))
-        .style(dropdown_panel_style(theme_colors));
-
-    DropDown::new(
-        sorting_trigger_with_tooltip,
-        opaque(picker_content),
+    dropdown_picker(
+        trigger_with_tooltip.into(),
+        options,
+        |v| v == app.settings_state.auto_change_sorting,
+        |v| SettingsMessage::AutoChangeSortingChanged(v).into(),
+        SettingsMessage::SortingPickerDismiss.into(),
         app.settings_state.sorting_picker_expanded,
+        120.0,
+        drop_down::Alignment::Top,
+        theme_colors,
     )
-    .width(Length::Shrink)
-    .on_dismiss(SettingsMessage::SortingPickerDismiss.into())
-    .alignment(drop_down::Alignment::Top)
-    .into()
 }

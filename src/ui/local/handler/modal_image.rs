@@ -11,7 +11,7 @@ impl App {
         // 检查要显示的图片是否为失败状态
         if let Some(wallpaper_status) = self.local_state.wallpapers.get(index)
             && let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status
-            && wallpaper.name == "加载失败"
+            && wallpaper.failed
         {
             // 如果是失败的图片，不显示模态窗口
             return Task::none();

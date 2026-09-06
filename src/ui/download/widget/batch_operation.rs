@@ -5,7 +5,7 @@ use crate::ui::AppMessage;
 use crate::ui::download::message::DownloadMessage;
 use crate::ui::download::state::DownloadStateFull;
 use crate::ui::style::{
-    BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, ThemeConfig,
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW,
 };
 use iced::widget::row;
 use iced::{Alignment, Element};
@@ -14,10 +14,7 @@ use iced::{Alignment, Element};
 pub fn create_batch_operation_buttons<'a>(
     i18n: &'a I18n,
     download_state: &'a DownloadStateFull,
-    theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let theme_colors = theme_config.get_theme_colors();
-
     // 检查按钮是否启用
     let can_start = download_state.can_batch_start();
     let can_pause = download_state.can_batch_pause();
@@ -32,7 +29,6 @@ pub fn create_batch_operation_buttons<'a>(
             "\u{F4F4}", // play-fill
             can_start,
             AppMessage::Download(DownloadMessage::BatchStart),
-            theme_colors,
             BUTTON_COLOR_GREEN,
         ),
         // 暂停按钮 - 黄色
@@ -41,7 +37,6 @@ pub fn create_batch_operation_buttons<'a>(
             "\u{F4C3}", // pause-fill
             can_pause,
             AppMessage::Download(DownloadMessage::BatchPause),
-            theme_colors,
             BUTTON_COLOR_YELLOW,
         ),
         // 重新开始按钮 - 蓝色
@@ -50,7 +45,6 @@ pub fn create_batch_operation_buttons<'a>(
             "\u{F130}", // arrow-repeat (重新下载)
             can_retry,
             AppMessage::Download(DownloadMessage::BatchRetry),
-            theme_colors,
             BUTTON_COLOR_BLUE,
         ),
         // 取消按钮 - 红色
@@ -59,7 +53,6 @@ pub fn create_batch_operation_buttons<'a>(
             "\u{F622}", // x-circle-fill (批量取消)
             can_cancel,
             AppMessage::Download(DownloadMessage::BatchCancel),
-            theme_colors,
             BUTTON_COLOR_RED,
         ),
         // 删除按钮 - 红色
@@ -68,7 +61,6 @@ pub fn create_batch_operation_buttons<'a>(
             "\u{F78B}", // trash3
             can_delete,
             AppMessage::Download(DownloadMessage::BatchDelete),
-            theme_colors,
             BUTTON_COLOR_RED,
         ),
     ]

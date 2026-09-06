@@ -4,15 +4,16 @@ use crate::i18n::I18n;
 use crate::services::local::Wallpaper;
 use crate::ui::AppMessage;
 use crate::ui::common;
+use crate::ui::common::wallpaper_card;
 use crate::ui::local::LocalMessage;
 use crate::ui::style::ThemeConfig;
 use crate::ui::style::{
-    BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_OVERLAY_BG, COLOR_OVERLAY_TEXT, ERROR_ICON_SIZE,
-    ERROR_PATH_SIZE, ERROR_TEXT_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
+    BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, ERROR_ICON_SIZE, ERROR_PATH_SIZE, ERROR_TEXT_SIZE,
+    IMAGE_HEIGHT, IMAGE_WIDTH,
 };
 use crate::utils::helpers;
-use iced::widget::{Space, button, column, container, row, text, tooltip};
-use iced::{Alignment, Font, Length};
+use iced::widget::{column, container, text, tooltip};
+use iced::{Alignment, Element, Font, Length};
 
 /// 创建错误占位符
 pub fn create_error_placeholder<'a>(
@@ -20,10 +21,10 @@ pub fn create_error_placeholder<'a>(
     wallpaper: &'a Wallpaper,
     index: usize,
     theme_config: &'a ThemeConfig,
-) -> button::Button<'a, AppMessage> {
+) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
 
-    let error_image = text("\u{F428}")
+    let error_image = text("\u{F428}") // image-alt
         .font(Font::with_name("bootstrap-icons"))
         .color(theme_colors.disabled_color)
         .size(ERROR_ICON_SIZE);
@@ -41,7 +42,7 @@ pub fn create_error_placeholder<'a>(
                 color: Some(theme_colors.text),
             });
 
-    let inner_content = container(
+    let error_content = container(
         column![error_image, error_text, error_path]
             .width(Length::Fill)
             .align_x(Alignment::Center),
@@ -49,23 +50,12 @@ pub fn create_error_placeholder<'a>(
     .width(Length::Fixed(IMAGE_WIDTH))
     .height(Length::Fixed(IMAGE_HEIGHT))
     .center_x(Length::Fill)
-    .center_y(Length::Fill);
-
-    let error_content = container(inner_content)
-        .width(Length::Fixed(IMAGE_WIDTH))
-        .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(common::wallpaper_image_container_style(theme_colors));
-
-    // 创建遮罩层内容（不显示分辨率）
-    let file_size_text = text(helpers::format_file_size(wallpaper.file_size))
-        .size(OVERLAY_TEXT_SIZE)
-        .style(|_theme: &iced::Theme| text::Style {
-            color: Some(COLOR_OVERLAY_TEXT),
-        });
+    .center_y(Length::Fill)
+    .style(common::wallpaper_image_container_style(theme_colors));
 
     let view_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F3D8}",
+            "\u{F3D8}", // folder2-open
             BUTTON_COLOR_YELLOW,
             LocalMessage::ViewInFolder(index).into(),
         ),
@@ -76,7 +66,7 @@ pub fn create_error_placeholder<'a>(
 
     let delete_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F78B}",
+            "\u{F78B}", // trash3
             BUTTON_COLOR_RED,
             LocalMessage::ShowDeleteConfirm(index).into(),
         ),
@@ -85,46 +75,14 @@ pub fn create_error_placeholder<'a>(
         theme_config,
     );
 
-    // 左侧区域：文件大小
-    let left_area = container(file_size_text).align_y(Alignment::Center);
-
-    // 右侧区域：操作按钮
-    let right_area = row![view_button, delete_button]
-        .spacing(2.0)
-        .align_y(Alignment::Center);
-
-    // 遮罩层内容（左中右布局，中间为空，因为没有分辨率）
-    let overlay_content = row![
-        left_area,
-        container(Space::new()).width(Length::Fill),
-        right_area,
-    ]
-    .align_y(Alignment::Center)
-    .padding([0, 8]);
-
-    // 创建遮罩层
-    let overlay = container(overlay_content)
-        .width(Length::Fill)
-        .height(Length::Fixed(OVERLAY_HEIGHT))
-        .style(|_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(COLOR_OVERLAY_BG)),
-            ..Default::default()
-        });
-
-    // 使用 stack 将遮罩覆盖在错误占位图内部下方
-    let card_content = iced::widget::stack(vec![
+    // 失败卡片不显示分辨率，也不响应点击
+    wallpaper_card(
         error_content.into(),
-        container(overlay)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::End)
-            .into(),
-    ]);
-
-    button(card_content)
-        .padding(0)
-        .width(Length::Fixed(IMAGE_WIDTH))
-        .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(common::wallpaper_card_button_style(theme_colors))
+        helpers::format_file_size(wallpaper.file_size),
+        None,
+        vec![view_button, delete_button],
+        2.0,
+        None,
+        theme_colors,
+    )
 }

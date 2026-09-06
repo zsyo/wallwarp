@@ -4,6 +4,7 @@ mod diagonal_line;
 mod filter;
 mod filter_color_grid_options;
 mod filter_color_picker;
+mod filter_grouped_grid;
 mod filter_ratio_grid_options;
 mod filter_ratio_picker;
 mod filter_resolution_grid_options;

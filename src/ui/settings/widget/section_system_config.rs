@@ -10,18 +10,7 @@ use crate::ui::{App, AppMessage};
 use crate::utils::config::CloseAction;
 use crate::utils::startup;
 use iced::widget::{Space, container, radio, row, text_input, toggler};
-use iced::{Alignment, Color, Element, Length};
-
-/// 关闭动作单选按钮样式（透明背景 + 指定文字色）
-fn radio_style(
-    text_color: Color,
-) -> impl Fn(&iced::Theme, iced::widget::radio::Status) -> iced::widget::radio::Style {
-    move |theme: &iced::Theme, status| iced::widget::radio::Style {
-        text_color: Some(text_color),
-        background: iced::Background::Color(Color::TRANSPARENT),
-        ..iced::widget::radio::default(theme, status)
-    }
-}
+use iced::{Alignment, Element, Length};
 
 /// 创建系统配置区块
 pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
@@ -73,21 +62,21 @@ pub fn create_system_config_section<'a>(app: &'a App) -> Element<'a, AppMessage>
                 Some(app.config.global.close_action),
                 |act| SettingsMessage::CloseActionSelected(act).into()
             )
-            .style(radio_style(theme_colors.text)),
+            .style(common::radio_transparent_style(theme_colors.text)),
             radio(
                 app.i18n.t("close-action-options.minimize-to-tray"),
                 CloseAction::MinimizeToTray,
                 Some(app.config.global.close_action),
                 |act| SettingsMessage::CloseActionSelected(act).into()
             )
-            .style(radio_style(theme_colors.text)),
+            .style(common::radio_transparent_style(theme_colors.text)),
             radio(
                 app.i18n.t("close-action-options.close-app"),
                 CloseAction::CloseApp,
                 Some(app.config.global.close_action),
                 |act| SettingsMessage::CloseActionSelected(act).into()
             )
-            .style(radio_style(theme_colors.text)),
+            .style(common::radio_transparent_style(theme_colors.text)),
         ]
         .spacing(ROW_SPACING),
         &app.theme_config,

@@ -5,8 +5,37 @@ use crate::ui::settings::SettingsMessage;
 use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
-use iced::widget::{container, radio, row, text, text_input, tooltip};
-use iced::{Alignment, Color, Element, Length};
+use iced::widget::{container, row, text, text_input, tooltip};
+use iced::{Alignment, Element, Length};
+
+/// 单选选项数据：(标签词条, 选项值, 提示词条)
+type RadioOption<'a, V> = (&'static str, V, &'static str);
+
+/// 数据驱动生成一排带提示的单选按钮
+///
+/// 标签与提示文本按词条键从 i18n 取得，选中回调由调用方整行共用
+fn create_radio_row<'a, V>(
+    app: &'a App,
+    options: &[RadioOption<'a, V>],
+    selected: Option<V>,
+    on_select: fn(V) -> AppMessage,
+) -> Element<'a, AppMessage>
+where
+    V: Copy + Eq + 'a,
+{
+    let mut radio_row = row![].spacing(ROW_SPACING);
+    for (label_key, value, tooltip_key) in options {
+        radio_row = radio_row.push(common::create_radio_with_tooltip(
+            app.i18n.t(label_key),
+            *value,
+            selected,
+            on_select,
+            app.i18n.t(tooltip_key),
+            app.theme_colors,
+        ));
+    }
+    radio_row.into()
+}
 
 /// 创建壁纸配置区块
 pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
@@ -16,205 +45,102 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
         vec![
             super::create_setting_row(
                 app.i18n.t("settings.wallpaper-mode"),
-                row![
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("wallpaper-mode-options.crop"),
-                        WallpaperMode::Crop,
-                        Some(app.settings_state.wallpaper_mode),
-                        |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
-                        app.i18n.t("wallpaper-mode-options.crop-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("wallpaper-mode-options.fit"),
-                        WallpaperMode::Fit,
-                        Some(app.settings_state.wallpaper_mode),
-                        |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
-                        app.i18n.t("wallpaper-mode-options.fit-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("wallpaper-mode-options.stretch"),
-                        WallpaperMode::Stretch,
-                        Some(app.settings_state.wallpaper_mode),
-                        |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
-                        app.i18n.t("wallpaper-mode-options.stretch-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("wallpaper-mode-options.tile"),
-                        WallpaperMode::Tile,
-                        Some(app.settings_state.wallpaper_mode),
-                        |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
-                        app.i18n.t("wallpaper-mode-options.tile-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("wallpaper-mode-options.center"),
-                        WallpaperMode::Center,
-                        Some(app.settings_state.wallpaper_mode),
-                        |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
-                        app.i18n.t("wallpaper-mode-options.center-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("wallpaper-mode-options.span"),
-                        WallpaperMode::Span,
-                        Some(app.settings_state.wallpaper_mode),
-                        |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
-                        app.i18n.t("wallpaper-mode-options.span-tooltip"),
-                        theme_colors
-                    ),
-                ]
-                .spacing(ROW_SPACING),
+                create_radio_row(
+                    app,
+                    &[
+                        (
+                            "wallpaper-mode-options.crop",
+                            WallpaperMode::Crop,
+                            "wallpaper-mode-options.crop-tooltip",
+                        ),
+                        (
+                            "wallpaper-mode-options.fit",
+                            WallpaperMode::Fit,
+                            "wallpaper-mode-options.fit-tooltip",
+                        ),
+                        (
+                            "wallpaper-mode-options.stretch",
+                            WallpaperMode::Stretch,
+                            "wallpaper-mode-options.stretch-tooltip",
+                        ),
+                        (
+                            "wallpaper-mode-options.tile",
+                            WallpaperMode::Tile,
+                            "wallpaper-mode-options.tile-tooltip",
+                        ),
+                        (
+                            "wallpaper-mode-options.center",
+                            WallpaperMode::Center,
+                            "wallpaper-mode-options.center-tooltip",
+                        ),
+                        (
+                            "wallpaper-mode-options.span",
+                            WallpaperMode::Span,
+                            "wallpaper-mode-options.span-tooltip",
+                        ),
+                    ],
+                    Some(app.settings_state.wallpaper_mode),
+                    |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
+                ),
                 &app.theme_config,
             ),
             super::create_setting_row(
                 app.i18n.t("settings.auto-change-mode"),
-                row![
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("auto-change-mode-options.online"),
-                        WallpaperAutoChangeMode::Online,
-                        Some(app.settings_state.auto_change_mode),
-                        |mode| SettingsMessage::AutoChangeModeSelected(mode).into(),
-                        app.i18n.t("auto-change-mode-options.online-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("auto-change-mode-options.local"),
-                        WallpaperAutoChangeMode::Local,
-                        Some(app.settings_state.auto_change_mode),
-                        |mode| SettingsMessage::AutoChangeModeSelected(mode).into(),
-                        app.i18n.t("auto-change-mode-options.local-tooltip"),
-                        theme_colors
-                    ),
-                ]
-                .spacing(ROW_SPACING),
+                create_radio_row(
+                    app,
+                    &[
+                        (
+                            "auto-change-mode-options.online",
+                            WallpaperAutoChangeMode::Online,
+                            "auto-change-mode-options.online-tooltip",
+                        ),
+                        (
+                            "auto-change-mode-options.local",
+                            WallpaperAutoChangeMode::Local,
+                            "auto-change-mode-options.local-tooltip",
+                        ),
+                    ],
+                    Some(app.settings_state.auto_change_mode),
+                    |mode| SettingsMessage::AutoChangeModeSelected(mode).into(),
+                ),
                 &app.theme_config,
             ),
             super::create_setting_row(
                 app.i18n.t("settings.auto-change-interval"),
                 row![
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("auto-change-interval-options.off"),
-                        WallpaperAutoChangeInterval::Off,
+                    create_radio_row(
+                        app,
+                        &[
+                            (
+                                "auto-change-interval-options.off",
+                                WallpaperAutoChangeInterval::Off,
+                                "auto-change-interval-options.off-tooltip",
+                            ),
+                            (
+                                "auto-change-interval-options.ten-min",
+                                WallpaperAutoChangeInterval::Minutes(10),
+                                "auto-change-interval-options.ten-min-tooltip",
+                            ),
+                            (
+                                "auto-change-interval-options.thirty-min",
+                                WallpaperAutoChangeInterval::Minutes(30),
+                                "auto-change-interval-options.thirty-min-tooltip",
+                            ),
+                            (
+                                "auto-change-interval-options.one-hour",
+                                WallpaperAutoChangeInterval::Minutes(60),
+                                "auto-change-interval-options.one-hour-tooltip",
+                            ),
+                            (
+                                "auto-change-interval-options.two-hour",
+                                WallpaperAutoChangeInterval::Minutes(120),
+                                "auto-change-interval-options.two-hour-tooltip",
+                            ),
+                        ],
                         Some(app.settings_state.auto_change_interval),
                         |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
-                        app.i18n.t("auto-change-interval-options.off-tooltip"),
-                        theme_colors
                     ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("auto-change-interval-options.ten-min"),
-                        WallpaperAutoChangeInterval::Minutes(10),
-                        Some(app.settings_state.auto_change_interval),
-                        |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
-                        app.i18n.t("auto-change-interval-options.ten-min-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("auto-change-interval-options.thirty-min"),
-                        WallpaperAutoChangeInterval::Minutes(30),
-                        Some(app.settings_state.auto_change_interval),
-                        |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
-                        app.i18n
-                            .t("auto-change-interval-options.thirty-min-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("auto-change-interval-options.one-hour"),
-                        WallpaperAutoChangeInterval::Minutes(60),
-                        Some(app.settings_state.auto_change_interval),
-                        |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
-                        app.i18n.t("auto-change-interval-options.one-hour-tooltip"),
-                        theme_colors
-                    ),
-                    common::create_radio_with_tooltip(
-                        app.i18n.t("auto-change-interval-options.two-hour"),
-                        WallpaperAutoChangeInterval::Minutes(120),
-                        Some(app.settings_state.auto_change_interval),
-                        |interval| SettingsMessage::AutoChangeIntervalSelected(interval).into(),
-                        app.i18n.t("auto-change-interval-options.two-hour-tooltip"),
-                        theme_colors
-                    ),
-                    tooltip(
-                        container(
-                            row![
-                                iced::widget::radio(
-                                    app.i18n.t("auto-change-interval-options.custom"),
-                                    WallpaperAutoChangeInterval::Custom(
-                                        app.settings_state.custom_interval_minutes
-                                    ),
-                                    Some(app.settings_state.auto_change_interval),
-                                    |interval| {
-                                        if let WallpaperAutoChangeInterval::Custom(minutes) =
-                                            interval
-                                        {
-                                            SettingsMessage::AutoChangeIntervalSelected(
-                                                WallpaperAutoChangeInterval::Custom(minutes),
-                                            )
-                                            .into()
-                                        } else {
-                                            SettingsMessage::AutoChangeIntervalSelected(interval)
-                                                .into()
-                                        }
-                                    }
-                                )
-                                .style(
-                                    move |theme: &iced::Theme, status| {
-                                        radio::Style {
-                                            text_color: Some(theme_colors.text),
-                                            background: iced::Background::Color(Color::TRANSPARENT),
-                                            ..radio::default(theme, status)
-                                        }
-                                    }
-                                ),
-                                container(
-                                    row![
-                                        iced_aw::NumberInput::new(
-                                            &app.settings_state.custom_interval_minutes,
-                                            1..=1440,
-                                            |minutes| {
-                                                SettingsMessage::CustomIntervalMinutesChanged(
-                                                    minutes,
-                                                )
-                                                .into()
-                                            }
-                                        )
-                                        .width(Length::Fill)
-                                        .padding(INPUT_PADDING)
-                                        .input_style(common::styled_text_input(theme_colors))
-                                        .style(
-                                            move |_theme: &iced::Theme, _status| {
-                                                iced_aw::number_input::Style {
-                                                    button_background: Some(
-                                                        iced::Background::Color(
-                                                            theme_colors.text_input_background,
-                                                        ),
-                                                    ),
-                                                    icon_color: theme_colors.light_text_sub,
-                                                }
-                                            }
-                                        ),
-                                        text(app.i18n.t("settings.minutes"))
-                                            .size(14)
-                                            .color(theme_colors.light_text),
-                                    ]
-                                    .spacing(4)
-                                    .align_y(Alignment::Center)
-                                )
-                                .width(Length::Fixed(120.0)),
-                            ]
-                            .spacing(ROW_SPACING)
-                            .align_y(Alignment::Center)
-                        ),
-                        text(app.i18n.t("auto-change-interval-options.custom-tooltip")).style(
-                            move |_theme: &iced::Theme| text::Style {
-                                color: Some(theme_colors.text),
-                            }
-                        ),
-                        tooltip::Position::Top
-                    )
-                    .style(common::create_tooltip_style(theme_colors)),
+                    create_custom_interval_tooltip(app),
                 ]
                 .spacing(ROW_SPACING),
                 &app.theme_config,
@@ -248,4 +174,69 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
         ],
         &app.theme_config,
     )
+}
+
+/// 创建自定义分钟数单选项（带数字输入框的复合控件）
+fn create_custom_interval_tooltip<'a>(app: &'a App) -> Element<'a, AppMessage> {
+    let theme_colors = app.theme_colors;
+    tooltip(
+        container(
+            row![
+                iced::widget::radio(
+                    app.i18n.t("auto-change-interval-options.custom"),
+                    WallpaperAutoChangeInterval::Custom(app.settings_state.custom_interval_minutes),
+                    Some(app.settings_state.auto_change_interval),
+                    |interval| {
+                        if let WallpaperAutoChangeInterval::Custom(minutes) = interval {
+                            SettingsMessage::AutoChangeIntervalSelected(
+                                WallpaperAutoChangeInterval::Custom(minutes),
+                            )
+                            .into()
+                        } else {
+                            SettingsMessage::AutoChangeIntervalSelected(interval).into()
+                        }
+                    }
+                )
+                .style(common::radio_transparent_style(theme_colors.text)),
+                container(
+                    row![
+                        iced_aw::NumberInput::new(
+                            &app.settings_state.custom_interval_minutes,
+                            1..=1440,
+                            |minutes| {
+                                SettingsMessage::CustomIntervalMinutesChanged(minutes).into()
+                            }
+                        )
+                        .width(Length::Fill)
+                        .padding(INPUT_PADDING)
+                        .input_style(common::styled_text_input(theme_colors))
+                        .style(move |_theme: &iced::Theme, _status| {
+                            iced_aw::number_input::Style {
+                                button_background: Some(iced::Background::Color(
+                                    theme_colors.text_input_background,
+                                )),
+                                icon_color: theme_colors.light_text_sub,
+                            }
+                        }),
+                        text(app.i18n.t("settings.minutes"))
+                            .size(14)
+                            .color(theme_colors.light_text),
+                    ]
+                    .spacing(4)
+                    .align_y(Alignment::Center)
+                )
+                .width(Length::Fixed(120.0)),
+            ]
+            .spacing(ROW_SPACING)
+            .align_y(Alignment::Center),
+        ),
+        text(app.i18n.t("auto-change-interval-options.custom-tooltip")).style(
+            move |_theme: &iced::Theme| text::Style {
+                color: Some(theme_colors.text),
+            },
+        ),
+        tooltip::Position::Top,
+    )
+    .style(common::create_tooltip_style(theme_colors))
+    .into()
 }

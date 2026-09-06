@@ -20,5 +20,5 @@ mod tray_menu_event;
 mod tray_switch_wallpaper;
 mod wallpaper_history;
 mod window_close_request;
-mod window_focuse;
+mod window_focus;
 mod window_resize;

@@ -45,8 +45,13 @@ impl App {
                     }
                     Err(_) => {
                         // 创建失败状态，使用原始路径作为图片源
-                        let mut failed_wallpaper =
-                            Wallpaper::new(path, "加载失败".to_string(), 0, 0, 0);
+                        let name = std::path::Path::new(&path)
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string();
+                        let mut failed_wallpaper = Wallpaper::new(path, name, 0, 0, 0);
+                        failed_wallpaper.failed = true;
                         // 即使失败也创建 Handle，以便在 UI 中显示占位图
                         failed_wallpaper.image_handle =
                             Some(iced::widget::image::Handle::from_path(

@@ -89,8 +89,8 @@ pub fn local_view<'a>(
             common::PreviewModalMessages {
                 previous: LocalMessage::PreviousImage.into(),
                 next: LocalMessage::NextImage.into(),
-                set_wallpaper: LocalMessage::SetWallpaper(index).into(),
-                view_in_folder: LocalMessage::ViewInFolder(index).into(),
+                set_wallpaper: Some(LocalMessage::SetWallpaper(index).into()),
+                view_in_folder: Some(LocalMessage::ViewInFolder(index).into()),
                 close: LocalMessage::CloseModal.into(),
             },
             common::PreviewModalTexts {
@@ -101,6 +101,7 @@ pub fn local_view<'a>(
                 view_in_folder: i18n.t("local-list.tooltip-locate"),
                 close: i18n.t("local-list.tooltip-close"),
             },
+            common::PreviewModalExtras::default(),
         );
         layers.push(container(iced::widget::opaque(modal_content)).into());
     }

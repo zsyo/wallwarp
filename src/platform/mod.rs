@@ -101,6 +101,12 @@ pub fn remove_dwm_frame(mw: &dyn iced::window::Window) {
     imp::remove_dwm_frame(mw)
 }
 
+/// 弹出菜单前将窗口前置（仅 Windows 有效：TrackPopupMenu 需要前置窗口
+/// 才能点击外部关闭；macOS/Linux 弹出机制无此要求，为空操作）
+pub fn set_foreground_window(hwnd: isize) {
+    imp::set_foreground_window(hwnd)
+}
+
 /// 为无边框窗口启用系统级边缘缩放（仅 Windows 有效：
 /// macOS 使用原生 fullsize content view，Linux 使用自绘边缘感应层）
 pub fn enable_resize_border(mw: &dyn iced::window::Window) {

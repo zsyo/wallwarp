@@ -256,32 +256,45 @@ pub enum WallpaperAutoChangeMode {
     Local,
 }
 
-impl WallpaperAutoChangeMode {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            WallpaperAutoChangeMode::Online => "online",
-            WallpaperAutoChangeMode::Local => "local",
-        }
-    }
+/// 为"纯标记枚举"生成 as_str/parse/Display 样板
+///
+/// - `as_str`：配置文件中的序列化取值；
+/// - `parse`：未知取值回退到默认变体（解析不会失败）；
+/// - `Display`：展示文本（与变体名不必一致，如 Crop 展示为 Fill）。
+macro_rules! impl_config_enum {
+    ($name:ident { default: $default:ident; $( $variant:ident => $as_str:literal, $display:literal; )* }) => {
+        impl $name {
+            /// 配置文件中的序列化取值
+            pub fn as_str(&self) -> &'static str {
+                match self {
+                    $( $name::$variant => $as_str, )*
+                }
+            }
 
-    pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "local" => Some(WallpaperAutoChangeMode::Local),
-            "online" => Some(WallpaperAutoChangeMode::Online),
-            // 未知取值回退到默认（在线）
-            _ => Some(WallpaperAutoChangeMode::Online),
+            /// 解析配置取值；未知取值回退到默认变体，不会失败
+            pub fn parse(s: &str) -> Self {
+                match s {
+                    $( $as_str => $name::$variant, )*
+                    _ => $name::$default,
+                }
+            }
         }
-    }
-}
 
-impl std::fmt::Display for WallpaperAutoChangeMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            WallpaperAutoChangeMode::Local => write!(f, "Local"),
-            WallpaperAutoChangeMode::Online => write!(f, "Online"),
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let text = match self {
+                    $( $name::$variant => $display, )*
+                };
+                write!(f, "{text}")
+            }
         }
-    }
+    };
 }
+impl_config_enum!(WallpaperAutoChangeMode {
+default: Online;
+Online => "online", "Online";
+Local => "local", "Local";
+});
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum WallpaperAutoChangeInterval {
@@ -389,43 +402,15 @@ pub enum WallpaperMode {
     Span,
 }
 
-impl WallpaperMode {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            WallpaperMode::Crop => "crop",
-            WallpaperMode::Fit => "fit",
-            WallpaperMode::Stretch => "stretch",
-            WallpaperMode::Tile => "tile",
-            WallpaperMode::Center => "center",
-            WallpaperMode::Span => "span",
-        }
-    }
-
-    pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "crop" => Some(WallpaperMode::Crop),
-            "fit" => Some(WallpaperMode::Fit),
-            "stretch" => Some(WallpaperMode::Stretch),
-            "tile" => Some(WallpaperMode::Tile),
-            "center" => Some(WallpaperMode::Center),
-            "span" => Some(WallpaperMode::Span),
-            _ => Some(WallpaperMode::Crop),
-        }
-    }
-}
-
-impl std::fmt::Display for WallpaperMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            WallpaperMode::Crop => write!(f, "Fill"),
-            WallpaperMode::Fit => write!(f, "Fit"),
-            WallpaperMode::Stretch => write!(f, "Stretch"),
-            WallpaperMode::Tile => write!(f, "Tile"),
-            WallpaperMode::Center => write!(f, "Center"),
-            WallpaperMode::Span => write!(f, "Span"),
-        }
-    }
-}
+impl_config_enum!(WallpaperMode {
+default: Crop;
+Crop => "crop", "Fill";
+Fit => "fit", "Fit";
+Stretch => "stretch", "Stretch";
+Tile => "tile", "Tile";
+Center => "center", "Center";
+Span => "span", "Span";
+});
 
 /// 日志等级配置
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, Default, PartialEq, Eq)]
@@ -472,34 +457,12 @@ pub enum Theme {
     Auto,
 }
 
-impl Theme {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Theme::Dark => "dark",
-            Theme::Light => "light",
-            Theme::Auto => "auto",
-        }
-    }
-
-    pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "dark" => Some(Theme::Dark),
-            "light" => Some(Theme::Light),
-            "auto" => Some(Theme::Auto),
-            _ => Some(Theme::Auto),
-        }
-    }
-}
-
-impl std::fmt::Display for Theme {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Theme::Dark => write!(f, "Dark"),
-            Theme::Light => write!(f, "Light"),
-            Theme::Auto => write!(f, "Auto"),
-        }
-    }
-}
+impl_config_enum!(Theme {
+default: Dark;
+Dark => "dark", "Dark";
+Light => "light", "Light";
+Auto => "auto", "Auto";
+});
 
 #[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "snake_case")]
@@ -510,34 +473,12 @@ pub enum CloseAction {
     CloseApp,
 }
 
-impl CloseAction {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            CloseAction::Ask => "ask",
-            CloseAction::MinimizeToTray => "minimize_to_tray",
-            CloseAction::CloseApp => "close_app",
-        }
-    }
-
-    pub fn parse(s: &str) -> Option<Self> {
-        match s {
-            "ask" => Some(CloseAction::Ask),
-            "minimize_to_tray" => Some(CloseAction::MinimizeToTray),
-            "close_app" => Some(CloseAction::CloseApp),
-            _ => Some(CloseAction::Ask),
-        }
-    }
-}
-
-impl std::fmt::Display for CloseAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CloseAction::Ask => write!(f, "Ask"),
-            CloseAction::MinimizeToTray => write!(f, "MinimizeToTray"),
-            CloseAction::CloseApp => write!(f, "CloseApp"),
-        }
-    }
-}
+impl_config_enum!(CloseAction {
+default: Ask;
+Ask => "ask", "Ask";
+MinimizeToTray => "minimize_to_tray", "MinimizeToTray";
+CloseApp => "close_app", "CloseApp";
+});
 
 impl Config {
     pub fn new(lang: &str, available_langs: &[String]) -> Self {

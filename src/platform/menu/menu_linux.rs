@@ -26,7 +26,8 @@ pub(super) enum MenuCommand {
     SetText(MenuKind, String, String),
     SetEnabled(MenuKind, String, bool),
     SetTooltip(String),
-    PopupBall,
+    /// 弹出悬浮球菜单，oneshot 回传弹出结果（接收端为 popup_at 调用线程）
+    PopupBall(Sender<bool>),
 }
 
 static COMMAND_TX: OnceLock<Sender<MenuCommand>> = OnceLock::new();
@@ -120,17 +121,17 @@ fn handle_command(
                 .iter()
                 .map(|_| PredefinedMenuItem::separator())
                 .collect();
-            let mut list: Vec<&dyn IsMenuItem> = Vec::new();
             let mut next_sep = separators.iter();
-            for (idx, (_, item)) in ordered.iter().enumerate() {
-                list.push(item);
-                // separator_after 存储项下标：在该下标的项之后插入对应分隔线
-                if separator_after.contains(&idx)
-                    && let Some(sep) = next_sep.next()
-                {
-                    list.push(sep);
-                }
-            }
+            let list: Vec<&dyn IsMenuItem> =
+                super::plan_menu_entries(ordered.len(), &separator_after)
+                    .into_iter()
+                    .map(|entry| match entry {
+                        super::MenuEntryPlan::Item(idx) => &ordered[idx].1 as &dyn IsMenuItem,
+                        super::MenuEntryPlan::Separator => {
+                            next_sep.next().expect("分隔线实例数与计划不符") as &dyn IsMenuItem
+                        }
+                    })
+                    .collect();
             match MudaMenu::with_items(&list) {
                 Ok(menu) => {
                     menus.insert(kind, (menu, ordered.into_iter().collect()));
@@ -180,7 +181,7 @@ fn handle_command(
                 tray.set_tooltip(Some(&text)).ok();
             }
         }
-        MenuCommand::PopupBall => {
+        MenuCommand::PopupBall(result_tx) => {
             let Some((menu, _)) = menus.get(&MenuKind::Ball) else {
                 tracing::warn!("[悬浮球] [GTK] 悬浮球菜单尚未构建，弹出失败");
                 return;
@@ -196,6 +197,8 @@ fn handle_command(
             if !shown {
                 tracing::warn!("[悬浮球] [GTK] 弹出菜单失败");
             }
+            // 回执弹出结果（popup_at 调用线程已放弃等待时发送失败可忽略）
+            let _ = result_tx.send(shown);
         }
     }
 }

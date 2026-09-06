@@ -35,6 +35,11 @@ impl App {
     pub(in crate::ui::main) fn tray_switch_next_wallpaper(&mut self) -> Task<AppMessage> {
         // 提前获取翻译文本，避免线程安全问题
         let no_valid_wallpapers_message = self.i18n.t("local-list.no-valid-wallpapers").to_string();
+        let fetch_list_failed = self
+            .i18n
+            .t("notification.fetch-wallpaper-list-failed")
+            .to_string();
+        let set_wallpaper_failed = self.i18n.t("notification.set-wallpaper-failed").to_string();
 
         // 根据定时切换模式执行不同的逻辑
         match self.config.wallpaper.auto_change_mode {
@@ -43,7 +48,7 @@ impl App {
                 let data_path = self.config.data.data_path.clone();
                 Task::perform(
                     async_task::async_get_supported_images(data_path),
-                    |result| match result {
+                    move |result| match result {
                         Ok(paths) => {
                             // 获取到图片列表后，立即尝试设置随机壁纸
                             if paths.is_empty() {
@@ -58,7 +63,7 @@ impl App {
                             }
                         }
                         Err(e) => {
-                            let error_message = format!("获取壁纸列表失败: {}", e);
+                            let error_message = format!("{}: {}", fetch_list_failed, e);
                             MainMessage::ShowNotification(error_message, NotificationType::Error)
                                 .into()
                         }
@@ -71,10 +76,10 @@ impl App {
                 let auto_change_running = self.auto_change_state.auto_change_running.clone();
                 Task::perform(
                     async_task::async_set_random_online_wallpaper(config, auto_change_running),
-                    |result| match result {
+                    move |result| match result {
                         Ok(path) => AutoChangeMessage::SetRandomWallpaperSuccess(path).into(),
                         Err(e) => {
-                            let error_message = format!("设置壁纸失败: {}", e);
+                            let error_message = format!("{}: {}", set_wallpaper_failed, e);
                             MainMessage::ShowNotification(error_message, NotificationType::Error)
                                 .into()
                         }

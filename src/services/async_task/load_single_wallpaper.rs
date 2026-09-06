@@ -48,14 +48,21 @@ pub async fn async_load_single_wallpaper_with_fallback(
         match result {
             Ok(wallpaper) => Ok(wallpaper),
             Err(_) => {
-                // 如果加载失败，返回一个带有文件大小的失败状态
-                Ok(Wallpaper::new(
-                    wallpaper_path.clone(),
-                    "加载失败".to_string(),
-                    file_size,
-                    0,
-                    0,
-                ))
+                // 加载失败时仅置失败标志，名称仍取真实文件名，不以文案冒充数据
+                Ok(Wallpaper {
+                    failed: true,
+                    ..Wallpaper::new(
+                        wallpaper_path.clone(),
+                        Path::new(&wallpaper_path)
+                            .file_name()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .to_string(),
+                        file_size,
+                        0,
+                        0,
+                    )
+                })
             }
         }
     })

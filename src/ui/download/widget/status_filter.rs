@@ -5,7 +5,7 @@ use crate::ui::AppMessage;
 use crate::ui::common::drop_down::{self, DropDown};
 use crate::ui::download::message::DownloadMessage;
 use crate::ui::download::state::DownloadStateFull;
-use crate::ui::style::ThemeConfig;
+use crate::ui::style::{RADIUS_SM, ThemeConfig};
 use iced::widget::{button, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -53,7 +53,7 @@ pub fn create_status_filter_dropdown<'a>(
                 border: iced::Border {
                     color: theme_colors.border,
                     width: 1.0,
-                    radius: 4.0.into(),
+                    radius: RADIUS_SM.into(),
                 },
                 ..Default::default()
             }

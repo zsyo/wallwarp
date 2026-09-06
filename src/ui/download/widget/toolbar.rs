@@ -16,11 +16,10 @@ pub fn create_toolbar<'a>(
     let theme_colors = theme_config.get_theme_colors();
 
     // 创建批量操作按钮
-    let batch_buttons = super::create_batch_operation_buttons(i18n, download_state, theme_config);
+    let batch_buttons = super::create_batch_operation_buttons(i18n, download_state);
 
     // 创建删除所有已完成任务按钮
-    let clear_completed_button =
-        super::create_clear_completed_button(i18n, download_state, theme_config);
+    let clear_completed_button = super::create_clear_completed_button(i18n, download_state);
 
     // 创建状态筛选下拉框
     let filter_dropdown = super::create_status_filter_dropdown(i18n, download_state, theme_config);

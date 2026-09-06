@@ -42,7 +42,11 @@ impl App {
     ) -> Task<AppMessage> {
         error!("[定时切换] [失败] 获取壁纸列表失败: {}", error);
         self.auto_change_state.auto_change_enabled = false;
-        let error_message = format!("获取壁纸列表失败: {}", error);
+        let error_message = format!(
+            "{}: {}",
+            self.i18n.t("notification.fetch-wallpaper-list-failed"),
+            error
+        );
         self.show_notification(error_message, NotificationType::Error)
     }
 
@@ -64,7 +68,11 @@ impl App {
         error: String,
     ) -> Task<AppMessage> {
         error!("[定时切换] [失败] 设置壁纸失败: {}", error);
-        let error_message = format!("设置壁纸失败: {}", error);
+        let error_message = format!(
+            "{}: {}",
+            self.i18n.t("notification.set-wallpaper-failed"),
+            error
+        );
         self.show_notification(error_message, NotificationType::Error)
     }
 }

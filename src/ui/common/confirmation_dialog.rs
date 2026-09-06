@@ -9,6 +9,59 @@ use crate::ui::style::{
 use iced::widget::{column, container, row, text};
 use iced::{Alignment, Element, Font, Length, font::Weight};
 
+/// 模态对话框外壳：半透明遮罩 + 居中主题色对话框容器
+///
+/// 确认对话框与主窗口关闭确认等模态共用；对话框内容由调用方组装
+pub fn modal_dialog_shell<'a, Message>(
+    theme_colors: ThemeColors,
+    content: Element<'a, Message>,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    let modal_dialog = container(content)
+        .width(Length::Shrink)
+        .height(Length::Shrink)
+        .max_width(DIALOG_MAX_WIDTH)
+        .padding(DIALOG_INNER_PADDING)
+        .style(move |_theme: &iced::Theme| iced::widget::container::Style {
+            background: Some(iced::Background::Color(theme_colors.dialog_bg)),
+            border: iced::border::Border {
+                radius: iced::border::Radius::from(DIALOG_BORDER_RADIUS),
+                width: DIALOG_BORDER_WIDTH,
+                color: theme_colors.border,
+            },
+            shadow: DIALOG_SHADOW,
+            ..Default::default()
+        });
+
+    let modal_content = container(iced::widget::stack(vec![
+        container(iced::widget::Space::new())
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(|_theme: &iced::Theme| iced::widget::container::Style {
+                background: Some(iced::Background::Color(iced::Color {
+                    r: 0.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: MASK_ALPHA,
+                })),
+                ..Default::default()
+            })
+            .into(),
+        container(modal_dialog)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x(Length::Fill)
+            .center_y(Length::Fill)
+            .into(),
+    ]))
+    .width(Length::Fill)
+    .height(Length::Fill);
+
+    iced::widget::opaque(modal_content)
+}
+
 /// 创建模态确认对话框（随主题明暗适配）
 ///
 /// # 参数
@@ -59,44 +112,5 @@ where
     .width(Length::Shrink)
     .max_width(DIALOG_MAX_WIDTH);
 
-    let modal_dialog = container(dialog_content)
-        .width(Length::Shrink)
-        .height(Length::Shrink)
-        .padding(DIALOG_INNER_PADDING)
-        .style(move |_theme: &iced::Theme| iced::widget::container::Style {
-            background: Some(iced::Background::Color(theme_colors.dialog_bg)),
-            border: iced::border::Border {
-                radius: iced::border::Radius::from(DIALOG_BORDER_RADIUS),
-                width: DIALOG_BORDER_WIDTH,
-                color: theme_colors.border,
-            },
-            shadow: DIALOG_SHADOW,
-            ..Default::default()
-        });
-
-    let modal_content = container(iced::widget::stack(vec![
-        container(iced::widget::Space::new())
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .style(|_theme: &iced::Theme| iced::widget::container::Style {
-                background: Some(iced::Background::Color(iced::Color {
-                    r: 0.0,
-                    g: 0.0,
-                    b: 0.0,
-                    a: MASK_ALPHA,
-                })),
-                ..Default::default()
-            })
-            .into(),
-        container(modal_dialog)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x(Length::Fill)
-            .center_y(Length::Fill)
-            .into(),
-    ]))
-    .width(Length::Fill)
-    .height(Length::Fill);
-
-    iced::widget::opaque(modal_content)
+    modal_dialog_shell(theme_colors, dialog_content.into())
 }

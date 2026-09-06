@@ -76,7 +76,7 @@ impl LocalState {
             // 检查当前索引是否有效
             if let Some(wallpaper_status) = self.wallpapers.get(current_index)
                 && let WallpaperLoadStatus::Loaded(wallpaper) = wallpaper_status
-                && wallpaper.name != "加载失败"
+                && !wallpaper.failed
             {
                 return Some(current_index);
             }

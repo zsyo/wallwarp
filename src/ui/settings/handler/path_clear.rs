@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::async_task;
-use crate::ui::main::MainMessage;
+use crate::ui::settings::SettingsMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::helpers;
 use iced::Task;
@@ -33,30 +33,45 @@ impl App {
         // 获取绝对路径
         let full_path = helpers::get_absolute_path(path_to_clear);
 
-        // 异步清空目录内容（目录可能很大，放阻塞线程避免卡 UI）
+        // 异步清空目录内容（目录可能很大，放阻塞线程避免卡 UI）；
+        // 结果回到 handler 格式化通知文案（闭包内无法访问 i18n）
         Task::perform(
             async_task::async_clear_directory(full_path),
-            move |result| match result {
-                Ok(count) => {
-                    // 清空成功，显示成功通知
-                    let message = if path_type == "data" {
-                        format!("数据路径清空成功，删除了{}个项目", count)
-                    } else {
-                        format!("缓存路径清空成功，删除了{}个项目", count)
-                    };
-                    MainMessage::ShowNotification(message, NotificationType::Success).into()
-                }
-                Err(error_count) => {
-                    // 清空失败，显示错误通知
-                    let message = if path_type == "data" {
-                        format!("数据路径清空失败，{}个项目未删除", error_count)
-                    } else {
-                        format!("缓存路径清空失败，{}个项目未删除", error_count)
-                    };
-                    MainMessage::ShowNotification(message, NotificationType::Error).into()
-                }
-            },
+            move |result| SettingsMessage::PathClearFinished(path_type, result).into(),
         )
+    }
+
+    pub(in crate::ui::settings) fn settings_path_clear_finished(
+        &mut self,
+        path_type: String,
+        result: Result<usize, usize>,
+    ) -> Task<AppMessage> {
+        let (message, notification_type) = match result {
+            Ok(count) => {
+                let key = if path_type == "data" {
+                    "notification.data-path-clear-success"
+                } else {
+                    "notification.cache-path-clear-success"
+                };
+                (
+                    self.i18n.t_with_args(key, &[("count", count.to_string())]),
+                    NotificationType::Success,
+                )
+            }
+            Err(count) => {
+                let key = if path_type == "data" {
+                    "notification.data-path-clear-failed"
+                } else {
+                    "notification.cache-path-clear-failed"
+                };
+                (
+                    self.i18n.t_with_args(key, &[("count", count.to_string())]),
+                    NotificationType::Error,
+                )
+            }
+        };
+        use crate::ui::main::MainMessage;
+        Task::done(MainMessage::ShowNotification(message, notification_type).into())
     }
 
     pub(in crate::ui::settings) fn settings_cancel_path_clear(&mut self) -> Task<AppMessage> {

@@ -169,3 +169,6 @@ fn net_workarea(conn: &RustConnection, root: u32) -> Option<iced::Rectangle> {
         iced::Size::new(values[2] as f32, values[3] as f32),
     ))
 }
+
+/// 弹出菜单前将窗口前置（macOS 弹出机制无此需求，空操作）
+pub fn set_foreground_window(_hwnd: isize) {}

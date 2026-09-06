@@ -33,7 +33,6 @@ pub enum MainMessage {
     /// 悬浮球窗口锚点就绪（弹出菜单）
     FloatingBallMenuReady(crate::platform::WindowAnchor),
     /// 悬浮球菜单关闭复位（Linux 非阻塞弹出的守卫解除）
-    FloatingBallMenuClosed,
     /// 悬浮球悬停状态变化
     FloatingBallHovered(bool),
     /// 悬浮球贴边请求（吸附到最近左右边缘并呈半圆形态）
@@ -117,7 +116,6 @@ impl App {
             MainMessage::FloatingBallRightReleased => self.floating_ball_right_released(),
             MainMessage::ExitProgram => self.exit_program(),
             MainMessage::FloatingBallMenuReady(anchor) => self.floating_ball_menu_ready(anchor),
-            MainMessage::FloatingBallMenuClosed => self.floating_ball_menu_closed(),
             MainMessage::FloatingBallHovered(hovered) => self.floating_ball_hovered(hovered),
             MainMessage::FloatingBallSnapToEdge => self.floating_ball_snap_to_edge(),
             MainMessage::FloatingBallSnapped(snap) => self.floating_ball_snapped(snap),

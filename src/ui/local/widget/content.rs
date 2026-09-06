@@ -2,11 +2,12 @@
 
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
+use crate::ui::common::grid_items_per_row;
 use crate::ui::local::message::WallpaperLoadStatus;
 use crate::ui::local::state::LocalState;
 use crate::ui::style::ThemeConfig;
 use crate::ui::style::{
-    ALL_LOADED_TEXT_SIZE, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_SPACING, IMAGE_WIDTH,
+    ALL_LOADED_TEXT_SIZE, EMPTY_STATE_PADDING, EMPTY_STATE_TEXT_SIZE, IMAGE_SPACING,
 };
 use iced::widget::{Space, column, container, row, text};
 use iced::{Alignment, Element, Length};
@@ -18,10 +19,7 @@ pub fn create_content<'a>(
     local_state: &'a LocalState,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let available_width = (window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
-    let unit_width = IMAGE_WIDTH + IMAGE_SPACING;
-    let items_per_row = (available_width / unit_width).floor() as usize;
-    let items_per_row = items_per_row.max(1);
+    let items_per_row = grid_items_per_row(window_width);
 
     let mut content = column![]
         .spacing(IMAGE_SPACING)
@@ -40,7 +38,7 @@ pub fn create_content<'a>(
                     super::create_loading_placeholder(i18n, theme_config)
                 }
                 WallpaperLoadStatus::Loaded(wallpaper) => {
-                    if wallpaper.name == "加载失败" {
+                    if wallpaper.failed {
                         super::create_error_placeholder(
                             i18n,
                             wallpaper,

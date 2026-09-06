@@ -40,6 +40,8 @@ pub enum SettingsMessage {
     ShowPathClearConfirmation(String),
     /// 确认清空路径，参数为路径类型
     ConfirmPathClear(String),
+    /// 路径清空完成（路径类型；成功为删除的项目数，失败为未删除的项目数）
+    PathClearFinished(String, Result<usize, usize>),
     /// 取消清空路径
     CancelPathClear,
     /// 恢复默认路径，参数为路径类型
@@ -132,6 +134,9 @@ impl App {
             }
             SettingsMessage::ConfirmPathClear(path_type) => {
                 self.settings_confirm_path_clear(path_type)
+            }
+            SettingsMessage::PathClearFinished(path_type, result) => {
+                self.settings_path_clear_finished(path_type, result)
             }
             SettingsMessage::CancelPathClear => self.settings_cancel_path_clear(),
             SettingsMessage::RestoreDefaultPath(path_type) => {

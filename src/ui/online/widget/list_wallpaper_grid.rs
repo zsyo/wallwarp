@@ -2,6 +2,7 @@
 
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
+use crate::ui::common::grid_items_per_row;
 use crate::ui::online::{OnlineState, WallpaperLoadStatus};
 use crate::ui::style::*;
 use iced::widget::{Space, column, container, row, text};
@@ -14,10 +15,7 @@ pub fn create_wallpaper_grid<'a>(
     online_state: &'a OnlineState,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let available_width = (window_width as f32 - IMAGE_SPACING).max(IMAGE_WIDTH);
-    let unit_width = IMAGE_WIDTH + IMAGE_SPACING;
-    let items_per_row = (available_width / unit_width).floor() as usize;
-    let items_per_row = items_per_row.max(1);
+    let items_per_row = grid_items_per_row(window_width);
 
     let mut content = column![]
         .spacing(IMAGE_SPACING)

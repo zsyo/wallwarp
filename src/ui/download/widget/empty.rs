@@ -44,7 +44,7 @@ pub fn create_filtered_empty_state<'a>(
     // 创建表头
     let header = super::create_table_header(i18n, download_state, theme_config);
 
-    let icon = text("\u{F30A}")
+    let icon = text("\u{F30A}") // download
         .font(iced::Font::with_name("bootstrap-icons"))
         .size(48.0)
         .style(move |_theme: &iced::Theme| iced::widget::text::Style {

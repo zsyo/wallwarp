@@ -24,6 +24,8 @@ pub struct Wallpaper {
     pub file_size: u64,
     pub width: u32,
     pub height: u32,
+    /// 加载失败标志（缩略图/尺寸读取失败），UI 据此显示错误占位符
+    pub failed: bool,
     /// 缓存的图片 Handle，避免每次渲染都重新创建
     pub image_handle: Option<iced::widget::image::Handle>,
 }
@@ -37,6 +39,7 @@ impl Wallpaper {
             file_size,
             width,
             height,
+            failed: false,
             image_handle: None,
         }
     }
@@ -59,6 +62,7 @@ impl Wallpaper {
             file_size,
             width,
             height,
+            failed: false,
             image_handle,
         }
     }

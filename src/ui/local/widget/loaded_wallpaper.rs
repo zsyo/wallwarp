@@ -4,16 +4,16 @@ use crate::i18n::I18n;
 use crate::services::local::Wallpaper;
 use crate::ui::AppMessage;
 use crate::ui::common;
+use crate::ui::common::wallpaper_card;
 use crate::ui::local::LocalMessage;
 use crate::ui::style::ThemeConfig;
 use crate::ui::style::{
-    BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, COLOR_OVERLAY_BG,
-    COLOR_OVERLAY_TEXT, IMAGE_HEIGHT, IMAGE_WIDTH, OVERLAY_HEIGHT, OVERLAY_TEXT_SIZE,
+    BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, IMAGE_HEIGHT, IMAGE_WIDTH,
 };
 use crate::utils::helpers;
 use iced::widget::image::Handle;
-use iced::widget::{Space, button, container, row, text, tooltip};
-use iced::{Alignment, Length};
+use iced::widget::{container, tooltip};
+use iced::{Element, Length};
 
 /// 创建已加载壁纸卡片
 pub fn create_loaded_wallpaper<'a>(
@@ -21,7 +21,7 @@ pub fn create_loaded_wallpaper<'a>(
     wallpaper: &'a Wallpaper,
     index: usize,
     theme_config: &'a ThemeConfig,
-) -> button::Button<'a, AppMessage> {
+) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
 
     // 使用缓存的 image_handle，如果缓存不存在则回退到从路径创建
@@ -40,25 +40,9 @@ pub fn create_loaded_wallpaper<'a>(
         .clip(true)
         .style(common::wallpaper_image_container_style(theme_colors));
 
-    // 创建透明遮罩内容
-    let file_size_text = text(helpers::format_file_size(wallpaper.file_size))
-        .size(OVERLAY_TEXT_SIZE)
-        .style(move |_theme: &iced::Theme| text::Style {
-            color: Some(theme_colors.overlay_text),
-        });
-
-    let resolution_text = text(helpers::format_resolution(
-        wallpaper.width,
-        wallpaper.height,
-    ))
-    .size(OVERLAY_TEXT_SIZE)
-    .style(move |_theme: &iced::Theme| text::Style {
-        color: Some(COLOR_OVERLAY_TEXT),
-    });
-
     let view_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F3D8}",
+            "\u{F3D8}", // folder2-open
             BUTTON_COLOR_YELLOW,
             LocalMessage::ViewInFolder(index).into(),
         ),
@@ -69,7 +53,7 @@ pub fn create_loaded_wallpaper<'a>(
 
     let set_wallpaper_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F429}",
+            "\u{F429}", // image-fill
             BUTTON_COLOR_GREEN,
             LocalMessage::SetWallpaper(index).into(),
         ),
@@ -80,7 +64,7 @@ pub fn create_loaded_wallpaper<'a>(
 
     let delete_button = common::create_button_with_tooltip(
         common::create_icon_button(
-            "\u{F78B}",
+            "\u{F78B}", // trash3
             BUTTON_COLOR_RED,
             LocalMessage::ShowDeleteConfirm(index).into(),
         ),
@@ -89,64 +73,16 @@ pub fn create_loaded_wallpaper<'a>(
         theme_config,
     );
 
-    // 左侧区域：文件大小
-    let left_area = container(file_size_text).align_y(Alignment::Center);
-
-    // 右侧区域：操作按钮
-    let right_area = row![view_button, set_wallpaper_button, delete_button]
-        .spacing(2.0)
-        .align_y(Alignment::Center);
-
-    // 使用 stack 确保分辨率永远居中，不受两侧内容影响
-    let overlay_content = iced::widget::stack(vec![
-        // 底层：左中右三部分布局
-        container(
-            row![
-                left_area,
-                // 中间占位，让分辨率在顶层居中
-                container(Space::new()).width(Length::Fill),
-                right_area,
-            ]
-            .align_y(Alignment::Center),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_y(Length::Fill)
-        .padding([0, 8])
-        .into(),
-        // 顶层：分辨率居中显示
-        container(resolution_text)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x(Length::Fill)
-            .center_y(Length::Fill)
-            .into(),
-    ]);
-
-    // 创建遮罩层
-    let overlay = container(overlay_content)
-        .width(Length::Fill)
-        .height(Length::Fixed(OVERLAY_HEIGHT))
-        .style(|_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(COLOR_OVERLAY_BG)),
-            ..Default::default()
-        });
-
-    // 使用 stack 将遮罩覆盖在图片内部下方
-    let card_content = iced::widget::stack(vec![
+    wallpaper_card(
         styled_image.into(),
-        container(overlay)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .align_x(Alignment::Center)
-            .align_y(Alignment::End)
-            .into(),
-    ]);
-
-    button(card_content)
-        .padding(0)
-        .width(Length::Fixed(IMAGE_WIDTH))
-        .height(Length::Fixed(IMAGE_HEIGHT))
-        .style(common::wallpaper_card_button_style(theme_colors))
-        .on_press(LocalMessage::ShowModal(index).into())
+        helpers::format_file_size(wallpaper.file_size),
+        Some(helpers::format_resolution(
+            wallpaper.width,
+            wallpaper.height,
+        )),
+        vec![view_button, set_wallpaper_button, delete_button],
+        2.0,
+        Some(LocalMessage::ShowModal(index).into()),
+        theme_colors,
+    )
 }

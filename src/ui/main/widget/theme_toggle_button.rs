@@ -2,7 +2,7 @@
 
 use crate::ui::common;
 use crate::ui::main::MainMessage;
-use crate::ui::style::BUTTON_COLOR_YELLOW;
+use crate::ui::style::{BUTTON_COLOR_YELLOW, RADIUS_FULL};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::Theme;
 use iced::border::{Border, Radius};
@@ -15,12 +15,12 @@ pub fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
 
     let (icon_char, tooltip_text, target_theme) = if app.theme_config.is_dark() {
         (
-            "\u{F5A1}",
+            "\u{F5A1}", // sun-fill
             app.i18n.t("theme.switch-to-light"),
             Theme::Light,
         )
     } else {
-        ("\u{F494}", app.i18n.t("theme.switch-to-dark"), Theme::Dark)
+        ("\u{F494}", app.i18n.t("theme.switch-to-dark"), Theme::Dark) // moon-fill
     };
 
     let btn = button(
@@ -49,7 +49,7 @@ pub fn create_theme_toggle_button(app: &App) -> Element<'_, AppMessage> {
             border: Border {
                 color: iced::Color::TRANSPARENT,
                 width: 0.0,
-                radius: Radius::from(20.0),
+                radius: Radius::from(RADIUS_FULL),
             },
             ..Default::default()
         }

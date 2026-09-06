@@ -3,13 +3,12 @@
 use crate::ui::common;
 use crate::ui::main::MainMessage;
 use crate::ui::style::{
-    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BORDER_RADIUS,
-    DIALOG_BORDER_WIDTH, DIALOG_BUTTON_SPACING, DIALOG_INNER_PADDING, DIALOG_MAX_WIDTH,
-    DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, MASK_ALPHA,
-    TOGGLE_SPACING, TOGGLE_TEXT_SIZE,
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_GRAY, BUTTON_COLOR_RED, DIALOG_BUTTON_SPACING,
+    DIALOG_MESSAGE_SIZE, DIALOG_PADDING, DIALOG_SPACING, DIALOG_TITLE_SIZE, TOGGLE_SPACING,
+    TOGGLE_TEXT_SIZE,
 };
 use crate::ui::{App, AppMessage, CloseConfirmationAction};
-use iced::widget::{Space, column, container, opaque, row, stack, text, toggler};
+use iced::widget::{Space, column, row, text, toggler};
 use iced::{Alignment, Length};
 
 pub fn close_confirm_view(app: &App) -> iced::Element<'_, AppMessage> {
@@ -77,44 +76,6 @@ pub fn close_confirm_view(app: &App) -> iced::Element<'_, AppMessage> {
     .spacing(DIALOG_SPACING)
     .align_x(Alignment::Center);
 
-    let modal_dialog = container(dialog_content)
-        .width(Length::Shrink)
-        .height(Length::Shrink)
-        .max_width(DIALOG_MAX_WIDTH)
-        .padding(DIALOG_INNER_PADDING)
-        .style(move |_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(theme_colors.dialog_bg)),
-            border: iced::border::Border {
-                radius: iced::border::Radius::from(DIALOG_BORDER_RADIUS),
-                width: DIALOG_BORDER_WIDTH,
-                color: theme_colors.border,
-            },
-            ..Default::default()
-        });
-
-    let modal_content = container(stack(vec![
-        container(Space::new())
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .style(|_theme: &iced::Theme| container::Style {
-                background: Some(iced::Background::Color(iced::Color {
-                    r: 0.0,
-                    g: 0.0,
-                    b: 0.0,
-                    a: MASK_ALPHA,
-                })),
-                ..Default::default()
-            })
-            .into(),
-        container(modal_dialog)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x(Length::Fill)
-            .center_y(Length::Fill)
-            .into(),
-    ]))
-    .width(Length::Fill)
-    .height(Length::Fill);
-
-    opaque(modal_content)
+    // 复用公共模态对话框外壳（遮罩 + 居中对话框容器）
+    common::modal_dialog_shell(theme_colors, dialog_content.into())
 }

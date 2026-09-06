@@ -54,6 +54,32 @@ pub struct TrayIconHandle {
     tx: Sender<MenuCommand>,
 }
 
+/// 菜单构建顺序中的一条目
+pub(super) enum MenuEntryPlan {
+    /// 第 idx 个菜单项（按定义顺序）
+    Item(usize),
+    /// 分隔线
+    Separator,
+}
+
+/// 计算"菜单项 + 分隔线"的交错顺序（纯计算，各平台构建共用）
+///
+/// `separator_after` 存储项下标：在该下标的项之后插入一条分隔线；
+/// 分隔线实例按计划顺序逐条取用，实例数必须与 `separator_after.len()` 一致
+pub(super) fn plan_menu_entries(
+    item_count: usize,
+    separator_after: &[usize],
+) -> Vec<MenuEntryPlan> {
+    let mut plan = Vec::with_capacity(item_count + separator_after.len());
+    for idx in 0..item_count {
+        plan.push(MenuEntryPlan::Item(idx));
+        if separator_after.contains(&idx) {
+            plan.push(MenuEntryPlan::Separator);
+        }
+    }
+    plan
+}
+
 /// 构建菜单（separator_after：在这些项的下标之后插入分隔线）
 pub fn build_menu(kind: MenuKind, items: Vec<MenuItemDef>, separator_after: &[usize]) -> Menu {
     #[cfg(not(target_os = "linux"))]
@@ -75,17 +101,16 @@ pub fn build_menu(kind: MenuKind, items: Vec<MenuItemDef>, separator_after: &[us
             .iter()
             .map(|_| PredefinedMenuItem::separator())
             .collect();
-        let mut list: Vec<&dyn IsMenuItem> = Vec::new();
         let mut next_sep = separators.iter();
-        for (idx, (_, item)) in ordered.iter().enumerate() {
-            list.push(item);
-            // separator_after 存储项下标：在该下标的项之后插入对应分隔线
-            if separator_after.contains(&idx)
-                && let Some(sep) = next_sep.next()
-            {
-                list.push(sep);
-            }
-        }
+        let list: Vec<&dyn IsMenuItem> = plan_menu_entries(ordered.len(), separator_after)
+            .into_iter()
+            .map(|entry| match entry {
+                MenuEntryPlan::Item(idx) => &ordered[idx].1 as &dyn IsMenuItem,
+                MenuEntryPlan::Separator => {
+                    next_sep.next().expect("分隔线实例数与计划不符") as &dyn IsMenuItem
+                }
+            })
+            .collect();
         let menu = MudaMenu::with_items(&list).expect("创建托盘菜单失败");
         let items = ordered.into_iter().collect();
 
@@ -188,10 +213,11 @@ impl Menu {
         }
     }
 
-    /// 在指定窗口锚点处弹出菜单（悬浮球用）
+    /// 在指定窗口锚点处弹出菜单（悬浮球用），阻塞至菜单关闭
     ///
     /// Windows：TrackPopupMenu（弹出前先前置窗口）；macOS：NSView 弹出；
-    /// Linux：在 GTK 运行时的锚点窗口上于鼠标位置弹出（阻塞至菜单关闭）
+    /// Linux：命令通道发往 GTK 线程弹出，经 oneshot 回执等待实际结果，
+    /// 三平台返回值均表示菜单是否成功弹出
     pub fn popup_at(&self, anchor: WindowAnchor) -> bool {
         #[cfg(not(target_os = "linux"))]
         {
@@ -200,7 +226,7 @@ impl Menu {
                 WindowAnchor::Win32(hwnd) => {
                     #[cfg(target_os = "windows")]
                     {
-                        super::windows::set_foreground_window(hwnd);
+                        super::set_foreground_window(hwnd);
                         unsafe { self.inner.menu.show_context_menu_for_hwnd(hwnd, None) }
                     }
                     #[cfg(not(target_os = "windows"))]
@@ -230,8 +256,13 @@ impl Menu {
         #[cfg(target_os = "linux")]
         {
             let _ = anchor;
-            let _ = self.tx.send(MenuCommand::PopupBall);
-            true
+            // oneshot 回执：等待 GTK 线程回传实际弹出结果
+            // （弹出期间阻塞，与 Windows/macOS 的阻塞弹出语义一致）
+            let (result_tx, result_rx) = std::sync::mpsc::channel();
+            if self.tx.send(MenuCommand::PopupBall(result_tx)).is_err() {
+                return false;
+            }
+            result_rx.recv().unwrap_or(false)
         }
     }
 }

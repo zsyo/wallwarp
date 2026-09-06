@@ -93,8 +93,8 @@ pub fn history_view<'a>(
             common::PreviewModalMessages {
                 previous: HistoryMessage::PreviousImage.into(),
                 next: HistoryMessage::NextImage.into(),
-                set_wallpaper: HistoryMessage::ApplyEntry(modal_index).into(),
-                view_in_folder: HistoryMessage::OpenLocation(modal_index).into(),
+                set_wallpaper: Some(HistoryMessage::ApplyEntry(modal_index).into()),
+                view_in_folder: Some(HistoryMessage::OpenLocation(modal_index).into()),
                 close: HistoryMessage::CloseModal.into(),
             },
             common::PreviewModalTexts {
@@ -105,6 +105,7 @@ pub fn history_view<'a>(
                 view_in_folder: i18n.t("history.open-location"),
                 close: i18n.t("history.tooltip-close"),
             },
+            common::PreviewModalExtras::default(),
         );
         layers.push(container(iced::widget::opaque(modal_content)).into());
     }

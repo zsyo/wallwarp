@@ -57,14 +57,19 @@ pub fn create_ratio_picker<'a>(
     let ratio_underlay = row![
         text(button_text).size(font_size),
         Space::new().width(Length::Fill),
-        container(text("⏷").color(theme_colors.light_text_sub))
-            .height(Length::Fill)
-            .padding(iced::Padding {
-                top: -2.0,
-                bottom: 0.0,
-                left: 0.0,
-                right: 0.0,
-            }),
+        container(
+            text(drop_down::styles::CHEVRON_DOWN)
+                .font(iced::Font::with_name("bootstrap-icons"))
+                .size(12)
+                .color(theme_colors.light_text_sub),
+        )
+        .height(Length::Fill)
+        .padding(iced::Padding {
+            top: -2.0,
+            bottom: 0.0,
+            left: 0.0,
+            right: 0.0,
+        }),
     ]
     .spacing(4)
     .align_y(Alignment::Center)
@@ -86,7 +91,7 @@ pub fn create_ratio_picker<'a>(
             border: Border {
                 color: Color::TRANSPARENT,
                 width: 0.0,
-                radius: Radius::from(4.0),
+                radius: Radius::from(RADIUS_SM),
             },
             ..button::text(_theme, _status)
         });

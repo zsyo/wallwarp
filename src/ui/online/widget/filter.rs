@@ -72,7 +72,7 @@ pub fn create_filter_bar<'a>(
     .style(common::styled_text_input(theme_colors));
 
     let search_button = common::create_icon_button_with_size(
-        "\u{F52A}",
+        "\u{F52A}", // search
         theme_colors.light_text,
         17,
         OnlineMessage::Search.into(),
@@ -101,7 +101,7 @@ pub fn create_filter_bar<'a>(
 
     // 功能按钮
     let refresh_button = common::create_icon_button_with_size(
-        "\u{F130}",
+        "\u{F130}", // arrow-repeat
         theme_colors.light_text,
         20,
         OnlineMessage::Refresh.into(),
@@ -217,7 +217,7 @@ pub fn create_filter_bar<'a>(
                 border: Border {
                     color: Color::TRANSPARENT,
                     width: 0.0,
-                    radius: Radius::from(4.0),
+                    radius: Radius::from(RADIUS_SM),
                 },
                 shadow: shadows::FILTER_BAR_SHADOW,
                 ..Default::default()

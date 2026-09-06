@@ -2,11 +2,12 @@
 
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
+use crate::ui::common::drop_down::{dropdown_option_style, dropdown_panel_style};
 use crate::ui::download::message::DownloadMessage;
 use crate::ui::download::state::{DownloadStateFull, DownloadStatus};
 use crate::ui::style::ThemeConfig;
-use iced::widget::{button, column, opaque, row, text};
-use iced::{Alignment, Color, Element, Length};
+use iced::widget::{button, column, container, opaque, row, text};
+use iced::{Alignment, Element, Length};
 
 /// 创建筛选选项列表
 pub fn create_filter_options<'a>(
@@ -56,11 +57,7 @@ pub fn create_filter_options<'a>(
 
             button(
                 row![
-                    text(label).size(14).style(move |_theme: &iced::Theme| {
-                        iced::widget::text::Style {
-                            color: Some(theme_colors.text),
-                        }
-                    }),
+                    text(label).size(14),
                     if is_selected_fixed {
                         text("\u{F26E}") // Check
                             .font(iced::Font::with_name("bootstrap-icons"))
@@ -76,29 +73,7 @@ pub fn create_filter_options<'a>(
                 .align_y(Alignment::Center)
                 .width(Length::Fill),
             )
-            .style(
-                move |_theme: &iced::Theme, _status: iced::widget::button::Status| {
-                    iced::widget::button::Style {
-                        background: if is_selected_fixed {
-                            Some(iced::Background::Color(Color {
-                                r: theme_colors.primary.r * 0.1,
-                                g: theme_colors.primary.g * 0.1,
-                                b: theme_colors.primary.b * 0.1,
-                                a: 1.0,
-                            }))
-                        } else {
-                            Some(iced::Background::Color(theme_colors.light_button))
-                        },
-                        text_color: theme_colors.text,
-                        border: iced::Border {
-                            color: theme_colors.border,
-                            width: 0.0,
-                            radius: 0.0.into(),
-                        },
-                        ..Default::default()
-                    }
-                },
-            )
+            .style(dropdown_option_style(theme_colors, is_selected_fixed))
             .padding([8, 12])
             .width(Length::Fill)
             .on_press(AppMessage::Download(DownloadMessage::SetStatusFilter(
@@ -109,10 +84,12 @@ pub fn create_filter_options<'a>(
         .collect();
 
     opaque(
-        column(options)
-            .width(Length::Fixed(120.0))
-            // .width(Length::Fill)
-            .padding(5)
-            .spacing(2),
+        container(
+            column(options)
+                .width(Length::Fixed(120.0))
+                .padding(5)
+                .spacing(2),
+        )
+        .style(dropdown_panel_style(theme_colors)),
     )
 }

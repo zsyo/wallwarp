@@ -1,11 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::services::async_task;
-use crate::ui::download::{DownloadMessage, DownloadStatus};
 use crate::ui::{App, AppMessage};
 use iced::Task;
 use std::path::PathBuf;
-use std::time::Instant;
 
 impl App {
     pub(in crate::ui::download) fn add_download_task(
@@ -33,49 +30,7 @@ impl App {
         // 未满并发上限时立即开始下载；已满则任务保持排队(Waiting)，
         // 由 download_completed 在有空闲槽位时按排队顺序自动启动
         if self.download_state.can_start_download() {
-            if let Some(task_full) = self.download_state.get_task(task_id) {
-                task_full.task.status = DownloadStatus::Downloading;
-                task_full.task.start_time = Some(Instant::now());
-                // 开启新一轮下载，代数语义与在线下载路径保持一致
-                // (手动任务当前不支持取消，令牌换发仅维持结构一致)
-                let (_cancel_token, generation) = task_full.task.begin_new_round();
-                self.download_state.increment_downloading();
-
-                if let Some(task_full) = self
-                    .download_state
-                    .tasks
-                    .iter()
-                    .find(|t| t.task.id == task_id)
-                {
-                    // 保存状态到数据库
-                    let _ = self.download_state.save_to_database(task_full);
-
-                    let url = task_full.task.url.clone();
-                    let save_path = PathBuf::from(&task_full.task.save_path);
-                    let proxy = task_full.proxy.clone();
-
-                    return Task::perform(
-                        async_task::async_download_wallpaper_task(url, save_path, proxy, task_id),
-                        move |result| match result {
-                            Ok(size) => {
-                                // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
-                                tracing::debug!(
-                                    "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
-                                    task_id,
-                                    size
-                                );
-                                DownloadMessage::DownloadCompleted(task_id, size, None, generation)
-                                    .into()
-                            }
-                            Err(e) => {
-                                tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                DownloadMessage::DownloadCompleted(task_id, 0, Some(e), generation)
-                                    .into()
-                            }
-                        },
-                    );
-                }
-            }
+            return self.spawn_download(task_id, 0, Task::none());
         }
         Task::none()
     }

@@ -49,9 +49,9 @@
   在 `.style` 闭包中按 palette 识别），不是按窗口区分 style 闭包
 - 悬浮球菜单复用 muda（`tray_icon::menu`）全局 MenuEvent 通道，菜单 id 以
   `ball_` 为前缀；弹出经 `platform::menu`：window::run 提取 WindowAnchor →
-  消息回传 → update 中 popup_at（Windows/macOS 阻塞弹出；Linux 非阻塞，
-  以 menu_open 守卫 + 延迟 `FloatingBallMenuClosed` 复位近似阻塞语义，
-  悬停重新进入也会解除守卫）
+  消息回传 → update 中 popup_at（三平台均为阻塞弹出，返回值表示是否成功；
+  Linux 经命令通道 + oneshot 回执获得同等语义，弹出期间 menu_open 守卫
+  禁止贴边隐藏）
 - 悬浮球左键/右键均可弹出操作菜单（右键释放即触发，不参与拖动）
 - 悬浮球空闲时自动贴边呈半圆（仅支持左右贴边）：窗口紧贴屏幕边缘且尺寸
   不变，视图用 `iced::widget::Float` 把完整大球（含大 logo）向边缘平移一半

@@ -11,6 +11,8 @@ pub mod preview_modal;
 pub mod rotated_icon;
 mod tooltip_button;
 mod tooltip_radio;
+mod wallpaper_card;
+mod wallpaper_grid;
 
 pub mod drop_down;
 
@@ -25,3 +27,5 @@ pub use preview_modal::*;
 pub use rotated_icon::*;
 pub use tooltip_button::*;
 pub use tooltip_radio::*;
+pub use wallpaper_card::*;
+pub use wallpaper_grid::*;

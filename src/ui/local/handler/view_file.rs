@@ -14,8 +14,10 @@ impl App {
 
             // 检查文件是否存在
             if !Path::new(&full_path).exists() {
-                return self
-                    .show_notification(format!("{} 已被删除", full_path), NotificationType::Error);
+                let message = self
+                    .i18n
+                    .t_with_args("notification.file-deleted", &[("path", full_path.clone())]);
+                return self.show_notification(message, NotificationType::Error);
             }
 
             helpers::open_file_in_explorer(&full_path);

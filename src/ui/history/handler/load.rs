@@ -15,7 +15,7 @@ use tracing::{debug, info, warn};
 ///
 /// 顺带把历史版本的混合路径写法（相对/绝对、\\?\ 前缀）规范化为绝对路径：
 /// 同一文件的不同写法会绕过 path 主键去重产生重复记录，此处合并为一条并回写数据库
-async fn load_history_from_db() -> Result<Vec<HistoryEntry>, String> {
+async fn load_history_from_db(task_failed: String) -> Result<Vec<HistoryEntry>, String> {
     tokio::task::spawn_blocking(move || {
         let Some(db) = DatabaseManager::try_get() else {
             return Err("数据库未初始化".to_string());
@@ -51,7 +51,7 @@ async fn load_history_from_db() -> Result<Vec<HistoryEntry>, String> {
         Ok(entries)
     })
     .await
-    .map_err(|e| format!("任务执行失败: {}", e))?
+    .map_err(|e| format!("{}: {}", task_failed, e))?
 }
 
 impl App {
@@ -59,7 +59,9 @@ impl App {
     pub(in crate::ui) fn load_history_entries(&mut self) -> Task<AppMessage> {
         self.history_state.loaded = true;
 
-        Task::perform(load_history_from_db(), |result| match result {
+        // 提前获取翻译文本，避免线程安全问题
+        let task_failed = self.i18n.t("notification.task-failed").to_string();
+        Task::perform(load_history_from_db(task_failed), |result| match result {
             Ok(entries) => HistoryMessage::Loaded(entries).into(),
             Err(e) => {
                 warn!("[壁纸历史] [DB] 加载失败: {}", e);

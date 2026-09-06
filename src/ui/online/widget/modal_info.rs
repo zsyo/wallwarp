@@ -7,10 +7,11 @@ use crate::services::wallhaven::OnlineWallpaper;
 use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::common::create_icon_button;
+use crate::ui::common::{modal_info_pill, modal_info_row};
 use crate::ui::online::OnlineMessage;
 use crate::ui::style::{BUTTON_COLOR_BLUE, ThemeConfig};
 use crate::utils::helpers::format_file_size;
-use iced::widget::{column, container, row, text, tooltip};
+use iced::widget::{column, row, tooltip};
 use iced::{Alignment, Element};
 
 /// 创建壁纸信息浮层
@@ -20,20 +21,8 @@ pub fn create_modal_info<'a>(
     i18n: &'a I18n,
     wallpaper: &'a OnlineWallpaper,
     wallpaper_index: usize,
-    _theme_config: &'a ThemeConfig,
+    theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    let info_row = |label: &str, value: String| -> Element<'a, AppMessage> {
-        row![
-            text(format!("{label}: "))
-                .size(12)
-                .color(iced::Color::WHITE),
-            text(value).size(12).color(iced::Color::WHITE),
-        ]
-        .spacing(2)
-        .align_y(Alignment::Center)
-        .into()
-    };
-
     let copy_button = common::create_button_with_tooltip(
         create_icon_button(
             "\u{F759}", // copy (复制原图链接)
@@ -42,23 +31,23 @@ pub fn create_modal_info<'a>(
         ),
         i18n.t("download-tasks.tooltip-copy-url"),
         tooltip::Position::Right,
-        _theme_config,
+        theme_config,
     );
 
     let info_column = column![
-        info_row(
+        modal_info_row(
             i18n.t("wallpaper-info.resolution").as_str(),
             format!("{} x {}", wallpaper.width, wallpaper.height)
         ),
-        info_row(
+        modal_info_row(
             i18n.t("wallpaper-info.purity").as_str(),
             wallpaper.purity.to_uppercase()
         ),
-        info_row(
+        modal_info_row(
             i18n.t("wallpaper-info.favorites").as_str(),
             wallpaper.favorites.to_string()
         ),
-        info_row(
+        modal_info_row(
             i18n.t("wallpaper-info.file-size").as_str(),
             format_file_size(wallpaper.file_size)
         ),
@@ -67,9 +56,5 @@ pub fn create_modal_info<'a>(
     .spacing(4)
     .align_x(Alignment::Start);
 
-    // 与底部工具栏同款半透明胶囊底色
-    container(info_column)
-        .padding([8, 12])
-        .style(common::modal_overlay_style)
-        .into()
+    modal_info_pill(info_column.into())
 }

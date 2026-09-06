@@ -3,176 +3,73 @@
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::common;
+use crate::ui::common::preview_toolbar_button;
 use crate::ui::online::{OnlineMessage, OnlineState};
-use crate::ui::style::*;
-use iced::widget::{Space, container, opaque, row, tooltip};
-use iced::{Alignment, Element, Length};
+use crate::ui::style::{BUTTON_COLOR_BLUE, ThemeConfig};
+use iced::Element;
+use iced::widget::{container, opaque};
 
-/// 创建图片预览模态窗口
+/// 创建图片预览模态窗口（复用公共预览模态，注入在线页特有内容）
 pub fn create_modal<'a>(
     i18n: &'a I18n,
     online_state: &'a OnlineState,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     let wallpaper_index = online_state.current_image_index;
+    let theme_colors = theme_config.get_theme_colors();
+    // 图片加载完成后"设为壁纸/保存到库"才可点击
+    let has_image = online_state.modal_image_handle.is_some();
 
-    // 创建背景加载文字（带进度环）
-    let loading_text = super::create_modal_loading_placeholder(i18n, online_state, theme_config);
+    // 加载占位层：带进度环（替代默认占位文案）
+    let loading_layer = super::create_modal_loading_placeholder(i18n, online_state, theme_config);
 
-    // 创建图片层（加载完成后显示）
-    let image_layer: Element<_> = if let Some(ref handle) = online_state.modal_image_handle {
-        let modal_image = iced::widget::image(handle.clone())
-            .content_fit(iced::ContentFit::Contain)
-            .width(Length::Fill)
-            .height(Length::Fill);
-        modal_image.into()
-    } else {
-        container(Space::new())
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
-    };
+    // 信息浮层：分辨率/纯净度/收藏数/复制原图链接
+    let info_layer = online_state
+        .wallpapers_data
+        .get(wallpaper_index)
+        .map(|wallpaper| super::create_modal_info(i18n, wallpaper, wallpaper_index, theme_config));
 
-    let modal_image_content = iced::widget::stack(vec![loading_text, image_layer]);
-
-    // 创建底部工具栏按钮
-    let prev_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F12F}", // arrow-left (上一张)
-            BUTTON_COLOR_BLUE,
-            OnlineMessage::PreviousImage.into(),
-        ),
-        i18n.t("online-wallpapers.tooltip-prev"),
-        tooltip::Position::Top,
+    // 保存到库按钮：按钮实际作用是将缓存的图片保存到壁纸库，
+    // 提示与卡片上的下载按钮区分
+    let download_button = preview_toolbar_button(
         theme_config,
+        theme_colors.disabled_color,
+        "\u{F30A}", // download
+        BUTTON_COLOR_BLUE,
+        i18n.t("online-wallpapers.tooltip-save-to-library")
+            .to_string(),
+        has_image.then_some(OnlineMessage::DownloadFromCache(wallpaper_index).into()),
     );
 
-    let next_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F138}", // arrow-right (下一张)
-            BUTTON_COLOR_BLUE,
-            OnlineMessage::NextImage.into(),
-        ),
-        i18n.t("online-wallpapers.tooltip-next"),
-        tooltip::Position::Top,
+    let modal_content = common::create_preview_modal(
+        i18n,
         theme_config,
+        online_state.modal_image_handle.as_ref(),
+        None,
+        true, // 上一张始终可点（在线页支持循环浏览）
+        true, // 下一张始终可点
+        common::PreviewModalMessages {
+            previous: OnlineMessage::PreviousImage.into(),
+            next: OnlineMessage::NextImage.into(),
+            set_wallpaper: has_image
+                .then_some(OnlineMessage::SetAsWallpaperFromCache(wallpaper_index).into()),
+            view_in_folder: None, // 在线页无"打开所在文件夹"操作
+            close: OnlineMessage::CloseModal.into(),
+        },
+        common::PreviewModalTexts {
+            loading: String::new(), // 加载层由 extras 注入，文案不生效
+            previous: i18n.t("online-wallpapers.tooltip-prev"),
+            next: i18n.t("online-wallpapers.tooltip-next"),
+            set_wallpaper: i18n.t("online-wallpapers.tooltip-set-wallpaper"),
+            view_in_folder: String::new(), // 按钮未显示，文案不生效
+            close: i18n.t("online-wallpapers.tooltip-close"),
+        },
+        common::PreviewModalExtras {
+            loading_layer: Some(loading_layer),
+            info_layer,
+            toolbar_buttons: vec![download_button],
+        },
     );
-
-    // 设置为壁纸按钮：仅在图片下载完成时可点击（禁用时仅图标置灰，底色不变）
-    let set_wallpaper_enabled = online_state.modal_image_handle.is_some();
-    let set_wallpaper_button = if set_wallpaper_enabled {
-        common::create_button_with_tooltip(
-            common::create_icon_button(
-                "\u{F429}",
-                BUTTON_COLOR_GREEN,
-                OnlineMessage::SetAsWallpaperFromCache(wallpaper_index).into(),
-            ),
-            i18n.t("online-wallpapers.tooltip-set-wallpaper"),
-            tooltip::Position::Top,
-            theme_config,
-        )
-    } else {
-        common::create_icon_button_disabled(
-            "\u{F429}",
-            theme_config.get_theme_colors().disabled_color,
-        )
-        .into()
-    };
-
-    // 下载按钮：仅在图片下载完成时可点击（禁用时仅图标置灰，底色不变）
-    let download_enabled = online_state.modal_image_handle.is_some();
-    let download_button = if download_enabled {
-        common::create_button_with_tooltip(
-            common::create_icon_button(
-                "\u{F30A}",
-                BUTTON_COLOR_BLUE,
-                OnlineMessage::DownloadFromCache(wallpaper_index).into(),
-            ),
-            // 按钮实际作用是将缓存的图片保存到壁纸库，提示与卡片上的下载按钮区分
-            i18n.t("online-wallpapers.tooltip-save-to-library"),
-            tooltip::Position::Top,
-            theme_config,
-        )
-    } else {
-        common::create_icon_button_disabled(
-            "\u{F30A}",
-            theme_config.get_theme_colors().disabled_color,
-        )
-        .into()
-    };
-
-    let close_button = common::create_button_with_tooltip(
-        common::create_icon_button(
-            "\u{F659}",
-            BUTTON_COLOR_RED,
-            OnlineMessage::CloseModal.into(),
-        ),
-        i18n.t("online-wallpapers.tooltip-close"),
-        tooltip::Position::Top,
-        theme_config,
-    );
-
-    // 底部悬浮工具栏（圆角胶囊）
-    let toolbar = container(
-        row![
-            prev_button,
-            next_button,
-            set_wallpaper_button,
-            download_button,
-            close_button,
-        ]
-        .align_y(Alignment::Center)
-        .spacing(24.0),
-    )
-    .padding([6, 20])
-    .style(common::modal_overlay_style);
-
-    // 壁纸信息浮层（左上角，数据存在时显示）
-    let info_layer: Element<_> =
-        if let Some(wallpaper) = online_state.wallpapers_data.get(wallpaper_index) {
-            container(super::create_modal_info(
-                i18n,
-                wallpaper,
-                wallpaper_index,
-                theme_config,
-            ))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .align_x(Alignment::Start)
-            .align_y(Alignment::Start)
-            .padding(16.0)
-            .into()
-        } else {
-            container(Space::new())
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into()
-        };
-
-    // 工具栏悬浮于图片底部居中
-    let toolbar_layer = container(toolbar)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .align_x(Alignment::Center)
-        .align_y(Alignment::End)
-        .padding(iced::Padding {
-            top: 0.0,
-            right: 0.0,
-            bottom: 24.0,
-            left: 0.0,
-        });
-
-    let modal_content = container(iced::widget::stack(vec![
-        modal_image_content.into(),
-        info_layer.into(),
-        toolbar_layer.into(),
-    ]))
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .style(|_theme: &iced::Theme| container::Style {
-        background: Some(iced::Background::Color(COLOR_MODAL_BG)),
-        ..Default::default()
-    });
 
     container(opaque(modal_content)).into()
 }

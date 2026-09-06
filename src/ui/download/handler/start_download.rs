@@ -1,12 +1,9 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::services::async_task::{self, DownloadTaskParams};
 use crate::services::wallhaven;
-use crate::ui::download::{DownloadMessage, DownloadStatus};
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 use std::path::PathBuf;
-use std::time::Instant;
 
 impl App {
     /// 辅助方法：开始下载壁纸（支持并行限制和进度更新）
@@ -14,7 +11,6 @@ impl App {
         let file_name =
             wallhaven::generate_file_name(id, file_type.split('/').next_back().unwrap_or("jpg"));
         let data_path = self.config.data.data_path.clone();
-        let cache_path = self.config.data.cache_path.clone();
         let proxy = self.config.resolved_proxy();
         let file_type = file_type
             .split('/')
@@ -38,73 +34,12 @@ impl App {
         let task_id = self.download_state.next_id.saturating_sub(1);
 
         if self.download_state.can_start_download() {
-            // 可以开始下载 - 使用索引查找任务
-            let task_index = self.download_state.find_task_index(task_id);
-            if let Some(index) = task_index {
-                let task_full = self.download_state.get_task_by_index(index);
-                if let Some(task_full) = task_full {
-                    // 先保存所有需要的数据，再修改状态
-                    let url = task_full.task.url.clone();
-                    let save_path = PathBuf::from(&task_full.task.save_path);
-                    let proxy = task_full.proxy.clone();
-                    let task_id = task_full.task.id;
-                    // 开启新一轮下载：换发新的取消令牌并递增代数
-                    let (cancel_token, generation) = task_full.task.begin_new_round();
-                    let downloaded_size = task_full.task.downloaded_size;
-                    let total_size = task_full.task.total_size;
-                    let cache_path = cache_path.clone();
-
-                    // 更新状态
-                    task_full.task.status = DownloadStatus::Downloading;
-                    task_full.task.start_time = Some(Instant::now());
-
-                    // 克隆任务以避免借用冲突
-                    let task_full_clone = task_full.clone();
-                    // 保存状态到数据库
-                    let _ = self.download_state.save_to_database(&task_full_clone);
-
-                    self.download_state.increment_downloading();
-
-                    // 启动异步下载任务（带进度更新）
-                    return Task::perform(
-                        async_task::async_download_wallpaper_task_with_progress(
-                            DownloadTaskParams {
-                                url: url.to_string(),
-                                save_path,
-                                proxy,
-                                task_id,
-                                cancel_token,
-                                downloaded_size,
-                                total_size,
-                                cache_path,
-                                generation,
-                            },
-                        ),
-                        move |result| match result {
-                            Ok(size) => {
-                                // 完成事件由 service 层"下载完成"日志记录，此处仅调试细节
-                                tracing::debug!(
-                                    "[下载任务] [ID:{}] 下载成功, 文件大小: {} bytes",
-                                    task_id,
-                                    size
-                                );
-                                DownloadMessage::DownloadCompleted(task_id, size, None, generation)
-                                    .into()
-                            }
-                            Err(e) => {
-                                tracing::error!("[下载任务] [ID:{}] 下载失败: {}", task_id, e);
-                                DownloadMessage::DownloadCompleted(task_id, 0, Some(e), generation)
-                                    .into()
-                            }
-                        },
-                    );
-                }
-            }
+            return self.spawn_download(task_id, 0, Task::none());
         }
 
         // 显示通知
         self.show_notification(
-            "已添加到下载队列 (等待中)".to_string(),
+            self.i18n.t("notification.added-to-download-queue"),
             NotificationType::Success,
         )
     }

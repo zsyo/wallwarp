@@ -66,7 +66,7 @@ impl App {
 
         // 显示成功通知
         let mut task = self.show_notification(
-            "WallHeven API KEY 保存成功".to_string(),
+            self.i18n.t("notification.wallhaven-api-key-saved"),
             NotificationType::Success,
         );
         if purity_changed {

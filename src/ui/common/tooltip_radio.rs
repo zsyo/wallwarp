@@ -4,6 +4,17 @@ use crate::ui::style::ThemeColors;
 use iced::widget::{container, radio, text, tooltip};
 use iced::{Alignment, Color, Element, Length};
 
+/// 单选按钮透明背景样式（文字色由调用方指定，选中圈色随主题状态）
+pub fn radio_transparent_style(
+    text_color: Color,
+) -> impl Fn(&iced::Theme, radio::Status) -> radio::Style {
+    move |theme: &iced::Theme, status| radio::Style {
+        text_color: Some(text_color),
+        background: iced::Background::Color(Color::TRANSPARENT),
+        ..radio::default(theme, status)
+    }
+}
+
 /// 创建带提示的单选按钮
 ///
 /// # 参数
@@ -28,11 +39,7 @@ where
     let radio_button = radio(label, value, selected_value, on_selected)
         .size(16)
         .spacing(8)
-        .style(move |theme: &iced::Theme, status| radio::Style {
-            text_color: Some(theme_colors.text),
-            background: iced::Background::Color(Color::TRANSPARENT),
-            ..radio::default(theme, status)
-        });
+        .style(radio_transparent_style(theme_colors.text));
 
     let content = container(radio_button)
         .height(Length::Fixed(30.0))

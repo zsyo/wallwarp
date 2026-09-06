@@ -8,7 +8,9 @@ use crate::ui::AppMessage;
 use crate::ui::common;
 use crate::ui::history::HistoryMessage;
 use crate::ui::history::state::HistoryEntry;
-use crate::ui::style::{BUTTON_COLOR_BLUE, BUTTON_COLOR_RED, ThemeColors, ThemeConfig};
+use crate::ui::style::{
+    BUTTON_COLOR_BLUE, BUTTON_COLOR_RED, RADIUS_MD, RADIUS_SM, ThemeColors, ThemeConfig,
+};
 use crate::utils::helpers::format_file_size;
 use iced::border::Radius;
 use iced::widget::image::Handle;
@@ -194,7 +196,7 @@ pub fn create_history_row<'a>(
             border: iced::Border {
                 color: Color::TRANSPARENT,
                 width: 0.0,
-                radius: Radius::from(8.0),
+                radius: Radius::from(RADIUS_MD),
             },
             ..button::text(_theme, status)
         })
@@ -256,7 +258,7 @@ fn action_text_button<'a>(
             border: iced::Border {
                 color: Color::TRANSPARENT,
                 width: 0.0,
-                radius: Radius::from(4.0),
+                radius: Radius::from(RADIUS_SM),
             },
             ..button::text(_theme, status)
         }
