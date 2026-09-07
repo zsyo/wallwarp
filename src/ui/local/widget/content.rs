@@ -50,6 +50,7 @@ pub fn create_content<'a>(
                             i18n,
                             wallpaper,
                             wallpaper_index,
+                            &local_state.favorite_paths,
                             theme_config,
                         )
                     }

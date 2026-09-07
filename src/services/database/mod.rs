@@ -8,10 +8,14 @@
 
 pub mod connection;
 pub mod download_tasks;
+pub mod favorites;
 pub mod wallpaper_history;
 
 pub use connection::DatabaseConnection;
 pub use download_tasks::{DownloadTaskDB, DownloadTasksRepository};
+pub use favorites::{
+    FavoriteDB, FavoriteGroupDB, FavoritesRepository, KIND_LOCAL, KIND_ONLINE,
+};
 pub use wallpaper_history::{WallpaperHistoryDB, WallpaperHistoryRepository};
 
 use std::sync::OnceLock;
@@ -40,6 +44,7 @@ impl DatabaseManager {
         // 创建所有需要的表
         DownloadTasksRepository::create_tables(&connection)?;
         WallpaperHistoryRepository::create_tables(&connection)?;
+        FavoritesRepository::create_tables(&connection)?;
 
         GLOBAL_DATABASE.get_or_init(|| DatabaseManager { connection });
 

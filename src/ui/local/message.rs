@@ -36,6 +36,10 @@ pub enum LocalMessage {
     ViewInFolder(usize),
     /// 设置壁纸
     SetWallpaper(usize),
+    /// 切换收藏状态（收藏/取消收藏）
+    ToggleFavorite(usize),
+    /// 收藏状态切换完成（Ok 表示数据库已更新）
+    FavoriteToggled { key: String, result: Result<(), String> },
     /// 显示删除确认对话框
     ShowDeleteConfirm(usize),
     /// 关闭删除确认对话框
@@ -91,6 +95,10 @@ impl App {
                 self.local_file_deleted(index, result)
             }
             LocalMessage::SetWallpaper(index) => self.local_set_as_wallpaper(index),
+            LocalMessage::ToggleFavorite(index) => self.toggle_local_favorite(index),
+            LocalMessage::FavoriteToggled { key, result } => {
+                self.local_favorite_toggled(key, result)
+            }
         }
     }
 }

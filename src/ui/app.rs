@@ -50,6 +50,8 @@ pub struct App {
     pub wallpaper_history: Vec<String>,
     /// 壁纸历史页面状态
     pub history_state: crate::ui::history::HistoryState,
+    /// 收藏夹页面状态
+    pub favorites_state: crate::ui::favorites::FavoritesState,
     /// 全局热键管理器（None = 平台不支持或原生管理器创建失败）
     pub hotkey_manager: Option<crate::utils::hotkey_manager::HotkeyManager>,
     /// 图标资源
@@ -135,6 +137,7 @@ impl App {
             download_state: super::download::DownloadStateFull::new(),
             wallpaper_history,
             history_state: crate::ui::history::HistoryState::default(),
+            favorites_state: crate::ui::favorites::FavoritesState::default(),
             hotkey_manager: None,
             logo_handle: Handle::from_rgba(width, height, img),
         };
@@ -157,6 +160,9 @@ impl App {
 
         // 从数据库恢复壁纸历史（供托盘/悬浮球"上一张"跨会话使用）
         app.load_wallpaper_history_from_db();
+
+        // 从数据库加载收藏标记（在线页/本地页卡片心形按钮的实心/空心状态）
+        app.load_favorite_markers_from_db();
 
         // 初始化托盘与悬浮球菜单项的状态
         app.update_menu_items();
@@ -208,6 +214,35 @@ impl App {
                 self.wallpaper_history = paths;
             }
             Err(e) => warn!("[壁纸历史] [DB] 启动恢复失败: {}", e),
+        }
+    }
+
+    /// 从数据库加载收藏标记（在线页/本地页卡片心形按钮的实心/空心状态）
+    ///
+    /// 启动时调用一次，避免首次进入在线/本地页前未进收藏夹页导致全部显示空心；
+    /// 数据库不可用时静默跳过（收藏夹页进入时会重新刷新）
+    fn load_favorite_markers_from_db(&mut self) {
+        use crate::services::database::{DatabaseManager, FavoritesRepository};
+
+        let Some(db) = DatabaseManager::try_get() else {
+            tracing::warn!("[收藏夹] [DB] 数据库未初始化，跳过启动加载收藏标记");
+            return;
+        };
+        match FavoritesRepository::new(db.connection().clone()).load_all_favorites() {
+            Ok(favorites) => {
+                self.online_state.favorite_ids = favorites
+                    .iter()
+                    .filter(|f| f.kind == crate::services::database::KIND_ONLINE)
+                    .map(|f| f.wallhaven_id.clone())
+                    .collect();
+                self.local_state.favorite_paths = favorites
+                    .iter()
+                    .filter(|f| f.kind == crate::services::database::KIND_LOCAL)
+                    .filter_map(|f| f.wallhaven_id.strip_prefix("file:").map(|p| p.to_string()))
+                    .collect();
+                tracing::info!("[收藏夹] [DB] 启动加载 {} 条收藏标记", favorites.len());
+            }
+            Err(e) => tracing::warn!("[收藏夹] [DB] 启动加载收藏标记失败: {}", e),
         }
     }
 

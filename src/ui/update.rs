@@ -30,6 +30,7 @@ impl App {
             AppMessage::AutoChange(message) => self.handle_auto_change_message(message),
             AppMessage::Settings(message) => self.handle_settings_message(message),
             AppMessage::History(message) => self.handle_history_message(message),
+            AppMessage::Favorites(message) => self.handle_favorites_message(message),
         };
 
         match initial_task {

@@ -24,3 +24,6 @@ mod set_online_wallpaper;
 mod set_wallpaper_from_cache;
 mod thumb_loaded;
 mod thumb_load_failed;
+mod toggle_favorite;
+
+pub(in crate::ui) use resolve_online_file::OnlineFileHit;

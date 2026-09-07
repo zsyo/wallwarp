@@ -11,7 +11,7 @@ use crate::ui::App;
 use std::path::PathBuf;
 
 /// 在线壁纸文件的命中来源
-pub(in crate::ui::online) enum OnlineFileHit {
+pub(in crate::ui) enum OnlineFileHit {
     /// 文件已在壁纸库中(即 target_path 本身)
     InData,
     /// 文件在下载缓存中(已完成下载，附缓存文件路径)
@@ -19,7 +19,7 @@ pub(in crate::ui::online) enum OnlineFileHit {
 }
 
 /// 在线壁纸文件的落库位置
-pub(in crate::ui::online) struct OnlineFileLocation {
+pub(in crate::ui) struct OnlineFileLocation {
     /// data_path 中的目标路径
     pub target_path: PathBuf,
     /// 命中的来源(None = 库与缓存中都没有，需要走下载流程)
@@ -30,7 +30,7 @@ impl App {
     /// 解析在线壁纸文件的落库来源
     ///
     /// 判定标准统一为"存在且大小匹配"(file_size 来自 Wallhaven API)
-    pub(in crate::ui::online) fn resolve_online_file(
+    pub(in crate::ui) fn resolve_online_file(
         &self,
         url: &str,
         id: &str,
@@ -73,7 +73,7 @@ impl App {
     }
 
     /// 检查下载任务列表中是否已有相同 URL 的进行中任务
-    pub(in crate::ui::online) fn has_active_download_for(&self, url: &str) -> bool {
+    pub(in crate::ui) fn has_active_download_for(&self, url: &str) -> bool {
         self.download_state.tasks.iter().any(|task| {
             task.task.url == url
                 && task.task.status != crate::ui::download::DownloadStatus::Completed

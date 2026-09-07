@@ -36,10 +36,33 @@ pub fn create_modal<'a>(
         theme_colors.disabled_color,
         "\u{F30A}", // download
         BUTTON_COLOR_BLUE,
-        i18n.t("online-wallpapers.tooltip-save-to-library")
-            .to_string(),
+        i18n.t("online-wallpapers.tooltip-save-to-library").to_string(),
         has_image.then_some(OnlineMessage::DownloadFromCache(wallpaper_index).into()),
     );
+
+    // 收藏按钮：已收藏=实心红心，未收藏=空心红心
+    // （码点已对照 assets/icons.ttf 验证：heart-fill=f415, heart=f417）
+    let favorite_button = online_state.wallpapers_data.get(wallpaper_index).map(|wallpaper| {
+        let is_favorite = online_state.favorite_ids.contains(&wallpaper.id);
+        let (heart_icon, heart_color) = if is_favorite {
+            ("\u{F415}", crate::ui::style::BUTTON_COLOR_RED) // heart-fill
+        } else {
+            ("\u{F417}", crate::ui::style::BUTTON_COLOR_RED) // heart
+        };
+        preview_toolbar_button(
+            theme_config,
+            theme_colors.disabled_color,
+            heart_icon,
+            heart_color,
+            i18n.t(if is_favorite {
+                "favorites.tooltip-remove-favorite"
+            } else {
+                "favorites.tooltip-add-favorite"
+            })
+            .to_string(),
+            Some(OnlineMessage::ToggleFavorite(wallpaper_index).into()),
+        )
+    });
 
     let modal_content = common::create_preview_modal(
         i18n,
@@ -51,8 +74,7 @@ pub fn create_modal<'a>(
         common::PreviewModalMessages {
             previous: OnlineMessage::PreviousImage.into(),
             next: OnlineMessage::NextImage.into(),
-            set_wallpaper: has_image
-                .then_some(OnlineMessage::SetAsWallpaperFromCache(wallpaper_index).into()),
+            set_wallpaper: has_image.then_some(OnlineMessage::SetAsWallpaperFromCache(wallpaper_index).into()),
             view_in_folder: None, // 在线页无"打开所在文件夹"操作
             close: OnlineMessage::CloseModal.into(),
         },
@@ -67,7 +89,10 @@ pub fn create_modal<'a>(
         common::PreviewModalExtras {
             loading_layer: Some(loading_layer),
             info_layer,
-            toolbar_buttons: vec![download_button],
+            toolbar_buttons: favorite_button
+                .into_iter()
+                .chain(std::iter::once(download_button))
+                .collect(),
         },
     );
 

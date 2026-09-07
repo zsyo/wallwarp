@@ -47,6 +47,7 @@ pub fn create_wallpaper_grid<'a>(
                             i18n,
                             wallpaper,
                             wallpaper_index,
+                            &online_state.favorite_ids,
                             theme_config,
                         )
                     }

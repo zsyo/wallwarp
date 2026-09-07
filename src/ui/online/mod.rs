@@ -6,6 +6,7 @@ mod state;
 mod view;
 mod widget;
 
+pub(in crate::ui) use handler::OnlineFileHit;
 pub use message::OnlineMessage;
 pub use state::*;
 pub use view::online_view;

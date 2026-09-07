@@ -18,6 +18,8 @@ pub struct LocalState {
     pub delete_confirm_visible: bool,
     pub delete_target_index: Option<usize>,
     pub modal_image_handle: Option<Handle>,
+    /// 已收藏的本地文件规范化绝对路径集合（卡片心形按钮状态）
+    pub favorite_paths: std::collections::HashSet<String>,
 }
 
 impl Default for LocalState {
@@ -35,6 +37,7 @@ impl Default for LocalState {
             delete_confirm_visible: false,
             delete_target_index: None,
             modal_image_handle: None,
+            favorite_paths: std::collections::HashSet::new(),
         }
     }
 }

@@ -10,4 +10,5 @@ mod next_image;
 mod previous_image;
 mod scroll_to_bottom;
 mod set_wallpaper;
+mod toggle_favorite;
 mod view_file;

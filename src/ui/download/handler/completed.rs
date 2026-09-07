@@ -14,6 +14,8 @@ impl App {
     ) -> Task<AppMessage> {
         // 下载完成后需要自动设为壁纸的目标路径（状态收尾后再执行）
         let mut pending_wallpaper_path: Option<String> = None;
+        // 收藏夹页发起的"下载后自动设壁纸"是否命中（文件名匹配）
+        let mut favorite_pending_hit = false;
         // 当前完成事件是否负责释放并发槽位（仅当任务仍处于"下载中"时）
         let release_slot;
         let task_index = self.download_state.find_task_index(id);
@@ -88,6 +90,19 @@ impl App {
                             &task.task.save_path,
                         ));
                     }
+
+                    // 收藏夹页"下载后自动设壁纸"匹配（同一文件只会命中一处 pending）
+                    if pending_wallpaper_path.is_none()
+                        && let Some(pending_filename) =
+                            self.favorites_state.pending_apply_filename.as_ref()
+                        && pending_filename == file_name
+                    {
+                        self.favorites_state.pending_apply_filename = None;
+                        pending_wallpaper_path = Some(crate::utils::helpers::get_absolute_path(
+                            &task.task.save_path,
+                        ));
+                        favorite_pending_hit = true;
+                    }
                 }
 
                 // 保存状态到数据库（在状态修改完成后）
@@ -110,7 +125,12 @@ impl App {
 
         // 下载完成的文件被标记为自动设为壁纸：跳过自动启动下一个任务
         if let Some(full_path) = pending_wallpaper_path {
-            return self.apply_wallpaper(full_path);
+            let apply_task = self.apply_wallpaper(full_path);
+            if favorite_pending_hit {
+                // 收藏夹来源：顺带刷新收藏项的 in_library 标记（下次进入页面时重载）
+                self.favorites_state.loaded = false;
+            }
+            return apply_task;
         }
 
         // 检查是否有等待中的任务需要开始

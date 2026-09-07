@@ -1,9 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::main::MainMessage;
-use crate::ui::style::{
-    MENU_ICON_SIZE, MENU_ITEM_HEIGHT, RADIUS_MD, SIDEBAR_INDICATOR_WIDTH, ThemeConfig, tint,
-};
+use crate::ui::style::{MENU_ICON_SIZE, MENU_ITEM_HEIGHT, RADIUS_MD, SIDEBAR_INDICATOR_WIDTH, ThemeConfig, tint};
 use crate::ui::{ActivePage, AppMessage};
 use iced::border::{Border, Radius};
 use iced::widget::{Space, button, container, row, text};
@@ -11,13 +9,14 @@ use iced::{Alignment, Font, Length, Padding};
 
 /// 菜单项对应的 bootstrap 图标
 /// （码点已对照 assets/icons.ttf 验证：house-door=f423, folder=f3d7,
-///  download=f30a, gear=f3e5）
+///  download=f30a, gear=f3e5, heart=f417）
 fn page_icon(page: ActivePage) -> &'static str {
     match page {
         ActivePage::OnlineWallpapers => "\u{F423}", // bootstrap-icons: house-door
         ActivePage::LocalList => "\u{F3D7}",        // bootstrap-icons: folder
         ActivePage::DownloadProgress => "\u{F30A}", // bootstrap-icons: download
         ActivePage::WallpaperHistory => "\u{F292}", // bootstrap-icons: clock-history
+        ActivePage::Favorites => "\u{F417}",        // bootstrap-icons: heart
         ActivePage::Settings => "\u{F3E5}",         // bootstrap-icons: gear
     }
 }
@@ -87,9 +86,7 @@ pub fn create_menu_button<'a>(
         .style(move |_theme: &iced::Theme, status| {
             let bg_color = if is_selected {
                 match status {
-                    button::Status::Hovered | button::Status::Pressed => {
-                        tint(theme_colors.primary, 0.18)
-                    }
+                    button::Status::Hovered | button::Status::Pressed => tint(theme_colors.primary, 0.18),
                     _ => theme_colors.sidebar_button_selected,
                 }
             } else {

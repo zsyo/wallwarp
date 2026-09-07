@@ -89,6 +89,18 @@ impl App {
                     Task::done(MainMessage::ScrollToTop("history_scroll".to_string()).into()),
                 ])
             }
+            ActivePage::Favorites => {
+                // 会话内首次进入时从数据库加载收藏（下载完成后会置回 false 以刷新 in_library）
+                let load_task = if !self.favorites_state.loaded {
+                    Task::done(crate::ui::favorites::FavoritesMessage::Load.into())
+                } else {
+                    Task::none()
+                };
+                Task::batch(vec![
+                    load_task,
+                    Task::done(MainMessage::ScrollToTop("favorites_scroll".to_string()).into()),
+                ])
+            }
             _ => Task::none(),
         }
     }

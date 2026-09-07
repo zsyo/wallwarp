@@ -16,6 +16,7 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
     i18n: &'a I18n,
     wallpaper: &'a OnlineWallpaper,
     index: usize,
+    online_state_favorite_ids: &'a std::collections::HashSet<String>,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
@@ -39,9 +40,7 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
             .height(Length::Fixed(IMAGE_HEIGHT))
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)
-            .style(move |_theme| {
-                common::create_bordered_container_style_with_bg(theme_config)(_theme)
-            })
+            .style(move |_theme| common::create_bordered_container_style_with_bg(theme_config)(_theme))
             .into();
     };
 
@@ -73,11 +72,30 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
         theme_config,
     );
 
+    // 收藏按钮：已收藏=实心红心，未收藏=空心红心
+    // （码点已对照 assets/icons.ttf 验证：heart-fill=f415, heart=f417）
+    let is_favorite = online_state_favorite_ids.contains(&wallpaper.id);
+    let (heart_icon, heart_color) = if is_favorite {
+        ("\u{F415}", BUTTON_COLOR_RED) // heart-fill
+    } else {
+        ("\u{F417}", BUTTON_COLOR_RED) // heart
+    };
+    let favorite_button = common::create_button_with_tooltip(
+        common::create_icon_button(heart_icon, heart_color, OnlineMessage::ToggleFavorite(index).into()),
+        i18n.t(if is_favorite {
+            "favorites.tooltip-remove-favorite"
+        } else {
+            "favorites.tooltip-add-favorite"
+        }),
+        tooltip::Position::Top,
+        theme_config,
+    );
+
     wallpaper_card(
         styled_image.into(),
         helpers::format_file_size(wallpaper.file_size),
         Some(wallpaper.resolution.clone()),
-        vec![set_wallpaper_button, download_button],
+        vec![set_wallpaper_button, download_button, favorite_button],
         4.0,
         Some(OnlineMessage::ShowModal(index).into()),
         theme_colors,

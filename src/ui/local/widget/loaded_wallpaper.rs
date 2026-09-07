@@ -7,9 +7,7 @@ use crate::ui::common;
 use crate::ui::common::wallpaper_card;
 use crate::ui::local::LocalMessage;
 use crate::ui::style::ThemeConfig;
-use crate::ui::style::{
-    BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, IMAGE_HEIGHT, IMAGE_WIDTH,
-};
+use crate::ui::style::{BUTTON_COLOR_GREEN, BUTTON_COLOR_RED, BUTTON_COLOR_YELLOW, IMAGE_HEIGHT, IMAGE_WIDTH};
 use crate::utils::helpers;
 use iced::widget::image::Handle;
 use iced::widget::{container, tooltip};
@@ -20,6 +18,7 @@ pub fn create_loaded_wallpaper<'a>(
     i18n: &'a I18n,
     wallpaper: &'a Wallpaper,
     index: usize,
+    favorite_paths: &'a std::collections::HashSet<String>,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
@@ -73,14 +72,31 @@ pub fn create_loaded_wallpaper<'a>(
         theme_config,
     );
 
+    // 收藏按钮：已收藏=实心红心，未收藏=空心红心
+    // （码点已对照 assets/icons.ttf 验证：heart-fill=f415, heart=f417）
+    let normalized = helpers::normalize_path(&wallpaper.path);
+    let is_favorite = favorite_paths.contains(&normalized);
+    let (heart_icon, heart_color) = if is_favorite {
+        ("\u{F415}", BUTTON_COLOR_RED) // heart-fill
+    } else {
+        ("\u{F417}", BUTTON_COLOR_RED) // heart
+    };
+    let favorite_button = common::create_button_with_tooltip(
+        common::create_icon_button(heart_icon, heart_color, LocalMessage::ToggleFavorite(index).into()),
+        i18n.t(if is_favorite {
+            "favorites.tooltip-remove-favorite"
+        } else {
+            "favorites.tooltip-add-favorite"
+        }),
+        tooltip::Position::Top,
+        theme_config,
+    );
+
     wallpaper_card(
         styled_image.into(),
         helpers::format_file_size(wallpaper.file_size),
-        Some(helpers::format_resolution(
-            wallpaper.width,
-            wallpaper.height,
-        )),
-        vec![view_button, set_wallpaper_button, delete_button],
+        Some(helpers::format_resolution(wallpaper.width, wallpaper.height)),
+        vec![view_button, set_wallpaper_button, favorite_button, delete_button],
         2.0,
         Some(LocalMessage::ShowModal(index).into()),
         theme_colors,

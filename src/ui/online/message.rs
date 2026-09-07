@@ -41,6 +41,10 @@ pub enum OnlineMessage {
     SetAsWallpaperFromCache(usize),
     /// 设置为壁纸
     SetAsWallpaper(usize),
+    /// 切换收藏状态（收藏/取消收藏）
+    ToggleFavorite(usize),
+    /// 收藏状态切换完成（Ok 表示数据库已更新）
+    FavoriteToggled { id: String, result: Result<(), String> },
     /// 模态窗口图片加载完成
     ModalImageLoaded(iced::widget::image::Handle),
     /// 模态窗口图片下载完成
@@ -159,6 +163,10 @@ impl App {
             OnlineMessage::CopyImageLink(index) => self.copy_online_image_link(index),
             OnlineMessage::SetAsWallpaperFromCache(index) => self.set_wallpaper_from_cache(index),
             OnlineMessage::SetAsWallpaper(index) => self.set_online_wallpaper(index),
+            OnlineMessage::ToggleFavorite(index) => self.toggle_online_favorite(index),
+            OnlineMessage::FavoriteToggled { id, result } => {
+                self.online_favorite_toggled(id, result)
+            }
             OnlineMessage::CategoryToggled(category) => {
                 self.online_filter_category_toggled(category)
             }

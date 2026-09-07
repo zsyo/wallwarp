@@ -14,6 +14,7 @@ pub enum AppMessage {
     Settings(crate::ui::settings::SettingsMessage),
     AutoChange(crate::ui::auto_change::AutoChangeMessage),
     History(crate::ui::history::HistoryMessage),
+    Favorites(crate::ui::favorites::FavoritesMessage),
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +30,7 @@ pub enum ActivePage {
     LocalList,
     DownloadProgress,
     WallpaperHistory,
+    Favorites,
     Settings,
 }
 

@@ -3,7 +3,7 @@
 use crate::ui::main::{MainMessage, widget};
 use crate::ui::style::{APP_NAME_SIZE, LOGO_DISPLAY_SIZE, LOGO_SPACING, SIDEBAR_WIDTH};
 use crate::ui::{ActivePage, App, AppMessage};
-use crate::ui::{download, history, local, online, settings};
+use crate::ui::{download, favorites, history, local, online, settings};
 use iced::widget::{Space, column, container, image, row, text};
 use iced::{Alignment, Element, Length};
 
@@ -35,6 +35,12 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
         ActivePage::WallpaperHistory => history::history_view(
             &app.i18n,
             &app.history_state,
+            &app.theme_config,
+            functional_area_width as u32,
+        ),
+        ActivePage::Favorites => favorites::favorites_view(
+            &app.i18n,
+            &app.favorites_state,
             &app.theme_config,
             functional_area_width as u32,
         ),
@@ -89,6 +95,12 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
                 app.i18n.t("history.title"),
                 app.active_page,
                 ActivePage::WallpaperHistory,
+                &app.theme_config
+            ),
+            widget::create_menu_button(
+                app.i18n.t("favorites.title"),
+                app.active_page,
+                ActivePage::Favorites,
                 &app.theme_config
             ),
             widget::create_menu_button(
