@@ -61,7 +61,7 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::online) fn close_online_modal(&mut self) -> Task<AppMessage> {
+    pub fn close_online_modal(&mut self) -> Task<AppMessage> {
         // 关闭模态窗口
         self.online_state.modal_visible = false;
 

@@ -102,6 +102,12 @@ pub enum SettingsMessage {
     TimeRangePickerExpanded,
     /// 关闭时间范围选择器
     TimeRangePickerDismiss,
+    /// 开始录制全局热键
+    HotkeyRecordStarted(crate::utils::hotkey_manager::HotkeyAction),
+    /// 取消热键录制（Esc 或点击其他位置）
+    HotkeyRecordCancelled,
+    /// 清除全局热键
+    HotkeyCleared(crate::utils::hotkey_manager::HotkeyAction),
 }
 
 impl From<SettingsMessage> for AppMessage {
@@ -204,6 +210,11 @@ impl App {
             SettingsMessage::SortingPickerDismiss => self.settings_sorting_picker_dismiss(),
             SettingsMessage::TimeRangePickerExpanded => self.settings_time_range_picker_expanded(),
             SettingsMessage::TimeRangePickerDismiss => self.settings_time_range_picker_dismiss(),
+            SettingsMessage::HotkeyRecordStarted(action) => {
+                self.settings_hotkey_record_started(action)
+            }
+            SettingsMessage::HotkeyRecordCancelled => self.settings_hotkey_record_cancelled(),
+            SettingsMessage::HotkeyCleared(action) => self.settings_hotkey_cleared(action),
         }
     }
 }

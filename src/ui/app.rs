@@ -50,6 +50,8 @@ pub struct App {
     pub wallpaper_history: Vec<String>,
     /// 壁纸历史页面状态
     pub history_state: crate::ui::history::HistoryState,
+    /// 全局热键管理器（None = 平台不支持或原生管理器创建失败）
+    pub hotkey_manager: Option<crate::utils::hotkey_manager::HotkeyManager>,
     /// 图标资源
     pub logo_handle: Handle,
 }
@@ -133,11 +135,25 @@ impl App {
             download_state: super::download::DownloadStateFull::new(),
             wallpaper_history,
             history_state: crate::ui::history::HistoryState::default(),
+            hotkey_manager: None,
             logo_handle: Handle::from_rgba(width, height, img),
         };
 
         // 初始化下载任务数据库
         app.init_download_database();
+
+        // 初始化全局热键（平台支持时创建管理器并注册配置的热键）
+        if crate::platform::supports_global_hotkeys() {
+            match crate::utils::hotkey_manager::HotkeyManager::new() {
+                Ok(manager) => app.hotkey_manager = Some(manager),
+                Err(e) => {
+                    tracing::warn!("[全局热键] [管理器] 原生管理器创建失败，全局热键停用: {}", e)
+                }
+            }
+            app.init_hotkeys_from_config();
+        } else {
+            tracing::info!("[全局热键] 当前桌面环境不支持，全局热键停用");
+        }
 
         // 从数据库恢复壁纸历史（供托盘/悬浮球"上一张"跨会话使用）
         app.load_wallpaper_history_from_db();

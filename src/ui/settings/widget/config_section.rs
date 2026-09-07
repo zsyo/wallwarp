@@ -10,7 +10,7 @@ use iced::{Alignment, Element, Font, Length};
 
 /// 创建配置区块
 ///
-/// 头部为左对齐的图标 + 标题，内容为设置行列表。
+/// 头部为水平居中的图标 + 标题，内容为设置行列表。
 ///
 /// # 参数
 /// - `icon`: 区块图标（bootstrap 图标字符，码点须已验证）
@@ -25,17 +25,21 @@ pub(super) fn create_config_section<'a, Message: 'a>(
 ) -> Element<'a, Message> {
     let theme_colors = theme_config.get_theme_colors();
 
-    let header = row![
-        text(icon)
-            .font(Font::with_name("bootstrap-icons"))
-            .size(SECTION_ICON_SIZE)
-            .color(theme_colors.primary),
-        text(title)
-            .size(SECTION_TITLE_SIZE)
-            .color(theme_colors.text),
-    ]
-    .spacing(8)
-    .align_y(Alignment::Center);
+    let header = container(
+        row![
+            text(icon)
+                .font(Font::with_name("bootstrap-icons"))
+                .size(SECTION_ICON_SIZE)
+                .color(theme_colors.primary),
+            text(title)
+                .size(SECTION_TITLE_SIZE)
+                .color(theme_colors.text),
+        ]
+        .spacing(8)
+        .align_y(Alignment::Center),
+    )
+    .width(Length::Fill)
+    .align_x(Alignment::Center);
 
     let mut rows_column = column![].spacing(ROW_SPACING);
     for row in rows {

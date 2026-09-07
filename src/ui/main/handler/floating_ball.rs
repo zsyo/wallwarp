@@ -192,8 +192,16 @@ impl App {
             if self.main_state.is_maximized {
                 return Task::none();
             }
-            self.config.display.x = pos.x as i32;
-            self.config.display.y = pos.y as i32;
+            // 最小化到托盘时 Windows 会把窗口移到屏幕外（x、y 同时大幅变负），
+            // 此时的坐标不代表用户放置的位置，不同步到配置
+            if pos.x < 0.0 && pos.y < 0.0 {
+                return Task::none();
+            }
+            // 标题栏可及性下限：x 左移出屏时，屏内须保留 120px（三个控制按钮 +
+            // 可按住拖动的空白区域）；y 不允许为负，防止标题栏移出屏幕顶部
+            let min_x = -(self.config.display.width.saturating_sub(120) as f32);
+            self.config.display.x = (pos.x as i32).max(min_x as i32);
+            self.config.display.y = (pos.y as i32).max(0);
             return self.request_config_save();
         }
 

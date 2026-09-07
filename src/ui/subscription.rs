@@ -63,8 +63,21 @@ impl App {
                 Subscription::none()
             };
 
+        // 热键录制激活时：追加全量键盘事件订阅（基础订阅过滤了无修饰键的字符键，
+        // 录制需要捕获任意主键，如单独按 A）
+        let hotkey_recording = if self.settings_state.hotkey_recording.is_some() {
+            event::listen_with(|event, _status, window_id| match event {
+                Event::Keyboard(iced::keyboard::Event::KeyPressed {
+                    key, modifiers, ..
+                }) => Some(MainMessage::KeyEvent(window_id, key, modifiers).into()),
+                _ => None,
+            })
+        } else {
+            Subscription::none()
+        };
+
         Subscription::batch(vec![
-            // 窗口事件监听（携带窗口Id，由处理器按主窗口/悬浮球过滤）
+            // 窗口与键盘事件监听（携带窗口Id，由处理器按主窗口/悬浮球过滤）
             event::listen_with(|event, _status, window_id| match event {
                 Event::Window(window::Event::Resized(size)) => Some(
                     MainMessage::WindowResized(window_id, size.width as u32, size.height as u32)
@@ -78,6 +91,36 @@ impl App {
                 }
                 Event::Window(window::Event::Moved(pos)) => {
                     Some(MainMessage::WindowMoved(window_id, pos).into())
+                }
+                // 键盘事件过滤：仅转发功能键（Esc/方向键/F1-F12）与组合键，
+                // 纯字符按键（打字场景）不转发，避免文本输入产生额外消息
+                Event::Keyboard(iced::keyboard::Event::KeyPressed {
+                    key, modifiers, ..
+                }) => {
+                    let forwarded = match &key {
+                        iced::keyboard::Key::Named(name) => {
+                            matches!(
+                                name,
+                                iced::keyboard::key::Named::Escape
+                                    | iced::keyboard::key::Named::ArrowLeft
+                                    | iced::keyboard::key::Named::ArrowRight
+                                    | iced::keyboard::key::Named::F1
+                                    | iced::keyboard::key::Named::F2
+                                    | iced::keyboard::key::Named::F3
+                                    | iced::keyboard::key::Named::F4
+                                    | iced::keyboard::key::Named::F5
+                                    | iced::keyboard::key::Named::F6
+                                    | iced::keyboard::key::Named::F7
+                                    | iced::keyboard::key::Named::F8
+                                    | iced::keyboard::key::Named::F9
+                                    | iced::keyboard::key::Named::F10
+                                    | iced::keyboard::key::Named::F11
+                                    | iced::keyboard::key::Named::F12
+                            )
+                        }
+                        _ => false,
+                    } || !modifiers.is_empty();
+                    forwarded.then_some(MainMessage::KeyEvent(window_id, key, modifiers).into())
                 }
                 _ => None,
             }),
@@ -105,13 +148,34 @@ impl App {
                     });
 
                     // 托盘图标事件（双击显示主窗口）
+                    let tray_tx = tx.clone();
                     std::thread::spawn(move || {
                         let receiver = TrayIconEvent::receiver();
                         while let Ok(event) = receiver.recv() {
                             if let TrayIconEvent::DoubleClick { .. } = event
-                                && tx.send(MainMessage::TrayIconClicked.into()).is_err()
+                                && tray_tx.send(MainMessage::TrayIconClicked.into()).is_err()
                             {
                                 break;
+                            }
+                        }
+                    });
+
+                    // 全局热键事件（按下与释放都会上报，仅转发按下）
+                    std::thread::spawn(move || {
+                        use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
+
+                        let receiver = GlobalHotKeyEvent::receiver();
+                        while let Ok(event) = receiver.recv() {
+                            if event.state == HotKeyState::Pressed {
+                                let hotkey_event = crate::utils::hotkey_manager::HotkeyEvent {
+                                    id: event.id,
+                                    state: event.state,
+                                };
+                                if tx.send(MainMessage::HotkeyTriggered(hotkey_event).into())
+                                    .is_err()
+                                {
+                                    break;
+                                }
                             }
                         }
                     });
@@ -125,6 +189,8 @@ impl App {
             auto_change_background,
             // 添加自动检测颜色模式定时器
             auto_detect_color_mode,
+            // 热键录制中的全量键盘监听
+            hotkey_recording,
             // 添加下载进度监听 - 使用run_with
             Subscription::run_with(DownloadProgressSubscription, |_state| {
                 // 初始化下载进度channel

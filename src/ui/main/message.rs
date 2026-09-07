@@ -71,6 +71,10 @@ pub enum MainMessage {
     HideNotificationWithVersion(u64),
     /// 托盘切换上一张壁纸事件
     TraySwitchPreviousWallpaper,
+    /// 键盘按键事件（窗口Id, 按键, 修饰键状态；仅转发功能键/组合键）
+    KeyEvent(iced::window::Id, iced::keyboard::Key, iced::keyboard::Modifiers),
+    /// 全局热键触发（热键 id 与按键状态）
+    HotkeyTriggered(crate::utils::hotkey_manager::HotkeyEvent),
     /// 托盘切换下一张壁纸事件
     TraySwitchNextWallpaper,
     /// 托盘保存当前壁纸到库事件
@@ -141,6 +145,10 @@ impl App {
                 self.hide_notification_with_version(version)
             }
             MainMessage::TraySwitchPreviousWallpaper => self.tray_switch_previous_wallpaper(),
+            MainMessage::KeyEvent(window_id, key, modifiers) => {
+                self.key_event(window_id, key, modifiers)
+            }
+            MainMessage::HotkeyTriggered(event) => self.hotkey_triggered(event),
             MainMessage::TraySwitchNextWallpaper => self.tray_switch_next_wallpaper(),
             MainMessage::TraySaveCurrentWallpaper => self.tray_save_current_wallpaper(),
             MainMessage::AddToWallpaperHistory(path) => self.add_to_wallpaper_history(path),

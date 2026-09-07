@@ -39,8 +39,6 @@ pub struct WallpaperData {
     pub favorites: u32,
     #[serde(default)]
     pub colors: Vec<String>,
-    #[serde(default)]
-    pub tags: Option<Vec<WallhavenTag>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,11 +46,6 @@ pub struct WallhavenThumbs {
     pub large: String,
     pub original: String,
     pub small: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct WallhavenTag {
-    pub name: String,
 }
 
 /// 在线壁纸数据结构（UI层使用）
@@ -75,7 +68,6 @@ pub struct OnlineWallpaper {
     pub views: u32,
     pub favorites: u32,
     pub colors: Vec<String>,
-    pub tags: Vec<String>,
     /// 缓存的缩略图 Handle，避免每次渲染都重新创建
     pub image_handle: Option<iced::widget::image::Handle>,
 }
@@ -100,12 +92,6 @@ impl From<WallpaperData> for OnlineWallpaper {
             views: data.views,
             favorites: data.favorites,
             colors: data.colors,
-            tags: data
-                .tags
-                .unwrap_or_default()
-                .into_iter()
-                .map(|t| t.name)
-                .collect(),
             image_handle: None, // Handle 将在后续加载时设置
         }
     }

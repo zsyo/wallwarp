@@ -48,6 +48,7 @@ impl SettingsState {
             auto_change_time_range,
             sorting_picker_expanded: false,
             time_range_picker_expanded: false,
+            hotkey_recording: None,
             show_path_clear_confirmation: false,
             path_to_clear: String::new(),
         };

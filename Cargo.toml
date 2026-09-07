@@ -49,6 +49,10 @@ interprocess = { version = "2.4", features = ["tokio"] }
 # 托盘图标与原生菜单（三平台；Linux 需系统库 libayatana-appindicator3 / gtk3）
 tray-icon = "0.24"
 
+# 全局热键（三平台；Linux 仅 X11，Wayland 由 supports_global_hotkeys 运行时探测禁用；
+# x11rb 0.13 / keyboard-types 0.7 与依赖树既有版本一致，不会引入重复副本）
+global-hotkey = "0.8"
+
 # 剪贴板（三平台原生实现，替代 cmd/clip 与 xclip 命令行方案）
 arboard = "3"
 

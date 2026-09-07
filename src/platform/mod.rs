@@ -59,6 +59,11 @@ pub fn supports_floating_ball() -> bool {
     imp::supports_floating_ball()
 }
 
+/// 当前平台是否支持全局热键（Windows/macOS 恒支持；Linux 仅 X11）
+pub fn supports_global_hotkeys() -> bool {
+    !is_wayland()
+}
+
 /// 当前 Linux 会话是否为 Wayland（非 Linux 平台恒为 false）
 ///
 /// Wayland 协议限制：客户端无法自行取消最小化/恢复隐藏窗口

@@ -41,6 +41,9 @@ pub struct SettingsState {
     pub sorting_picker_expanded: bool,
     pub time_range_picker_expanded: bool,
 
+    // 热键录制状态（Some = 正在录制该动作的快捷键）
+    pub hotkey_recording: Option<crate::utils::hotkey_manager::HotkeyAction>,
+
     // 对话框状态
     pub show_path_clear_confirmation: bool,
     pub path_to_clear: String,
@@ -70,6 +73,7 @@ impl Default for SettingsState {
             auto_change_time_range: TimeRange::Month,
             sorting_picker_expanded: false,
             time_range_picker_expanded: false,
+            hotkey_recording: None,
             show_path_clear_confirmation: false,
             path_to_clear: String::new(),
         }

@@ -51,6 +51,18 @@ pub struct GlobalConfig {
     /// 悬浮球位置 y（逻辑坐标，i32::MIN 表示未设置，使用默认位置）
     #[serde(default = "default_floating_ball_pos")]
     pub floating_ball_y: i32,
+    /// 全局热键"切换下一张壁纸"（HotKey 字符串，空 = 未设置）
+    #[serde(default)]
+    pub hotkey_switch_next: String,
+    /// 全局热键"切换上一张壁纸"（HotKey 字符串，空 = 未设置）
+    #[serde(default)]
+    pub hotkey_switch_previous: String,
+    /// 全局热键"显示窗口"（HotKey 字符串，空 = 未设置）
+    #[serde(default)]
+    pub hotkey_show_window: String,
+    /// 全局热键"保存当前壁纸到库"（HotKey 字符串，空 = 未设置）
+    #[serde(default)]
+    pub hotkey_save_current: String,
 }
 
 impl Default for GlobalConfig {
@@ -66,6 +78,10 @@ impl Default for GlobalConfig {
             show_floating_ball: false,
             floating_ball_x: i32::MIN,
             floating_ball_y: i32::MIN,
+            hotkey_switch_next: String::new(),
+            hotkey_switch_previous: String::new(),
+            hotkey_show_window: String::new(),
+            hotkey_save_current: String::new(),
         }
     }
 }
@@ -567,6 +583,15 @@ impl Config {
         if self.display.width < MIN_WINDOW_WIDTH || self.display.height < MIN_WINDOW_HEIGHT {
             self.display.width = MIN_WINDOW_WIDTH;
             self.display.height = MIN_WINDOW_HEIGHT;
+            modified = true;
+        }
+        // x、y 同时为负是"最小化到托盘"被误持久化的坐标（Windows 移到屏幕外），
+        // 按此坐标启动窗口会完全不可见且无法唤出，还原为未设置（居中打开）。
+        // 正常位置记忆中 x 允许小幅为负（标题栏保留 120px 在屏内）、y 恒 >= 0，
+        // 不会落入本分支
+        if self.display.x < 0 && self.display.y < 0 {
+            self.display.x = i32::MIN;
+            self.display.y = i32::MIN;
             modified = true;
         }
         // 旧版本用"周期 = off"表达停用；迁移到独立开关字段后，
