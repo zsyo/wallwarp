@@ -1,9 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-//! 收藏夹数据加载（收藏项 + 分组）
+//! 收藏夹数据加载（收藏项）
 
 use crate::services::database::{DatabaseManager, FavoritesRepository};
-use crate::ui::favorites::message::GroupFilter;
 use crate::ui::favorites::state::FavoriteEntry;
 use crate::ui::favorites::FavoritesMessage;
 use crate::ui::{App, AppMessage};
@@ -13,48 +12,38 @@ use std::path::Path;
 use tracing::{info, warn};
 
 /// 数据库加载（阻塞线程中执行）
-async fn load_favorites_from_db() -> Result<
-    (
-        Vec<crate::services::database::FavoriteDB>,
-        Vec<crate::services::database::FavoriteGroupDB>,
-    ),
-    String,
-> {
+async fn load_favorites_from_db()
+-> Result<Vec<crate::services::database::FavoriteDB>, String> {
     tokio::task::spawn_blocking(move || -> Result<_, String> {
         let Some(db) = DatabaseManager::try_get() else {
             return Err("数据库未初始化".to_string());
         };
         let repo = FavoritesRepository::new(db.connection().clone());
-        let favorites = repo.load_all_favorites()?;
-        let groups = repo.load_groups()?;
-        Ok((favorites, groups))
+        repo.load_all_favorites()
     })
     .await
     .map_err(|e| e.to_string())?
 }
 
 impl App {
-    /// 加载收藏项与分组，并启动缩略图加载
+    /// 加载收藏项，并启动缩略图加载
     pub(in crate::ui::favorites) fn load_favorites(&mut self) -> Task<AppMessage> {
         self.favorites_state.loaded = true;
 
         Task::perform(load_favorites_from_db(), |result| match result {
-            Ok((favorites, groups)) => {
-                FavoritesMessage::Loaded(
-                    favorites
-                        .into_iter()
-                        .map(|fav| FavoriteEntry {
-                            fav,
-                            in_library: false,
-                        })
-                        .collect(),
-                    groups,
-                )
-                .into()
-            }
+            Ok(favorites) => FavoritesMessage::Loaded(
+                favorites
+                    .into_iter()
+                    .map(|fav| FavoriteEntry {
+                        fav,
+                        in_library: false,
+                    })
+                    .collect(),
+            )
+            .into(),
             Err(e) => {
                 warn!("[收藏夹] [DB] 加载失败: {}", e);
-                FavoritesMessage::Loaded(Vec::new(), Vec::new()).into()
+                FavoritesMessage::Loaded(Vec::new()).into()
             }
         })
     }
@@ -63,9 +52,8 @@ impl App {
     pub(in crate::ui::favorites) fn favorites_loaded(
         &mut self,
         entries: Vec<FavoriteEntry>,
-        groups: Vec<crate::services::database::FavoriteGroupDB>,
     ) -> Task<AppMessage> {
-        info!("[收藏夹] [DB] 收藏 {} 项, {} 个分组", entries.len(), groups.len());
+        info!("[收藏夹] [DB] 收藏 {} 项", entries.len());
 
         let absolute_data_dir =
             crate::utils::helpers::get_absolute_path(&self.config.data.data_path);
@@ -93,7 +81,6 @@ impl App {
             }
         }
 
-        self.favorites_state.groups = groups;
         self.favorites_state.all_entries = entries;
         self.favorites_state.apply_filter();
 
@@ -116,55 +103,69 @@ impl App {
                 continue;
             }
 
-            let task = match entry.fav.kind.as_str() {
-                crate::services::database::KIND_LOCAL => {
-                    // 本地项：复用历史页的本地缩略图生成
-                    let path = crate::utils::helpers::get_absolute_path(&entry.fav.path);
-                    let cache_path = cache_path.clone();
-                    Task::perform(
-                        crate::services::async_task::async_load_single_wallpaper_with_fallback(
-                            path,
-                            cache_path,
-                        ),
-                        move |result| {
-                            let handle = result.ok().and_then(|w| {
-                                w.image_handle
-                                    .clone()
-                                    .or_else(|| Some(iced::widget::image::Handle::from_path(
-                                        &w.thumbnail_path,
-                                    )))
-                            });
-                            FavoritesMessage::ThumbLoaded { index, handle }.into()
-                        },
-                    )
-                }
-                _ => {
-                    // 在线项：复用在线页的缩略图缓存加载
-                    let url = entry.fav.thumb_url.clone();
-                    let file_size = entry.fav.file_size.max(0) as u64;
-                    let proxy = proxy.clone();
-                    let cache_path = cache_path.clone();
-                    Task::perform(
-                        crate::services::async_task::async_load_online_wallpaper_thumb_with_cache(
-                            url,
-                            file_size,
-                            cache_path,
-                            proxy,
-                        ),
-                        move |result| {
-                            FavoritesMessage::ThumbLoaded {
-                                index,
-                                handle: result.ok(),
-                            }
-                            .into()
-                        },
-                    )
-                }
-            };
-            tasks.push(task);
+            tasks.push(Self::favorite_thumb_task(
+                index,
+                entry,
+                &proxy,
+                &cache_path,
+            ));
         }
 
         Task::batch(tasks)
+    }
+
+    /// 构造单条收藏项的缩略图加载任务（本地项生成缩略图 / 在线项缓存加载）
+    pub(in crate::ui::favorites) fn favorite_thumb_task(
+        index: usize,
+        entry: &FavoriteEntry,
+        proxy: &Option<String>,
+        cache_path: &str,
+    ) -> Task<AppMessage> {
+        match entry.fav.kind.as_str() {
+            crate::services::database::KIND_LOCAL => {
+                // 本地项：复用历史页的本地缩略图生成
+                let path = crate::utils::helpers::get_absolute_path(&entry.fav.path);
+                let cache_path = cache_path.to_string();
+                Task::perform(
+                    crate::services::async_task::async_load_single_wallpaper_with_fallback(
+                        path,
+                        cache_path,
+                    ),
+                    move |result| {
+                        let handle = result.ok().and_then(|w| {
+                            w.image_handle
+                                .clone()
+                                .or_else(|| Some(iced::widget::image::Handle::from_path(
+                                    &w.thumbnail_path,
+                                )))
+                        });
+                        FavoritesMessage::ThumbLoaded { index, handle }.into()
+                    },
+                )
+            }
+            _ => {
+                // 在线项：复用在线页的缩略图缓存加载
+                let url = entry.fav.thumb_url.clone();
+                let file_size = entry.fav.file_size.max(0) as u64;
+                let proxy = proxy.clone();
+                let cache_path = cache_path.to_string();
+                Task::perform(
+                    crate::services::async_task::async_load_online_wallpaper_thumb_with_cache(
+                        url,
+                        file_size,
+                        cache_path,
+                        proxy,
+                    ),
+                    move |result| {
+                        FavoritesMessage::ThumbLoaded {
+                            index,
+                            handle: result.ok(),
+                        }
+                        .into()
+                    },
+                )
+            }
+        }
     }
 
     /// 缩略图加载完成
@@ -207,14 +208,6 @@ impl App {
             .iter()
             .filter_map(|id| id.strip_prefix("file:").map(|p| p.to_string()))
             .collect();
-    }
-
-    /// 当前分组筛选对应的分组 id（删除分组确认框用；All/Ungrouped 时为 None）
-    pub(in crate::ui::favorites) fn current_filter_group(&self) -> Option<i64> {
-        match self.favorites_state.group_filter {
-            GroupFilter::Group(id) => Some(id),
-            _ => None,
-        }
     }
 
     /// 规范化本地收藏项的路径（兼容历史数据）

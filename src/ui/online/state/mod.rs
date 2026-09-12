@@ -128,6 +128,8 @@ pub struct OnlineState {
     pub modal_total_bytes: u64,
     /// 缩略图加载任务的取消令牌列表
     pub thumb_load_cancel_tokens: Vec<Arc<AtomicBool>>,
+    /// 缩略图缓存已失效（缓存目录被清空或路径变更），进页时强制重载缩略图
+    pub thumbs_stale: bool,
     /// 已收藏的 wallhaven id 集合（卡片心形按钮实心/空心状态）
     pub favorite_ids: std::collections::HashSet<String>,
 }
@@ -175,6 +177,7 @@ impl Default for OnlineState {
             modal_downloaded_bytes: 0,
             modal_total_bytes: 0,
             thumb_load_cancel_tokens: Vec::new(),
+            thumbs_stale: false,
             favorite_ids: std::collections::HashSet::new(),
         }
     }

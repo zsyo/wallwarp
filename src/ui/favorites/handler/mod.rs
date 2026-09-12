@@ -2,8 +2,8 @@
 
 //! 收藏夹页面消息处理
 
-mod actions;
 mod apply;
+mod check_thumbs;
 mod load;
 mod preview;
 mod remove;

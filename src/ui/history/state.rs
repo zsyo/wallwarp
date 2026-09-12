@@ -19,6 +19,8 @@ pub struct HistoryEntry {
 pub struct HistoryState {
     /// 是否已在本会话加载过（壁纸变化后会被置回 false 以便重载）
     pub loaded: bool,
+    /// 缩略图缓存已失效（缓存目录被清空或路径变更），进页时强制重载缩略图
+    pub thumbs_stale: bool,
     /// 历史条目（新→旧排序，已过滤磁盘上不存在的文件）
     pub entries: Vec<HistoryEntry>,
     /// 缩略图句柄（与 entries 索引对应；None = 加载中）

@@ -225,7 +225,13 @@ impl App {
                 async_stream::stream! {
                     if let Some(mut rx) = rx {
                         while let Ok((downloaded, total)) = rx.recv().await {
+                            // 广播通道无页面归属，分发给所有接进度环的页面，
+                            // 由各页按自身在途下载状态过滤
                             yield crate::ui::online::OnlineMessage::ModalImageProgress(
+                                downloaded, total,
+                            )
+                            .into();
+                            yield crate::ui::favorites::FavoritesMessage::ModalImageProgress(
                                 downloaded, total,
                             )
                             .into();

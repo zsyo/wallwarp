@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+mod check_thumbs;
 mod confirm_delete;
 mod delete_confirm;
 mod load_next_page;

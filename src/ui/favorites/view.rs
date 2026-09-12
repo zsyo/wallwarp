@@ -9,8 +9,8 @@ use crate::ui::favorites::widget;
 use crate::ui::favorites::{FavoritesMessage, FavoritesState};
 use crate::ui::style::{EMPTY_STATE_TEXT_SIZE, IMAGE_SPACING, ThemeConfig};
 use crate::ui::common::grid_items_per_row;
-use iced::widget::{Id, column, container, row, scrollable, text};
-use iced::{Alignment, Element, Length};
+use iced::widget::{Id, Space, column, container, row, scrollable, text};
+use iced::{Element, Length};
 
 /// 收藏夹页视图
 pub fn favorites_view<'a>(
@@ -21,9 +21,9 @@ pub fn favorites_view<'a>(
 ) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
 
-    let mut content = column![].spacing(8).width(Length::Fill);
+    let mut content = column![].spacing(IMAGE_SPACING).width(Length::Fill);
 
-    // 顶部工具条（统计 + 分组筛选 + 新建/删除分组 + 刷新）
+    // 顶部工具条（统计 + 类型/时间筛选 + 排序 + 刷新）
     content = content.push(widget::create_favorites_toolbar(
         i18n,
         favorites_state,
@@ -49,7 +49,7 @@ pub fn favorites_view<'a>(
             .chunks(items_per_row)
             .enumerate()
         {
-            let mut grid_row = row![].spacing(8);
+            let mut grid_row = row![].spacing(IMAGE_SPACING);
             for (col_index, entry) in chunk.iter().enumerate() {
                 let index = row_index * items_per_row + col_index;
                 grid_row = grid_row.push(widget::create_favorite_card(
@@ -63,13 +63,35 @@ pub fn favorites_view<'a>(
                     theme_config,
                 ));
             }
-            content = content.push(container(grid_row));
+            // 行居中：与本地页一致，避免不满行时右侧留大片空白
+            content = content.push(
+                container(grid_row)
+                    .width(Length::Fill)
+                    .center_x(Length::Fill),
+            );
+        }
+
+        // 还有未加载批次：网格底部提示（滚动到底部自动追加）
+        if favorites_state.has_more() {
+            content = content.push(
+                container(
+                    text(i18n.t("favorites.loading-more"))
+                        .size(13)
+                        .color(theme_colors.light_text_sub),
+                )
+                .width(Length::Fill)
+                .center_x(Length::Fill)
+                .padding(8),
+            );
         }
     }
 
     let base_layer = container(
+        // 水平不留 padding（与本地页一致）：外层 padding 会挤占网格宽度，
+        // 导致每行少放一张卡片；垂直留白用上下 Space 表达
         scrollable(
             column![
+                Space::new().height(IMAGE_SPACING),
                 content,
                 container(iced::widget::Space::new()).height(IMAGE_SPACING)
             ]
@@ -77,11 +99,25 @@ pub fn favorites_view<'a>(
         )
         .id(Id::new("favorites_scroll"))
         .width(Length::Fill)
-        .height(Length::Fill),
+        .height(Length::Fill)
+        .on_scroll(|viewport| {
+            // 滚动到 95% 以上触发追加下一批（与在线页分页阈值一致）
+            let content_height = viewport.content_bounds().height;
+            let view_height = viewport.bounds().height;
+            let scrollable_height = content_height - view_height;
+            let near_bottom = scrollable_height > 0.0 && {
+                let scroll_percentage = viewport.absolute_offset().y / scrollable_height;
+                scroll_percentage >= 0.95
+            } || (scrollable_height <= 0.0 && viewport.relative_offset().y > 0.0);
+            if near_bottom && favorites_state.has_more() {
+                FavoritesMessage::LoadMore.into()
+            } else {
+                AppMessage::None
+            }
+        }),
     )
     .width(Length::Fill)
-    .height(Length::Fill)
-    .padding(20);
+    .height(Length::Fill);
 
     let mut layers = vec![base_layer.into()];
 
@@ -96,6 +132,34 @@ pub fn favorites_view<'a>(
         let info_layer = modal_fav
             .map(|fav| widget::create_favorite_modal_info(i18n, fav, theme_config));
 
+        // 按已入库状态区分在线项工具栏：已入库=在文件夹中查看，
+        // 未入库=下载到壁纸库（本地项恒为查看）
+        let modal_entry = favorites_state.entries.get(modal_index);
+        let modal_in_library = modal_entry.is_some_and(|e| e.in_library);
+        let modal_is_online =
+            modal_fav.is_some_and(|f| f.kind == crate::services::database::KIND_ONLINE);
+
+        let download_toolbar_button = (modal_is_online && !modal_in_library).then(|| {
+            common::preview_toolbar_button(
+                theme_config,
+                theme_colors.disabled_color,
+                "\u{F30A}", // download
+                crate::ui::style::BUTTON_COLOR_BLUE,
+                i18n.t("favorites.tooltip-download").to_string(),
+                Some(FavoritesMessage::DownloadEntry(modal_index).into()),
+            )
+        });
+
+        // 在线项未入库时下载原图：加载占位层显示环形进度
+        // （本地项/缓存命中无进度，环为纯轨道圈 + 加载中文案）
+        let loading_layer = common::create_progress_ring_placeholder(
+            favorites_state.modal_download_progress,
+            favorites_state.modal_downloaded_bytes,
+            favorites_state.modal_total_bytes,
+            i18n.t("favorites.loading").to_string(),
+            theme_config,
+        );
+
         let modal_content = common::create_preview_modal(
             i18n,
             theme_config,
@@ -107,9 +171,7 @@ pub fn favorites_view<'a>(
                 previous: FavoritesMessage::PreviousImage.into(),
                 next: FavoritesMessage::NextImage.into(),
                 set_wallpaper: Some(FavoritesMessage::ApplyEntry(modal_index).into()),
-                view_in_folder: if modal_fav
-                    .is_some_and(|f| f.kind == crate::services::database::KIND_LOCAL)
-                {
+                view_in_folder: if !modal_is_online || modal_in_library {
                     Some(FavoritesMessage::OpenLocation(modal_index).into())
                 } else {
                     None
@@ -117,7 +179,7 @@ pub fn favorites_view<'a>(
                 close: FavoritesMessage::CloseModal.into(),
             },
             common::PreviewModalTexts {
-                loading: i18n.t("favorites.loading"),
+                loading: String::new(), // 加载层由 extras 注入，文案不生效
                 previous: i18n.t("favorites.tooltip-prev"),
                 next: i18n.t("favorites.tooltip-next"),
                 set_wallpaper: i18n.t("favorites.tooltip-set-wallpaper"),
@@ -126,7 +188,8 @@ pub fn favorites_view<'a>(
             },
             common::PreviewModalExtras {
                 info_layer,
-                ..Default::default()
+                loading_layer: Some(loading_layer),
+                toolbar_buttons: download_toolbar_button.into_iter().collect(),
             },
         );
         layers.push(container(iced::widget::opaque(modal_content)).into());
@@ -145,71 +208,8 @@ pub fn favorites_view<'a>(
         ));
     }
 
-    // 新建分组对话框（输入 + 确认/取消）
-    if favorites_state.create_group_visible {
-        layers.push(create_group_dialog(i18n, favorites_state, theme_colors));
-    }
-
-    // 删除分组确认框
-    if favorites_state.delete_group_confirm_visible {
-        layers.push(common::create_confirmation_dialog(
-            theme_colors,
-            i18n.t("favorites.delete-group-confirm-title"),
-            i18n.t("favorites.delete-group-confirm-message"),
-            i18n.t("favorites.delete-group"),
-            i18n.t("favorites.cancel"),
-            FavoritesMessage::DeleteGroupConfirmed.into(),
-            FavoritesMessage::DeleteGroupCanceled.into(),
-        ));
-    }
-
     iced::widget::stack(layers)
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
-}
-
-/// 新建分组对话框（标题 + 输入框 + 确认/取消）
-fn create_group_dialog<'a>(
-    i18n: &'a I18n,
-    favorites_state: &'a FavoritesState,
-    theme_colors: crate::ui::style::ThemeColors,
-) -> Element<'a, AppMessage> {
-    let dialog_content = column![
-        text(i18n.t("favorites.create-group"))
-            .size(16)
-            .color(theme_colors.text)
-            .width(Length::Fill)
-            .align_x(Alignment::Center),
-        iced::widget::text_input(
-            &i18n.t("favorites.create-group-placeholder"),
-            &favorites_state.create_group_name,
-        )
-        .on_input(|text| FavoritesMessage::CreateGroupNameChanged(text).into())
-        .on_submit(FavoritesMessage::CreateGroupConfirmed.into())
-        .padding(6)
-        .size(14)
-        .width(Length::Fixed(280.0))
-        .style(common::styled_text_input(theme_colors)),
-        row![
-            common::create_colored_button(
-                i18n.t("favorites.create-group-confirm"),
-                crate::ui::style::BUTTON_COLOR_BLUE,
-                FavoritesMessage::CreateGroupConfirmed.into(),
-            ),
-            common::create_colored_button(
-                i18n.t("favorites.cancel"),
-                crate::ui::style::BUTTON_COLOR_GRAY,
-                FavoritesMessage::CreateGroupCanceled.into(),
-            ),
-        ]
-        .spacing(12)
-        .align_y(Alignment::Center),
-    ]
-    .padding(20)
-    .spacing(12)
-    .align_x(Alignment::Center)
-    .width(Length::Shrink);
-
-    common::modal_dialog_shell(theme_colors, dialog_content.into())
 }

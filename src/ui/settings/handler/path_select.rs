@@ -39,6 +39,8 @@ impl App {
             let old_path = self.config.data.cache_path.clone();
             info!("[设置] [缓存路径] 修改: {} -> {}", old_path, path);
             self.config.set_cache_path(path);
+            // 旧缓存不属于新目录体系，进入各页面时在新目录重建缩略图
+            self.mark_all_thumbs_stale();
         } else if path == "SELECT_CACHE_PATH" {
             // 这是用户点击按钮时的原始消息，触发异步任务
             return Task::perform(async_task::select_folder_async(), |selected_path| {

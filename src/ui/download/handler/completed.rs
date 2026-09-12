@@ -103,6 +103,11 @@ impl App {
                         ));
                         favorite_pending_hit = true;
                     }
+
+                    // 收藏夹在线项按文件名匹配：文件已落库，原地刷新 in_library
+                    // （卡片/模态按钮即时切换，不重跑筛选避免缩略图重置）
+                    self.favorites_state
+                        .mark_online_in_library_by_file_name(file_name);
                 }
 
                 // 保存状态到数据库（在状态修改完成后）

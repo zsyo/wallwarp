@@ -57,6 +57,8 @@ pub enum OnlineMessage {
     ThumbLoaded(usize, iced::widget::image::Handle),
     /// 缩略图加载失败（内部消息，网格显示失败占位卡片）
     ThumbLoadFailed(usize),
+    /// 检查已加载缩略图的缓存文件是否仍存在，失效项重载（进入页面时触发）
+    CheckThumbs,
     // 筛选条件相关消息
     /// 切换分类选择状态
     CategoryToggled(wallhaven::Category),
@@ -158,6 +160,7 @@ impl App {
             OnlineMessage::PreviousImage => self.previous_online_image(),
             OnlineMessage::ThumbLoaded(idx, handle) => self.online_thumb_loaded(idx, handle),
             OnlineMessage::ThumbLoadFailed(idx) => self.online_thumb_load_failed(idx),
+            OnlineMessage::CheckThumbs => self.online_check_thumbs(),
             OnlineMessage::DownloadWallpaper(index) => self.download_online_wallpaper(index),
             OnlineMessage::DownloadFromCache(index) => self.download_from_cache(index),
             OnlineMessage::CopyImageLink(index) => self.copy_online_image_link(index),

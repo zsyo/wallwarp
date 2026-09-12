@@ -161,16 +161,27 @@ impl App {
         }
     }
 
-    /// 在文件夹中查看本地收藏项（打开目录并选中文件）
+    /// 在文件夹中查看收藏项（打开目录并选中文件）
+    ///
+    /// 本地项按 path 字段定位；在线项按壁纸库命名规则 wallhaven-{id}.{ext} 定位
     pub(in crate::ui::favorites) fn view_favorite_file(&mut self, index: usize) -> Task<AppMessage> {
         let Some(entry) = self.favorites_state.entries.get(index) else {
             return Task::none();
         };
-        if entry.fav.kind != crate::services::database::KIND_LOCAL {
-            return Task::none();
-        }
 
-        let full_path = helpers::get_absolute_path(&entry.fav.path);
+        let full_path = if entry.fav.kind == crate::services::database::KIND_LOCAL {
+            helpers::get_absolute_path(&entry.fav.path)
+        } else {
+            let file_name = wallhaven::generate_file_name(
+                &entry.fav.wallhaven_id,
+                entry.fav.file_type.split('/').next_back().unwrap_or("jpg"),
+            );
+            let data_path = self.config.data.data_path.clone();
+            std::path::Path::new(&helpers::get_absolute_path(&data_path))
+                .join(file_name)
+                .to_string_lossy()
+                .to_string()
+        };
 
         // 检查文件是否存在
         if !std::path::Path::new(&full_path).exists() {

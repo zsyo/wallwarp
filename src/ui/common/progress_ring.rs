@@ -1,17 +1,24 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-//! 模态窗口图片下载进度环图像生成
+//! 模态窗口图片下载进度环（位图渲染 + 进度占位符组件）
 //!
 //! 不使用 canvas 绘制：当前 iced 0.14 的 canvas 网格管线存在渲染缺陷
 //! （通用路径填充与弧线描边不显示，详见隔离测试），而图片管线渲染可靠
 //! （应用 logo 与壁纸缩略图均走此管线）。按像素生成 96x96 抗锯齿
 //! 透明底环形图，经 `iced::widget::image` 显示。
+//! 占位符组件（环 + 环心百分比 + 字节说明）由在线壁纸页与收藏夹页共用。
 
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
 use iced::Color;
 use iced::widget::image::Handle;
+use iced::widget::{column, container, image, stack, text};
+use iced::{Alignment, Element, Length};
+
+use crate::ui::AppMessage;
+use crate::ui::style::{COLOR_OVERLAY_TEXT, ThemeConfig, with_alpha};
+use crate::utils::helpers;
 
 /// 环形指示器边长（逻辑像素）
 const RING_SIZE: u32 = 96;
@@ -129,4 +136,75 @@ fn render_progress_ring(progress: f32, ring_color: Color, track_color: Color) ->
     }
 
     Handle::from_rgba(size, size, pixels)
+}
+
+/// 环形进度指示器边长
+const PROGRESS_RING_SIZE: f32 = 96.0;
+
+/// 创建模态窗口加载占位符（进度环 + 环心百分比 + 字节说明）
+///
+/// - `progress`: 下载进度 0.0~1.0（>0 时环心显示百分比、下方显示字节）；
+/// - `downloaded_bytes`/`total_bytes`: 已下载/总字节数；
+/// - `loading_text`: 无进度（下载尚未开始/缓存命中）时显示的加载中文案。
+pub fn create_progress_ring_placeholder<'a>(
+    progress: f32,
+    downloaded_bytes: u64,
+    total_bytes: u64,
+    loading_text: String,
+    theme_config: &'a ThemeConfig,
+) -> Element<'a, AppMessage> {
+    let theme_colors = theme_config.get_theme_colors();
+
+    // 环形进度（缓存命中或进度未知时仅显示轨道圈）
+    let ring = image(progress_ring_image(
+        progress,
+        theme_colors.primary,
+        with_alpha(COLOR_OVERLAY_TEXT, 0.25),
+    ))
+    .width(Length::Fixed(PROGRESS_RING_SIZE))
+    .height(Length::Fixed(PROGRESS_RING_SIZE));
+
+    // 环心百分比（进度 > 0 时叠加显示）
+    let ring_content: Element<'_, AppMessage> = if progress > 0.0 {
+        let percent = (progress * 100.0).round() as i32;
+        let percent_text = container(text(format!("{}%", percent)).size(16).color(COLOR_OVERLAY_TEXT))
+        // 与环同尺寸，避免 Fill 把 stack 撑满整个模态区域将环挤出可视区
+        .width(Length::Fixed(PROGRESS_RING_SIZE))
+        .height(Length::Fixed(PROGRESS_RING_SIZE))
+        .center_x(Length::Fill)
+        .center_y(Length::Fill);
+        stack(vec![ring.into(), percent_text.into()]).into()
+    } else {
+        ring.into()
+    };
+
+    // 下方说明文本：有进度时仅显示字节（环与环心百分比已表达加载中），
+    // 无进度（下载尚未开始/缓存命中）时显示加载中文案
+    let detail_text = if progress > 0.0 {
+        if total_bytes > 0 {
+            format!(
+                "{} / {}",
+                helpers::format_file_size(downloaded_bytes),
+                helpers::format_file_size(total_bytes)
+            )
+        } else {
+            helpers::format_file_size(downloaded_bytes)
+        }
+    } else {
+        loading_text
+    };
+
+    let content = column![
+        ring_content,
+        text(detail_text).size(16).color(COLOR_OVERLAY_TEXT),
+    ]
+    .spacing(14)
+    .align_x(Alignment::Center);
+
+    container(content)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x(Length::Fill)
+        .center_y(Length::Fill)
+        .into()
 }

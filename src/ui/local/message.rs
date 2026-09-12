@@ -53,6 +53,8 @@ pub enum LocalMessage {
     },
     /// 模态窗口图片加载完成
     ModalImageLoaded(Handle),
+    /// 检查已加载缩略图的缓存文件是否仍存在，失效项重载（进入页面时触发）
+    CheckThumbs,
 }
 
 impl From<LocalMessage> for AppMessage {
@@ -99,6 +101,7 @@ impl App {
             LocalMessage::FavoriteToggled { key, result } => {
                 self.local_favorite_toggled(key, result)
             }
+            LocalMessage::CheckThumbs => self.local_check_thumbs(),
         }
     }
 }

@@ -2,20 +2,10 @@
 
 //! 收藏夹页面消息
 
-use crate::services::database::FavoriteGroupDB;
 use crate::ui::favorites::state::FavoriteEntry;
 use crate::ui::{App, AppMessage};
 use iced::Task;
 use iced::widget::image::Handle;
-
-/// 收藏夹分组筛选项（全部 / 未分组 / 指定分组）
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub enum GroupFilter {
-    #[default]
-    All,
-    Ungrouped,
-    Group(i64),
-}
 
 /// 收藏夹类型筛选项（全部 / 在线 / 本地）
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -40,10 +30,10 @@ pub enum TimeFilter {
 /// 收藏夹页面消息
 #[derive(Debug, Clone)]
 pub enum FavoritesMessage {
-    /// 从数据库加载收藏项与分组
+    /// 从数据库加载收藏项
     Load,
-    /// 收藏项与分组加载完成
-    Loaded(Vec<FavoriteEntry>, Vec<FavoriteGroupDB>),
+    /// 收藏项加载完成
+    Loaded(Vec<FavoriteEntry>),
     /// 在线项缩略图加载完成（None 表示加载失败，显示占位）
     ThumbLoaded { index: usize, handle: Option<Handle> },
     /// 设为壁纸（在线项未入库时自动下载后应用）
@@ -58,15 +48,12 @@ pub enum FavoritesMessage {
     PreviousImage,
     /// 预览下一张
     NextImage,
-    /// 预览原图加载完成
+    /// 预览原图加载完成（缓存/下载/本地读取共用）
     ModalImageLoaded(Handle),
-    /// 预览原图缓存下载完成，从缓存加载（在线项未入库时两段式加载的中间消息）
-    PreviewOriginalDownloaded {
-        url: String,
-        file_size: u64,
-        cache_path: String,
-        id: String,
-    },
+    /// 预览原图下载进度更新（已下载字节 / 总字节）
+    ModalImageProgress(u64, u64),
+    /// 预览原图下载失败
+    ModalImageDownloadFailed(String),
     /// 关闭预览
     CloseModal,
     /// 请求移除收藏（显示确认框）
@@ -77,22 +64,14 @@ pub enum FavoritesMessage {
     RemoveFinished { index: usize, result: Result<(), String> },
     /// 取消移除
     RemoveCanceled,
-    /// 移动收藏项到分组（None = 移出分组）
-    MoveToGroup { index: usize, group_id: Option<i64> },
-    /// 移动完成
-    MoveFinished { index: usize, group_id: Option<i64>, result: Result<(), String> },
-    /// 切换分组筛选
-    GroupFilterChanged(GroupFilter),
     /// 切换类型筛选
     TypeFilterChanged(TypeFilter),
     /// 切换时间筛选
     TimeFilterChanged(TimeFilter),
     /// 切换排序方向（收藏时间正序/倒序）
     SortOrderToggled,
-    /// 分组筛选下拉展开/收起切换
-    GroupFilterExpanded,
-    /// 分组筛选下拉收起（点击面板外部）
-    GroupFilterDismiss,
+    /// 滚动到底部：追加下一批收藏项
+    LoadMore,
     /// 类型筛选下拉展开/收起切换
     TypeFilterExpanded,
     /// 类型筛选下拉收起（点击面板外部）
@@ -101,26 +80,10 @@ pub enum FavoritesMessage {
     TimeFilterExpanded,
     /// 时间筛选下拉收起（点击面板外部）
     TimeFilterDismiss,
-    /// 请求新建分组（显示输入对话框）
-    CreateGroupRequested,
-    /// 确认新建分组
-    CreateGroupConfirmed,
-    /// 新建分组完成
-    CreateGroupFinished(Result<i64, String>),
-    /// 取消新建分组
-    CreateGroupCanceled,
-    /// 新建分组输入内容变更
-    CreateGroupNameChanged(String),
-    /// 请求删除当前筛选分组（显示确认框）
-    DeleteGroupRequested,
-    /// 确认删除分组
-    DeleteGroupConfirmed,
-    /// 删除分组完成
-    DeleteGroupFinished(Result<(), String>),
-    /// 取消删除分组
-    DeleteGroupCanceled,
     /// 刷新
     Refresh,
+    /// 检查已加载缩略图的缓存文件是否仍存在，失效项重载（进入页面时触发）
+    CheckThumbs,
 }
 
 impl From<FavoritesMessage> for AppMessage {
@@ -134,9 +97,7 @@ impl App {
     pub fn handle_favorites_message(&mut self, msg: FavoritesMessage) -> Task<AppMessage> {
         match msg {
             FavoritesMessage::Load => self.load_favorites(),
-            FavoritesMessage::Loaded(entries, groups) => {
-                self.favorites_loaded(entries, groups)
-            }
+            FavoritesMessage::Loaded(entries) => self.favorites_loaded(entries),
             FavoritesMessage::ThumbLoaded { index, handle } => {
                 self.favorite_thumb_loaded(index, handle)
             }
@@ -149,12 +110,12 @@ impl App {
             FavoritesMessage::ModalImageLoaded(handle) => {
                 self.favorite_modal_image_loaded(handle)
             }
-            FavoritesMessage::PreviewOriginalDownloaded {
-                url,
-                file_size,
-                cache_path,
-                id,
-            } => self.favorite_preview_original_downloaded(url, file_size, cache_path, id),
+            FavoritesMessage::ModalImageProgress(downloaded, total) => {
+                self.favorite_modal_image_progress(downloaded, total)
+            }
+            FavoritesMessage::ModalImageDownloadFailed(e) => {
+                self.favorite_modal_image_download_failed(e)
+            }
             FavoritesMessage::CloseModal => {
                 self.favorites_state.close_modal();
                 Task::none()
@@ -171,19 +132,6 @@ impl App {
                 self.favorites_state.remove_target = None;
                 Task::none()
             }
-            FavoritesMessage::MoveToGroup { index, group_id } => {
-                self.move_favorite_to_group(index, group_id)
-            }
-            FavoritesMessage::MoveFinished {
-                index,
-                group_id,
-                result,
-            } => self.favorite_moved(index, group_id, result),
-            FavoritesMessage::GroupFilterChanged(filter) => {
-                self.favorites_state.group_filter = filter;
-                self.favorites_state.group_filter_expanded = false;
-                self.reload_filtered_entries()
-            }
             FavoritesMessage::TypeFilterChanged(filter) => {
                 self.favorites_state.type_filter = filter;
                 self.favorites_state.type_filter_expanded = false;
@@ -198,14 +146,12 @@ impl App {
                 self.favorites_state.sort_descending = !self.favorites_state.sort_descending;
                 self.reload_filtered_entries()
             }
-            FavoritesMessage::GroupFilterExpanded => {
-                self.favorites_state.group_filter_expanded =
-                    !self.favorites_state.group_filter_expanded;
-                Task::none()
-            }
-            FavoritesMessage::GroupFilterDismiss => {
-                self.favorites_state.group_filter_expanded = false;
-                Task::none()
+            FavoritesMessage::LoadMore => {
+                if self.favorites_state.load_more() {
+                    self.load_favorite_thumbs()
+                } else {
+                    Task::none()
+                }
             }
             FavoritesMessage::TypeFilterExpanded => {
                 self.favorites_state.type_filter_expanded =
@@ -225,35 +171,11 @@ impl App {
                 self.favorites_state.time_filter_expanded = false;
                 Task::none()
             }
-            FavoritesMessage::CreateGroupRequested => {
-                self.favorites_state.create_group_name.clear();
-                self.favorites_state.create_group_visible = true;
-                Task::none()
-            }
-            FavoritesMessage::CreateGroupConfirmed => self.create_favorite_group(),
-            FavoritesMessage::CreateGroupFinished(result) => self.favorite_group_created(result),
-            FavoritesMessage::CreateGroupCanceled => {
-                self.favorites_state.create_group_visible = false;
-                Task::none()
-            }
-            FavoritesMessage::CreateGroupNameChanged(name) => {
-                self.favorites_state.create_group_name = name;
-                Task::none()
-            }
-            FavoritesMessage::DeleteGroupRequested => {
-                self.favorites_state.delete_group_confirm_visible = true;
-                Task::none()
-            }
-            FavoritesMessage::DeleteGroupConfirmed => self.delete_favorite_group(),
-            FavoritesMessage::DeleteGroupFinished(result) => self.favorite_group_deleted(result),
-            FavoritesMessage::DeleteGroupCanceled => {
-                self.favorites_state.delete_group_confirm_visible = false;
-                Task::none()
-            }
             FavoritesMessage::Refresh => {
                 self.favorites_state.invalidate();
                 self.load_favorites()
             }
+            FavoritesMessage::CheckThumbs => self.favorites_check_thumbs(),
         }
     }
 }

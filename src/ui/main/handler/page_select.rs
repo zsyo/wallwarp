@@ -16,8 +16,16 @@ impl App {
 
         match page {
             ActivePage::OnlineWallpapers => {
+                // 检查已加载缩略图的缓存文件是否仍存在（缓存被清空后自愈）
+                let check_thumbs_task =
+                    Task::done(crate::ui::online::OnlineMessage::CheckThumbs.into());
                 // 滚动到顶部
-                Task::done(MainMessage::ScrollToTop("online_wallpapers_scroll".to_string()).into())
+                Task::batch(vec![
+                    check_thumbs_task,
+                    Task::done(
+                        MainMessage::ScrollToTop("online_wallpapers_scroll".to_string()).into(),
+                    ),
+                ])
             }
             ActivePage::LocalList => {
                 // 本地列表状态跨页保留，避免每次进入都全量重扫+重建缩略图；
@@ -27,7 +35,8 @@ impl App {
                 let reload_task = if need_reload {
                     Task::done(local::LocalMessage::LoadWallpapers.into())
                 } else {
-                    Task::none()
+                    // 无需重扫时校验缩略图缓存文件（缓存被清空后自愈）
+                    Task::done(local::LocalMessage::CheckThumbs.into())
                 };
                 Task::batch(vec![
                     reload_task,
@@ -78,11 +87,12 @@ impl App {
                 Task::done(MainMessage::ScrollToTop("settings_scroll".to_string()).into())
             }
             ActivePage::WallpaperHistory => {
-                // 会话内首次进入时从数据库加载历史
+                // 会话内首次进入时从数据库加载历史；已加载时校验缩略图缓存文件
+                //（缓存被清空后自愈；首次加载路径本身会重建全部缩略图）
                 let load_task = if !self.history_state.loaded {
                     Task::done(crate::ui::history::HistoryMessage::Load.into())
                 } else {
-                    Task::none()
+                    Task::done(crate::ui::history::HistoryMessage::CheckThumbs.into())
                 };
                 Task::batch(vec![
                     load_task,
@@ -90,11 +100,12 @@ impl App {
                 ])
             }
             ActivePage::Favorites => {
-                // 会话内首次进入时从数据库加载收藏（下载完成后会置回 false 以刷新 in_library）
+                // 会话内首次进入时从数据库加载收藏（下载完成后会置回 false 以刷新 in_library）；
+                // 已加载时校验缩略图缓存文件（缓存被清空后自愈）
                 let load_task = if !self.favorites_state.loaded {
                     Task::done(crate::ui::favorites::FavoritesMessage::Load.into())
                 } else {
-                    Task::none()
+                    Task::done(crate::ui::favorites::FavoritesMessage::CheckThumbs.into())
                 };
                 Task::batch(vec![
                     load_task,

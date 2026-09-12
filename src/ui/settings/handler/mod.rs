@@ -15,5 +15,6 @@ mod path_clear;
 mod path_select;
 mod proxy_change;
 mod restore_default_path;
+mod thumbs_stale;
 mod wallhaven_api_key;
 mod widget_state;

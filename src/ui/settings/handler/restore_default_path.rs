@@ -26,6 +26,8 @@ impl App {
                 self.config.set_cache_path("cache".to_string());
                 // 检查并创建目录
                 ensure_directory_exists("cache", "缓存目录");
+                // 旧缓存不属于新目录体系，进入各页面时在新目录重建缩略图
+                self.mark_all_thumbs_stale();
             }
             _ => {}
         }

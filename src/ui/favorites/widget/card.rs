@@ -96,7 +96,7 @@ pub fn create_favorite_card<'a>(
         Some(fav.resolution.clone())
     };
 
-    // 操作按钮：设为壁纸 + 下载(仅在线项) + 在文件夹查看(仅本地项) + 移除
+    // 操作按钮：设为壁纸 + 下载(在线未入库) / 在文件夹查看(本地正常项与已入库在线项) + 移除
     // 本地项源文件失效时，设壁纸/查看禁用（仅保留移除）
     let mut actions = vec![if is_local_missing {
         common::create_icon_button_disabled("\u{F429}", theme_colors.disabled_color).into() // image-fill
@@ -110,7 +110,7 @@ pub fn create_favorite_card<'a>(
         )
     }];
 
-    if fav.kind == crate::services::database::KIND_ONLINE {
+    if fav.kind == crate::services::database::KIND_ONLINE && !entry.in_library {
         actions.push(favorite_action_button(
             "\u{F30A}", // download
             BUTTON_COLOR_BLUE,
@@ -123,6 +123,7 @@ pub fn create_favorite_card<'a>(
             common::create_icon_button_disabled("\u{F3D8}", theme_colors.disabled_color).into(), // folder2-open
         );
     } else {
+        // 本地正常项与已入库在线项：在文件夹中查看
         actions.push(favorite_action_button(
             "\u{F3D8}", // folder2-open
             BUTTON_COLOR_GREEN,

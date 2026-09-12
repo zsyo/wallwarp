@@ -64,6 +64,8 @@ pub enum HistoryMessage {
     ClearCanceled,
     /// 刷新
     Refresh,
+    /// 检查已加载缩略图的缓存文件是否仍存在，失效项重载（进入页面时触发）
+    CheckThumbs,
 }
 
 impl From<HistoryMessage> for AppMessage {
@@ -122,6 +124,7 @@ impl App {
                 self.history_state.invalidate();
                 self.load_history_entries()
             }
+            HistoryMessage::CheckThumbs => self.history_check_thumbs(),
         }
     }
 }

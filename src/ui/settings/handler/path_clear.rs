@@ -46,6 +46,18 @@ impl App {
         path_type: String,
         result: Result<usize, usize>,
     ) -> Task<AppMessage> {
+        // 清空成功后失效相关页面状态，进入页面时重新加载/重建缩略图
+        if result.is_ok() {
+            if path_type == "cache" {
+                self.mark_all_thumbs_stale();
+            } else if path_type == "data" {
+                // 壁纸库源文件被清空：本地页强制重扫，历史/收藏重载后过滤失效条目
+                self.local_state.loaded_data_path = None;
+                self.history_state.invalidate();
+                self.favorites_state.invalidate();
+            }
+        }
+
         let (message, notification_type) = match result {
             Ok(count) => {
                 let key = if path_type == "data" {
