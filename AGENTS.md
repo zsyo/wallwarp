@@ -110,6 +110,11 @@
   --formats X --target T` 指定；macOS 的 icns 由 cargo-packager 从 PNG 自动生成；
   Linux 构建需 libssl-dev + pkg-config（native-tls 依赖 OpenSSL）及
   libarchive-tools/zstd
+- **CI workflows**：build.yml 编译验证（纯手动 workflow_dispatch，六目标编译把关）；
+  package_test.yml 打包演练（手动选格式与架构，产物仅上传 Artifacts 保留 7 天、
+  不发布 Release，产物命名与正式发布一致）；release.yml 正式发布（tag 触发）。
+  package_test.yml 的系统依赖/Build/Package/Rename 步骤与 release.yml 保持一致，
+  改动打包链时需同步两个文件
 - **版本与预发布**：Cargo.toml 恒为干净正式版本（如 1.5.1），预发布只经 tag
   表达，分隔符用 `_` 不用 `-`（`v1.5.1_beta.1`/`v1.5.1_rc2` 为预发布，
   `v1.5.1` 为正式；RPM Version 与 pacman pkgver 字段均禁止 `-`）。
@@ -123,9 +128,18 @@
   上游默认名映射注意点：deb/AppImage 用 Debian/RPM 各自的架构名（amd64/
   x86_64/aarch64），dmg 用 product_name（WallWarp_ 前缀，x86_64→x64），
   app 归档名 WallWarp.app.tar.gz 无版本无架构
-- **Linux deb/rpm/pacman**：deb 由 cargo-packager 生成；rpm 由 cargo-generate-rpm
+- **Linux deb/rpm/pacman**：deb 由 cargo-packager 生成（运行时依赖在
+  `[package.metadata.packager.deb] depends` 声明：libgtk-3-0 /
+  libayatana-appindicator3-1 / libxkbcommon-x11-0 / libssl3 / libxdo3，
+  安装时 apt 自动补齐；Ubuntu 24.04+ 的 t64 改名包经 Provides: <旧名> 满足；
+  漏声明会导致装完启动报 `error while loading shared libraries: libxdo.so.3`）；
+  rpm 由 cargo-generate-rpm
   按 `[package.metadata.generate-rpm]`（布局与 deb 对齐）单独生成——cargo-packager
-  不支持 rpm；pacman 由 CI 在 cargo-packager 的 pacman 数据 tar.gz 基础上装配
+  不支持 rpm（运行时依赖以 SONAME 形式写在 `[package.metadata.generate-rpm.requires]`，
+  不绑定发行版包名，主流发行版经 find-provides 自动注册 Provides 可解析；
+  保持 `auto-req = "no"`，避免把构建环境全部 NEEDED 写进依赖）；
+  AppImage 由 linuxdeploy 自动收集非基础 .so（libxdo 等被带入），无需声明依赖；
+  pacman 由 CI 在 cargo-packager 的 pacman 数据 tar.gz 基础上装配
   （上游只产出 PKGBUILD+数据包，非标准包）：写入 .PKGINFO（pkgver 带 -1 后缀，
   非法字符防御性替换为 _，depend=gtk3/libayatana-appindicator/openssl/xdotool，
   xdotool 提供 muda 运行时动态链接的 libxdo）+ bsdtar 生成 .MTREE（文件+目录，

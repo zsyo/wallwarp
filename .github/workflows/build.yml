@@ -1,29 +1,14 @@
 name: Build
 
 # 构建验证工作流：不打包、不发布，仅验证三平台六目标能否编译通过
-# （日常编译把关；打包演练用 release.yml 的 workflow_dispatch，
+# （纯手动触发，避免每次提交都跑六目标构建；打包演练用 package_test.yml，
 #  完整发布用 release.yml 的 tag 流程）
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "**.md"
-      - "LICENSE"
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - "**.md"
-      - "LICENSE"
   workflow_dispatch:
 
 permissions:
   contents: read
-
-# 同一分支的新推送取消仍在跑的旧任务，节省 runner 时间
-concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build:

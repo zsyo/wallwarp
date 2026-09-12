@@ -110,6 +110,22 @@ identifier = "top.aico.wallwarp"
 category = "GraphicsAndDesign"
 icons = ["assets/logo-*.png"]
 
+# deb 运行时依赖（apt 安装时自动拉取，用户无需手动装环境）：
+#   libgtk-3-0                  托盘/菜单/弹窗锚点（GTK3 栈，连带拉出 glib/X11 等 GUI 依赖）
+#   libayatana-appindicator3-1  托盘图标（appindicator 后端）
+#   libxkbcommon-x11-0          winit X11 键盘输入
+#   libssl3                     OpenSSL 运行库（reqwest native-tls）
+#   libxdo3                     muda 菜单运行时动态链接的 libxdo
+# Ubuntu 24.04+ 的 t64 改名包（libgtk-3-0t64/libssl3t64）经 Provides: <旧名> 满足本依赖
+[package.metadata.packager.deb]
+depends = [
+    "libgtk-3-0",
+    "libayatana-appindicator3-1",
+    "libxkbcommon-x11-0",
+    "libssl3",
+    "libxdo3",
+]
+
 # macOS：app bundle + dmg（CI 通过 --formats app,dmg 指定）
 [package.metadata.packager.macos]
 minimum_system_version = "10.15"
@@ -137,3 +153,14 @@ assets = [
     { source = "assets/logo-256.png", dest = "/usr/share/icons/hicolor/256x256/apps/wallwarp.png", mode = "644" },
     { source = "assets/logo-512.png", dest = "/usr/share/icons/hicolor/512x512/apps/wallwarp.png", mode = "644" },
 ]
+
+# RPM 运行时依赖：SONAME 形式（主流发行版经 find-provides 自动注册 Provides，
+# 不绑定具体包名，Fedora/openSUSE 均可解析），安装时由包管理器自动补齐。
+# 保留 auto-req = "no"：避免 find-requires 把构建环境的全部 NEEDED 写进依赖，
+# 只声明程序直接需要的关键库
+[package.metadata.generate-rpm.requires]
+"libgtk-3.so.0()(64bit)" = "*"
+"libayatana-appindicator3.so.1()(64bit)" = "*"
+"libxkbcommon-x11.so.0()(64bit)" = "*"
+"libxdo.so.3()(64bit)" = "*"
+"libssl.so.3()(64bit)" = "*"

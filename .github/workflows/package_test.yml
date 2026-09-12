@@ -1,0 +1,355 @@
+name: Package Test
+
+# 打包验证工作流：手动选择格式与架构做打包演练，产物仅保留在 Artifacts
+# （7 天）供对应系统下载安装验证，不创建 Release。
+# 构建验证用 build.yml，完整发布用 release.yml 的 tag 流程。
+# 注意：产物命名与正式发布一致（显示版本取 version 输入，留空为 latest）；
+# version 输入建议遵循发布规范——分隔符用 '_' 不用 '-'（pacman pkgver 已做
+# 防御性清洗，rpm 的 Version 字段禁止 '-' 需自行保证）
+
+on:
+  workflow_dispatch:
+    inputs:
+      format:
+        description: 打包格式
+        type: choice
+        required: true
+        default: deb
+        options:
+          - deb
+          - rpm
+          - appimage
+          - pacman
+          - app-dmg
+          - nsis
+          - all
+      arch:
+        description: 目标架构
+        type: choice
+        required: true
+        default: both
+        options:
+          - both
+          - x64
+          - arm64
+      version:
+        description: 产物版本号（留空用 latest）
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    # 按输入计算动态矩阵（GitHub Actions 的 include 条目无法条件性增删，
+    # 用 setup job 生成 JSON 供打包 job 的 fromJSON 消费）
+    name: Compute matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - name: Compute matrix
+        id: set
+        env:
+          FORMAT: ${{ inputs.format }}
+          ARCH: ${{ inputs.arch }}
+        run: |
+          MATRIX=$(python3 - <<'PYEOF'
+          import json, os
+
+          fmt = os.environ["FORMAT"]
+          arch = os.environ["ARCH"]
+
+          # 平台基础条目：runner/target/rustflags 与 release.yml 矩阵完全一致
+          # （x86_64-v3 指令级优化与发布构建对齐；macOS x64 在 arm64 runner 交叉编译）
+          base = {
+              "linux": [
+                  {"name": "linux-x64", "os": "ubuntu-latest", "target": "x86_64-unknown-linux-gnu", "arch": "x64", "rustflags": "-C target-cpu=x86-64-v3"},
+                  {"name": "linux-arm64", "os": "ubuntu-24.04-arm", "target": "aarch64-unknown-linux-gnu", "arch": "arm64", "rustflags": ""},
+              ],
+              "macos": [
+                  {"name": "macos-arm64", "os": "macos-14", "target": "aarch64-apple-darwin", "arch": "arm64", "rustflags": ""},
+                  {"name": "macos-x64", "os": "macos-14", "target": "x86_64-apple-darwin", "arch": "x64", "rustflags": ""},
+              ],
+              "windows": [
+                  {"name": "windows-x64", "os": "windows-latest", "target": "x86_64-pc-windows-msvc", "arch": "x64", "rustflags": "-C target-cpu=x86-64-v3"},
+                  {"name": "windows-arm64", "os": "windows-11-arm", "target": "aarch64-pc-windows-msvc", "arch": "arm64", "rustflags": ""},
+              ],
+          }
+          # 格式 → 所属平台与 cargo-packager formats
+          # （rpm 由 cargo-generate-rpm 独立生成，不走 cargo-packager，packager_formats 为空；
+          #   all 时 Linux 一次打包 appimage+deb+pacman，与 release.yml 相同）
+          platform_of = {
+              "deb": "linux", "appimage": "linux", "pacman": "linux", "rpm": "linux",
+              "app-dmg": "macos", "nsis": "windows",
+          }
+          packager_formats_of = {
+              "deb": "deb", "appimage": "appimage", "pacman": "pacman", "rpm": "",
+              "app-dmg": "app,dmg", "nsis": "nsis",
+          }
+
+          if fmt == "all":
+              selected = [(p, "appimage,deb,pacman" if p == "linux" else ("app,dmg" if p == "macos" else "nsis")) for p in base]
+          else:
+              selected = [(platform_of[fmt], packager_formats_of[fmt])]
+
+          arches = {"both": ["x64", "arm64"], "x64": ["x64"], "arm64": ["arm64"]}[arch]
+
+          include = []
+          for platform, packager_formats in selected:
+              for entry in base[platform]:
+                  if entry["arch"] not in arches:
+                      continue
+                  item = dict(entry)
+                  item["format"] = fmt
+                  item["packager_formats"] = packager_formats
+                  include.append(item)
+
+          print(json.dumps({"include": include}))
+          PYEOF
+          )
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+  package:
+    name: Package ${{ matrix.name }}
+    needs: matrix
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+      # 显示版本：手动输入，留空回退 latest（正式发布经 tag 注入，见 release.yml）
+      WALLWARP_DISPLAY_VERSION: ${{ inputs.version || 'latest' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          # 输入名为 target（支持逗号分隔；此前误写 targets 未生效，
+          # 导致 macOS 交叉编译时目标标准库未安装）
+          target: ${{ matrix.target }}
+          # 自动开启依赖缓存
+          cache: true
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # gtk3/appindicator：托盘；rsvg：图标渲染；xkbcommon/x11/wayland：iced/winit
+          # libssl-dev + pkg-config：reqwest native-tls（OpenSSL）构建依赖
+          # libarchive-tools/zstd：pacman 装配；与 release.yml 保持一致
+          sudo apt-get install -y \
+            libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
+            libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
+            libx11-dev libxcb1-dev libxrandr-dev libxi-dev cmake \
+            libssl-dev pkg-config libxdo-dev \
+            libarchive-tools zstd
+
+      - name: Install Tools
+        # 使用快速安装工具，避免从源码编译 cargo-packager
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-packager
+
+      - name: Install RPM packaging tool
+        # cargo-generate-rpm 无预编译发布产物（install-action/binstall 不可用），
+        # 源码安装；配合 Cargo.toml 的 [package.metadata.generate-rpm] 使用。
+        # 清空 RUSTFLAGS，避免 x86-64-v3 指令级优化影响工具在 runner 上的运行
+        if: runner.os == 'Linux' && (matrix.format == 'rpm' || matrix.format == 'all')
+        run: RUSTFLAGS="" cargo install cargo-generate-rpm --locked
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package
+        # rpm 不走 cargo-packager（packager_formats 为空），由 Package RPM 步骤生成
+        if: matrix.packager_formats != ''
+        run: >
+          cargo packager --release --formats ${{ matrix.packager_formats }}
+          --target ${{ matrix.target }}
+
+      - name: Package RPM
+        # 布局见 Cargo.toml [package.metadata.generate-rpm]；
+        # 二进制路径会按 --target 自动改写为 target/<triple>/release/wallwarp
+        if: runner.os == 'Linux' && (matrix.format == 'rpm' || matrix.format == 'all')
+        run: cargo generate-rpm --target ${{ matrix.target }}
+
+      - name: Package Pacman
+        # 与 release.yml 相同：在 cargo-packager 的 pacman 数据 tar.gz 基础上
+        # 装配标准 pacman 包（.PKGINFO + .MTREE + zstd），产物可直接 pacman -U 安装
+        # （xdotool 提供 libxdo，muda 菜单运行时动态链接）
+        if: runner.os == 'Linux' && (matrix.format == 'pacman' || matrix.format == 'all')
+        run: |
+          set -euo pipefail
+          version="${WALLWARP_DISPLAY_VERSION}"
+          # pacman pkgver 只允许字母数字与 . _ +（'-' 保留为 pkgrel 分隔符），
+          # 防御性清洗版本输入中的非法字符
+          pkgver="${version//[^[:alnum:].+_]/_}"
+          out_dir="target/${{ matrix.target }}/release"
+          case "${{ matrix.arch }}" in
+            x64) pkg_arch="x86_64" ;;
+            arm64) pkg_arch="aarch64" ;;
+            *) echo "未知架构: ${{ matrix.arch }}"; exit 1 ;;
+          esac
+
+          shopt -s nullglob
+          data_tars=("$out_dir"/wallwarp_*_*.tar.gz)
+          shopt -u nullglob
+          if [ ${#data_tars[@]} -ne 1 ]; then
+            echo "期望恰好 1 个 pacman 数据包，实际 ${#data_tars[@]} 个"; exit 1
+          fi
+
+          mkdir -p pacman-pkg dist
+          tar -xzf "${data_tars[0]}" -C pacman-pkg
+          installed_size="$(du -sb pacman-pkg | cut -f1)"
+
+          cat > pacman-pkg/.PKGINFO <<EOF
+          pkgname = wallwarp
+          pkgbase = wallwarp
+          pkgver = ${pkgver}-1
+          pkgdesc = WallWarp 桌面壁纸管理软件
+          url = https://github.com/zsyo/wallwarp
+          builddate = $(date +%s)
+          packager = zsyo <zephyr@aico.top>
+          size = ${installed_size}
+          arch = ${pkg_arch}
+          license = AGPL-3.0
+          depend = gtk3
+          depend = libayatana-appindicator
+          depend = openssl
+          depend = xdotool
+          xdata = pkgtype=pkg
+          EOF
+
+          # .MTREE 与 makepkg 相同方式生成（文件+目录，bsdtar mtree 格式）
+          (cd pacman-pkg && find .PKGINFO usr | LC_ALL=C sort | \
+            bsdtar --uid 0 --uname root --gid 0 --gname root -czf .MTREE \
+            --format=mtree \
+            --options='!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link' -T -)
+
+          pkg_file="dist/wallwarp-${pkgver}-1-linux_${pkg_arch}.pkg.tar.zst"
+          # .PKGINFO 必须是首个条目；包内属主归零（makepkg/fakeroot 语义）
+          tar --zstd --owner=0 --group=0 --numeric-owner -cf "$pkg_file" \
+            -C pacman-pkg .PKGINFO .MTREE usr
+          # 清理 cargo-packager 的中间产物（tar.gz + PKGBUILD）
+          rm -f "${data_tars[0]}" "$out_dir/PKGBUILD"
+          echo "[pacman] 已生成 $pkg_file"
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          mkdir -p dist
+          # 统一收集各平台安装包产物
+          find target/${{ matrix.target }}/release \
+            -maxdepth 2 -type f \( \
+              -name "*-setup.exe" -o \
+              -name "*.dmg" -o \
+              -name "*.AppImage" -o \
+              -name "*.deb" -o \
+              -name "*.app.tar.gz" \) \
+            -exec cp {} dist/ \;
+          # rpm 由 cargo-generate-rpm 输出到 target/<triple>/generate-rpm/
+          # （仅 rpm/all 验证时存在该目录，其它格式忽略 find 报错）
+          find target/${{ matrix.target }}/generate-rpm \
+            -type f -name "*.rpm" \
+            -exec cp {} dist/ \; 2>/dev/null || true
+          ls -la dist/
+
+      - name: Rename installers
+        # 与 release.yml 相同：产物文件名统一为发布命名（版本号替换 + 平台名），
+        # 使验证产物与正式发布完全一致。各格式默认名与映射（matrix.arch 为 x64/arm64）：
+        #   NSIS      wallwarp_{v}_{arch}-setup.exe       -> wallwarp_{tv}_windows_{arch}-setup.exe
+        #   dmg       WallWarp_{v}_{arch}.dmg             -> wallwarp_{tv}_macos_{arch}.dmg
+        #   app       WallWarp.app.tar.gz（无版本无架构）  -> wallwarp_{tv}_macos_{arch}.app.tar.gz
+        #   AppImage  wallwarp_{v}_{deb_arch}.AppImage    -> wallwarp_{tv}_linux_{arch}.AppImage
+        #   deb       wallwarp_{v}_{deb_arch}.deb         -> wallwarp_{tv}_linux_{arch}.deb
+        #   rpm       wallwarp-{v}-1.{rpm_arch}.rpm       -> wallwarp-{tv}-1-linux_{arch}.rpm
+        # pacman 在 Package Pacman 步骤已按 linux_{arch} 生成
+        shell: bash
+        env:
+          TAG_VERSION: ${{ env.WALLWARP_DISPLAY_VERSION }}
+        run: |
+          set -euo pipefail
+          cargo_version=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+          arch="${{ matrix.arch }}"
+          echo "Cargo.toml 版本: $cargo_version -> 显示版本: $TAG_VERSION (arch=$arch)"
+          rename() {
+            local base new
+            base=$(basename "$1")
+            new="${base/$cargo_version/$TAG_VERSION}"
+            [ "$base" != "$new" ] && mv "dist/$base" "dist/$new" && return
+            mv "dist/$base" "dist/$new"
+          }
+
+          # deb：Debian 架构名（amd64/arm64）+ 版本替换为显示版本
+          for f in dist/*.deb; do
+            [ -e "$f" ] || continue
+            new="${f/$cargo_version/$TAG_VERSION}"
+            new="${new/_amd64./_linux_x64.}"; new="${new/_arm64./_linux_arm64.}"
+            if [ "$f" != "$new" ]; then mv "$f" "$new"; fi
+          done
+
+          # AppImage：upstream arch（x86_64/aarch64）+ 版本替换为显示版本
+          for f in dist/*.AppImage; do
+            [ -e "$f" ] || continue
+            new="${f/$cargo_version/$TAG_VERSION}"
+            new="${new/_x86_64./_linux_x64.}"; new="${new/_aarch64./_linux_arm64.}"
+            if [ "$f" != "$new" ]; then mv "$f" "$new"; fi
+          done
+
+          # dmg：cargo-packager 用 product_name（WallWarp_）与 x64/aarch64 架构名
+          for f in dist/*.dmg; do
+            [ -e "$f" ] || continue
+            new="${f/WallWarp_/wallwarp_}"
+            new="${new/$cargo_version/$TAG_VERSION}"
+            new="${new/_x64./_macos_x64.}"; new="${new/_aarch64./_macos_arm64.}"
+            if [ "$f" != "$new" ]; then mv "$f" "$new"; fi
+          done
+
+          # app bundle 归档（WallWarp.app.tar.gz，无版本无架构）
+          for f in dist/*.app.tar.gz; do
+            [ -e "$f" ] || continue
+            mv "$f" "dist/wallwarp_${TAG_VERSION}_macos_${arch}.app.tar.gz"
+          done
+
+          # rpm：连字符风格，rpm 架构名（x86_64/aarch64）+ 版本替换为显示版本
+          for f in dist/*.rpm; do
+            [ -e "$f" ] || continue
+            base=$(basename "$f")
+            new="${base/$cargo_version/$TAG_VERSION}"
+            new="${new/.x86_64.rpm/-linux_x64.rpm}"
+            new="${new/.aarch64.rpm/-linux_arm64.rpm}"
+            if [ "$base" != "$new" ]; then
+              mv "dist/$base" "dist/$new"
+            fi
+          done
+
+          # NSIS：版本替换 + windows 平台名
+          for f in dist/*-setup.exe; do
+            [ -e "$f" ] || continue
+            base=$(basename "$f")
+            new="${base/$cargo_version/$TAG_VERSION}"
+            new="${new/_x64-setup.exe/_windows_x64-setup.exe}"
+            new="${new/_arm64-setup.exe/_windows_arm64-setup.exe}"
+            if [ "$base" != "$new" ]; then
+              mv "dist/$base" "dist/$new"
+            fi
+          done
+          ls -la dist/
+
+      - name: Upload artifacts
+        # 产物仅保留在 Artifacts（7 天）供对应系统下载验证，不创建 Release
+        uses: actions/upload-artifact@v7
+        with:
+          name: package-test-${{ matrix.name }}
+          path: dist/*
+          retention-days: 7
