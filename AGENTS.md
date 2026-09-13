@@ -120,6 +120,9 @@
   不发布 Release，产物命名与正式发布一致）；release.yml 正式发布（tag 触发）。
   package_test.yml 的系统依赖/Build/Package/Rename 步骤与 release.yml 保持一致，
   改动打包链时需同步两个文件
+- **本地打包**：`packaging/linux/build-packages.sh`（WSL zsh + Docker 容器构建，
+  一步出 appimage/deb/rpm/pacman 四种包，依赖源与 GitHub 加速已内置自适应），
+  编译缓存在 `~/.cache/wallwarp-build/<arch>/`，产物输出 `dist-linux/`（已 gitignore）
 - **版本与预发布**：Cargo.toml 恒为干净正式版本（如 1.5.1），预发布只经 tag
   表达，分隔符用 `_` 不用 `-`（`v1.5.1_beta.1`/`v1.5.1_rc2` 为预发布，
   `v1.5.1` 为正式；RPM Version 与 pacman pkgver 字段均禁止 `-`）。
