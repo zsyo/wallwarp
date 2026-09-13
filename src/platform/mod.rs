@@ -137,22 +137,6 @@ pub fn set_wallpaper_kde(path: &str, mode: wallpaper::Mode) -> Result<(), String
     }
 }
 
-/// 当前桌面是否为 GNOME（非 Linux 平台恒为 false）
-///
-/// GNOME dock 右键菜单文案是"退出"，其请求与 Alt+F4 同为 compositor
-/// 下发的 close 事件无法区分，按菜单语义该桌面下 close 事件视为退出
-/// 程序请求；KDE/Windows 任务栏菜单文案是"关闭（窗口）"，走 close_action
-pub fn is_gnome_desktop() -> bool {
-    #[cfg(target_os = "linux")]
-    {
-        imp::is_gnome_desktop()
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        false
-    }
-}
-
 /// 当前 KDE 会话是否正在注销/关机（非 Linux 平台恒为 false）
 ///
 /// 会话管理器（ksmserver）在注销/关机流程第一步 closeSession 即置位该

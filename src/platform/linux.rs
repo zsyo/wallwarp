@@ -49,11 +49,7 @@ pub fn window_geometry(mw: &dyn iced::window::Window) -> Option<super::WindowGeo
 
     let geometry = conn.get_geometry(xid).ok()?.reply().ok()?;
     let root = conn.setup().roots.first()?.root;
-    let coords = conn
-        .translate_coordinates(xid, root, 0, 0)
-        .ok()?
-        .reply()
-        .ok()?;
+    let coords = conn.translate_coordinates(xid, root, 0, 0).ok()?.reply().ok()?;
 
     Some(super::WindowGeometry {
         x: coords.dst_x as f32,
@@ -72,11 +68,7 @@ pub fn work_area(mw: &dyn iced::window::Window) -> Option<iced::Rectangle> {
     let root = conn.setup().roots.first()?.root;
 
     let geometry = conn.get_geometry(xid).ok()?.reply().ok()?;
-    let coords = conn
-        .translate_coordinates(xid, root, 0, 0)
-        .ok()?
-        .reply()
-        .ok()?;
+    let coords = conn.translate_coordinates(xid, root, 0, 0).ok()?.reply().ok()?;
     let center_x = coords.dst_x as f32 + geometry.width as f32 / 2.0;
     let center_y = coords.dst_y as f32 + geometry.height as f32 / 2.0;
 
@@ -103,8 +95,7 @@ pub fn work_area(mw: &dyn iced::window::Window) -> Option<iced::Rectangle> {
         let x1 = (mx + mw_).min(work.x + work.width);
         let y1 = (my + mh).min(work.y + work.height);
         if x1 > x0 && y1 > y0 {
-            rect =
-                iced::Rectangle::new(iced::Point::new(x0, y0), iced::Size::new(x1 - x0, y1 - y0));
+            rect = iced::Rectangle::new(iced::Point::new(x0, y0), iced::Size::new(x1 - x0, y1 - y0));
         }
     }
     Some(rect)
@@ -142,21 +133,9 @@ fn xid_of(mw: &dyn iced::window::Window) -> Option<u32> {
 
 /// 读取根窗口的 `_NET_WORKAREA`（x, y, width, height 四个 CARDINAL）
 fn net_workarea(conn: &RustConnection, root: u32) -> Option<iced::Rectangle> {
-    let atom = conn
-        .intern_atom(false, b"_NET_WORKAREA")
-        .ok()?
-        .reply()
-        .ok()?
-        .atom;
+    let atom = conn.intern_atom(false, b"_NET_WORKAREA").ok()?.reply().ok()?.atom;
     let reply = conn
-        .get_property(
-            false,
-            root,
-            atom,
-            x11rb::protocol::xproto::AtomEnum::CARDINAL,
-            0,
-            4,
-        )
+        .get_property(false, root, atom, x11rb::protocol::xproto::AtomEnum::CARDINAL, 0, 4)
         .ok()?
         .reply()
         .ok()?;
@@ -178,18 +157,6 @@ pub fn set_foreground_window(_hwnd: isize) {}
 pub fn is_kde_plasma() -> bool {
     std::env::var("XDG_CURRENT_DESKTOP")
         .map(|desktop| desktop.contains("KDE"))
-        .unwrap_or(false)
-}
-
-/// 当前桌面是否为 GNOME（contains 匹配，覆盖 Ubuntu 的 "ubuntu:GNOME"
-/// 等组合值）
-///
-/// GNOME dock 图标右键菜单文案是"退出"（shell_app_quit），其实现与
-/// Alt+F4 同为 compositor 下发的 xdg_toplevel close 事件，应用无法区分；
-/// 按菜单语义，该桌面下窗口 close 事件一律视为退出程序请求
-pub fn is_gnome_desktop() -> bool {
-    std::env::var("XDG_CURRENT_DESKTOP")
-        .map(|desktop| desktop.contains("GNOME"))
         .unwrap_or(false)
 }
 
