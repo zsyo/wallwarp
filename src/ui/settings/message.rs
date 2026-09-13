@@ -100,6 +100,19 @@ pub enum SettingsMessage {
     AutoChangeThemeDirSelected(String, String),
     /// 清空定时切换主题分组选图目录（dir_type 为 "light"/"dark"）
     AutoChangeThemeDirCleared(String),
+    // 壁纸组相关消息
+    /// 壁纸组名称输入变化
+    GroupNameChanged(String),
+    /// 把当前在线筛选快照保存为壁纸组（同名覆盖）
+    SaveGroupFromCurrent,
+    /// 壁纸组保存完成（失败为错误信息）
+    GroupSaved(Result<(), String>),
+    /// 删除壁纸组（组 id）
+    DeleteGroup(i64),
+    /// 壁纸组删除完成（组 id；失败为错误信息）
+    GroupDeleted(i64, Result<(), String>),
+    /// 壁纸组列表加载完成
+    GroupsLoaded(Result<Vec<crate::services::database::WallpaperGroupDB>, String>),
     /// 展开语言选择器
     LanguagePickerExpanded,
     /// 关闭语言选择器
@@ -283,6 +296,17 @@ impl App {
             }
             SettingsMessage::HotkeyRecordCancelled => self.settings_hotkey_record_cancelled(),
             SettingsMessage::HotkeyCleared(action) => self.settings_hotkey_cleared(action),
+            SettingsMessage::GroupNameChanged(name) => {
+                self.settings_state.group_name_input = name;
+                Task::none()
+            }
+            SettingsMessage::SaveGroupFromCurrent => self.settings_save_group_from_current(),
+            SettingsMessage::GroupSaved(result) => self.settings_group_saved(result),
+            SettingsMessage::DeleteGroup(group_id) => self.settings_delete_group(group_id),
+            SettingsMessage::GroupDeleted(group_id, result) => {
+                self.settings_group_deleted(group_id, result)
+            }
+            SettingsMessage::GroupsLoaded(result) => self.settings_groups_loaded(result),
         }
     }
 }

@@ -48,6 +48,10 @@ pub struct App {
     pub auto_change_state: crate::ui::auto_change::AutoChangeState,
     /// 壁纸切换历史记录（最多50条）
     pub wallpaper_history: Vec<String>,
+    /// 壁纸组列表（DB 内存缓存；设置页增删与在线页应用共用）
+    pub wallpaper_groups: Vec<crate::services::database::WallpaperGroupDB>,
+    /// 壁纸组列表是否已从数据库加载
+    pub wallpaper_groups_loaded: bool,
     /// 壁纸历史页面状态
     pub history_state: crate::ui::history::HistoryState,
     /// 收藏夹页面状态
@@ -136,6 +140,8 @@ impl App {
             auto_change_state: super::auto_change::AutoChangeState::load_from_config(&config),
             download_state: super::download::DownloadStateFull::new(),
             wallpaper_history,
+            wallpaper_groups: Vec::new(),
+            wallpaper_groups_loaded: false,
             history_state: crate::ui::history::HistoryState::default(),
             favorites_state: crate::ui::favorites::FavoritesState::default(),
             hotkey_manager: None,

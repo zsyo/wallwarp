@@ -40,6 +40,13 @@ impl OnlineState {
             String::new()
         };
 
+        config.wallhaven.ratios = self.ratios_to_config_value();
+    }
+
+    /// 将比例选择状态组装为 config 取值（快捷项 + 精确项，逗号分隔）
+    ///
+    /// 配置同步（save_to_config）与壁纸组筛选快照共用
+    pub fn ratios_to_config_value(&self) -> String {
         let mut ratios_vec = Vec::new();
 
         if self.ratio_landscape_selected {
@@ -54,6 +61,6 @@ impl OnlineState {
             ratios_vec.push(ratio.value().to_string());
         }
 
-        config.wallhaven.ratios = ratios_vec.join(",");
+        ratios_vec.join(",")
     }
 }

@@ -56,6 +56,7 @@ pub fn create_filter_bar<'a>(
     i18n: &'a I18n,
     state: &'a OnlineState,
     config: &'a Config,
+    app_groups: &'a [crate::services::database::WallpaperGroupDB],
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
@@ -73,6 +74,9 @@ pub fn create_filter_bar<'a>(
         theme_colors.light_text,
     ));
 
+    // 壁纸组选择器（组含图源与筛选快照，应用后整体切换）
+    let group_picker = super::create_group_picker(i18n, app_groups, state, theme_colors);
+
     // Bing 每日一图无搜索/筛选维度，仅展示说明与刷新按钮
     if state.source != SourceKind::Wallhaven {
         let hint_row = row![
@@ -80,6 +84,7 @@ pub fn create_filter_bar<'a>(
                 .size(14)
                 .color(theme_colors.light_text_sub),
             Space::new().width(Length::Fill),
+            group_picker,
             refresh_button,
         ]
         .spacing(4)
@@ -234,6 +239,7 @@ pub fn create_filter_bar<'a>(
         } else {
             None
         },
+        group_picker,
         refresh_button,
     ]
     .spacing(4)

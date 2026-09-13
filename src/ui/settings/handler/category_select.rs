@@ -14,6 +14,10 @@ impl App {
         if category == SettingsCategory::Wallpaper && !self.settings_state.monitors_loaded {
             task = self.settings_load_monitors();
         }
+        // 首次进入壁纸组分类时加载组列表
+        if category == SettingsCategory::Groups && !self.wallpaper_groups_loaded {
+            task = task.chain(self.settings_load_groups());
+        }
         // 切换分类时收起全部下拉框，避免返回原分类时残留展开态
         self.settings_state.language_picker_expanded = false;
         self.settings_state.proxy_protocol_picker_expanded = false;
@@ -21,6 +25,7 @@ impl App {
         self.settings_state.log_level_picker_expanded = false;
         self.settings_state.sorting_picker_expanded = false;
         self.settings_state.time_range_picker_expanded = false;
+        self.settings_state.online_source_picker_expanded = false;
         task
     }
 }

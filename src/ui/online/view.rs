@@ -15,10 +15,12 @@ pub fn online_view<'a>(
     window_width: u32,
     online_state: &'a OnlineState,
     config: &'a Config,
+    wallpaper_groups: &'a [crate::services::database::WallpaperGroupDB],
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     // 创建筛选栏
-    let filter_bar = widget::create_filter_bar(i18n, online_state, config, theme_config);
+    let filter_bar =
+        widget::create_filter_bar(i18n, online_state, config, wallpaper_groups, theme_config);
 
     // 创建壁纸列表
     let wallpaper_list =

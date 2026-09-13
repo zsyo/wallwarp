@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+mod apply_group;
 mod build_search_params;
 mod check_thumbs;
 mod copy_image_link;

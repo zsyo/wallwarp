@@ -43,6 +43,8 @@ pub enum SettingsCategory {
     Wallpaper,
     /// 图源：壁纸在线来源与 API 密钥（预留多图源管理）
     Sources,
+    /// 壁纸组：命名的壁纸配置快照（图源 + 筛选 + 模式）
+    Groups,
     /// 快捷键：占位，功能开发中
     Hotkeys,
     /// 网络：代理设置

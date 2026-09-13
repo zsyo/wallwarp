@@ -12,6 +12,7 @@ mod proxy_protocol_picker;
 mod section_about_info;
 mod section_data_config;
 mod section_general;
+mod section_groups;
 mod section_hotkeys;
 mod section_network;
 mod section_sources;
@@ -46,6 +47,7 @@ pub(in crate::ui::settings) use {
     section_about_info::create_about_info_section,
     section_data_config::create_data_config_section,
     section_general::create_general_section,
+    section_groups::create_groups_section,
     section_hotkeys::create_hotkeys_section,
     section_network::create_network_section,
     section_sources::create_sources_section,

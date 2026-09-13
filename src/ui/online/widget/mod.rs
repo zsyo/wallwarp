@@ -4,6 +4,7 @@ mod diagonal_line;
 mod filter;
 mod filter_color_grid_options;
 mod filter_color_picker;
+mod filter_group_picker;
 mod filter_grouped_grid;
 mod filter_ratio_grid_options;
 mod filter_ratio_picker;
@@ -30,6 +31,7 @@ use {
     filter_sorting_picker::create_sorting_picker,
     filter_time_range_picker::create_time_range_picker,
 };
+use filter_group_picker::create_group_picker;
 
 use {
     list_failed_placeholder::create_load_failed_placeholder,

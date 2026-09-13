@@ -3,6 +3,7 @@
 mod action;
 mod load_from_config;
 mod save_to_config;
+mod sync_filters;
 
 use crate::services::request_context::RequestContext;
 use crate::services::source::SourceKind;
@@ -117,6 +118,8 @@ pub struct OnlineState {
     pub sorting_picker_expanded: bool,
     /// 时间范围选择器展开状态
     pub time_range_picker_expanded: bool,
+    /// 壁纸组选择器展开状态
+    pub group_picker_expanded: bool,
     /// 请求上下文，用于取消正在进行的请求
     pub request_context: RequestContext,
     /// 待设置壁纸的文件名（用于在下载完成后自动设置壁纸）
@@ -174,6 +177,7 @@ impl Default for OnlineState {
             ratio_all_selected: false,
             sorting_picker_expanded: false,
             time_range_picker_expanded: false,
+            group_picker_expanded: false,
             request_context: RequestContext::new(),
             pending_set_wallpaper_filename: None,
             modal_download_cancel_token: None,

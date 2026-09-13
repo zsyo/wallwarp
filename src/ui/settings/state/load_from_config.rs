@@ -50,6 +50,7 @@ impl SettingsState {
             sorting_picker_expanded: false,
             time_range_picker_expanded: false,
             online_source_picker_expanded: false,
+            group_name_input: String::new(),
             auto_change_theme_aware: config.wallpaper.auto_change_theme_aware,
             hotkey_recording: None,
             show_path_clear_confirmation: false,
