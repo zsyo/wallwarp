@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::ui::common::cached_image_missing;
+use crate::ui::common::{self, cached_image_missing};
 use crate::ui::favorites::state::ThumbState;
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -12,19 +12,8 @@ impl App {
     /// 已加载项的缩略图缓存丢失，需置回加载中并重新加载
     /// （缩略图加载自带缓存命中判断，文件存在则直接复用，不会重复下载/生成）
     pub(in crate::ui::favorites) fn favorites_check_thumbs(&mut self) -> Task<AppMessage> {
-        let force_reload = self.favorites_state.thumbs_stale;
-        self.favorites_state.thumbs_stale = false;
-
-        // 预览原图缓存丢失时直接关闭模态（重新打开即可重新加载）
-        if self.favorites_state.modal_visible
-            && self
-                .favorites_state
-                .modal_handle
-                .as_ref()
-                .is_some_and(cached_image_missing)
-        {
-            self.favorites_state.close_modal();
-        }
+        // 公共骨架：读取失效标志 + 预览缓存丢失时关闭模态（在途下载一并取消）
+        let force_reload = common::begin_thumb_check(&mut self.favorites_state);
 
         let proxy = self.config.resolved_proxy();
         let cache_path = self.config.data.cache_path.clone();

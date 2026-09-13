@@ -261,3 +261,21 @@ impl FavoritesState {
         true
     }
 }
+
+impl crate::ui::common::ThumbCheckState for FavoritesState {
+    fn take_thumbs_stale(&mut self) -> bool {
+        std::mem::take(&mut self.thumbs_stale)
+    }
+
+    fn modal_visible(&self) -> bool {
+        self.modal_visible
+    }
+
+    fn modal_handle(&self) -> Option<&iced::widget::image::Handle> {
+        self.modal_handle.as_ref()
+    }
+
+    fn close_modal(&mut self) {
+        FavoritesState::close_modal(self)
+    }
+}

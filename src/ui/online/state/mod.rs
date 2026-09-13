@@ -140,6 +140,33 @@ pub struct OnlineState {
     pub favorite_ids: std::collections::HashSet<String>,
 }
 
+impl OnlineState {
+    /// 关闭预览模态并取消在途大图下载
+    pub fn close_modal(&mut self) {
+        self.modal_visible = false;
+        self.modal_image_handle = None;
+        self.cancel_modal_download();
+    }
+}
+
+impl crate::ui::common::ThumbCheckState for OnlineState {
+    fn take_thumbs_stale(&mut self) -> bool {
+        std::mem::take(&mut self.thumbs_stale)
+    }
+
+    fn modal_visible(&self) -> bool {
+        self.modal_visible
+    }
+
+    fn modal_handle(&self) -> Option<&iced::widget::image::Handle> {
+        self.modal_image_handle.as_ref()
+    }
+
+    fn close_modal(&mut self) {
+        OnlineState::close_modal(self)
+    }
+}
+
 impl Default for OnlineState {
     fn default() -> Self {
         Self {

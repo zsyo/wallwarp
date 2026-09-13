@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::async_task;
-use crate::ui::common::cached_image_missing;
+use crate::ui::common::{self, cached_image_missing};
 use crate::ui::online::{OnlineMessage, WallpaperLoadStatus};
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -15,21 +15,8 @@ impl App {
     /// 已加载项的缓存文件丢失，需置回加载中并重发缩略图任务
     /// （在线缩略图加载自带缓存命中判断，文件存在则直接复用，不会重复下载）
     pub(in crate::ui::online) fn online_check_thumbs(&mut self) -> Task<AppMessage> {
-        let force_reload = self.online_state.thumbs_stale;
-        self.online_state.thumbs_stale = false;
-
-        // 模态大图缓存丢失时直接关闭模态（大图走流式下载，重新打开即可重新加载）
-        if self.online_state.modal_visible
-            && self
-                .online_state
-                .modal_image_handle
-                .as_ref()
-                .is_some_and(cached_image_missing)
-        {
-            self.online_state.modal_visible = false;
-            self.online_state.modal_image_handle = None;
-            self.online_state.cancel_modal_download();
-        }
+        // 公共骨架：读取失效标志 + 预览缓存丢失时关闭模态（在途下载一并取消）
+        let force_reload = common::begin_thumb_check(&mut self.online_state);
 
         // 先收集失效项索引，避免遍历中同时借用 wallpapers 与 wallpapers_data
         let stale_indexes: Vec<usize> = self

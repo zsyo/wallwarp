@@ -2,7 +2,7 @@
 
 use crate::services::async_task;
 use crate::services::local::Wallpaper;
-use crate::ui::common::cached_image_missing;
+use crate::ui::common::{self, cached_image_missing};
 use crate::ui::local::{LocalMessage, WallpaperLoadStatus};
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -14,20 +14,8 @@ impl App {
     /// 已加载项的缩略图缓存丢失，需置回加载中并重发生成
     /// （本地缩略图生成自带"缓存存在则复用"判断，文件存在不会重复生成）
     pub(in crate::ui::local) fn local_check_thumbs(&mut self) -> Task<AppMessage> {
-        let force_reload = self.local_state.thumbs_stale;
-        self.local_state.thumbs_stale = false;
-
-        // 模态大图文件丢失时直接关闭模态（重新打开即可重新加载）
-        if self.local_state.modal_visible
-            && self
-                .local_state
-                .modal_image_handle
-                .as_ref()
-                .is_some_and(cached_image_missing)
-        {
-            self.local_state.modal_visible = false;
-            self.local_state.modal_image_handle = None;
-        }
+        // 公共骨架：读取失效标志 + 预览缓存丢失时关闭模态
+        let force_reload = common::begin_thumb_check(&mut self.local_state);
 
         let cache_path = self.config.data.cache_path.clone();
 

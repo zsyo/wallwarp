@@ -15,6 +15,33 @@ pub fn cached_image_missing(handle: &Handle) -> bool {
     }
 }
 
+/// 各页面缩略图检查入口的公共状态接口（在线/本地/收藏夹/历史四页 check_thumbs 共用）
+///
+/// 各页面 State 均持有"缓存失效标志 + 预览模态"两组状态，
+/// 进入页面时的公共处理为：读取并清零失效标志、预览缓存丢失时关闭模态
+pub trait ThumbCheckState {
+    /// 读取并清零"缩略图缓存已失效"标志
+    fn take_thumbs_stale(&mut self) -> bool;
+    /// 预览模态是否可见
+    fn modal_visible(&self) -> bool;
+    /// 预览模态当前展示的图片句柄
+    fn modal_handle(&self) -> Option<&Handle>;
+    /// 关闭预览模态（含各页面在途下载的取消）
+    fn close_modal(&mut self);
+}
+
+/// 各页面 check_thumbs 的公共骨架
+///
+/// 返回 force_reload（失效标志），由调用方决定是否对全部已加载项重载
+pub fn begin_thumb_check(state: &mut impl ThumbCheckState) -> bool {
+    let force_reload = state.take_thumbs_stale();
+    // 预览原图缓存丢失时直接关闭模态（重新打开即可重新加载）
+    if state.modal_visible() && state.modal_handle().is_some_and(cached_image_missing) {
+        state.close_modal();
+    }
+    force_reload
+}
+
 mod bordered_container;
 mod card_style;
 mod checkbox;

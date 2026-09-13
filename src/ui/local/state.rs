@@ -24,6 +24,32 @@ pub struct LocalState {
     pub favorite_paths: std::collections::HashSet<String>,
 }
 
+impl LocalState {
+    /// 关闭预览模态并释放原图句柄
+    pub fn close_modal(&mut self) {
+        self.modal_visible = false;
+        self.modal_image_handle = None;
+    }
+}
+
+impl crate::ui::common::ThumbCheckState for LocalState {
+    fn take_thumbs_stale(&mut self) -> bool {
+        std::mem::take(&mut self.thumbs_stale)
+    }
+
+    fn modal_visible(&self) -> bool {
+        self.modal_visible
+    }
+
+    fn modal_handle(&self) -> Option<&iced::widget::image::Handle> {
+        self.modal_image_handle.as_ref()
+    }
+
+    fn close_modal(&mut self) {
+        LocalState::close_modal(self)
+    }
+}
+
 impl Default for LocalState {
     fn default() -> Self {
         Self {
