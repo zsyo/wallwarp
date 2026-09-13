@@ -33,7 +33,7 @@ impl App {
         debug!("[模态窗口图片下载] 下载失败: {}", error);
         // 切换图片场景：这是旧任务被取消的残余消息，新任务已在途，
         // 不重置其进度显示、不清掉新任务的取消令牌
-        if error == crate::services::download::DOWNLOAD_CANCELLED
+        if crate::services::download::is_cancelled_message(&error)
             && self.online_state.modal_download_cancel_token.is_some()
         {
             return Task::none();

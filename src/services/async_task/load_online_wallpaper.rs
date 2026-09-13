@@ -90,10 +90,7 @@ pub async fn async_load_online_wallpaper_thumb_with_cache_with_cancel(
 ) -> Result<Handle, Box<dyn Error + Send + Sync>> {
     // 在下载前检查取消状态
     if cancel_token.load(Ordering::Relaxed) {
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Interrupted,
-            crate::services::download::DOWNLOAD_CANCELLED,
-        )) as Box<dyn Error + Send + Sync>);
+        return Err(crate::services::download::cancelled_error());
     }
 
     // 使用DownloadService的智能缓存加载功能

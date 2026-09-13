@@ -100,10 +100,7 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
             info!("[模态窗口图片下载] [URL:{}] 下载被取消", url);
             // 删除未完成的文件
             let _ = tokio::fs::remove_file(&cache_file).await;
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Interrupted,
-                crate::services::download::DOWNLOAD_CANCELLED,
-            )) as Box<dyn Error + Send + Sync>);
+            return Err(crate::services::download::cancelled_error());
         }
 
         let chunk = chunk_result.map_err(|e| {

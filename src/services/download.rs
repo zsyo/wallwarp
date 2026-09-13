@@ -6,8 +6,21 @@ use tracing::{debug, error};
 use xxhash_rust::xxh3::xxh3_128;
 
 /// 下载被取消时统一使用的错误文案
-/// (UI 层依赖此精确文案区分"用户取消"与"下载失败",禁止散落硬编码)
+/// (取消判定统一经 is_cancelled_message，禁止散落硬编码)
 pub const DOWNLOAD_CANCELLED: &str = "下载已取消";
+
+/// 构造"下载已取消"错误（各下载路径的 Box 错误统一经此构造）
+pub fn cancelled_error() -> Box<dyn std::error::Error + Send + Sync> {
+    Box::new(std::io::Error::new(
+        std::io::ErrorKind::Interrupted,
+        DOWNLOAD_CANCELLED,
+    ))
+}
+
+/// 判定 String 错误文本是否为"下载已取消"（UI 消息链路使用）
+pub fn is_cancelled_message(message: &str) -> bool {
+    message == DOWNLOAD_CANCELLED
+}
 
 /// 下载服务，处理在线壁纸的缓存和下载
 pub struct DownloadService;
@@ -137,10 +150,7 @@ impl DownloadService {
     ) -> Result<iced::widget::image::Handle, Box<dyn std::error::Error + Send + Sync>> {
         // 在下载前检查取消状态
         if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Interrupted,
-                DOWNLOAD_CANCELLED,
-            )) as Box<dyn std::error::Error + Send + Sync>);
+            return Err(cancelled_error());
         }
 
         // 计算缓存路径
@@ -160,10 +170,7 @@ impl DownloadService {
 
         // 再次检查取消状态（下载完成后）
         if cancel_token.load(std::sync::atomic::Ordering::Relaxed) {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Interrupted,
-                DOWNLOAD_CANCELLED,
-            )) as Box<dyn std::error::Error + Send + Sync>);
+            return Err(cancelled_error());
         }
 
         // 返回缓存的图片Handle
@@ -243,14 +250,6 @@ impl DownloadService {
         proxy: Option<String>,
         cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-        /// 构造"下载已取消"错误
-        fn cancelled_error() -> Box<dyn std::error::Error + Send + Sync> {
-            Box::new(std::io::Error::new(
-                std::io::ErrorKind::Interrupted,
-                DOWNLOAD_CANCELLED,
-            ))
-        }
-
         // 使用统一的代理客户端创建逻辑（支持环境变量回退）
         let client = crate::services::proxy::create_client_with_env_fallback(
             proxy,

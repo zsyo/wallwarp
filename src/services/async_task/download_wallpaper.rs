@@ -166,7 +166,7 @@ pub async fn async_download_wallpaper_task_with_progress(
         Err(e) => {
             // 非取消类失败时清理半成品临时文件;取消/暂停场景必须保留文件以支持
             // 续传,其清理由 UI 层(取消/重试)按任务总大小定位删除
-            if e != crate::services::download::DOWNLOAD_CANCELLED {
+            if !crate::services::download::is_cancelled_message(&e) {
                 match tokio::fs::remove_file(&cache_file_path).await {
                     Ok(()) => info!(
                         "[下载任务] [ID:{}] 已清理未完成的临时文件: {}",

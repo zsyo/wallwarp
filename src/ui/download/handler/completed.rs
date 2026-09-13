@@ -44,7 +44,7 @@ impl App {
                     // 下载失败
                     let error_msg = error.unwrap();
                     // 检查是否是用户取消
-                    if error_msg == crate::services::download::DOWNLOAD_CANCELLED {
+                    if crate::services::download::is_cancelled_message(&error_msg) {
                         // 检查任务是否在暂停状态被取消
                         // 如果任务原本是暂停状态，则保持暂停，否则设置为已取消
                         // 如果不是暂停状态，设置为已取消

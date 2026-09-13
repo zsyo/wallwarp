@@ -3,7 +3,6 @@
 //! 收藏项预览模态（打开/翻页/关闭/原图下载进度）
 
 use crate::services::async_task;
-use crate::services::download::DOWNLOAD_CANCELLED;
 use crate::services::source::SourceKind;
 use crate::ui::favorites::FavoritesMessage;
 use crate::ui::{App, AppMessage};
@@ -152,7 +151,8 @@ impl App {
         debug!("[收藏夹] [模态预览] 原图下载失败: {}", error);
         // 切换图片场景：这是旧任务被取消的残余消息，新任务已在途，
         // 不重置其进度显示、不清掉新任务的取消令牌
-        if error == DOWNLOAD_CANCELLED && self.favorites_state.modal_download_cancel_token.is_some()
+        if crate::services::download::is_cancelled_message(&error)
+            && self.favorites_state.modal_download_cancel_token.is_some()
         {
             return Task::none();
         }
