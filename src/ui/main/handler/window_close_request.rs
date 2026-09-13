@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::platform;
 use crate::ui::main::MainMessage;
 use crate::ui::{App, AppMessage};
 use crate::utils::config::CloseAction;
@@ -13,6 +14,17 @@ impl App {
         // 仅响应主窗口的关闭请求（悬浮球窗口 closeable=false 不会触发）
         if id != self.main_window_id {
             return Task::none();
+        }
+
+        // compositor 下发的 close 事件与用户 Alt+F4 同通道，按桌面语义分流：
+        // - KDE 注销/关机（isShuttingDown）：托盘化/询问会让会话管理器等待
+        //   超时，弹出"应用未关闭"确认框阻塞关机，必须直接退出
+        // - GNOME（dock 右键菜单文案为"退出"）：托盘化/询问会让"退出"看似
+        //   无响应，同样直接退出（Alt+F4 同通道无法区分，一并退出）
+        // 其余桌面（KDE/Windows 任务栏菜单文案是"关闭窗口"）按配置处理；
+        // 非 Linux 环境两个检测恒为 false
+        if platform::is_session_shutting_down() || platform::is_gnome_desktop() {
+            return self.quit_program();
         }
 
         // 根据配置处理关闭请求

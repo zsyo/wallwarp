@@ -47,7 +47,10 @@ rusqlite = { version = "0.40", features = ["bundled"] }
 interprocess = { version = "2.4", features = ["tokio"] }
 
 # 托盘图标与原生菜单（三平台；Linux 需系统库 libayatana-appindicator3 / gtk3）
-tray-icon = "0.24"
+# 0.25 + 禁用默认 features：剔除 muda 的 libxdo 依赖（libxdo 仅服务于菜单
+# accelerator，本项目未使用；且 xdotool 4 起各发行版 libxdo soname 已滚动至
+# .so.4，编译期链接 .so.3 会让 Arch/Fedora 等滚动发行版运行时缺库）
+tray-icon = { version = "0.25", default-features = false }
 
 # 全局热键（三平台；Linux 仅 X11，Wayland 由 supports_global_hotkeys 运行时探测禁用；
 # x11rb 0.13 / keyboard-types 0.7 与依赖树既有版本一致，不会引入重复副本）
@@ -92,8 +95,8 @@ objc2-app-kit = { version = "0.3", features = [
 ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-# gtk 特性启用 libappindicator 托盘后端；gtk crate 用于创建弹窗锚点窗口
-tray-icon = { version = "0.24", features = ["gtk"] }
+# libappindicator 特性启用托盘后端（内部启用 muda/gtk3）；gtk crate 用于创建弹窗锚点窗口
+tray-icon = { version = "0.25", default-features = false, features = ["libappindicator"] }
 gtk = "0.18"
 # X11 后端：悬浮球贴边所需的显示器几何与窗口移动
 # （randr 特性查询显示器工作区；arboard/winit 也依赖 x11rb 0.13，保持同版本单一副本）
@@ -115,7 +118,6 @@ icons = ["assets/logo-*.png"]
 #   libayatana-appindicator3-1  托盘图标（appindicator 后端）
 #   libxkbcommon-x11-0          winit X11 键盘输入
 #   libssl3                     OpenSSL 运行库（reqwest native-tls）
-#   libxdo3                     muda 菜单运行时动态链接的 libxdo
 # Ubuntu 24.04+ 的 t64 改名包（libgtk-3-0t64/libssl3t64）经 Provides: <旧名> 满足本依赖
 [package.metadata.packager.deb]
 depends = [
@@ -123,7 +125,6 @@ depends = [
     "libayatana-appindicator3-1",
     "libxkbcommon-x11-0",
     "libssl3",
-    "libxdo3",
 ]
 
 # macOS：app bundle + dmg（CI 通过 --formats app,dmg 指定）
@@ -162,5 +163,4 @@ assets = [
 "libgtk-3.so.0()(64bit)" = "*"
 "libayatana-appindicator3.so.1()(64bit)" = "*"
 "libxkbcommon-x11.so.0()(64bit)" = "*"
-"libxdo.so.3()(64bit)" = "*"
 "libssl.so.3()(64bit)" = "*"

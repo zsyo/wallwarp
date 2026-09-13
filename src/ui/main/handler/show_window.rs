@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::platform;
-use crate::ui::main::main_window_settings;
+use crate::ui::main::{MainMessage, main_window_settings};
 use crate::ui::{App, AppMessage};
 use iced::Task;
 use iced::window;
@@ -19,20 +19,19 @@ impl App {
         // 改为"新建主窗口替换旧窗口"实现恢复（悬浮球在 Wayland 不存在，
         // 主窗口是唯一窗口，先开后关不会触发 daemon 因无窗口而退出）
         if platform::is_wayland() {
-            let mut settings = main_window_settings(&self.config, true);
-            // 保留用户上次调整的窗口尺寸（位置在 Wayland 下无法查询，居中打开）
-            if let Some((width, height)) = self.main_state.pending_window_size {
-                settings.size = iced::Size::new(width as f32, height as f32);
+            // KDE Wayland：重建窗口前移除"跳过任务栏"规则。KWin 的
+            // reconfigure 有 200ms 防抖，须等其重载规则书后再创建新窗口，
+            // 否则新窗口映射时仍被内存中的旧规则命中，任务栏条目丢失
+            // （其余环境移除规则为空操作，无需等待）
+            let rule_removed = platform::on_restored_from_tray();
+            let settings = self.recreate_window_settings();
+            if rule_removed {
+                return Task::perform(
+                    async { tokio::time::sleep(std::time::Duration::from_millis(300)).await },
+                    move |_| MainMessage::WindowRecreateReady(settings).into(),
+                );
             }
-            let (new_id, open_task) = window::open(settings);
-            let old_id = std::mem::replace(&mut self.main_window_id, new_id);
-            self.main_state.is_maximized = false;
-            self.main_state.is_visible = true;
-            tracing::info!("[显示窗口] [Wayland] 重建主窗口恢复可见: {old_id:?} -> {new_id:?}");
-            return Task::batch(vec![
-                open_task.map(|_| AppMessage::None),
-                window::close::<AppMessage>(old_id),
-            ]);
+            return self.window_recreate_ready(settings);
         }
 
         let main_id = self.main_window_id;
@@ -43,6 +42,32 @@ impl App {
             window::minimize(main_id, false),
             // 置前并获得焦点
             window::gain_focus(main_id),
+        ])
+    }
+
+    /// 组装重建主窗口的窗口参数（保留用户上次调整的尺寸；
+    /// 位置在 Wayland 下无法查询，居中打开）
+    fn recreate_window_settings(&self) -> window::Settings {
+        let mut settings = main_window_settings(&self.config, true);
+        if let Some((width, height)) = self.main_state.pending_window_size {
+            settings.size = iced::Size::new(width as f32, height as f32);
+        }
+        settings
+    }
+
+    /// 延迟到期（或无需等待）：新建主窗口替换旧窗口实现恢复
+    pub(in crate::ui::main) fn window_recreate_ready(
+        &mut self,
+        settings: window::Settings,
+    ) -> Task<AppMessage> {
+        let (new_id, open_task) = window::open(settings);
+        let old_id = std::mem::replace(&mut self.main_window_id, new_id);
+        self.main_state.is_maximized = false;
+        self.main_state.is_visible = true;
+        tracing::info!("[显示窗口] [Wayland] 重建主窗口恢复可见: {old_id:?} -> {new_id:?}");
+        Task::batch(vec![
+            open_task.map(|_| AppMessage::None),
+            window::close::<AppMessage>(old_id),
         ])
     }
 }

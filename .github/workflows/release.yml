@@ -92,7 +92,7 @@ jobs:
             libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
             libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
             libx11-dev libxcb1-dev libxrandr-dev libxi-dev cmake \
-            libssl-dev pkg-config libxdo-dev \
+            libssl-dev pkg-config \
             libarchive-tools zstd
 
       - name: Install Tools
@@ -151,7 +151,6 @@ jobs:
         # 本机 makepkg），因此在其数据基础上直接装配标准 pacman 包：
         # .PKGINFO + .MTREE（bsdtar 生成，与 makepkg 同参，含 md5/sha256 摘要）
         # + 数据目录 → zstd 压缩 tar，产物可直接 pacman -U 安装
-        # （xdotool 提供 libxdo，muda 菜单运行时动态链接）
         if: runner.os == 'Linux'
         run: |
           set -euo pipefail
@@ -175,6 +174,12 @@ jobs:
 
           mkdir -p pacman-pkg dist
           tar -xzf "${data_tars[0]}" -C pacman-pkg
+          # 权限归一：cargo-packager 数据包的目录为 777，pacman 与文件系统 755
+          # 对比会产生大量"目录权限不一致"警告；归一为目录 755、普通文件 644、
+          # 二进制 755
+          find pacman-pkg -type d -exec chmod 755 {} +
+          find pacman-pkg -type f -exec chmod 644 {} +
+          chmod 755 pacman-pkg/usr/bin/wallwarp
           installed_size="$(du -sb pacman-pkg | cut -f1)"
 
           cat > pacman-pkg/.PKGINFO <<EOF
@@ -191,7 +196,6 @@ jobs:
           depend = gtk3
           depend = libayatana-appindicator
           depend = openssl
-          depend = xdotool
           xdata = pkgtype=pkg
           EOF
 

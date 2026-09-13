@@ -95,9 +95,10 @@ impl I18n {
 
     /// 解析 locales 目录：按候选顺序取第一个存在的目录
     ///
-    /// 候选覆盖各打包形态：exe 同级（Windows 便携 / AppImage）、
-    /// macOS .app 的 Resources、应用目录上级，最后回退工作目录
-    /// （开发模式 cargo run 从项目根启动）与内嵌兜底
+    /// 候选覆盖各打包形态：exe 同级（Windows 便携）、Linux 系统安装的
+    /// 资源分离布局（deb/rpm/AppImage：/usr/bin/wallwarp +
+    /// /usr/lib/wallwarp/locales）、macOS .app 的 Resources、应用目录上级，
+    /// 最后回退工作目录（开发模式 cargo run 从项目根启动）与内嵌兜底
     fn resolve_locales_dir() -> PathBuf {
         Self::locales_dir_candidates()
             .into_iter()
@@ -111,6 +112,9 @@ impl I18n {
             && let Some(dir) = exe.parent()
         {
             candidates.push(dir.join(LOCALES_DIR_NAME));
+            // Linux 系统安装布局：/usr/bin/../lib/wallwarp/locales
+            // （deb/rpm 与 AppImage 的统一 resources 位置）
+            candidates.push(dir.join("..").join("lib").join("wallwarp").join(LOCALES_DIR_NAME));
             candidates.push(dir.join("..").join("Resources").join(LOCALES_DIR_NAME));
             candidates.push(dir.join("..").join(LOCALES_DIR_NAME));
             candidates.push(dir.join("..").join("..").join(LOCALES_DIR_NAME));

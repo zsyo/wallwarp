@@ -45,6 +45,9 @@ pub enum MainMessage {
     MinimizeToTray,
     /// 窗口最小化到托盘最终隐藏事件
     WindowHiddenReady(iced::window::Id),
+    /// Wayland 重建主窗口延迟到期事件（携带窗口参数；KDE Wayland 移除
+    /// 任务栏规则后等 KWin 重载规则书，再创建新窗口避免被旧规则命中）
+    WindowRecreateReady(iced::window::Settings),
     /// 托盘图标点击事件
     TrayIconClicked,
     /// 托盘菜单事件
@@ -126,6 +129,7 @@ impl App {
             MainMessage::FloatingBallSavePosition => self.floating_ball_save_position(),
             MainMessage::MinimizeToTray => self.minimize_to_tray(),
             MainMessage::WindowHiddenReady(id) => self.window_hidden_ready(id),
+            MainMessage::WindowRecreateReady(settings) => self.window_recreate_ready(settings),
             MainMessage::TrayIconClicked => self.show_window(),
             MainMessage::TrayMenuEvent(id) => self.tray_menu_event(id),
             MainMessage::ScrollToTop(scrollable_id) => self.scroll_to_top(scrollable_id),

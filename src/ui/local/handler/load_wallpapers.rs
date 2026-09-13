@@ -32,6 +32,12 @@ impl App {
         self.local_state.loaded_data_path = Some(self.config.data.data_path.clone());
         self.local_state.total_count = self.local_state.all_paths.len();
 
+        // 重置分页游标：重载可能发生在已浏览过若干页之后（如下载完成
+        // 置空 loaded_data_path 后再进本页），残留的游标会让后续 LoadPage
+        // 误判"没有更多壁纸"直接返回，整页停留在此处初始化的 Loading 状态
+        self.local_state.current_page = 0;
+        self.local_state.loading_page = false;
+
         // 初始化壁纸状态为Loading，并加载第一页
         let page_end = std::cmp::min(self.local_state.page_size, self.local_state.total_count);
         self.local_state.wallpapers = vec![WallpaperLoadStatus::Loading; page_end];

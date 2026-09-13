@@ -38,6 +38,10 @@ fn main() -> iced::Result {
     let cfg = config::Config::new(&i18n.current_lang, &i18n.lang_codes());
     logger::init_logger(cfg.global.enable_logging, cfg.global.log_level);
 
+    // 启动清理：上次退出或崩溃可能残留 KDE Wayland 的"跳过任务栏"规则，
+    // 残留会让本次窗口一直不显示任务栏条目（仅 KDE Wayland 环境，其余为空操作）
+    wallwarp::platform::on_restored_from_tray();
+
     let system_ui_font = helpers::get_system_ui_font();
     info!("[启动] 系统 UI 字体: {}", system_ui_font);
 

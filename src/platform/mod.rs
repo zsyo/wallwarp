@@ -28,6 +28,10 @@ mod linux;
 #[cfg(target_os = "linux")]
 use linux as imp;
 
+// KDE Wayland 托盘化的任务栏条目控制，仅 Linux 编译（其余平台为空操作）
+#[cfg(target_os = "linux")]
+mod kwin_rules;
+
 /// 弹出原生菜单所需的窗口锚点（由基本类型组成，可跨线程传递）
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowAnchor {
@@ -92,6 +96,32 @@ pub fn is_kde_plasma() -> bool {
     }
 }
 
+/// KDE Wayland：最小化到托盘时写入"跳过任务栏"窗口规则并触发 KWin
+/// 重载（Wayland 协议无法撤回窗口，最小化后任务栏仍显示条目；规则为
+/// Force 等级，对已映射窗口即时生效，条目随之消失）。非该环境为空操作
+pub fn on_minimized_to_tray() {
+    #[cfg(target_os = "linux")]
+    {
+        kwin_rules::on_minimized_to_tray();
+    }
+}
+
+/// KDE Wayland：从托盘恢复（及启动清理）时移除"跳过任务栏"规则，
+/// 窗口恢复任务栏条目。非该环境为空操作
+///
+/// 返回是否实际移除了规则——KWin 的 reconfigure 有 200ms 防抖，
+/// 重建主窗口需等重载完成后再创建（见 show_window 的 Wayland 分支）
+pub fn on_restored_from_tray() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        kwin_rules::on_restored_from_tray()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
+}
+
 /// KDE Plasma 壁纸设置（仅 Linux 有实现）：经 gdbus 直连 PlasmaShell
 /// 同时写入铺满模式与壁纸路径。wallpaper crate 的 KDE 分支依赖 qdbus
 /// 命令（Fedora 等发行版默认缺失），此实现用 glib2 自带的 gdbus
@@ -104,6 +134,40 @@ pub fn set_wallpaper_kde(path: &str, mode: wallpaper::Mode) -> Result<(), String
     {
         let _ = (path, mode);
         Err("KDE Plasma 壁纸设置仅支持 Linux".into())
+    }
+}
+
+/// 当前桌面是否为 GNOME（非 Linux 平台恒为 false）
+///
+/// GNOME dock 右键菜单文案是"退出"，其请求与 Alt+F4 同为 compositor
+/// 下发的 close 事件无法区分，按菜单语义该桌面下 close 事件视为退出
+/// 程序请求；KDE/Windows 任务栏菜单文案是"关闭（窗口）"，走 close_action
+pub fn is_gnome_desktop() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        imp::is_gnome_desktop()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
+}
+
+/// 当前 KDE 会话是否正在注销/关机（非 Linux 平台恒为 false）
+///
+/// 会话管理器（ksmserver）在注销/关机流程第一步 closeSession 即置位该
+/// 状态，早于 compositor（KWin closeWaylandWindows）向窗口下发 close 事件。
+/// Wayland 下"会话关闭"与用户 Alt+F4 走同一 close 通道无法直接区分，
+/// 收到窗口关闭请求时查询此状态：会话结束必须退出而非托盘化，否则会话
+/// 管理器等待超时后弹出"应用未关闭"确认框阻塞关机
+pub fn is_session_shutting_down() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        imp::is_session_shutting_down()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
     }
 }
 

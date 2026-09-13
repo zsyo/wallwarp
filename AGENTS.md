@@ -69,8 +69,11 @@
   各一文件 + menu.rs），UI/handler 层禁止直接 `use windows::` / objc / x11rb；
   新增平台能力时先在 platform/mod.rs 定义公共签名，再补三平台实现
 - **编译隔离**：平台专属依赖必须放 `[target.'cfg(...)'.dependencies]`
-  （windows/winreg、objc2 系、x11rb/gtk）；tray-icon 为全平台依赖（Linux 需
-  `features = ["gtk"]` 启用 libappindicator 后端）
+  （windows/winreg、objc2 系、x11rb/gtk）；tray-icon 为全平台依赖
+  （0.25 起 default-features = false 剔除 muda/libxdo——libxdo 仅服务于未
+  使用的菜单 accelerator，且 xdotool 4 起各发行版 soname 滚动至 .so.4，
+  编译期链接 .so.3 会在滚动发行版缺库；Linux 需
+  `features = ["libappindicator"]` 启用 libappindicator 托盘后端）
 - **数据目录**：`helpers::app_root_dir()` 决定数据根（data/db/logs 的基准；
   启动时 set_current_dir 到该根目录，其余代码继续使用相对路径）——
   Windows 为 exe 同级（便携式），macOS 为 `~/Library/Application Support/WallWarp`，
@@ -79,7 +82,9 @@
   `~/.cache/wallwarp`（`helpers::default_cache_path()`），macOS/Windows
   全部位于数据根内
 - **locales 资源**：`i18n::resolve_locales_dir()` 按候选序解析（exe 同级 →
-  `../Resources/locales`（mac bundle）→ `../locales` → CWD），支持运行时热加载
+  `../lib/wallwarp/locales`（Linux 系统安装的统一资源布局：deb/rpm/AppImage
+  均为 /usr/bin/wallwarp + /usr/lib/wallwarp/locales）→ `../Resources/locales`
+  （mac bundle）→ `../locales` → CWD），支持运行时热加载
 - **开机自启动**：`src/utils/startup/` 按平台拆分——Windows 注册表 Run 键、
   macOS LaunchAgent plist（`top.aico.wallwarp`）、Linux XDG autostart desktop；
   Linux AppImage 场景必须用 `APPIMAGE` 环境变量取真实路径（挂载点易失）
@@ -92,6 +97,10 @@
 - **已知平台差异**：macOS 壁纸铺满方式由系统决定（wallpaper crate set_mode 为空）；
   KDE Plasma 壁纸经 gdbus 直连 PlasmaShell（platform::set_wallpaper_kde，
   wallpaper crate 的 KDE 分支依赖 qdbus，Fedora 等发行版默认缺失）；
+  KDE Wayland 的"最小化到托盘"经 kwinrulesrc 窗口规则动态跳过任务栏
+  （platform/kwin_rules.rs：Wayland 协议无法撤回窗口，最小化时写入
+  skiptaskbar Force 规则并 gdbus 调 org.kde.KWin.reconfigure 即时生效，
+  恢复/启动时移除；KWin 不监听规则文件，必须主动通知）；
   Wayland 不显示悬浮球；Linux 托盘无双击事件（appindicator 限制）；
   dmg 默认未签名（Gatekeeper 需右键打开）
 - **网络请求**：reqwest 保持 `native-tls`（走系统 TLS 栈与证书库，SOCKS5/自签 CA
@@ -138,21 +147,23 @@
   app 归档名 WallWarp.app.tar.gz 无版本无架构
 - **Linux deb/rpm/pacman**：deb 由 cargo-packager 生成（运行时依赖在
   `[package.metadata.packager.deb] depends` 声明：libgtk-3-0 /
-  libayatana-appindicator3-1 / libxkbcommon-x11-0 / libssl3 / libxdo3，
+  libayatana-appindicator3-1 / libxkbcommon-x11-0 / libssl3，
   安装时 apt 自动补齐；Ubuntu 24.04+ 的 t64 改名包经 Provides: <旧名> 满足；
-  漏声明会导致装完启动报 `error while loading shared libraries: libxdo.so.3`）；
+  漏声明会导致装完启动报 `error while loading shared libraries`）；
   rpm 由 cargo-generate-rpm
   按 `[package.metadata.generate-rpm]`（布局与 deb 对齐）单独生成——cargo-packager
   不支持 rpm（运行时依赖以 SONAME 形式写在 `[package.metadata.generate-rpm.requires]`，
   不绑定发行版包名，主流发行版经 find-provides 自动注册 Provides 可解析；
   保持 `auto-req = "no"`，避免把构建环境全部 NEEDED 写进依赖）；
-  AppImage 由 linuxdeploy 自动收集非基础 .so（libxdo 等被带入），无需声明依赖；
+  AppImage 由 linuxdeploy 自动收集非基础 .so，无需声明依赖；
   pacman 由 CI 在 cargo-packager 的 pacman 数据 tar.gz 基础上装配
-  （上游只产出 PKGBUILD+数据包，非标准包）：写入 .PKGINFO（pkgver 带 -1 后缀，
-  非法字符防御性替换为 _，depend=gtk3/libayatana-appindicator/openssl/xdotool，
-  xdotool 提供 muda 运行时动态链接的 libxdo）+ bsdtar 生成 .MTREE（文件+目录，
-  md5/sha256 摘要）+ zstd 压缩（--owner=0 --group=0 归零属主，.PKGINFO 必须是
-  tar 首条目），产物 `wallwarp-{ver}-1-{arch}.pkg.tar.zst` 可直接 `pacman -U` 安装
+  （上游只产出 PKGBUILD+数据包，非标准包）：解包后权限归一（数据包目录为
+  777，需归一为目录 755/文件 644/二进制 755，否则 pacman -U 报大量
+  "目录权限不一致"警告）+ 写入 .PKGINFO（pkgver 带 -1 后缀，
+  非法字符防御性替换为 _，depend=gtk3/libayatana-appindicator/openssl）+
+  bsdtar 生成 .MTREE（文件+目录，md5/sha256 摘要）+ zstd 压缩
+  （--owner=0 --group=0 归零属主，.PKGINFO 必须是 tar 首条目），
+  产物 `wallwarp-{ver}-1-{arch}.pkg.tar.zst` 可直接 `pacman -U` 安装
 
 ## 开发规范
 

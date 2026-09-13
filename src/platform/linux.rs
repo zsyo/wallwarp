@@ -173,12 +173,48 @@ fn net_workarea(conn: &RustConnection, root: u32) -> Option<iced::Rectangle> {
 /// 弹出菜单前将窗口前置（macOS 弹出机制无此需求，空操作）
 pub fn set_foreground_window(_hwnd: isize) {}
 
-/// 当前会话是否为 KDE Plasma（XDG_CURRENT_DESKTOP 精确为 KDE，
-/// 与 wallpaper crate 的 KDE 分支判定一致）
+/// 当前会话是否为 KDE Plasma（contains 匹配，防御 XDG_CURRENT_DESKTOP
+/// 的组合值；wallpaper crate 的 KDE 分支判定为精确相等，两者独立）
 pub fn is_kde_plasma() -> bool {
     std::env::var("XDG_CURRENT_DESKTOP")
-        .map(|desktop| desktop == "KDE")
+        .map(|desktop| desktop.contains("KDE"))
         .unwrap_or(false)
+}
+
+/// 当前桌面是否为 GNOME（contains 匹配，覆盖 Ubuntu 的 "ubuntu:GNOME"
+/// 等组合值）
+///
+/// GNOME dock 图标右键菜单文案是"退出"（shell_app_quit），其实现与
+/// Alt+F4 同为 compositor 下发的 xdg_toplevel close 事件，应用无法区分；
+/// 按菜单语义，该桌面下窗口 close 事件一律视为退出程序请求
+pub fn is_gnome_desktop() -> bool {
+    std::env::var("XDG_CURRENT_DESKTOP")
+        .map(|desktop| desktop.contains("GNOME"))
+        .unwrap_or(false)
+}
+
+/// 查询 KDE 会话管理器是否正在注销/关机
+///
+/// 同步调用 ksmserver 的 isShuttingDown（本地 DBus，毫秒级）；非 KDE
+/// 环境服务不存在，调用失败恒为 false
+pub fn is_session_shutting_down() -> bool {
+    // 无参返回 bool，gdbus 输出形如 "(true,)"
+    let Ok(output) = std::process::Command::new("gdbus")
+        .args([
+            "call",
+            "--session",
+            "--dest",
+            "org.kde.ksmserver",
+            "--object-path",
+            "/KSMServer",
+            "--method",
+            "org.kde.KSMServerInterface.isShuttingDown",
+        ])
+        .output()
+    else {
+        return false;
+    };
+    output.status.success() && String::from_utf8_lossy(&output.stdout).contains("true")
 }
 
 /// KDE Plasma 壁纸设置：经 gdbus 直连 PlasmaShell 的 evaluateScript，

@@ -126,21 +126,53 @@ BUILD_CACHE="$HOME/.cache/wallwarp-build/$ARCH"
 mkdir -p "$BUILD_CACHE/cargo" "$BUILD_CACHE/target" dist-linux
 
 # cargo-packager 打 appimage 时会从 GitHub 下载 linuxdeploy/AppRun 工具链，
-# 容器内经 rootlesskit 网络访问 GitHub 易挂起；在 WSL 侧（GitHub 直连正常）
-# 预下载到挂载卷内，并把容器的 XDG_CACHE_HOME 指向卷内，cargo-packager
-# 检测到文件已存在即跳过下载
+# 容器内经 rootlesskit 网络访问 GitHub 易挂起；在 WSL 侧预下载到挂载卷内，
+# 并把容器的 XDG_CACHE_HOME 指向卷内，cargo-packager 检测到文件已存在即
+# 跳过下载。GitHub 直连不稳，失败时依次尝试常见加速前缀
 APPIMAGE_TOOLS="$BUILD_CACHE/cargo/cache/.cargo-packager/AppImage"
+fetch_github_asset() {
+  local url=$1 out=$2 base
+  for base in "" "https://ghfast.top/" "https://gh-proxy.com/"; do
+    if curl -fL --retry 2 --connect-timeout 15 -o "$out" "$base$url" 2>/dev/null; then
+      return 0
+    fi
+    rm -f "$out"
+  done
+  return 1
+}
 if [[ $FORMATS == all || $FORMATS == *appimage* ]] \
   && [[ ! -f $APPIMAGE_TOOLS/linuxdeploy-$PKG_ARCH.AppImage ]]; then
   mkdir -p "$APPIMAGE_TOOLS"
   print "==> 预下载 AppImage 工具链（linuxdeploy/AppRun，仅首次）"
-  curl -fL --retry 3 -o "$APPIMAGE_TOOLS/AppRun-$PKG_ARCH" \
-    "https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-$PKG_ARCH"
-  curl -fL --retry 3 -o "$APPIMAGE_TOOLS/linuxdeploy-$PKG_ARCH.AppImage" \
-    "https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-$PKG_ARCH.AppImage"
-  curl -fL --retry 3 -o "$APPIMAGE_TOOLS/linuxdeploy-plugin-appimage.AppImage" \
-    "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-$PKG_ARCH.AppImage"
+  fetch_github_asset \
+    "https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-$PKG_ARCH" \
+    "$APPIMAGE_TOOLS/AppRun-$PKG_ARCH" || {
+      print -u2 "AppImage 工具链下载失败（AppRun）"; exit 1
+    }
+  fetch_github_asset \
+    "https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-$PKG_ARCH.AppImage" \
+    "$APPIMAGE_TOOLS/linuxdeploy-$PKG_ARCH.AppImage" || {
+      print -u2 "AppImage 工具链下载失败（linuxdeploy）"; exit 1
+    }
+  fetch_github_asset \
+    "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-$PKG_ARCH.AppImage" \
+    "$APPIMAGE_TOOLS/linuxdeploy-plugin-appimage.AppImage" || {
+      print -u2 "AppImage 工具链下载失败（plugin-appimage）"; exit 1
+    }
   chmod 755 "$APPIMAGE_TOOLS"/*
+fi
+
+# appimagetool 生成 squashfs 时还需 type2 runtime（同样从 GitHub 下载，
+# 经 LDAI_RUNTIME_FILE 传给 linuxdeploy-plugin-appimage 免下载）
+if [[ $FORMATS == all || $FORMATS == *appimage* ]] \
+  && [[ ! -f $APPIMAGE_TOOLS/runtime-$PKG_ARCH ]]; then
+  mkdir -p "$APPIMAGE_TOOLS"
+  print "==> 预下载 AppImage type2 runtime（仅首次）"
+  fetch_github_asset \
+    "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-$PKG_ARCH" \
+    "$APPIMAGE_TOOLS/runtime-$PKG_ARCH" || {
+      print -u2 "type2 runtime 下载失败"; exit 1
+    }
 fi
 
 # 容器运行时 CARGO_HOME 指向挂载卷，cargo 源配置需写入卷内
@@ -175,7 +207,7 @@ RUN sed -i 's|deb.debian.org|mirrors.ustc.edu.cn|g' \
         libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
         libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
         libx11-dev libxcb1-dev libxrandr-dev libxi-dev cmake \
-        libssl-dev pkg-config libxdo-dev \
+        libssl-dev pkg-config \
         libarchive-tools zstd \
     && rm -rf /var/lib/apt/lists/*
 
@@ -203,6 +235,8 @@ docker run --rm -i \
   -v "$BUILD_CACHE/cargo:/cargo-home" \
   -v "$BUILD_CACHE/target:/work/target" \
   -e CARGO_HOME=/cargo-home \
+  -e XDG_CACHE_HOME=/cargo-home/cache \
+  -e "LDAI_RUNTIME_FILE=/cargo-home/cache/.cargo-packager/AppImage/runtime-$PKG_ARCH" \
   -e "RUSTFLAGS=$RUSTFLAGS" \
   -e "WALLWARP_DISPLAY_VERSION=$DISPLAY_VERSION" \
   -e APPIMAGE_EXTRACT_AND_RUN=1 \
@@ -259,11 +293,19 @@ if [[ $FORMATS == all || $FORMATS == *pacman* ]]; then
     exit 1
   fi
 
-  mkdir -p pacman-pkg
-  tar -xzf "${data_tars[0]}" -C pacman-pkg
-  installed_size="$(du -sb pacman-pkg | cut -f1)"
+  # 在容器本地文件系统装配：挂载的 /work 可能是 NTFS（drvfs 上 chmod 无效，
+  # 权限恒为 777），必须先解包到容器本地目录再做权限归一
+  pacman_work="$(mktemp -d)"
+  tar -xzf "${data_tars[0]}" -C "$pacman_work"
+  # 权限归一：cargo-packager 数据包的目录为 777，pacman 与文件系统 755
+  # 对比会产生大量"目录权限不一致"警告；归一为目录 755、普通文件 644、
+  # 二进制 755
+  find "$pacman_work" -type d -exec chmod 755 {} +
+  find "$pacman_work" -type f -exec chmod 644 {} +
+  chmod 755 "$pacman_work/usr/bin/wallwarp"
+  installed_size="$(du -sb "$pacman_work" | cut -f1)"
 
-  cat > pacman-pkg/.PKGINFO <<EOF
+  cat > "$pacman_work/.PKGINFO" <<EOF
 pkgname = wallwarp
 pkgbase = wallwarp
 pkgver = ${pkgver}-1
@@ -277,12 +319,11 @@ license = AGPL-3.0
 depend = gtk3
 depend = libayatana-appindicator
 depend = openssl
-depend = xdotool
 xdata = pkgtype=pkg
 EOF
 
   # .MTREE 与 makepkg 相同方式生成（文件+目录，bsdtar mtree 格式，含摘要）
-  (cd pacman-pkg && find .PKGINFO usr | LC_ALL=C sort | \
+  (cd "$pacman_work" && find .PKGINFO usr | LC_ALL=C sort | \
     bsdtar --uid 0 --uname root --gid 0 --gname root -czf .MTREE \
     --format=mtree \
     --options='!all,use-set,type,uid,gid,mode,time,size,md5,sha256,link' -T -)
@@ -290,9 +331,9 @@ EOF
   pkg_file="$dist/wallwarp-${pkgver}-1-linux_${PKG_ARCH}.pkg.tar.zst"
   # .PKGINFO 必须是首个条目；包内属主归零（makepkg/fakeroot 语义）
   tar --zstd --owner=0 --group=0 --numeric-owner -cf "$pkg_file" \
-    -C pacman-pkg .PKGINFO .MTREE usr
+    -C "$pacman_work" .PKGINFO .MTREE usr
   rm -f "${data_tars[0]}" "$out_dir/PKGBUILD"
-  rm -rf pacman-pkg
+  rm -rf "$pacman_work"
   echo "[pacman] 已生成 $pkg_file"
 fi
 INSIDE

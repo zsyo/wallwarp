@@ -3,6 +3,9 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use tracing::error;
+// info 仅 Linux 迁移旧布局配置的日志使用
+#[cfg(target_os = "linux")]
+use tracing::info;
 
 use crate::utils::helpers;
 
@@ -510,6 +513,12 @@ impl Config {
     pub fn new(lang: &str, available_langs: &[String]) -> Self {
         let config_path = helpers::config_file_path();
 
+        // Linux：旧版本配置存于数据根（工作目录下 config.toml），目录规则
+        // 调整后另置 ~/.config/wallwarp/。新路径无配置而旧路径存在时复制
+        // 迁移，避免升级丢失用户配置（旧文件保留不删）
+        #[cfg(target_os = "linux")]
+        Self::migrate_legacy_config(&config_path);
+
         if let Ok(content) = fs::read_to_string(&config_path) {
             match toml::from_str::<Config>(&content) {
                 Ok(mut local_config) => {
@@ -607,6 +616,28 @@ impl Config {
         modified
     }
 
+    /// Linux：迁移旧布局配置到当前配置路径
+    ///
+    /// 数据根下的 config.toml 为旧版本布局产物；仅在新路径无配置时复制，
+    /// 解析与修复交由后续统一流程处理
+    #[cfg(target_os = "linux")]
+    fn migrate_legacy_config(config_path: &std::path::Path) {
+        let legacy = std::path::PathBuf::from("config.toml"); // 工作目录 = 数据根
+        if !legacy.is_file() || config_path.exists() {
+            return;
+        }
+        if let Some(parent) = config_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        if fs::copy(&legacy, config_path).is_ok() {
+            info!(
+                "[Config] 已迁移旧布局配置: {} -> {}",
+                legacy.display(),
+                config_path.display()
+            );
+        }
+    }
+
     pub fn save_to_file(&self) {
         match toml::to_string_pretty(self) {
             Ok(content) => {
@@ -622,8 +653,15 @@ impl Config {
                 // 2. 将 header 和 content 拼接在一起
                 let full_content = format!("{}{}", header, content);
 
-                // 3. 先写临时文件再替换，避免写盘中断留下损坏的配置文件
+                // 3. 先写临时文件再替换，避免写盘中断留下损坏的配置文件。
+                //    父目录可能不存在（Linux 配置按 XDG 另置 ~/.config/wallwarp/，
+                //    启动只创建数据根），创建失败由后续写入统一报错
                 let config_path = helpers::config_file_path();
+                if let Some(parent) = config_path.parent()
+                    && !parent.as_os_str().is_empty()
+                {
+                    let _ = fs::create_dir_all(parent);
+                }
                 let tmp_file = format!("{}.tmp", config_path.display());
                 let write_result = fs::write(&tmp_file, full_content).and_then(|_| {
                     // Windows 上 rename 不允许覆盖已存在的目标，需先移除旧文件
