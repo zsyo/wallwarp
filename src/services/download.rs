@@ -2,6 +2,7 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use tokio::io::AsyncWriteExt;
 use tracing::{debug, error};
 use xxhash_rust::xxh3::xxh3_128;
 
@@ -200,9 +201,10 @@ impl DownloadService {
         Self::save_image_to_cache(url, cache_path, proxy, Some(cancel_token)).await
     }
 
-    /// 图片下载共用主体：获取并发许可、确保目录、下载、落盘
+    /// 图片下载共用主体：获取并发许可、确保目录、流式下载落盘
     ///
-    /// `cancel_token` 为 Some 时支持中途取消(取消不重试)；为 None 时带重试机制
+    /// `cancel_token` 为 Some 时支持中途取消(取消不重试)；为 None 时带重试机制。
+    /// 下载经 [`download_to_file_streaming`] 流式落盘，整图不进内存
     async fn save_image_to_cache(
         url: &str,
         cache_path: &str,
@@ -225,31 +227,6 @@ impl DownloadService {
             })?;
         }
 
-        let bytes = Self::download_image_bytes(url, proxy, cancel_token).await?;
-
-        debug!(
-            "[图片缓存] [URL:{}] 下载成功，数据大小: {} bytes",
-            url,
-            bytes.len()
-        );
-
-        // 保存到缓存
-        fs::write(cache_path, bytes).map_err(|e| {
-            error!("[图片缓存] [URL:{}] 保存文件失败: {}", url, e);
-            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
-        })?;
-
-        debug!("[图片缓存] [URL:{}] 文件保存成功: {}", url, cache_path);
-
-        Ok(())
-    }
-
-    /// 下载图片数据
-    async fn download_image_bytes(
-        url: &str,
-        proxy: Option<String>,
-        cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
         // 使用统一的代理客户端创建逻辑（支持环境变量回退）
         let client = crate::services::proxy::create_client_with_env_fallback(
             proxy,
@@ -257,57 +234,6 @@ impl DownloadService {
             "图片缓存",
             false, // 使用 debug 级别
         );
-
-        // 单次完整下载：请求 + 流式读取，期间周期性检查取消状态
-        async fn fetch_once(
-            client: reqwest::Client,
-            url: String,
-            cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
-        ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-            // 检查取消状态
-            if let Some(token) = &cancel_token
-                && token.load(std::sync::atomic::Ordering::Relaxed)
-            {
-                return Err(cancelled_error());
-            }
-
-            let response = client.get(&url).send().await.map_err(|e| {
-                error!("[图片缓存] [URL:{}] 请求失败: {}", url, e);
-                Box::new(e) as Box<dyn std::error::Error + Send + Sync>
-            })?;
-
-            debug!("[图片缓存] [URL:{}] 响应状态: {}", url, response.status());
-
-            if !response.status().is_success() {
-                let error_msg = format!("下载失败: {}", response.status());
-                error!("[图片缓存] [URL:{}] {}", url, error_msg);
-                return Err(Box::new(std::io::Error::other(error_msg))
-                    as Box<dyn std::error::Error + Send + Sync>);
-            }
-
-            // 流式读取数据，定期检查取消状态
-            use iced::futures::StreamExt;
-            let mut stream = response.bytes_stream();
-            let mut buffer = Vec::with_capacity(1024 * 1024); // 1MB缓冲区
-
-            while let Some(chunk_result) = stream.next().await {
-                // 检查取消状态
-                if let Some(token) = &cancel_token
-                    && token.load(std::sync::atomic::Ordering::Relaxed)
-                {
-                    return Err(cancelled_error());
-                }
-
-                let chunk = chunk_result.map_err(|e| {
-                    error!("[图片缓存] [URL:{}] 读取数据流失败: {}", url, e);
-                    Box::new(e) as Box<dyn std::error::Error + Send + Sync>
-                })?;
-
-                buffer.extend_from_slice(&chunk);
-            }
-
-            Ok(buffer)
-        }
 
         match cancel_token {
             None => {
@@ -317,21 +243,125 @@ impl DownloadService {
                     "图片缓存",
                     3,
                     || {
-                        let client = client.clone();
-                        let url = url.to_string();
-                        fetch_once(client, url, None)
+                        download_to_file_streaming(
+                            client.clone(),
+                            url,
+                            cache_file_path,
+                            None,
+                            "图片缓存",
+                            |_, _| {},
+                        )
                     },
                 )
                 .await
+                .map(|_| ())
             }
             Some(token) => {
-                let bytes = fetch_once(client, url.to_string(), Some(token.clone())).await?;
+                download_to_file_streaming(
+                    client,
+                    url,
+                    cache_file_path,
+                    Some(token.clone()),
+                    "图片缓存",
+                    |_, _| {},
+                )
+                .await?;
                 // 下载完成后再次检查取消状态
                 if token.load(std::sync::atomic::Ordering::Relaxed) {
                     return Err(cancelled_error());
                 }
-                Ok(bytes)
+                debug!("[图片缓存] [URL:{}] 文件保存成功: {}", url, cache_path);
+                Ok(())
             }
         }
     }
+}
+
+/// 流式下载 URL 到本地文件（边读边写，1MB 缓冲批量落盘，整图不进内存）
+///
+/// `on_progress` 逐段回调（已下载字节, 响应总大小；无 Content-Length 时为 0）。
+/// 取消时删除半成品文件并返回取消错误。
+pub(crate) async fn download_to_file_streaming(
+    client: reqwest::Client,
+    url: &str,
+    save_path: &Path,
+    cancel_token: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    log_prefix: &str,
+    mut on_progress: impl FnMut(u64, u64),
+) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
+    // 检查取消状态
+    if let Some(token) = &cancel_token
+        && token.load(std::sync::atomic::Ordering::Relaxed)
+    {
+        return Err(cancelled_error());
+    }
+
+    let response = client.get(url).send().await.map_err(|e| {
+        error!("[{}] [URL:{}] 请求失败: {}", log_prefix, url, e);
+        Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+    })?;
+
+    debug!("[{}] [URL:{}] 响应状态: {}", log_prefix, url, response.status());
+
+    if !response.status().is_success() {
+        let error_msg = format!("下载失败: {}", response.status());
+        error!("[{}] [URL:{}] {}", log_prefix, url, error_msg);
+        return Err(Box::new(std::io::Error::other(error_msg))
+            as Box<dyn std::error::Error + Send + Sync>);
+    }
+
+    let total_size = response.content_length().unwrap_or(0);
+
+    // 流式读取，1MB 缓冲批量写入文件
+    use iced::futures::StreamExt;
+    let mut stream = response.bytes_stream();
+    let mut file = tokio::fs::File::create(save_path).await.map_err(|e| {
+        error!("[{}] [URL:{}] 创建文件失败: {}", log_prefix, url, e);
+        Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+    })?;
+
+    let mut downloaded: u64 = 0;
+    let mut buffer = Vec::with_capacity(1024 * 1024); // 1MB缓冲区
+
+    while let Some(chunk_result) = stream.next().await {
+        // 检查取消状态：删除半成品文件后返回
+        if let Some(token) = &cancel_token
+            && token.load(std::sync::atomic::Ordering::Relaxed)
+        {
+            let _ = tokio::fs::remove_file(save_path).await;
+            return Err(cancelled_error());
+        }
+
+        let chunk = chunk_result.map_err(|e| {
+            error!("[{}] [URL:{}] 读取数据流失败: {}", log_prefix, url, e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+
+        buffer.extend_from_slice(&chunk);
+        downloaded += chunk.len() as u64;
+        on_progress(downloaded, total_size);
+
+        // 当缓冲区达到1MB时，批量写入文件
+        if buffer.len() >= 1024 * 1024 {
+            file.write_all(&buffer).await.map_err(|e| {
+                error!("[{}] [URL:{}] 写入文件失败: {}", log_prefix, url, e);
+                Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+            })?;
+            buffer.clear();
+        }
+    }
+
+    // 写入剩余数据并确保落盘
+    if !buffer.is_empty() {
+        file.write_all(&buffer).await.map_err(|e| {
+            error!("[{}] [URL:{}] 写入文件失败: {}", log_prefix, url, e);
+            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+        })?;
+    }
+    file.flush().await.map_err(|e| {
+        error!("[{}] [URL:{}] 刷新文件失败: {}", log_prefix, url, e);
+        Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+    })?;
+
+    Ok(downloaded)
 }

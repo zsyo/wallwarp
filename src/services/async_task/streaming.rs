@@ -1,12 +1,10 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use iced::futures::StreamExt;
 use iced::widget::image::Handle;
 use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::io::AsyncWriteExt;
+use std::sync::atomic::AtomicBool;
 use tracing::{debug, error, info};
 
 /// 异步加载在线壁纸图片函数（流式下载，支持取消）
@@ -68,85 +66,33 @@ pub async fn async_load_online_wallpaper_image_with_streaming(
         true, // 使用 info 级别
     );
 
-    // 步骤5: 发送请求
-    let response = client.get(&url).send().await.map_err(|e| {
-        error!("[模态窗口图片下载] [URL:{}] 请求失败: {}", url, e);
-        Box::new(e) as Box<dyn Error + Send + Sync>
-    })?;
-
-    if !response.status().is_success() {
-        let error_msg = format!("下载失败: {}", response.status());
-        error!("[模态窗口图片下载] [URL:{}] {}", url, error_msg);
-        return Err(Box::new(std::io::Error::other(error_msg)) as Box<dyn Error + Send + Sync>);
-    }
-
-    // 步骤6: 获取总大小
-    let total_size = response.content_length().unwrap_or(file_size);
-
-    // 步骤7: 流式下载图片到内存并写入文件
-    let mut stream = response.bytes_stream();
-    let mut file = tokio::fs::File::create(&cache_file).await.map_err(|e| {
-        error!("[模态窗口图片下载] [URL:{}] 创建文件失败: {}", url, e);
-        Box::new(e) as Box<dyn Error + Send + Sync>
-    })?;
-
-    let mut downloaded: u64 = 0;
+    // 步骤5: 流式下载落盘（边读边写，整图不进内存），每完成 5% 上报一次进度
     let mut progress_sent = 0i32;
-    let mut buffer = Vec::with_capacity(1024 * 1024); // 1MB缓冲区
-
-    while let Some(chunk_result) = stream.next().await {
-        // 检查是否被取消
-        if cancel_token.load(Ordering::Relaxed) {
-            info!("[模态窗口图片下载] [URL:{}] 下载被取消", url);
-            // 删除未完成的文件
-            let _ = tokio::fs::remove_file(&cache_file).await;
-            return Err(crate::services::download::cancelled_error());
-        }
-
-        let chunk = chunk_result.map_err(|e| {
-            error!("[模态窗口图片下载] [URL:{}] 读取数据流失败: {}", url, e);
-            Box::new(e) as Box<dyn Error + Send + Sync>
-        })?;
-
-        // 将数据添加到缓冲区
-        buffer.extend_from_slice(&chunk);
-        downloaded += chunk.len() as u64;
-
-        // 计算进度百分比
-        if total_size > 0 {
-            let progress = downloaded as f32 / total_size as f32;
-            let percent = (progress * 100.0) as i32;
-
-            // 每完成5%发送一次进度更新
-            if percent >= progress_sent + 5 {
-                progress_sent = percent;
-                crate::services::send_modal_image_progress(downloaded, total_size);
+    let downloaded = crate::services::download::download_to_file_streaming(
+        client,
+        &url,
+        &cache_file,
+        Some(cancel_token),
+        "模态窗口图片下载",
+        |downloaded, content_length| {
+            // 响应无 Content-Length 时以 API 提供的 file_size 为分母
+            let total = if content_length > 0 {
+                content_length
+            } else {
+                file_size
+            };
+            if total > 0 {
+                let percent = (downloaded as f32 / total as f32 * 100.0) as i32;
+                if percent >= progress_sent + 5 {
+                    progress_sent = percent;
+                    crate::services::send_modal_image_progress(downloaded, total);
+                }
             }
-        }
+        },
+    )
+    .await?;
 
-        // 当缓冲区达到1MB时，批量写入文件
-        if buffer.len() >= 1024 * 1024 {
-            file.write_all(&buffer).await.map_err(|e| {
-                error!("[模态窗口图片下载] [URL:{}] 写入文件失败: {}", url, e);
-                Box::new(e) as Box<dyn Error + Send + Sync>
-            })?;
-            buffer.clear();
-        }
-    }
-
-    // 写入剩余数据
-    if !buffer.is_empty() {
-        file.write_all(&buffer).await.map_err(|e| {
-            error!("[模态窗口图片下载] [URL:{}] 写入文件失败: {}", url, e);
-            Box::new(e) as Box<dyn Error + Send + Sync>
-        })?;
-    }
-
-    // 确保数据写入磁盘
-    file.flush().await.map_err(|e| {
-        error!("[模态窗口图片下载] [URL:{}] 刷新文件失败: {}", url, e);
-        Box::new(e) as Box<dyn Error + Send + Sync>
-    })?;
+    let total_size = if file_size > 0 { file_size } else { downloaded };
 
     // 验证文件完整性
     if let Ok(metadata) = tokio::fs::metadata(&cache_file).await {
