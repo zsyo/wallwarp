@@ -218,14 +218,20 @@ fn build_file_writer() -> (NonBlocking, WorkerGuard) {
 
 /// 启动期过滤器：RUST_LOG 环境变量优先，否则使用配置档位
 fn startup_filter(level: LogLevel) -> EnvFilter {
-    let filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(level.as_str()));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| level_filter(level));
     env_filter_extra(filter)
 }
 
 /// 运行期过滤器：直接使用指定档位（UI 明确选择后以 UI 为准）
+///
+/// debug 档仅对应用自身开启 debug，第三方库（cosmic-text 字体回退、
+/// h2/hyper 帧日志等）收敛到 warn；需要第三方细节时用 trace 档或 RUST_LOG
 fn level_filter(level: LogLevel) -> EnvFilter {
-    env_filter_extra(EnvFilter::new(level.as_str()))
+    let directive = match level {
+        LogLevel::Debug => "wallwarp=debug,warn",
+        _ => level.as_str(),
+    };
+    env_filter_extra(EnvFilter::new(directive))
 }
 
 fn env_filter_extra(filter: EnvFilter) -> EnvFilter {

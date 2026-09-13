@@ -119,6 +119,20 @@ impl LocalWallpaperService {
             absolute_path, mode
         );
 
+        // Linux：KDE Plasma 经 gdbus 直连 PlasmaShell 设置（wallpaper crate
+        // 的 KDE 分支依赖 qdbus，Fedora 等发行版默认缺失会报 ENOENT）
+        #[cfg(target_os = "linux")]
+        if crate::platform::is_kde_plasma() {
+            return crate::platform::set_wallpaper_kde(
+                &absolute_path,
+                Self::convert_wallpaper_mode(mode),
+            )
+            .map_err(|e| {
+                error!("[本地壁纸] 设置壁纸失败: {}", e);
+                format!("设置壁纸失败: {}", e).into()
+            });
+        }
+
         // 1. 先告诉系统：我要用什么样的方式显示壁纸（修改布局设置）
         let wallpaper_mode = Self::convert_wallpaper_mode(mode);
         wallpaper::set_mode(wallpaper_mode).map_err(|e| {

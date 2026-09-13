@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::{App, AppMessage};
-use crate::utils::helpers::ensure_directory_exists;
+use crate::utils::helpers::{default_cache_path, ensure_directory_exists};
 use iced::Task;
 use tracing::info;
 
@@ -20,12 +20,13 @@ impl App {
                 ensure_directory_exists("data", "数据目录");
             }
             "cache" => {
+                // Linux 默认缓存目录为 ~/.cache/wallwarp（XDG），其余平台为 ./cache
+                let default_path = default_cache_path();
                 let old_path = self.config.data.cache_path.clone();
-                info!("[设置] [缓存路径] 修改: {} -> ./cache", old_path);
-                // 恢复默认的缓存路径 "cache"
-                self.config.set_cache_path("cache".to_string());
+                info!("[设置] [缓存路径] 修改: {} -> {}", old_path, default_path);
+                self.config.set_cache_path(default_path.clone());
                 // 检查并创建目录
-                ensure_directory_exists("cache", "缓存目录");
+                ensure_directory_exists(&default_path, "缓存目录");
                 // 旧缓存不属于新目录体系，进入各页面时在新目录重建缩略图
                 self.mark_all_thumbs_stale();
             }

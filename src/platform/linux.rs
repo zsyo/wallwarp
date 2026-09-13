@@ -172,3 +172,60 @@ fn net_workarea(conn: &RustConnection, root: u32) -> Option<iced::Rectangle> {
 
 /// 弹出菜单前将窗口前置（macOS 弹出机制无此需求，空操作）
 pub fn set_foreground_window(_hwnd: isize) {}
+
+/// 当前会话是否为 KDE Plasma（XDG_CURRENT_DESKTOP 精确为 KDE，
+/// 与 wallpaper crate 的 KDE 分支判定一致）
+pub fn is_kde_plasma() -> bool {
+    std::env::var("XDG_CURRENT_DESKTOP")
+        .map(|desktop| desktop == "KDE")
+        .unwrap_or(false)
+}
+
+/// KDE Plasma 壁纸设置：经 gdbus 直连 PlasmaShell 的 evaluateScript，
+/// 一次脚本同时写入铺满模式与壁纸路径
+///
+/// 不走 wallpaper crate：其 KDE 分支依赖 qdbus 命令（Fedora 等发行版默认
+/// 不安装，spawn 失败报 ENOENT）；gdbus 由 glib2 提供且所有主流桌面必装
+pub fn set_wallpaper_kde(path: &str, mode: wallpaper::Mode) -> Result<(), String> {
+    // Plasma FillMode 取值（与 wallpaper crate 的 KDE 映射一致：
+    // 0=Stretched 1=Scaled 2=ScaledAndCropped 3=Tiled 6=Centered）
+    let fill_mode = match mode {
+        wallpaper::Mode::Stretch => 0,
+        wallpaper::Mode::Fit => 1,
+        wallpaper::Mode::Crop | wallpaper::Mode::Span => 2,
+        wallpaper::Mode::Tile => 3,
+        wallpaper::Mode::Center => 6,
+    };
+    // JS 字符串字面量转义，避免路径中的引号/反斜杠破坏脚本
+    let escaped = path.replace('\\', "\\\\").replace('"', "\\\"");
+    let script = format!(
+        r#"for (const desktop of desktops()) {{
+    desktop.currentConfigGroup = ["Wallpaper", "org.kde.image", "General"]
+    desktop.writeConfig("FillMode", {fill_mode})
+    desktop.writeConfig("Image", "file://{escaped}")
+}}"#
+    );
+
+    let output = std::process::Command::new("gdbus")
+        .args([
+            "call",
+            "--session",
+            "--dest",
+            "org.kde.plasmashell",
+            "--object-path",
+            "/PlasmaShell",
+            "--method",
+            "org.kde.PlasmaShell.evaluateScript",
+            &script,
+        ])
+        .output()
+        .map_err(|e| format!("执行 gdbus 失败（KDE Plasma 会话异常）: {e}"))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "PlasmaShell 壁纸脚本执行失败: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    Ok(())
+}

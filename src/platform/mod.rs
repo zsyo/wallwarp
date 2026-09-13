@@ -80,6 +80,33 @@ pub fn is_wayland() -> bool {
     }
 }
 
+/// 当前 Linux 会话是否为 KDE Plasma（非 Linux 平台恒为 false）
+pub fn is_kde_plasma() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        imp::is_kde_plasma()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        false
+    }
+}
+
+/// KDE Plasma 壁纸设置（仅 Linux 有实现）：经 gdbus 直连 PlasmaShell
+/// 同时写入铺满模式与壁纸路径。wallpaper crate 的 KDE 分支依赖 qdbus
+/// 命令（Fedora 等发行版默认缺失），此实现用 glib2 自带的 gdbus
+pub fn set_wallpaper_kde(path: &str, mode: wallpaper::Mode) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    {
+        imp::set_wallpaper_kde(path, mode)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (path, mode);
+        Err("KDE Plasma 壁纸设置仅支持 Linux".into())
+    }
+}
+
 /// 从 iced 窗口提取原生菜单锚点
 pub fn window_anchor(mw: &dyn iced::window::Window) -> WindowAnchor {
     imp::window_anchor(mw)

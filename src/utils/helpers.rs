@@ -104,11 +104,13 @@ pub fn get_system_ui_font() -> &'static str {
     }
 }
 
-/// 应用数据根目录（config.toml / data / cache / db / logs 的存放基准）
+/// 应用数据根目录（data / db / logs 的存放基准，启动时切换为工作目录）
 ///
 /// - Windows: exe 同级目录（保持便携式布局，与历史版本一致）
 /// - macOS:   ~/Library/Application Support/WallWarp
-/// - Linux:   ~/.config/wallwarp（XDG；AppImage 挂载点只读，不能用 exe 同级目录）
+/// - Linux:   ~/.local/share/wallwarp（XDG data；AppImage 挂载点只读，
+///   不能用 exe 同级目录；config.toml 与 cache 按规范另置，
+///   见 [`config_file_path`] 与 [`default_cache_path`])
 pub fn app_root_dir() -> std::path::PathBuf {
     #[cfg(target_os = "windows")]
     {
@@ -125,9 +127,43 @@ pub fn app_root_dir() -> std::path::PathBuf {
     }
     #[cfg(target_os = "linux")]
     {
-        dirs::config_dir()
+        dirs::data_dir()
             .map(|dir| dir.join("wallwarp"))
             .unwrap_or_else(|| std::path::PathBuf::from("."))
+    }
+}
+
+/// 用户配置文件路径（config.toml）
+///
+/// Linux 按 XDG 归属 ~/.config/wallwarp/config.toml（XDG_CONFIG_HOME）；
+/// 其余平台与数据根一致（Windows 便携式、macOS 单目录惯例），为相对路径
+pub fn config_file_path() -> std::path::PathBuf {
+    #[cfg(target_os = "linux")]
+    {
+        dirs::config_dir()
+            .map(|dir| dir.join("wallwarp").join("config.toml"))
+            .unwrap_or_else(|| std::path::PathBuf::from("config.toml"))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        std::path::PathBuf::from("config.toml")
+    }
+}
+
+/// 默认缓存根目录（缩略图等可重建数据）
+///
+/// Linux 按 XDG 归属 ~/.cache/wallwarp（XDG_CACHE_HOME，清理工具可整目录
+/// 回收而不伤及壁纸库）；其余平台为数据根下的相对 cache/ 目录
+pub fn default_cache_path() -> String {
+    #[cfg(target_os = "linux")]
+    {
+        dirs::cache_dir()
+            .map(|dir| dir.join("wallwarp").to_string_lossy().to_string())
+            .unwrap_or_else(|| "cache".to_string())
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        "cache".to_string()
     }
 }
 

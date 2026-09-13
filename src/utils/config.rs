@@ -2,12 +2,11 @@
 
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
 use tracing::error;
 
-const CONFIG_FILE: &str = "config.toml";
+use crate::utils::helpers;
+
 const DEFAULT_DATA_PATH: &str = "data";
-const DEFAULT_CACHE_PATH: &str = "cache";
 pub const MIN_WINDOW_WIDTH: u32 = 1280;
 pub const MIN_WINDOW_HEIGHT: u32 = 800;
 
@@ -120,7 +119,7 @@ fn default_data_path() -> String {
 }
 
 fn default_cache_path() -> String {
-    DEFAULT_CACHE_PATH.to_string()
+    helpers::default_cache_path()
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -509,9 +508,9 @@ CloseApp => "close_app", "CloseApp";
 
 impl Config {
     pub fn new(lang: &str, available_langs: &[String]) -> Self {
-        let config_path = Path::new(CONFIG_FILE);
+        let config_path = helpers::config_file_path();
 
-        if let Ok(content) = fs::read_to_string(config_path) {
+        if let Ok(content) = fs::read_to_string(&config_path) {
             match toml::from_str::<Config>(&content) {
                 Ok(mut local_config) => {
                     // 仅在修复逻辑实际修改过内容时才回写，避免抹掉用户手动添加的注释
@@ -533,7 +532,7 @@ impl Config {
                         config_path.display()
                     );
                     if let Err(rename_err) =
-                        fs::rename(config_path, format!("{}.bak", config_path.display()))
+                        fs::rename(&config_path, format!("{}.bak", config_path.display()))
                     {
                         error!(
                             "[Config] 备份损坏的配置文件失败: {}，原因: {}",
@@ -624,16 +623,21 @@ impl Config {
                 let full_content = format!("{}{}", header, content);
 
                 // 3. 先写临时文件再替换，避免写盘中断留下损坏的配置文件
-                let tmp_file = format!("{}.tmp", CONFIG_FILE);
+                let config_path = helpers::config_file_path();
+                let tmp_file = format!("{}.tmp", config_path.display());
                 let write_result = fs::write(&tmp_file, full_content).and_then(|_| {
                     // Windows 上 rename 不允许覆盖已存在的目标，需先移除旧文件
-                    if fs::metadata(CONFIG_FILE).is_ok() {
-                        fs::remove_file(CONFIG_FILE)?;
+                    if fs::metadata(&config_path).is_ok() {
+                        fs::remove_file(&config_path)?;
                     }
-                    fs::rename(&tmp_file, CONFIG_FILE)
+                    fs::rename(&tmp_file, &config_path)
                 });
                 if let Err(e) = write_result {
-                    error!("[Config] 配置文件写入失败: {}，原因: {}", CONFIG_FILE, e);
+                    error!(
+                        "[Config] 配置文件写入失败: {}，原因: {}",
+                        config_path.display(),
+                        e
+                    );
                 }
             }
             Err(e) => error!("[Config] TOML 序化失败: {}", e),

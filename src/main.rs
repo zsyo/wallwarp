@@ -23,8 +23,10 @@ fn main() -> iced::Result {
 
     if !helpers::is_running_via_cargo() {
         // 生产模式：切换工作目录到应用数据根目录
-        // （Windows 便携式：exe 同级；macOS/Linux：平台标准数据目录，
-        //   此后 config.toml/data/cache/db/logs 等相对路径全部落在根目录内）
+        // （Windows 便携式：exe 同级；macOS：~/Library/Application Support；
+        //   Linux：~/.local/share/wallwarp。此后 data/db/logs 等相对路径
+        //   全部落在根目录内；Linux 的 config.toml 与 cache 按 XDG 另置于
+        //   ~/.config/wallwarp 与 ~/.cache/wallwarp，见 helpers）
         let root = helpers::app_root_dir();
         if let Err(e) = std::fs::create_dir_all(&root) {
             eprintln!("[启动] 创建数据目录失败 {}: {}", root.display(), e);

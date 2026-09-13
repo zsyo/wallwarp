@@ -71,10 +71,13 @@
 - **编译隔离**：平台专属依赖必须放 `[target.'cfg(...)'.dependencies]`
   （windows/winreg、objc2 系、x11rb/gtk）；tray-icon 为全平台依赖（Linux 需
   `features = ["gtk"]` 启用 libappindicator 后端）
-- **数据目录**：`helpers::app_root_dir()` 决定 config/data/cache/db/logs 根——
+- **数据目录**：`helpers::app_root_dir()` 决定数据根（data/db/logs 的基准；
+  启动时 set_current_dir 到该根目录，其余代码继续使用相对路径）——
   Windows 为 exe 同级（便携式），macOS 为 `~/Library/Application Support/WallWarp`，
-  Linux 为 `~/.config/wallwarp`；启动时 set_current_dir 到该根目录，
-  其余代码继续使用相对路径
+  Linux 为 `~/.local/share/wallwarp`；Linux 按 XDG 细分：config.toml 在
+  `~/.config/wallwarp/`（`helpers::config_file_path()`）、cache 默认
+  `~/.cache/wallwarp`（`helpers::default_cache_path()`），macOS/Windows
+  全部位于数据根内
 - **locales 资源**：`i18n::resolve_locales_dir()` 按候选序解析（exe 同级 →
   `../Resources/locales`（mac bundle）→ `../locales` → CWD），支持运行时热加载
 - **开机自启动**：`src/utils/startup/` 按平台拆分——Windows 注册表 Run 键、
@@ -87,6 +90,8 @@
   macOS 用原生 fullsize_content_view（红绿灯叠加，自绘标题栏左侧预留 78px），
   Linux 复用自绘边缘感应层 + `window::drag_resize`
 - **已知平台差异**：macOS 壁纸铺满方式由系统决定（wallpaper crate set_mode 为空）；
+  KDE Plasma 壁纸经 gdbus 直连 PlasmaShell（platform::set_wallpaper_kde，
+  wallpaper crate 的 KDE 分支依赖 qdbus，Fedora 等发行版默认缺失）；
   Wayland 不显示悬浮球；Linux 托盘无双击事件（appindicator 限制）；
   dmg 默认未签名（Gatekeeper 需右键打开）
 - **网络请求**：reqwest 保持 `native-tls`（走系统 TLS 栈与证书库，SOCKS5/自签 CA
@@ -351,6 +356,9 @@
   - 避免输出过长的数据内容（如完整响应体），使用摘要或截断方式
   - 仅在调试必要时输出详细数据，正常流程使用简明日志
   - 错误日志必须包含足够的上下文信息以便定位问题
+- **第三方库日志收敛**: 配置档位 debug 只对应用自身（wallwarp target）开放
+  debug，第三方库默认收敛到 warn（cosmic-text 字体回退、h2/hyper 帧日志等
+  细节归 trace 档）；需要第三方细节时用 trace 档或 RUST_LOG 精细控制
 - **示例场景**:
   - API请求日志：`[Wallhaven API] [ID:xyz789] 响应状态: 200 OK`
   - 搜索操作日志：`[Wallhaven API] [page1_catAnime] 请求URL: https://...`
