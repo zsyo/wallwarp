@@ -58,13 +58,9 @@ impl App {
                     }
                 } else {
                     // 下载成功
-                    // 验证实际文件大小
-                    let actual_size = if let Ok(metadata) = std::fs::metadata(&task.task.save_path)
-                    {
-                        metadata.len()
-                    } else {
-                        size
-                    };
+                    // 实际文件大小由完成事件携带（下载任务在异步上下文经
+                    // tokio::fs 读取落盘文件后回传），此处不再做同步 IO
+                    let actual_size = size;
 
                     task.task.status = DownloadStatus::Completed;
                     task.task.progress = 1.0;

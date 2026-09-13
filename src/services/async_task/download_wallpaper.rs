@@ -232,10 +232,17 @@ pub async fn async_download_wallpaper_task_with_progress(
         .await
         .map_err(|e| format!("复制文件到目标路径失败: {}", e))?;
 
+    // 步骤6: 读取落盘文件的实际大小回传（tokio::fs 内部走 spawn_blocking，
+    // 完成事件直接携带验证过的大小，UI update 路径无需再做同步 fs::metadata）
+    let verified_size = tokio::fs::metadata(&save_path)
+        .await
+        .map(|m| m.len())
+        .unwrap_or(actual_size);
+
     info!(
         "[下载任务] [ID:{}] 下载完成，文件大小: {} bytes",
-        task_id, actual_size
+        task_id, verified_size
     );
 
-    Ok(actual_size)
+    Ok(verified_size)
 }
