@@ -1,11 +1,12 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::services::download::DownloadService;
+use crate::services::image_process;
 use crate::services::local::LocalWallpaperService;
 use crate::services::request_context::RequestContext;
 use crate::services::source::{self, SearchQuery, SourceConfig, SourceKind};
 use crate::services::wallhaven;
-use crate::utils::config::{Config, WallpaperMode};
+use crate::utils::config::{Config, WallpaperMode, WallpaperReadability};
 use rand::prelude::IndexedRandom;
 use std::error::Error;
 use std::path::PathBuf;
@@ -15,23 +16,35 @@ use tokio::task::spawn_blocking;
 use tracing::{debug, error, info};
 
 /// 异步设置壁纸函数
+///
+/// 启用可读性处理时，先在阻塞线程上生成处理副本，系统壁纸指向副本
 pub async fn async_set_wallpaper(
     wallpaper_path: String,
     mode: WallpaperMode,
+    readability: WallpaperReadability,
+    cache_path: String,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    spawn_blocking(move || LocalWallpaperService::set_wallpaper(&wallpaper_path, mode))
-        .await
-        .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?
+    spawn_blocking(move || {
+        let path =
+            image_process::process_for_wallpaper(&wallpaper_path, readability, &cache_path)?;
+        LocalWallpaperService::set_wallpaper(&path, mode)
+    })
+    .await
+    .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?
 }
 
 /// 异步随机设置壁纸函数
 pub async fn async_set_random_wallpaper(
     image_paths: Vec<String>,
     mode: WallpaperMode,
+    readability: WallpaperReadability,
+    cache_path: String,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    spawn_blocking(move || LocalWallpaperService::set_random_wallpaper(&image_paths, mode))
-        .await
-        .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?
+    spawn_blocking(move || {
+        LocalWallpaperService::set_random_wallpaper(&image_paths, mode, readability, &cache_path)
+    })
+    .await
+    .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)?
 }
 
 /// 异步随机设置在线壁纸函数（用于定时切换）
@@ -293,8 +306,15 @@ pub async fn async_set_random_online_wallpaper(
         .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)??;
     }
 
-    // 设置壁纸（系统调用，经 async_set_wallpaper 放入阻塞线程池执行）
-    async_set_wallpaper(target_path.to_string_lossy().to_string(), wallpaper_mode).await?;
+    // 设置壁纸（系统调用，经 async_set_wallpaper 放入阻塞线程池执行；
+    // 启用可读性处理时系统壁纸指向处理副本）
+    async_set_wallpaper(
+        target_path.to_string_lossy().to_string(),
+        wallpaper_mode,
+        config.wallpaper.readability,
+        config.data.cache_path.clone(),
+    )
+    .await?;
 
     info!("[定时切换] [在线] 壁纸设置成功: {}", target_path.display());
     Ok(target_path.to_string_lossy().to_string())

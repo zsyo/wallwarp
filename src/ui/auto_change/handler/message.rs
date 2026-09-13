@@ -19,9 +19,11 @@ impl App {
 
             // 获取成功，立即设置一张随机壁纸
             let wallpaper_mode = self.config.wallpaper.mode;
+            let readability = self.config.wallpaper.readability;
+            let cache_path = self.config.data.cache_path.clone();
 
             Task::perform(
-                async_task::async_set_random_wallpaper(paths, wallpaper_mode),
+                async_task::async_set_random_wallpaper(paths, wallpaper_mode, readability, cache_path),
                 |result| match result {
                     Ok(path) => AutoChangeMessage::SetRandomWallpaperSuccess(path).into(),
                     Err(e) => AutoChangeMessage::SetRandomWallpaperFailed(e.to_string()).into(),

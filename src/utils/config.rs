@@ -268,6 +268,9 @@ pub struct WallpaperConfig {
     /// 深色主题本地选图目录（空 = 沿用 data_path）
     #[serde(default)]
     pub auto_change_dark_dir: String,
+    /// 壁纸可读性处理（设壁纸时生成处理副本，系统壁纸指向副本）
+    #[serde(default)]
+    pub readability: WallpaperReadability,
 }
 
 impl Default for WallpaperConfig {
@@ -283,6 +286,7 @@ impl Default for WallpaperConfig {
             auto_change_theme_aware: false,
             auto_change_light_dir: String::new(),
             auto_change_dark_dir: String::new(),
+            readability: WallpaperReadability::default(),
         }
     }
 }
@@ -335,6 +339,28 @@ impl_config_enum!(WallpaperAutoChangeMode {
 default: Online;
 Online => "online", "Online";
 Local => "local", "Local";
+});
+
+/// 壁纸可读性处理选项（参考 Variety：避免浅色壁纸下桌面图标看不清）
+#[derive(Clone, Serialize, Deserialize, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum WallpaperReadability {
+    /// 不处理，直接使用原图
+    #[default]
+    None,
+    /// 暗化：叠加半透明黑遮罩
+    Dim,
+    /// 模糊：高斯模糊
+    Blur,
+    /// 暗化 + 模糊
+    DimBlur,
+}
+impl_config_enum!(WallpaperReadability {
+default: None;
+None => "none", "None";
+Dim => "dim", "Dim";
+Blur => "blur", "Blur";
+DimBlur => "dim_blur", "Dim + Blur";
 });
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]

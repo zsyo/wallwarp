@@ -4,7 +4,9 @@ use crate::services::async_task;
 use crate::services::wallhaven::{Sorting, TimeRange};
 use crate::ui::settings::SettingsMessage;
 use crate::ui::{App, AppMessage, NotificationType};
-use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
+use crate::utils::config::{
+    WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode, WallpaperReadability,
+};
 use iced::Task;
 use tracing::{info, warn};
 
@@ -18,6 +20,19 @@ impl App {
         self.settings_state.wallpaper_mode = mode;
         self.config.set_wallpaper_mode(mode);
         iced::Task::none()
+    }
+
+    /// 壁纸可读性处理选项选择（状态持久化到配置）
+    pub(in crate::ui::settings) fn settings_wallpaper_readability_selected(
+        &mut self,
+        option: WallpaperReadability,
+    ) -> Task<AppMessage> {
+        let old = self.config.wallpaper.readability;
+        info!("[设置] [壁纸可读性处理] 修改: {:?} -> {:?}", old, option);
+        self.settings_state.wallpaper_readability = option;
+        self.config.wallpaper.readability = option;
+        // 磁盘写入经防抖合并
+        self.request_config_save()
     }
 
     pub(in crate::ui::settings) fn settings_auto_change_mode_selected(

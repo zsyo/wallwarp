@@ -36,6 +36,7 @@ impl SettingsState {
             wallhaven_api_key_masked: String::new(),
             wallhaven_api_key_visible: false,
             wallpaper_mode: config.wallpaper.mode,
+            wallpaper_readability: config.wallpaper.readability,
             auto_change_mode: config.wallpaper.auto_change_mode,
             auto_change_interval: config.wallpaper.auto_change_interval,
             custom_interval_minutes: config

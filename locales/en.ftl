@@ -201,6 +201,8 @@ settings = Settings
     .restore-default = Default
     .wallpaper-mode = Wallpaper Mode
     .wallpaper-mode-desc = How the wallpaper fills the screen
+    .wallpaper-readability = Readability Processing
+    .wallpaper-readability-desc = Set a dimmed/blurred copy as wallpaper to keep desktop icons readable on light wallpapers
     .auto-change-mode = Auto Change Mode
     .auto-change-mode-desc = Image source for auto-change
     .auto-change-interval = Auto Change Interval
@@ -286,6 +288,16 @@ wallpaper-mode-options =
     .center-tooltip = Place image in center of screen, no scaling
     .span = Span
     .span-tooltip = For multiple monitors, span one image across all screens
+
+wallpaper-readability-options =
+    .none = None
+    .none-tooltip = Use the original image directly
+    .dim = Dim
+    .dim-tooltip = Overlay a semi-transparent black mask on the wallpaper
+    .blur = Blur
+    .blur-tooltip = Apply Gaussian blur to the wallpaper
+    .dim-blur = Dim + Blur
+    .dim-blur-tooltip = Apply both dimming mask and Gaussian blur
 
 startup-state =
     .on = ON

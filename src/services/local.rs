@@ -228,9 +228,13 @@ impl LocalWallpaperService {
     }
 
     /// 随机选择一张壁纸并设置（在设置前验证图片是否损坏）
+    ///
+    /// 启用可读性处理时系统壁纸指向处理副本；返回值为选中的源路径（用于历史记录）
     pub fn set_random_wallpaper(
         image_paths: &[String],
         mode: crate::utils::config::WallpaperMode,
+        readability: crate::utils::config::WallpaperReadability,
+        cache_path: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         if image_paths.is_empty() {
             return Err("没有可用的壁纸".into());
@@ -251,8 +255,13 @@ impl LocalWallpaperService {
             return Err("选择的图片已损坏".into());
         }
 
-        // 设置壁纸
-        Self::set_wallpaper(selected_path, mode)?;
+        // 设置壁纸（启用处理时系统壁纸指向处理副本）
+        let processed = crate::services::image_process::process_for_wallpaper(
+            selected_path,
+            readability,
+            cache_path,
+        )?;
+        Self::set_wallpaper(&processed, mode)?;
 
         Ok(selected_path.clone())
     }
@@ -332,7 +341,8 @@ impl LocalWallpaperService {
         Self::generate_thumbnail(Path::new(wallpaper_path), cache_dir)
     }
 
-    fn calculate_file_hash(
+    /// 计算文件内容哈希（首尾 64KB + 文件长度的 xxh3_128）
+    pub fn calculate_file_hash(
         file_path: &Path,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         use std::io::Seek;

@@ -34,6 +34,8 @@ impl App {
         self.local_state.loaded_data_path = None;
         let full_path = helpers::get_absolute_path(&target_path.to_string_lossy());
         let wallpaper_mode = self.config.wallpaper.mode;
+        let readability = self.config.wallpaper.readability;
+        let cache_path = self.config.data.cache_path.clone();
         let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
         Task::perform(
@@ -41,6 +43,8 @@ impl App {
                 source_path,
                 target_path.to_string_lossy().to_string(),
                 wallpaper_mode,
+                readability,
+                cache_path,
             ),
             move |result| match result {
                 Ok(_) => MainMessage::AddToWallpaperHistory(full_path).into(),
@@ -62,10 +66,12 @@ impl App {
         on_success: impl FnOnce() -> AppMessage + Send + 'static,
     ) -> Task<AppMessage> {
         let wallpaper_mode = self.config.wallpaper.mode;
+        let readability = self.config.wallpaper.readability;
+        let cache_path = self.config.data.cache_path.clone();
         let failed_message = self.i18n.t("local-list.set-wallpaper-failed").to_string();
 
         Task::perform(
-            async_task::async_set_wallpaper(path, wallpaper_mode),
+            async_task::async_set_wallpaper(path, wallpaper_mode, readability, cache_path),
             move |result| match result {
                 Ok(_) => on_success(),
                 Err(e) => MainMessage::ShowNotification(

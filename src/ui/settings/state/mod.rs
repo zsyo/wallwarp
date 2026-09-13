@@ -4,7 +4,9 @@ mod load_from_config;
 
 use crate::services::wallhaven::{self, Sorting, TimeRange};
 use crate::ui::SettingsCategory;
-use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
+use crate::utils::config::{
+    WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode, WallpaperReadability,
+};
 
 /// 设置页面相关状态
 #[derive(Debug, Clone)]
@@ -32,6 +34,7 @@ pub struct SettingsState {
 
     // 壁纸设置临时状态
     pub wallpaper_mode: WallpaperMode,
+    pub wallpaper_readability: WallpaperReadability,
     pub auto_change_mode: WallpaperAutoChangeMode,
     pub auto_change_interval: WallpaperAutoChangeInterval,
     pub custom_interval_minutes: u32,
@@ -74,6 +77,7 @@ impl Default for SettingsState {
             wallhaven_api_key_masked: String::new(),
             wallhaven_api_key_visible: false,
             wallpaper_mode: WallpaperMode::default(),
+            wallpaper_readability: WallpaperReadability::default(),
             auto_change_mode: WallpaperAutoChangeMode::default(),
             auto_change_interval: WallpaperAutoChangeInterval::default(),
             custom_interval_minutes: 30,

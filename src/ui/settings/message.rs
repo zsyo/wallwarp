@@ -4,6 +4,7 @@ use crate::services::wallhaven::{Sorting, TimeRange};
 use crate::ui::{App, AppMessage, SettingsCategory};
 use crate::utils::config::{
     CloseAction, LogLevel, WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode,
+    WallpaperReadability,
 };
 use iced::Task;
 
@@ -66,6 +67,8 @@ pub enum SettingsMessage {
     SaveProxy,
     /// 壁纸模式选择
     WallpaperModeSelected(WallpaperMode),
+    /// 壁纸可读性处理选项选择
+    WallpaperReadabilitySelected(WallpaperReadability),
     /// 定时切换模式选择
     AutoChangeModeSelected(WallpaperAutoChangeMode),
     /// 定时切换周期选择
@@ -211,6 +214,9 @@ impl App {
             SettingsMessage::SaveProxy => self.settings_save_proxy(),
             SettingsMessage::WallpaperModeSelected(mode) => {
                 self.settings_wallpaper_mode_selected(mode)
+            }
+            SettingsMessage::WallpaperReadabilitySelected(option) => {
+                self.settings_wallpaper_readability_selected(option)
             }
             SettingsMessage::AutoChangeModeSelected(mode) => {
                 self.settings_auto_change_mode_selected(mode)

@@ -201,6 +201,8 @@ settings = 设置
     .restore-default = 默认
     .wallpaper-mode = 壁纸模式
     .wallpaper-mode-desc = 壁纸铺满屏幕的方式
+    .wallpaper-readability = 可读性处理
+    .wallpaper-readability-desc = 生成暗化/模糊副本作为壁纸，避免浅色壁纸下桌面图标看不清
     .auto-change-mode = 定时切换模式
     .auto-change-mode-desc = 定时切换的图片来源
     .auto-change-interval = 定时切换周期
@@ -286,6 +288,16 @@ wallpaper-mode-options =
     .center-tooltip = 将图片放在屏幕中央，不缩放
     .span = 跨区
     .span-tooltip = 针对多显示器，将一张图横跨所有屏幕显示
+
+wallpaper-readability-options =
+    .none = 无
+    .none-tooltip = 直接使用原图
+    .dim = 暗化
+    .dim-tooltip = 在壁纸上叠加半透明黑遮罩
+    .blur = 模糊
+    .blur-tooltip = 对壁纸做高斯模糊
+    .dim-blur = 暗化+模糊
+    .dim-blur-tooltip = 同时叠加暗化遮罩与高斯模糊
 
 startup-state =
     .on = 开

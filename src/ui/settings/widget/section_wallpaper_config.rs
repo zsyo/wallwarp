@@ -4,7 +4,9 @@ use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
 use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING};
 use crate::ui::{App, AppMessage};
-use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
+use crate::utils::config::{
+    WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode, WallpaperReadability,
+};
 use iced::widget::{checkbox, column, container, row, text, text_input, tooltip};
 use iced::{Alignment, Element, Length};
 
@@ -119,6 +121,39 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                 ],
                 Some(app.settings_state.wallpaper_mode),
                 |mode| SettingsMessage::WallpaperModeSelected(mode).into(),
+            ),
+            theme_colors,
+        ),
+        // 壁纸可读性处理（4 个选项，占满整行）
+        super::create_full_width_row(
+            app.i18n.t("settings.wallpaper-readability"),
+            Some(app.i18n.t("settings.wallpaper-readability-desc")),
+            create_radio_row(
+                app,
+                &[
+                    (
+                        "wallpaper-readability-options.none",
+                        WallpaperReadability::None,
+                        "wallpaper-readability-options.none-tooltip",
+                    ),
+                    (
+                        "wallpaper-readability-options.dim",
+                        WallpaperReadability::Dim,
+                        "wallpaper-readability-options.dim-tooltip",
+                    ),
+                    (
+                        "wallpaper-readability-options.blur",
+                        WallpaperReadability::Blur,
+                        "wallpaper-readability-options.blur-tooltip",
+                    ),
+                    (
+                        "wallpaper-readability-options.dim-blur",
+                        WallpaperReadability::DimBlur,
+                        "wallpaper-readability-options.dim-blur-tooltip",
+                    ),
+                ],
+                Some(app.settings_state.wallpaper_readability),
+                |option| SettingsMessage::WallpaperReadabilitySelected(option).into(),
             ),
             theme_colors,
         ),

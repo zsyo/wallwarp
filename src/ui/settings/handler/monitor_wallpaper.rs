@@ -49,11 +49,15 @@ impl App {
             return Task::none();
         }
         let mode = self.config.wallpaper.mode;
+        let readability = self.config.wallpaper.readability;
+        let cache_path = self.config.data.cache_path.clone();
         async_task::set_wallpaper_for_monitor_task(
             self.main_window_id,
             monitor_id.clone(),
             path,
             mode,
+            readability,
+            cache_path,
         )
         .map(move |result| SettingsMessage::MonitorWallpaperSet(monitor_id.clone(), result).into())
     }
