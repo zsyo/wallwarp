@@ -18,21 +18,9 @@ impl App {
         current_page: usize,
     ) -> Task<AppMessage> {
         // 添加新壁纸到列表，并开始加载缩略图
-        self.online_state.current_page = current_page;
-        self.online_state.total_pages = total_pages;
-
-        // 判断是否是最后一页：
-        // 如果 current_page == total_pages && current_page == 1 && data 为空，说明无数据
-        // 否则 last_page（布尔值）表示已加载到最后一页
         let is_empty_data = wallpapers.is_empty();
-        let is_first_and_last_page = current_page == 1 && total_pages == 1;
-        self.online_state.last_page = if is_empty_data && is_first_and_last_page {
-            // 无数据情况：last_page 为 false
-            false
-        } else {
-            last_page
-        };
-        self.online_state.has_loaded = true; // 标记已加载过数据
+        self.online_state
+            .update_paging_from_result(wallpapers.len(), last_page, total_pages, current_page);
 
         // 处理空数据但非最后一页的情况：自动加载下一页
         if is_empty_data && !last_page && current_page < total_pages {
