@@ -11,6 +11,7 @@ mod load_single_wallpaper;
 mod load_wallpaper_paths;
 mod monitors;
 mod open_folder;
+mod random_online;
 mod select_file;
 mod set_wallpaper;
 mod streaming;
