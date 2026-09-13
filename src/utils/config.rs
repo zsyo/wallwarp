@@ -664,8 +664,11 @@ impl Config {
                 }
                 let tmp_file = format!("{}.tmp", config_path.display());
                 let write_result = fs::write(&tmp_file, full_content).and_then(|_| {
-                    // Windows 上 rename 不允许覆盖已存在的目标，需先移除旧文件
+                    // Windows 上 rename 不允许覆盖已存在的目标，需先移除旧文件；
+                    // 移除前先留 .bak，防止 remove 成功而 rename 失败导致配置丢失
                     if fs::metadata(&config_path).is_ok() {
+                        let backup = format!("{}.bak", config_path.display());
+                        let _ = fs::copy(&config_path, &backup);
                         fs::remove_file(&config_path)?;
                     }
                     fs::rename(&tmp_file, &config_path)

@@ -5,7 +5,7 @@
 //! 处理 HTTP 请求和重试逻辑
 
 use crate::services::request_context::RequestContext;
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 
 const BASE_URL: &str = "https://wallhaven.cc/api/v1";
 
@@ -38,6 +38,63 @@ pub struct SearchParams<'a> {
 pub struct WallhavenClient {
     api_key: Option<String>,
     client: reqwest::Client,
+}
+
+/// 执行单次 HTTP GET 请求的公共内核
+///
+/// 错误分类（超时/连接失败/其它）与日志统一在此收口：中间失败仅 warn
+/// 记录，由 retry 层在重试耗尽后统一 error 收口（见 retry.rs 约定）
+async fn do_get_once(
+    client: &reqwest::Client,
+    url: &str,
+    identifier: &str,
+    context: &RequestContext,
+    timeout_secs: Option<u64>,
+) -> Result<String, String> {
+    // 检查取消状态
+    if let Some(()) = context.check_cancelled() {
+        return Err("请求已取消".to_string());
+    }
+
+    // 构建请求并应用超时设置（如果指定）
+    let request = client.get(url);
+    let request = match timeout_secs {
+        Some(timeout) => request.timeout(std::time::Duration::from_secs(timeout)),
+        None => request,
+    };
+
+    let response = request.send().await.map_err(|e| {
+        // 检查是否是超时错误
+        if e.is_timeout() {
+            warn!(
+                "[Wallhaven API] [{}] 请求超时（{}秒）",
+                identifier,
+                timeout_secs.unwrap_or(0)
+            );
+            "请求超时，请检查网络连接或设置代理".to_string()
+        } else if e.is_connect() {
+            warn!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
+            "连接失败，请检查网络连接或设置代理".to_string()
+        } else {
+            warn!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
+            format!("请求失败: {}", e)
+        }
+    })?;
+
+    debug!(
+        "[Wallhaven API] [{}] 响应状态: {}",
+        identifier,
+        response.status()
+    );
+
+    if !response.status().is_success() {
+        return Err(format!("API返回错误: {}", response.status()));
+    }
+
+    response.text().await.map_err(|e| {
+        warn!("[Wallhaven API] [{}] 读取响应失败: {}", identifier, e);
+        format!("读取响应失败: {}", e)
+    })
 }
 
 impl WallhavenClient {
@@ -176,54 +233,7 @@ impl WallhavenClient {
         context: &RequestContext,
         timeout_secs: Option<u64>,
     ) -> Result<String, String> {
-        // 检查取消状态
-        if let Some(()) = context.check_cancelled() {
-            return Err("请求已取消".to_string());
-        }
-
-        // 构建请求
-        let request = self.client.get(&url);
-
-        // 应用超时设置（如果指定）
-        let request = if let Some(timeout) = timeout_secs {
-            request.timeout(std::time::Duration::from_secs(timeout))
-        } else {
-            request
-        };
-
-        let response = request.send().await.map_err(|e| {
-            // 检查是否是超时错误
-            // 中间失败仅 warn 记录，由 retry 层在重试耗尽后统一 error 收口
-            if e.is_timeout() {
-                warn!(
-                    "[Wallhaven API] [{}] 请求超时（{}秒）",
-                    identifier,
-                    timeout_secs.unwrap_or(0)
-                );
-                "请求超时，请检查网络连接或设置代理".to_string()
-            } else if e.is_connect() {
-                warn!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
-                "连接失败，请检查网络连接或设置代理".to_string()
-            } else {
-                warn!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
-                format!("请求失败: {}", e)
-            }
-        })?;
-
-        debug!(
-            "[Wallhaven API] [{}] 响应状态: {}",
-            identifier,
-            response.status()
-        );
-
-        if !response.status().is_success() {
-            return Err(format!("API返回错误: {}", response.status()));
-        }
-
-        response.text().await.map_err(|e| {
-            error!("[Wallhaven API] [{}] 读取响应失败: {}", identifier, e);
-            format!("读取响应失败: {}", e)
-        })
+        do_get_once(&self.client, &url, &identifier, context, timeout_secs).await
     }
 
     /// 执行 HTTP GET 请求（带重试）
@@ -249,53 +259,7 @@ impl WallhavenClient {
             let identifier = identifier.clone();
             let context = context.clone();
             async move {
-                // 每次重试前检查取消状态
-                if let Some(()) = context.check_cancelled() {
-                    return Err("请求已取消".to_string());
-                }
-
-                // 构建请求
-                let request = client.get(&url);
-
-                // 应用超时设置（如果指定）
-                let request = if let Some(timeout) = timeout_secs {
-                    request.timeout(std::time::Duration::from_secs(timeout))
-                } else {
-                    request
-                };
-
-                let response = request.send().await.map_err(|e| {
-                    // 检查是否是超时错误
-                    if e.is_timeout() {
-                        error!(
-                            "[Wallhaven API] [{}] 请求超时（{}秒）",
-                            identifier,
-                            timeout_secs.unwrap_or(0)
-                        );
-                        "请求超时，请检查网络连接或设置代理".to_string()
-                    } else if e.is_connect() {
-                        error!("[Wallhaven API] [{}] 连接失败: {}", identifier, e);
-                        "连接失败，请检查网络连接或设置代理".to_string()
-                    } else {
-                        error!("[Wallhaven API] [{}] 请求失败: {}", identifier, e);
-                        format!("请求失败: {}", e)
-                    }
-                })?;
-
-                debug!(
-                    "[Wallhaven API] [{}] 响应状态: {}",
-                    identifier,
-                    response.status()
-                );
-
-                if !response.status().is_success() {
-                    return Err(format!("API返回错误: {}", response.status()));
-                }
-
-                response.text().await.map_err(|e| {
-                    error!("[Wallhaven API] [{}] 读取响应失败: {}", identifier, e);
-                    format!("读取响应失败: {}", e)
-                })
+                do_get_once(&client, &url, &identifier, &context, timeout_secs).await
             }
         })
         .await
