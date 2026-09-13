@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use super::OnlineState;
+use crate::services::source::{ColorOption, Sorting, TimeRange};
 use crate::services::wallhaven::{AspectRatio, Purity, Resolution, helper};
 use crate::ui::online::ResolutionMode;
 use crate::utils::config::Config;
@@ -20,9 +21,9 @@ impl OnlineState {
             self.purities &= !Purity::NSFW.bit_value();
         }
 
-        self.sorting = helper::parse_sorting(&config.wallhaven.sorting);
-        self.color = helper::parse_color(&config.wallhaven.color);
-        self.time_range = helper::parse_time_range(&config.wallhaven.top_range);
+        self.sorting = Sorting::parse(&config.wallhaven.sorting);
+        self.color = ColorOption::parse(&config.wallhaven.color);
+        self.time_range = TimeRange::parse(&config.wallhaven.top_range);
 
         // 分辨率模式与选中项
         self.resolution_mode = match config.wallhaven.resolution_mode.as_str() {

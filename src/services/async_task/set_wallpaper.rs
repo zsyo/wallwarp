@@ -82,12 +82,10 @@ pub async fn async_set_random_online_wallpaper(
     // 解析配置参数
     let categories = wallhaven::parse_category_bitmask(&config.wallhaven.category);
     let purities = wallhaven::parse_purity_bitmask(&config.wallhaven.purity);
-    let color = wallhaven::parse_color(&config.wallhaven.color);
+    let color = wallhaven::ColorOption::parse(&config.wallhaven.color);
     // 使用配置文件中的排序方式和时间范围（从 config.wallpaper 读取）
-    let sorting = wallhaven::Sorting::parse(&config.wallpaper.auto_change_sorting)
-        .unwrap_or(wallhaven::Sorting::Random);
-    let time_range = wallhaven::TimeRange::parse(&config.wallpaper.auto_change_top_range)
-        .unwrap_or(wallhaven::TimeRange::Month);
+    let sorting = wallhaven::Sorting::parse(&config.wallpaper.auto_change_sorting);
+    let time_range = wallhaven::TimeRange::parse(&config.wallpaper.auto_change_top_range);
 
     let atleast = if config.wallhaven.atleast_resolution.is_empty() {
         None

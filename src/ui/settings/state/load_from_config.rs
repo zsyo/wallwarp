@@ -14,13 +14,11 @@ impl SettingsState {
         // 直接使用配置文件中的 proxy_enabled 字段
         let proxy_enabled = config.global.proxy_enabled;
 
-        // 解析排序方式
-        let auto_change_sorting =
-            Sorting::parse(&config.wallpaper.auto_change_sorting).unwrap_or(Sorting::DateAdded);
+        // 解析排序方式（未知取值回退 DateAdded）
+        let auto_change_sorting = Sorting::parse(&config.wallpaper.auto_change_sorting);
 
-        // 解析时间范围
-        let auto_change_time_range =
-            TimeRange::parse(&config.wallpaper.auto_change_top_range).unwrap_or(TimeRange::Month);
+        // 解析时间范围（未知取值回退 Month）
+        let auto_change_time_range = TimeRange::parse(&config.wallpaper.auto_change_top_range);
 
         let mut state = Self {
             active_category: SettingsCategory::General,

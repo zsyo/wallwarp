@@ -1,5 +1,4 @@
-/// Copyright (C) 2026 zsyo - GNU AGPL v3.0
-use super::{ColorOption, Sorting, TimeRange};
+// Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 /// 解析分类位掩码
 pub fn parse_category_bitmask(category: &str) -> u32 {
@@ -26,57 +25,6 @@ pub fn parse_purity_bitmask(purity: &str) -> u32 {
     }
 }
 
-/// 解析排序方式
-pub fn parse_sorting(sorting: &str) -> Sorting {
-    match sorting {
-        "date_added" => Sorting::DateAdded,
-        "views" => Sorting::Views,
-        "favorites" => Sorting::Favorites,
-        "toplist" => Sorting::TopList,
-        "random" => Sorting::Random,
-        "relevance" => Sorting::Relevance,
-        "hot" => Sorting::Hot,
-        _ => Sorting::DateAdded,
-    }
-}
-
-/// 解析颜色选项
-pub fn parse_color(color: &str) -> ColorOption {
-    match color.to_lowercase().as_str() {
-        "any" => ColorOption::Any,
-        "660000" => ColorOption::Color660000,
-        "990000" => ColorOption::Color990000,
-        "cc0000" => ColorOption::ColorCC0000,
-        "cc3333" => ColorOption::ColorCC3333,
-        "ea4c88" => ColorOption::ColorEA4C88,
-        "993399" => ColorOption::Color993399,
-        "663399" => ColorOption::Color663399,
-        "333399" => ColorOption::Color333399,
-        "0066cc" => ColorOption::Color0066CC,
-        "0099cc" => ColorOption::Color0099CC,
-        "66cccc" => ColorOption::Color66CCCC,
-        "77cc33" => ColorOption::Color77CC33,
-        "669900" => ColorOption::Color669900,
-        "336600" => ColorOption::Color336600,
-        "666600" => ColorOption::Color666600,
-        "999900" => ColorOption::Color999900,
-        "cccc33" => ColorOption::ColorCCCC33,
-        "ffff00" => ColorOption::ColorFFFF00,
-        "ffcc33" => ColorOption::ColorFFCC33,
-        "ff9900" => ColorOption::ColorFF9900,
-        "ff6600" => ColorOption::ColorFF6600,
-        "cc6633" => ColorOption::ColorCC6633,
-        "996633" => ColorOption::Color996633,
-        "663300" => ColorOption::Color663300,
-        "000000" => ColorOption::Color000000,
-        "999999" => ColorOption::Color999999,
-        "cccccc" => ColorOption::ColorCCCCCC,
-        "ffffff" => ColorOption::ColorFFFFFF,
-        "424153" => ColorOption::Color424153,
-        _ => ColorOption::Any,
-    }
-}
-
 /// 对 API key 进行脱敏处理
 ///
 /// 长度达到8个字符时保留前4位与后4位，中间以4个星号代替；
@@ -89,19 +37,5 @@ pub fn mask_api_key(key: &str) -> String {
         format!("{}****{}", head, tail)
     } else {
         "****".to_string()
-    }
-}
-
-/// 解析时间范围
-pub fn parse_time_range(time_range: &str) -> TimeRange {
-    match time_range {
-        "1d" => TimeRange::Day,
-        "3d" => TimeRange::ThreeDays,
-        "1w" => TimeRange::Week,
-        "1M" => TimeRange::Month,
-        "3M" => TimeRange::ThreeMonths,
-        "6M" => TimeRange::SixMonths,
-        "1y" => TimeRange::Year,
-        _ => TimeRange::Month,
     }
 }

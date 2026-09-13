@@ -58,16 +58,17 @@ impl Sorting {
         }
     }
 
-    pub fn parse(s: &str) -> Option<Self> {
+    /// 解析配置取值；未知取值回退到 DateAdded，不会失败
+    pub fn parse(s: &str) -> Self {
         match s {
-            "date_added" => Some(Sorting::DateAdded),
-            "relevance" => Some(Sorting::Relevance),
-            "random" => Some(Sorting::Random),
-            "views" => Some(Sorting::Views),
-            "favorites" => Some(Sorting::Favorites),
-            "toplist" => Some(Sorting::TopList),
-            "hot" => Some(Sorting::Hot),
-            _ => Some(Sorting::DateAdded),
+            "date_added" => Sorting::DateAdded,
+            "relevance" => Sorting::Relevance,
+            "random" => Sorting::Random,
+            "views" => Sorting::Views,
+            "favorites" => Sorting::Favorites,
+            "toplist" => Sorting::TopList,
+            "hot" => Sorting::Hot,
+            _ => Sorting::DateAdded,
         }
     }
 }
@@ -127,16 +128,17 @@ impl TimeRange {
         }
     }
 
-    pub fn parse(s: &str) -> Option<Self> {
+    /// 解析配置取值；未知取值回退到 Month，不会失败
+    pub fn parse(s: &str) -> Self {
         match s {
-            "1d" => Some(TimeRange::Day),
-            "3d" => Some(TimeRange::ThreeDays),
-            "1w" => Some(TimeRange::Week),
-            "1M" => Some(TimeRange::Month),
-            "3M" => Some(TimeRange::ThreeMonths),
-            "6M" => Some(TimeRange::SixMonths),
-            "1y" => Some(TimeRange::Year),
-            _ => Some(TimeRange::Month),
+            "1d" => TimeRange::Day,
+            "3d" => TimeRange::ThreeDays,
+            "1w" => TimeRange::Week,
+            "1M" => TimeRange::Month,
+            "3M" => TimeRange::ThreeMonths,
+            "6M" => TimeRange::SixMonths,
+            "1y" => TimeRange::Year,
+            _ => TimeRange::Month,
         }
     }
 }
@@ -250,6 +252,43 @@ impl ColorOption {
             ColorOption::ColorCCCCCC => "cccccc",
             ColorOption::ColorFFFFFF => "ffffff",
             ColorOption::Color424153 => "424153",
+        }
+    }
+
+    /// 解析配置取值（不区分大小写）；未知取值回退到 Any，不会失败
+    pub fn parse(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "any" => ColorOption::Any,
+            "660000" => ColorOption::Color660000,
+            "990000" => ColorOption::Color990000,
+            "cc0000" => ColorOption::ColorCC0000,
+            "cc3333" => ColorOption::ColorCC3333,
+            "ea4c88" => ColorOption::ColorEA4C88,
+            "993399" => ColorOption::Color993399,
+            "663399" => ColorOption::Color663399,
+            "333399" => ColorOption::Color333399,
+            "0066cc" => ColorOption::Color0066CC,
+            "0099cc" => ColorOption::Color0099CC,
+            "66cccc" => ColorOption::Color66CCCC,
+            "77cc33" => ColorOption::Color77CC33,
+            "669900" => ColorOption::Color669900,
+            "336600" => ColorOption::Color336600,
+            "666600" => ColorOption::Color666600,
+            "999900" => ColorOption::Color999900,
+            "cccc33" => ColorOption::ColorCCCC33,
+            "ffff00" => ColorOption::ColorFFFF00,
+            "ffcc33" => ColorOption::ColorFFCC33,
+            "ff9900" => ColorOption::ColorFF9900,
+            "ff6600" => ColorOption::ColorFF6600,
+            "cc6633" => ColorOption::ColorCC6633,
+            "996633" => ColorOption::Color996633,
+            "663300" => ColorOption::Color663300,
+            "000000" => ColorOption::Color000000,
+            "999999" => ColorOption::Color999999,
+            "cccccc" => ColorOption::ColorCCCCCC,
+            "ffffff" => ColorOption::ColorFFFFFF,
+            "424153" => ColorOption::Color424153,
+            _ => ColorOption::Any,
         }
     }
 }
