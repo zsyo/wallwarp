@@ -49,13 +49,11 @@ impl App {
         self.config.set_wallhaven_api_key(new_api_key);
 
         // 如果 API Key 被清空，移除 NSFW 选项
-        let mut purity_changed = false;
         if self.settings_state.wallhaven_api_key.is_empty() {
             // 移除 NSFW 位（第0位）
             self.online_state.purities &= !wallhaven::Purity::NSFW.bit_value();
             // 同步到配置（内存），磁盘写入经防抖合并
             self.online_state.save_to_config(&mut self.config);
-            purity_changed = true;
         }
 
         // 保存后内容非空时自动切换为隐藏状态；内容为空则维持显示以便后续输入
@@ -64,14 +62,11 @@ impl App {
             self.settings_state.refresh_wallhaven_api_key_masked();
         }
 
-        // 显示成功通知
-        let mut task = self.show_notification(
+        // 显示成功通知，磁盘写入经防抖合并
+        self.show_notification(
             self.i18n.t("notification.wallhaven-api-key-saved"),
             NotificationType::Success,
-        );
-        if purity_changed {
-            task = task.chain(self.request_config_save());
-        }
-        task
+        )
+        .chain(self.request_config_save())
     }
 }

@@ -66,14 +66,14 @@ impl App {
                     "[设置] [代理] 保存（已启用）: {} -> {}",
                     old_proxy, proxy_url
                 );
-                // 先更新开关状态再设置代理，set_proxy 内部落盘时可一并写入
                 self.config.global.proxy_enabled = true;
                 self.config.set_proxy(proxy_url);
-                // 显示成功通知
+                // 显示成功通知，磁盘写入经防抖合并
                 self.show_notification(
                     self.i18n.t("settings.proxy-save-success"),
                     NotificationType::Success,
                 )
+                .chain(self.request_config_save())
             } else {
                 // 地址或端口无效，显示错误通知
                 info!("[设置] [代理] 保存失败（开关已开启但配置无效）");

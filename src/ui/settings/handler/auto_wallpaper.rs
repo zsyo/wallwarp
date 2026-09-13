@@ -19,7 +19,8 @@ impl App {
         info!("[设置] [壁纸模式] 修改: {:?} -> {:?}", old_mode, mode);
         self.settings_state.wallpaper_mode = mode;
         self.config.set_wallpaper_mode(mode);
-        iced::Task::none()
+        // 磁盘写入经防抖合并
+        self.request_config_save()
     }
 
     /// 壁纸可读性处理选项选择（状态持久化到配置）

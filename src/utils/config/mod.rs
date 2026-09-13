@@ -110,44 +110,39 @@ impl Config {
         }
     }
 
+    // 以下各 setter 只更新内存，磁盘写入统一由 App 层的
+    // request_config_save()（300ms 防抖）合并执行，调用方负责触发
+
     pub fn update_window_size(&mut self, width: u32, height: u32) {
         self.display.width = width;
         self.display.height = height;
-        self.save_to_file();
     }
 
     pub fn set_language(&mut self, lang: String) {
         self.global.language = lang;
-        self.save_to_file();
     }
 
     pub fn set_close_action(&mut self, action: CloseAction) {
         self.global.close_action = action;
-        self.save_to_file();
     }
 
     pub fn set_data_path(&mut self, path: String) {
         self.data.data_path = path;
-        self.save_to_file();
     }
 
     pub fn set_cache_path(&mut self, path: String) {
         self.data.cache_path = path;
-        self.save_to_file();
     }
 
     pub fn set_wallhaven_api_key(&mut self, key: String) {
         self.wallhaven.api_key = key;
-        self.save_to_file();
     }
 
     pub fn set_proxy(&mut self, proxy: String) {
         self.global.proxy = proxy;
-        self.save_to_file();
     }
 
     pub fn set_wallpaper_mode(&mut self, mode: WallpaperMode) {
         self.wallpaper.mode = mode;
-        self.save_to_file();
     }
 }

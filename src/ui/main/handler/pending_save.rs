@@ -14,8 +14,9 @@ impl App {
                 && width >= crate::utils::config::MIN_WINDOW_WIDTH
                 && height >= crate::utils::config::MIN_WINDOW_HEIGHT
             {
-                // 同步窗口大小到配置文件
+                // 同步窗口大小到内存配置，磁盘写入统一经防抖合并
                 self.config.update_window_size(width, height);
+                return self.request_config_save();
             }
         }
         Task::none()

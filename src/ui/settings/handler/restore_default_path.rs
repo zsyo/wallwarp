@@ -32,6 +32,7 @@ impl App {
             }
             _ => {}
         }
-        Task::none()
+        // 磁盘写入经防抖合并
+        self.request_config_save()
     }
 }

@@ -14,10 +14,10 @@ impl App {
         self.i18n.set_language(lang.clone());
         self.tray_manager.update_i18n(&self.i18n);
         self.floating_ball.update_i18n(&self.i18n);
-        // 同时更新配置
+        // 同时更新配置，磁盘写入经防抖合并
         self.config.set_language(lang);
         // 自动收起语言选择器
         self.settings_state.language_picker_expanded = false;
-        Task::none()
+        self.request_config_save()
     }
 }

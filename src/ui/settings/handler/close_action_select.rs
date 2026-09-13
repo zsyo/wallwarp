@@ -18,6 +18,7 @@ impl App {
         );
 
         self.config.set_close_action(action);
-        Task::none()
+        // 磁盘写入经防抖合并
+        self.request_config_save()
     }
 }

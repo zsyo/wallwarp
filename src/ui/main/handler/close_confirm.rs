@@ -26,6 +26,8 @@ impl App {
                 CloseConfirmationAction::CloseApp => CloseAction::CloseApp,
             };
             self.config.set_close_action(new_close_action);
+            // 磁盘写入经防抖合并
+            let _ = self.request_config_save();
         }
 
         // 根据选择执行相应操作
