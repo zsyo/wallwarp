@@ -8,6 +8,24 @@ use iced::Task;
 use tracing::{info, warn};
 
 impl App {
+    /// 解析当前本地模式选图目录（定时切换与托盘"下一张"共用）
+    ///
+    /// 开启"按主题分组"后按系统深浅色取对应目录；目录未配置时回退壁纸库目录
+    pub(in crate::ui) fn theme_aware_local_wallpaper_dir(&self) -> String {
+        let wallpaper = &self.config.wallpaper;
+        if wallpaper.auto_change_theme_aware {
+            let dir = if crate::platform::system_color_mode() {
+                &wallpaper.auto_change_dark_dir
+            } else {
+                &wallpaper.auto_change_light_dir
+            };
+            if !dir.is_empty() {
+                return dir.clone();
+            }
+        }
+        self.config.data.data_path.clone()
+    }
+
     /// 处理定时切换壁纸的定时器事件
     pub(in crate::ui::auto_change) fn auto_change_tick(&mut self) -> Task<AppMessage> {
         if !self.auto_change_state.auto_change_enabled {
@@ -36,7 +54,7 @@ impl App {
         // 4. 根据模式直接执行切换任务
         match self.config.wallpaper.auto_change_mode {
             WallpaperAutoChangeMode::Local => {
-                let data_path = self.config.data.data_path.clone();
+                let data_path = self.theme_aware_local_wallpaper_dir();
                 Task::perform(
                     async_task::async_get_supported_images(data_path),
                     |result| match result {

@@ -15,6 +15,7 @@ mod section_general;
 mod section_hotkeys;
 mod section_network;
 mod section_sources;
+mod section_theme_aware;
 mod section_wallpaper_config;
 mod setting_row;
 mod settings_sorting_picker;
@@ -46,5 +47,6 @@ pub(in crate::ui::settings) use {
     section_hotkeys::create_hotkeys_section,
     section_network::create_network_section,
     section_sources::create_sources_section,
+    section_theme_aware::create_theme_aware_rows,
     section_wallpaper_config::create_wallpaper_config_section,
 };

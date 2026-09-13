@@ -82,6 +82,15 @@ pub enum SettingsMessage {
     AutoChangeSortingChanged(Sorting),
     /// 定时切换时间范围变化
     AutoChangeTimeRangeChanged(TimeRange),
+    /// 定时切换"按主题分组选图"开关切换
+    AutoChangeThemeAwareToggled(bool),
+    /// 定时切换主题分组选图目录选择
+    ///
+    /// dir_type 为 "light"/"dark"；path 为 "SELECT" 表示打开选择对话框，
+    /// 空串表示用户取消，其余为选中的目录
+    AutoChangeThemeDirSelected(String, String),
+    /// 清空定时切换主题分组选图目录（dir_type 为 "light"/"dark"）
+    AutoChangeThemeDirCleared(String),
     /// 展开语言选择器
     LanguagePickerExpanded,
     /// 关闭语言选择器
@@ -224,6 +233,15 @@ impl App {
             }
             SettingsMessage::AutoChangeTimeRangeChanged(time_range) => {
                 self.settings_auto_change_time_range_changed(time_range)
+            }
+            SettingsMessage::AutoChangeThemeAwareToggled(enabled) => {
+                self.settings_auto_change_theme_aware_toggled(enabled)
+            }
+            SettingsMessage::AutoChangeThemeDirSelected(dir_type, path) => {
+                self.settings_auto_change_theme_dir_selected(dir_type, path)
+            }
+            SettingsMessage::AutoChangeThemeDirCleared(dir_type) => {
+                self.settings_auto_change_theme_dir_cleared(dir_type)
             }
             SettingsMessage::LanguagePickerExpanded => self.settings_language_picker_expanded(),
             SettingsMessage::LanguagePickerDismiss => self.settings_language_picker_dismiss(),

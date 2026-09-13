@@ -11,7 +11,10 @@ use tracing::info;
 impl App {
     pub(in crate::ui::main) fn tray_switch_previous_wallpaper(&mut self) -> Task<AppMessage> {
         // 提前获取翻译文本，避免线程安全问题
-        let no_previous_message = self.i18n.t("notification.no-previous-wallpaper").to_string();
+        let no_previous_message = self
+            .i18n
+            .t("notification.no-previous-wallpaper")
+            .to_string();
 
         // 检查历史记录是否为空
         if self.wallpaper_history.is_empty() {
@@ -48,7 +51,7 @@ impl App {
         match self.config.wallpaper.auto_change_mode {
             WallpaperAutoChangeMode::Local => {
                 // 本地模式：获取支持的图片文件列表
-                let data_path = self.config.data.data_path.clone();
+                let data_path = self.theme_aware_local_wallpaper_dir();
                 Task::perform(
                     async_task::async_get_supported_images(data_path),
                     move |result| match result {

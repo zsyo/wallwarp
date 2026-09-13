@@ -259,6 +259,15 @@ pub struct WallpaperConfig {
     pub auto_change_sorting: String,
     #[serde(default = "default_auto_change_top_range")]
     pub auto_change_top_range: String,
+    /// 定时切换本地选图按系统深浅色分组（深浅色各用独立目录）
+    #[serde(default)]
+    pub auto_change_theme_aware: bool,
+    /// 浅色主题本地选图目录（空 = 沿用 data_path）
+    #[serde(default)]
+    pub auto_change_light_dir: String,
+    /// 深色主题本地选图目录（空 = 沿用 data_path）
+    #[serde(default)]
+    pub auto_change_dark_dir: String,
 }
 
 impl Default for WallpaperConfig {
@@ -271,6 +280,9 @@ impl Default for WallpaperConfig {
             auto_change_query: String::new(),
             auto_change_sorting: default_auto_change_sorting(),
             auto_change_top_range: default_auto_change_top_range(),
+            auto_change_theme_aware: false,
+            auto_change_light_dir: String::new(),
+            auto_change_dark_dir: String::new(),
         }
     }
 }

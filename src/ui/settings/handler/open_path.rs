@@ -13,6 +13,19 @@ impl App {
         let (path_to_open, dir_name) = match path_type.as_str() {
             "data" => (&self.config.data.data_path, "数据目录"),
             "cache" => (&self.config.data.cache_path, "缓存目录"),
+            // 主题分组选图目录：未配置时查看当前生效的壁纸库目录
+            "auto-change-light" | "auto-change-dark" => {
+                let theme_dir = if path_type == "auto-change-light" {
+                    &self.config.wallpaper.auto_change_light_dir
+                } else {
+                    &self.config.wallpaper.auto_change_dark_dir
+                };
+                if theme_dir.is_empty() {
+                    (&self.config.data.data_path, "壁纸库目录")
+                } else {
+                    (theme_dir, "主题选图目录")
+                }
+            }
             _ => return Task::none(),
         };
 

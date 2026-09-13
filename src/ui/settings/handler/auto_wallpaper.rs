@@ -1,6 +1,8 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::async_task;
 use crate::services::wallhaven::{Sorting, TimeRange};
+use crate::ui::settings::SettingsMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
 use iced::Task;
@@ -224,5 +226,69 @@ impl App {
     ) -> Task<AppMessage> {
         self.settings_state.time_range_picker_expanded = false;
         Task::none()
+    }
+
+    /// "按主题分组选图"开关切换（状态持久化到配置）
+    pub(in crate::ui::settings) fn settings_auto_change_theme_aware_toggled(
+        &mut self,
+        enabled: bool,
+    ) -> Task<AppMessage> {
+        let old = self.config.wallpaper.auto_change_theme_aware;
+        info!("[设置] [按主题分组选图] 修改: {} -> {}", old, enabled);
+        self.settings_state.auto_change_theme_aware = enabled;
+        self.config.wallpaper.auto_change_theme_aware = enabled;
+        // 磁盘写入经防抖合并
+        self.request_config_save()
+    }
+
+    /// 主题分组选图目录选择（dir_type 为 "light"/"dark"）
+    ///
+    /// path 为 "SELECT" 表示打开目录选择对话框；空串表示用户取消，忽略
+    pub(in crate::ui::settings) fn settings_auto_change_theme_dir_selected(
+        &mut self,
+        dir_type: String,
+        path: String,
+    ) -> Task<AppMessage> {
+        if path == "SELECT" {
+            return Task::perform(async_task::select_folder_async(), move |selected| {
+                SettingsMessage::AutoChangeThemeDirSelected(dir_type.clone(), selected).into()
+            });
+        }
+        if path.is_empty() {
+            return Task::none();
+        }
+        self.set_auto_change_theme_dir(&dir_type, path);
+        // 磁盘写入经防抖合并
+        self.request_config_save()
+    }
+
+    /// 清空主题分组选图目录（回退为沿用壁纸库目录）
+    pub(in crate::ui::settings) fn settings_auto_change_theme_dir_cleared(
+        &mut self,
+        dir_type: String,
+    ) -> Task<AppMessage> {
+        self.set_auto_change_theme_dir(&dir_type, String::new());
+        // 磁盘写入经防抖合并
+        self.request_config_save()
+    }
+
+    /// 写入主题分组选图目录配置（dir_type 为 "light"/"dark"）
+    fn set_auto_change_theme_dir(&mut self, dir_type: &str, path: String) {
+        let old_dir = match dir_type {
+            "light" => std::mem::take(&mut self.config.wallpaper.auto_change_light_dir),
+            "dark" => std::mem::take(&mut self.config.wallpaper.auto_change_dark_dir),
+            _ => return,
+        };
+        info!(
+            "[设置] [按主题分组选图] [{}] 目录修改: {} -> {}",
+            dir_type,
+            if old_dir.is_empty() { "(空)" } else { &old_dir },
+            if path.is_empty() { "(空)" } else { &path }
+        );
+        match dir_type {
+            "light" => self.config.wallpaper.auto_change_light_dir = path,
+            "dark" => self.config.wallpaper.auto_change_dark_dir = path,
+            _ => {}
+        }
     }
 }

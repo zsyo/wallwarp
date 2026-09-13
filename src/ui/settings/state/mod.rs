@@ -40,6 +40,8 @@ pub struct SettingsState {
     pub auto_change_time_range: TimeRange,
     pub sorting_picker_expanded: bool,
     pub time_range_picker_expanded: bool,
+    /// 定时切换"按主题分组选图"开关
+    pub auto_change_theme_aware: bool,
 
     // 热键录制状态（Some = 正在录制该动作的快捷键）
     pub hotkey_recording: Option<crate::utils::hotkey_manager::HotkeyAction>,
@@ -80,6 +82,7 @@ impl Default for SettingsState {
             auto_change_time_range: TimeRange::Month,
             sorting_picker_expanded: false,
             time_range_picker_expanded: false,
+            auto_change_theme_aware: false,
             hotkey_recording: None,
             show_path_clear_confirmation: false,
             path_to_clear: String::new(),

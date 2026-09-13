@@ -78,7 +78,7 @@ fn create_multi_monitor_content<'a>(app: &'a App) -> Element<'a, AppMessage> {
 pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
     let theme_colors = app.theme_colors;
 
-    let rows = vec![
+    let mut rows = vec![
         // 壁纸模式（6 个选项，占满整行）
         super::create_full_width_row(
             app.i18n.t("settings.wallpaper-mode"),
@@ -159,7 +159,11 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
             online_config_row(app),
             theme_colors,
         ),
-        // 多显示器独立壁纸（仅支持按显示器设置的环境展示列表）
+    ];
+    // 定时切换按主题分组选图（开关 + 浅色/深色目录）
+    rows.extend(super::create_theme_aware_rows(app));
+    // 多显示器独立壁纸（仅支持按显示器设置的环境展示列表）
+    rows.push(
         if crate::platform::supports_per_monitor_wallpaper() {
             super::create_full_width_row(
                 app.i18n.t("settings.multi-monitor"),
@@ -175,7 +179,7 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
                 theme_colors,
             )
         },
-    ];
+    );
 
     super::create_config_section(
         "\u{F42A}", // image
