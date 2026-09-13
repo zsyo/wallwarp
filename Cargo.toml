@@ -80,18 +80,22 @@ windows = { version = "0.62", features = [
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
     "Win32_UI_Controls",
+    "Win32_UI_Shell",
+    "Win32_System_Com",
 ] }
 winreg = "0.56"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
-objc2-foundation = { version = "0.3", features = ["NSGeometry"] }
+objc2-foundation = { version = "0.3", features = ["NSGeometry", "NSURL"] }
 objc2-app-kit = { version = "0.3", features = [
     "NSApplication",
+    "NSGraphics",
     "NSResponder",
     "NSScreen",
     "NSView",
     "NSWindow",
+    "NSWorkspace",
 ] }
 
 [target.'cfg(target_os = "linux")'.dependencies]

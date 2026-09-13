@@ -2,11 +2,14 @@
 
 //! Wallhaven 服务层
 //!
-//! 提供 Wallhaven API 的高级接口
+//! 提供 Wallhaven API 的高级接口，并实现图源抽象的 [`WallpaperSource`] trait
 
 use super::client::{SearchParams, WallhavenClient};
-use super::types::{OnlineWallpaper, WallhavenResponse, WallpaperData};
+use super::types::{WallhavenResponse, WallpaperData};
 use crate::services::request_context::RequestContext;
+use crate::services::source::{
+    OnlineWallpaper, SearchQuery, SearchResult, SourceFuture, SourceKind, WallpaperSource,
+};
 use tracing::{debug, error, info};
 
 /// Wallhaven 服务
@@ -60,25 +63,16 @@ impl WallhavenService {
     /// 搜索壁纸
     ///
     /// # 参数
-    /// - `page`: 页码（从 1 开始）
-    /// - `categories`: 分类位掩码（100=通用, 010=动漫, 001=人物）
-    /// - `sorting`: 排序方式
-    /// - `purities`: 纯净度位掩码（100=SFW, 010=Sketchy, 001=NSFW）
-    /// - `color`: 颜色选项
-    /// - `query`: 搜索关键词
-    /// - `time_range`: 时间范围（仅用于 toplist 排序）
-    /// - `atleast`: 最小分辨率（atleast参数）
-    /// - `resolutions`: 精确分辨率列表（resolutions参数，逗号分隔）
-    /// - `ratios`: 比例列表（ratios参数，逗号分隔）
+    /// - `query`: 搜索筛选参数（图源无关形状，见 services::source）
     /// - `context`: 请求上下文（用于取消操作）
     ///
     /// # 返回
-    /// 返回元组：(壁纸列表, 是否最后一页, 总页数, 当前页码)
+    /// 返回搜索结果：壁纸列表、是否最后一页、总页数、当前页码
     pub async fn search_wallpapers(
         &self,
-        params: &SearchParams<'_>,
+        query: &SearchQuery,
         context: &RequestContext,
-    ) -> Result<(Vec<OnlineWallpaper>, bool, usize, usize), String> {
+    ) -> Result<SearchResult, String> {
         // 检查是否已取消
         if let Some(()) = context.check_cancelled() {
             return Err("请求已取消".to_string());
@@ -94,8 +88,22 @@ impl WallhavenService {
             return Err("请求已取消".to_string());
         }
 
+        // 转换为 URL 构建参数
+        let params = SearchParams {
+            page: query.page,
+            categories: query.categories,
+            sorting: query.sorting.value(),
+            purities: query.purities,
+            color: query.color.value(),
+            query: &query.query,
+            top_range: query.time_range.value(),
+            atleast: query.atleast.as_deref(),
+            resolutions: query.resolutions.as_deref(),
+            ratios: query.ratios.as_deref(),
+        };
+
         // 构建搜索 URL
-        let url = self.client.build_search_url(params);
+        let url = self.client.build_search_url(&params);
 
         // 打印请求参数
         let search_tag = format!(
@@ -164,7 +172,12 @@ impl WallhavenService {
             .map(|m| m.current_page as usize)
             .unwrap_or(params.page);
 
-        Ok((wallpapers, last_page, total_pages, current_page))
+        Ok(SearchResult {
+            wallpapers,
+            is_last: last_page,
+            total_pages,
+            current_page,
+        })
     }
 
     /// 获取单张壁纸详情
@@ -225,6 +238,20 @@ impl WallhavenService {
     /// 获取客户端引用
     pub fn client(&self) -> &WallhavenClient {
         &self.client
+    }
+}
+
+impl WallpaperSource for WallhavenService {
+    fn kind(&self) -> SourceKind {
+        SourceKind::Wallhaven
+    }
+
+    fn search<'a>(
+        &'a self,
+        query: &'a SearchQuery,
+        context: &'a RequestContext,
+    ) -> SourceFuture<'a, Result<SearchResult, String>> {
+        Box::pin(self.search_wallpapers(query, context))
     }
 }
 

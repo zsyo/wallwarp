@@ -3,6 +3,7 @@
 use crate::services::download::DownloadService;
 use crate::services::local::LocalWallpaperService;
 use crate::services::request_context::RequestContext;
+use crate::services::source::{self, SearchQuery, SourceConfig, SourceKind};
 use crate::services::wallhaven;
 use crate::utils::config::{Config, WallpaperMode};
 use rand::prelude::IndexedRandom;
@@ -103,12 +104,15 @@ pub async fn async_set_random_online_wallpaper(
     // 创建请求上下文
     let context = RequestContext::new();
 
-    // 创建Wallhaven服务（支持环境变量代理回退）
-    let service = wallhaven::WallhavenService::new(
-        api_key.clone(),
-        proxy.clone(),
-        config.global.proxy_enabled,
-        true, // 启用环境变量回退
+    // 经图源抽象层创建图源实例（支持环境变量代理回退）
+    let source_impl = source::create_source(
+        SourceKind::Wallhaven,
+        SourceConfig {
+            api_key: api_key.clone(),
+            proxy: proxy.clone(),
+            proxy_enabled: config.global.proxy_enabled,
+            use_env_fallback: true,
+        },
     );
 
     // 获取搜索关键词
@@ -125,28 +129,28 @@ pub async fn async_set_random_online_wallpaper(
             if query.is_empty() { "(无)" } else { &query }
         );
 
-        match service
-            .search_wallpapers(
-                &wallhaven::SearchParams {
+        match source_impl
+            .search(
+                &SearchQuery {
                     page,
                     categories,
-                    sorting: sorting.value(),
+                    sorting,
                     purities,
-                    color: color.value(),
-                    query: &query, // 使用配置中的关键词
-                    top_range: time_range.value(),
-                    atleast: atleast.as_deref(),
-                    resolutions: resolutions.as_deref(),
-                    ratios: ratios.as_deref(),
+                    color,
+                    query: query.clone(), // 使用配置中的关键词
+                    time_range,
+                    atleast: atleast.clone(),
+                    resolutions: resolutions.clone(),
+                    ratios: ratios.clone(),
                 },
                 &context,
             )
             .await
         {
-            Ok((data, is_last_page, _total_pages, current_page)) => {
-                if data.is_empty() {
+            Ok(result) => {
+                if result.wallpapers.is_empty() {
                     debug!("[定时切换] [在线] 第 {} 页返回空数据", page);
-                    if is_last_page || current_page >= max_pages {
+                    if result.is_last || result.current_page >= max_pages {
                         break;
                     }
                     continue;
@@ -155,9 +159,9 @@ pub async fn async_set_random_online_wallpaper(
                 debug!(
                     "[定时切换] [在线] 第 {} 页获取到 {} 张壁纸",
                     page,
-                    data.len()
+                    result.wallpapers.len()
                 );
-                wallpapers = data;
+                wallpapers = result.wallpapers;
                 break;
             }
             Err(e) => {
@@ -183,10 +187,7 @@ pub async fn async_set_random_online_wallpaper(
     );
 
     // 生成目标文件路径（使用原文件名，存储在 cache_path/auto_change 目录中）
-    let file_name = wallhaven::generate_file_name(
-        &selected.id,
-        selected.file_type.split('/').next_back().unwrap_or("jpg"),
-    );
+    let file_name = selected.download_file_name();
     let cache_path = config.data.cache_path.clone();
     let auto_change_dir = PathBuf::from(&cache_path).join("auto_change");
     let target_path = auto_change_dir.join(&file_name);

@@ -49,7 +49,11 @@ pub fn window_geometry(mw: &dyn iced::window::Window) -> Option<super::WindowGeo
 
     let geometry = conn.get_geometry(xid).ok()?.reply().ok()?;
     let root = conn.setup().roots.first()?.root;
-    let coords = conn.translate_coordinates(xid, root, 0, 0).ok()?.reply().ok()?;
+    let coords = conn
+        .translate_coordinates(xid, root, 0, 0)
+        .ok()?
+        .reply()
+        .ok()?;
 
     Some(super::WindowGeometry {
         x: coords.dst_x as f32,
@@ -68,7 +72,11 @@ pub fn work_area(mw: &dyn iced::window::Window) -> Option<iced::Rectangle> {
     let root = conn.setup().roots.first()?.root;
 
     let geometry = conn.get_geometry(xid).ok()?.reply().ok()?;
-    let coords = conn.translate_coordinates(xid, root, 0, 0).ok()?.reply().ok()?;
+    let coords = conn
+        .translate_coordinates(xid, root, 0, 0)
+        .ok()?
+        .reply()
+        .ok()?;
     let center_x = coords.dst_x as f32 + geometry.width as f32 / 2.0;
     let center_y = coords.dst_y as f32 + geometry.height as f32 / 2.0;
 
@@ -95,7 +103,8 @@ pub fn work_area(mw: &dyn iced::window::Window) -> Option<iced::Rectangle> {
         let x1 = (mx + mw_).min(work.x + work.width);
         let y1 = (my + mh).min(work.y + work.height);
         if x1 > x0 && y1 > y0 {
-            rect = iced::Rectangle::new(iced::Point::new(x0, y0), iced::Size::new(x1 - x0, y1 - y0));
+            rect =
+                iced::Rectangle::new(iced::Point::new(x0, y0), iced::Size::new(x1 - x0, y1 - y0));
         }
     }
     Some(rect)
@@ -133,9 +142,21 @@ fn xid_of(mw: &dyn iced::window::Window) -> Option<u32> {
 
 /// 读取根窗口的 `_NET_WORKAREA`（x, y, width, height 四个 CARDINAL）
 fn net_workarea(conn: &RustConnection, root: u32) -> Option<iced::Rectangle> {
-    let atom = conn.intern_atom(false, b"_NET_WORKAREA").ok()?.reply().ok()?.atom;
+    let atom = conn
+        .intern_atom(false, b"_NET_WORKAREA")
+        .ok()?
+        .reply()
+        .ok()?
+        .atom;
     let reply = conn
-        .get_property(false, root, atom, x11rb::protocol::xproto::AtomEnum::CARDINAL, 0, 4)
+        .get_property(
+            false,
+            root,
+            atom,
+            x11rb::protocol::xproto::AtomEnum::CARDINAL,
+            0,
+            4,
+        )
         .ok()?
         .reply()
         .ok()?;
@@ -209,6 +230,14 @@ pub fn set_wallpaper_kde(path: &str, mode: wallpaper::Mode) -> Result<(), String
 }}"#
     );
 
+    plasmashell_evaluate_script(&script)
+}
+
+/// 经 gdbus 执行 PlasmaShell 壁纸脚本
+///
+/// 不走 wallpaper crate：其 KDE 分支依赖 qdbus 命令（Fedora 等发行版默认
+/// 不安装，spawn 失败报 ENOENT）；gdbus 由 glib2 提供且所有主流桌面必装
+fn plasmashell_evaluate_script(script: &str) -> Result<(), String> {
     let output = std::process::Command::new("gdbus")
         .args([
             "call",
@@ -219,7 +248,7 @@ pub fn set_wallpaper_kde(path: &str, mode: wallpaper::Mode) -> Result<(), String
             "/PlasmaShell",
             "--method",
             "org.kde.PlasmaShell.evaluateScript",
-            &script,
+            script,
         ])
         .output()
         .map_err(|e| format!("执行 gdbus 失败（KDE Plasma 会话异常）: {e}"))?;
@@ -231,4 +260,100 @@ pub fn set_wallpaper_kde(path: &str, mode: wallpaper::Mode) -> Result<(), String
         ));
     }
     Ok(())
+}
+
+/// 枚举系统所有显示器（X11 RandR）
+///
+/// Wayland 会话或 X11 连接失败时返回空列表（调用方按不支持处理）
+pub fn enumerate_monitors() -> Vec<super::MonitorInfo> {
+    if super::is_wayland() {
+        return Vec::new();
+    }
+    let Some(conn) = connection() else {
+        return Vec::new();
+    };
+    let Some(root) = conn.setup().roots.first().map(|r| r.root) else {
+        return Vec::new();
+    };
+    let reply = conn
+        .randr_get_monitors(root, true)
+        .ok()
+        .and_then(|cookie| cookie.reply().ok());
+    let Some(reply) = reply else {
+        return Vec::new();
+    };
+
+    let mut monitors = Vec::new();
+    for monitor in &reply.monitors {
+        // RandR 显示器名经 atom 查询为可读名称（如 DP-1、HDMI-A-0）
+        let name = conn
+            .get_atom_name(monitor.name)
+            .ok()
+            .and_then(|cookie| cookie.reply().ok())
+            .map(|r| String::from_utf8_lossy(&r.name).to_string())
+            .unwrap_or_default();
+        let display_name = if name.is_empty() {
+            format!("Display {}", monitors.len() + 1)
+        } else {
+            name
+        };
+
+        monitors.push(super::MonitorInfo {
+            id: display_name.clone(),
+            name: display_name,
+            x: monitor.x as i32,
+            y: monitor.y as i32,
+            width: monitor.width as u32,
+            height: monitor.height as u32,
+            primary: monitor.primary,
+        });
+    }
+    monitors
+}
+
+/// 仅 KDE Plasma 支持按显示器设置壁纸（经 PlasmaShell 按桌面索引写入；
+/// GNOME 等环境的壁纸接口为全局单壁纸，Wayland 无标准协议）
+pub fn supports_per_monitor_wallpaper() -> bool {
+    !super::is_wayland() && super::is_kde_plasma()
+}
+
+/// 为指定显示器设置壁纸
+///
+/// monitor_id 为 [`enumerate_monitors`] 返回的 RandR 显示器名，
+/// 按 enumerate 顺序索引映射到 Plasma 的 desktops() 列表写入
+pub fn set_wallpaper_for_monitor(
+    monitor_id: &str,
+    image_path: &str,
+    mode: crate::utils::config::WallpaperMode,
+) -> Result<(), String> {
+    if super::is_wayland() {
+        return Err("Wayland 会话暂不支持按显示器设置壁纸".to_string());
+    }
+    if !super::is_kde_plasma() {
+        return Err("当前桌面环境不支持按显示器设置壁纸".to_string());
+    }
+
+    let index = enumerate_monitors()
+        .iter()
+        .position(|m| m.id == monitor_id)
+        .ok_or_else(|| format!("未找到显示器: {monitor_id}"))?;
+
+    // Plasma FillMode 取值（与 set_wallpaper_kde 的 wallpaper::Mode 映射一致：
+    // 0=Stretched 1=Scaled 2=ScaledAndCropped 3=Tiled 6=Centered）
+    let fill_mode = match mode {
+        crate::utils::config::WallpaperMode::Stretch => 0,
+        crate::utils::config::WallpaperMode::Fit => 1,
+        crate::utils::config::WallpaperMode::Crop | crate::utils::config::WallpaperMode::Span => 2,
+        crate::utils::config::WallpaperMode::Tile => 3,
+        crate::utils::config::WallpaperMode::Center => 6,
+    };
+
+    let escaped = image_path.replace('\\', "\\\\").replace('"', "\\\"");
+    let script = format!(
+        r#"const desktop = desktops()[{index}]
+desktop.currentConfigGroup = ["Wallpaper", "org.kde.image", "General"]
+desktop.writeConfig("FillMode", {fill_mode})
+desktop.writeConfig("Image", "file://{escaped}")"#
+    );
+    plasmashell_evaluate_script(&script)
 }

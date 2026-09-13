@@ -2,18 +2,16 @@
 
 pub mod aspect_ratio;
 pub mod category;
-pub mod color;
 pub mod purity;
 pub mod ratio;
 pub mod resolution;
-pub mod sorting;
-pub mod time_range;
+
+// Sorting/TimeRange/ColorOption 已上移为图源无关筛选模型（services::source::filters），
+// 此处 re-export 保持既有引用路径兼容
+pub use crate::services::source::filters::{ColorOption, Sorting, TimeRange};
 
 pub use aspect_ratio::{AspectRatio, AspectRatioGroup};
 pub use category::Category;
-pub use color::ColorOption;
 pub use purity::Purity;
 pub use ratio::Ratio;
 pub use resolution::Resolution;
-pub use sorting::Sorting;
-pub use time_range::TimeRange;

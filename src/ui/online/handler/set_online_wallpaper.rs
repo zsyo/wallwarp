@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::services::wallhaven;
+use crate::services::source::SourceKind;
 use crate::ui::online::handler::resolve_online_file::OnlineFileHit;
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::helpers;
@@ -31,10 +31,7 @@ impl App {
                 None => {
                     // 文件不存在，启动下载任务
                     // 设置待设置壁纸的文件名
-                    let file_name = wallhaven::generate_file_name(
-                        &id,
-                        file_type.split('/').next_back().unwrap_or("jpg"),
-                    );
+                    let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
                     self.online_state.pending_set_wallpaper_filename = Some(file_name);
 
                     // 检查下载任务列表中是否已有相同 URL 的任务

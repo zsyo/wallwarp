@@ -29,6 +29,16 @@ static SUPPORTED_PATHS_CACHE: LazyLock<Mutex<SupportedPathsCache>> =
     LazyLock::new(|| Mutex::new(None));
 const SUPPORTED_PATHS_CACHE_TTL: Duration = Duration::from_secs(30);
 
+/// 缩略图/尺寸扫描的共享 rayon 线程池
+///
+/// 本地页每次全量加载都会跑并行扫描，复用固定池避免每次新建/销毁线程
+static SCAN_THREAD_POOL: LazyLock<rayon::ThreadPool> = LazyLock::new(|| {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(THREAD_POOL_SIZE)
+        .build()
+        .expect("创建 rayon 扫描线程池失败")
+});
+
 #[derive(Debug, Clone)]
 pub struct Wallpaper {
     pub path: String,
@@ -94,6 +104,27 @@ impl LocalWallpaperService {
             crate::utils::config::WallpaperMode::Center => wallpaper::Mode::Center,
             crate::utils::config::WallpaperMode::Span => wallpaper::Mode::Span,
         }
+    }
+
+    /// 为指定显示器设置壁纸（多显示器独立壁纸）
+    ///
+    /// # 参数
+    /// - `monitor_id`: 目标显示器标识（来自 platform::enumerate_monitors）
+    /// - `image_path`: 壁纸图片路径（绝对路径）
+    /// - `mode`: 铺满模式
+    pub fn set_wallpaper_for_monitor(
+        monitor_id: &str,
+        image_path: &str,
+        mode: crate::utils::config::WallpaperMode,
+    ) -> Result<(), String> {
+        if !std::path::Path::new(image_path).exists() {
+            return Err(format!("壁纸文件不存在: {}", image_path));
+        }
+        debug!(
+            "[本地壁纸] [{}] 设置显示器壁纸路径: {}, 模式: {:?}",
+            monitor_id, image_path, mode
+        );
+        crate::platform::set_wallpaper_for_monitor(monitor_id, image_path, mode)
     }
 
     /// 设置壁纸
@@ -243,12 +274,7 @@ impl LocalWallpaperService {
 
         let wallpapers = Self::collect_wallpapers(path)?;
 
-        let pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(THREAD_POOL_SIZE)
-            .build()
-            .map_err(to_boxed_error)?;
-
-        pool.install(|| {
+        SCAN_THREAD_POOL.install(|| {
             wallpapers
                 .into_par_iter()
                 .map(|wallpaper| {

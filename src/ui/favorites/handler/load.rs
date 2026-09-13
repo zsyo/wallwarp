@@ -3,8 +3,9 @@
 //! 收藏夹数据加载（收藏项）
 
 use crate::services::database::{DatabaseManager, FavoritesRepository};
-use crate::ui::favorites::state::FavoriteEntry;
+use crate::services::source::SourceKind;
 use crate::ui::favorites::FavoritesMessage;
+use crate::ui::favorites::state::FavoriteEntry;
 use crate::ui::{App, AppMessage};
 use iced::Task;
 use iced::widget::image::Handle;
@@ -12,8 +13,7 @@ use std::path::Path;
 use tracing::{info, warn};
 
 /// 数据库加载（阻塞线程中执行）
-async fn load_favorites_from_db()
--> Result<Vec<crate::services::database::FavoriteDB>, String> {
+async fn load_favorites_from_db() -> Result<Vec<crate::services::database::FavoriteDB>, String> {
     tokio::task::spawn_blocking(move || -> Result<_, String> {
         let Some(db) = DatabaseManager::try_get() else {
             return Err("数据库未初始化".to_string());
@@ -61,23 +61,13 @@ impl App {
         for entry in &mut entries {
             // 本地项按绝对路径判断存在性；在线项判断原图是否已下载入库
             if entry.fav.kind == crate::services::database::KIND_LOCAL {
-                entry.fav.path = Self::normalize_local_favorite_path(
-                    &entry.fav.path,
-                    &absolute_data_dir,
-                );
+                entry.fav.path =
+                    Self::normalize_local_favorite_path(&entry.fav.path, &absolute_data_dir);
                 entry.in_library = Path::new(&entry.fav.path).exists();
             } else {
-                let file_name = crate::services::wallhaven::generate_file_name(
-                    &entry.fav.wallhaven_id,
-                    entry
-                        .fav
-                        .file_type
-                        .split('/')
-                        .next_back()
-                        .unwrap_or("jpg"),
-                );
-                entry.in_library =
-                    Path::new(&absolute_data_dir).join(&file_name).exists();
+                let file_name = SourceKind::Wallhaven
+                    .download_file_name(&entry.fav.wallhaven_id, &entry.fav.file_type);
+                entry.in_library = Path::new(&absolute_data_dir).join(&file_name).exists();
             }
         }
 
@@ -99,16 +89,12 @@ impl App {
         for (index, entry) in self.favorites_state.entries.iter().enumerate() {
             // 本地项源文件已失效：跳过缩略图任务，直接标记失败（卡片显示失效占位）
             if entry.fav.kind == crate::services::database::KIND_LOCAL && !entry.in_library {
-                self.favorites_state.thumbs[index] = crate::ui::favorites::state::ThumbState::Failed;
+                self.favorites_state.thumbs[index] =
+                    crate::ui::favorites::state::ThumbState::Failed;
                 continue;
             }
 
-            tasks.push(Self::favorite_thumb_task(
-                index,
-                entry,
-                &proxy,
-                &cache_path,
-            ));
+            tasks.push(Self::favorite_thumb_task(index, entry, &proxy, &cache_path));
         }
 
         Task::batch(tasks)
@@ -128,16 +114,13 @@ impl App {
                 let cache_path = cache_path.to_string();
                 Task::perform(
                     crate::services::async_task::async_load_single_wallpaper_with_fallback(
-                        path,
-                        cache_path,
+                        path, cache_path,
                     ),
                     move |result| {
                         let handle = result.ok().and_then(|w| {
-                            w.image_handle
-                                .clone()
-                                .or_else(|| Some(iced::widget::image::Handle::from_path(
-                                    &w.thumbnail_path,
-                                )))
+                            w.image_handle.clone().or_else(|| {
+                                Some(iced::widget::image::Handle::from_path(&w.thumbnail_path))
+                            })
                         });
                         FavoritesMessage::ThumbLoaded { index, handle }.into()
                     },
@@ -151,10 +134,7 @@ impl App {
                 let cache_path = cache_path.to_string();
                 Task::perform(
                     crate::services::async_task::async_load_online_wallpaper_thumb_with_cache(
-                        url,
-                        file_size,
-                        cache_path,
-                        proxy,
+                        url, file_size, cache_path, proxy,
                     ),
                     move |result| {
                         FavoritesMessage::ThumbLoaded {

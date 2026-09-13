@@ -9,7 +9,9 @@ mod get_supported_images;
 mod load_online_wallpaper;
 mod load_single_wallpaper;
 mod load_wallpaper_paths;
+mod monitors;
 mod open_folder;
+mod select_file;
 mod set_wallpaper;
 mod streaming;
 
@@ -23,6 +25,8 @@ pub use get_supported_images::*;
 pub use load_online_wallpaper::*;
 pub use load_single_wallpaper::*;
 pub use load_wallpaper_paths::*;
+pub use monitors::*;
 pub use open_folder::*;
+pub use select_file::*;
 pub use set_wallpaper::*;
 pub use streaming::*;

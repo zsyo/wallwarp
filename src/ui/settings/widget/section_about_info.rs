@@ -1,15 +1,32 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::common;
+use crate::ui::settings::SettingsMessage;
 use crate::ui::style::{
-    ABOUT_LOGO_SPACING, ABOUT_INFO_WIDTH, BUTTON_COLOR_BLUE, LOGO_DISPLAY_SIZE, ROW_SPACING,
-    BUTTON_SPACING,
+    ABOUT_INFO_WIDTH, ABOUT_LOGO_SPACING, BUTTON_COLOR_BLUE, BUTTON_SPACING, LOGO_DISPLAY_SIZE,
+    ROW_SPACING,
 };
 use crate::ui::{App, AppMessage};
-use iced::widget::{column, container, image, row, Space};
+use iced::widget::{Space, column, container, image, row};
 use iced::{Alignment, Element, Length};
 
-/// 创建关于信息区块（预留检查更新入口）
+/// 创建检查更新按钮（检查进行中时为禁用态，防止重复点击）
+fn create_check_update_button(app: &App) -> Element<'_, AppMessage> {
+    if app.settings_state.update_checking {
+        common::create_disabled_colored_button(
+            app.i18n.t("settings.check-update-button"),
+            BUTTON_COLOR_BLUE,
+        )
+        .into()
+    } else {
+        common::create_colored_button(
+            app.i18n.t("settings.check-update-button"),
+            BUTTON_COLOR_BLUE,
+            AppMessage::Settings(SettingsMessage::CheckUpdate),
+        )
+        .into()
+    }
+}
 pub fn create_about_info_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
     let theme_colors = app.theme_colors;
 
@@ -53,19 +70,13 @@ pub fn create_about_info_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
         .width(Length::Fill)
         .align_y(Alignment::Center)
         .into(),
-        // 预留：检查更新
+        // 检查更新
         super::create_setting_row(
             app.i18n.t("settings.check-update"),
             Some(app.i18n.t("settings.check-update-desc")),
-            row![
-                common::create_disabled_colored_button(
-                    app.i18n.t("settings.check-update-button"),
-                    BUTTON_COLOR_BLUE,
-                ),
-                super::create_coming_soon_badge(app.i18n.t("settings.coming-soon"), theme_colors),
-            ]
-            .spacing(BUTTON_SPACING)
-            .align_y(Alignment::Center),
+            row![create_check_update_button(app)]
+                .spacing(BUTTON_SPACING)
+                .align_y(Alignment::Center),
             theme_colors,
         ),
     ];

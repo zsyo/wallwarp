@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::services::wallhaven;
+use crate::services::source::SourceKind;
 use crate::ui::online::handler::resolve_online_file::OnlineFileHit;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
@@ -22,10 +22,7 @@ impl App {
             return match location.source {
                 Some(OnlineFileHit::InData) => {
                     // 文件已存在于 data_path 中
-                    let file_name = wallhaven::generate_file_name(
-                        &id,
-                        file_type.split('/').next_back().unwrap_or("jpg"),
-                    );
+                    let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
                     let success_message = format!(
                         "{}: {}",
                         self.i18n.t("download-tasks.file-already-exists"),
@@ -35,10 +32,7 @@ impl App {
                 }
                 Some(OnlineFileHit::InCache(cache_file_path)) => {
                     // 缓存文件存在且大小匹配，异步复制到 data_path
-                    let file_name = wallhaven::generate_file_name(
-                        &id,
-                        file_type.split('/').next_back().unwrap_or("jpg"),
-                    );
+                    let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
                     let success_message = format!(
                         "{}: {}",
                         self.i18n.t("download-tasks.copied-from-cache"),

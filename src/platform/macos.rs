@@ -88,3 +88,86 @@ fn ns_view(mw: &dyn iced::window::Window) -> Option<Retained<NSView>> {
 
 /// 弹出菜单前将窗口前置（macOS 弹出机制无此需求，空操作）
 pub fn set_foreground_window(_hwnd: isize) {}
+
+/// 枚举系统所有屏幕
+///
+/// AppKit 对象仅可在主线程访问，调用方须在 window::run 闭包内调用；
+/// 非主线程调用时返回空列表。NSScreenNumber 作为跨调用稳定的屏幕标识
+pub fn enumerate_monitors() -> Vec<super::MonitorInfo> {
+    use objc2_foundation::{NSNumber, NSString};
+
+    let Some(mtm) = objc2::MainThreadMarker::new() else {
+        return Vec::new();
+    };
+
+    // NSDeviceDescriptionKey 是 NSString 的类型别名（deviceDescription 的键类型）
+    let number_key = NSString::from_str("NSScreenNumber");
+    let screens = NSScreen::screens(mtm);
+    let mut monitors = Vec::new();
+    for (index, screen) in screens.iter().enumerate() {
+        let frame = screen.frame();
+        let name = screen.localizedName().to_string();
+        let number: Option<Retained<NSNumber>> = screen
+            .deviceDescription()
+            .objectForKey(&number_key)
+            .and_then(|obj| Retained::downcast(obj).ok());
+        let id = number
+            .map(|n| n.intValue().to_string())
+            .unwrap_or_else(|| format!("screen-{index}"));
+
+        monitors.push(super::MonitorInfo {
+            id,
+            name,
+            // macOS 坐标为点坐标、左下原点（与模块文档约定一致）
+            x: frame.origin.x as i32,
+            y: frame.origin.y as i32,
+            width: frame.size.width as u32,
+            height: frame.size.height as u32,
+            // screens[0] 恒为主屏（带菜单栏的屏幕）
+            primary: index == 0,
+        });
+    }
+    monitors
+}
+
+/// macOS 支持按屏幕独立设置壁纸（NSWorkspace setDesktopImageURL）
+pub fn supports_per_monitor_wallpaper() -> bool {
+    true
+}
+
+/// 为指定屏幕设置壁纸（NSWorkspace setDesktopImageURL:forScreen:）
+///
+/// 铺满模式由系统决定（与全局壁纸设置行为一致，macOS 不传缩放选项）
+pub fn set_wallpaper_for_monitor(
+    monitor_id: &str,
+    image_path: &str,
+    _mode: crate::utils::config::WallpaperMode,
+) -> Result<(), String> {
+    use objc2_app_kit::NSWorkspace;
+    use objc2_foundation::{NSDictionary, NSNumber, NSString, NSURL};
+
+    let Some(mtm) = objc2::MainThreadMarker::new() else {
+        return Err("macOS 壁纸设置须在主线程执行（window::run 派发）".to_string());
+    };
+
+    let number_key = NSString::from_str("NSScreenNumber");
+    let screens = NSScreen::screens(mtm);
+    for screen in screens.iter() {
+        let number: Option<Retained<NSNumber>> = screen
+            .deviceDescription()
+            .objectForKey(&number_key)
+            .and_then(|obj| Retained::downcast(obj).ok());
+        let Some(number) = number else { continue };
+        if number.intValue().to_string() != monitor_id {
+            continue;
+        }
+
+        let url = NSURL::fileURLWithPath(&NSString::from_str(image_path));
+        let workspace = NSWorkspace::sharedWorkspace();
+        let options = NSDictionary::new();
+        unsafe { workspace.setDesktopImageURL_forScreen_options_error(&url, &screen, &options) }
+            .map_err(|e| format!("设置屏幕壁纸失败: {}", e.localizedDescription()))?;
+        return Ok(());
+    }
+    Err(format!("未找到屏幕: {}", monitor_id))
+}

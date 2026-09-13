@@ -2,10 +2,10 @@
 
 use crate::ui::common;
 use crate::ui::settings::SettingsMessage;
-use crate::ui::style::{INPUT_PADDING, ROW_SPACING};
+use crate::ui::style::{BUTTON_COLOR_BLUE, INPUT_PADDING, ROW_SPACING};
 use crate::ui::{App, AppMessage};
 use crate::utils::config::{WallpaperAutoChangeInterval, WallpaperAutoChangeMode, WallpaperMode};
-use iced::widget::{checkbox, container, row, text, text_input, tooltip};
+use iced::widget::{checkbox, column, container, row, text, text_input, tooltip};
 use iced::{Alignment, Element, Length};
 
 /// 单选选项数据：(标签词条, 选项值, 提示词条)
@@ -35,6 +35,43 @@ where
         ));
     }
     radio_row.into()
+}
+
+/// 创建多显示器独立壁纸区块内容
+///
+/// 显示器列表在首次进入壁纸分类时经 SettingsMessage::LoadMonitors 加载
+fn create_multi_monitor_content<'a>(app: &'a App) -> Element<'a, AppMessage> {
+    if !app.settings_state.monitors_loaded {
+        return text(app.i18n.t("settings.multi-monitor-loading")).into();
+    }
+    if app.settings_state.monitors.is_empty() {
+        return text(app.i18n.t("settings.multi-monitor-unsupported")).into();
+    }
+
+    let mut list = column![].spacing(ROW_SPACING);
+    for monitor in &app.settings_state.monitors {
+        let primary_tag = if monitor.primary {
+            format!("（{}）", app.i18n.t("settings.multi-monitor-primary"))
+        } else {
+            String::new()
+        };
+        let label = format!(
+            "{}{}  {} × {}",
+            monitor.name, primary_tag, monitor.width, monitor.height
+        );
+        list = list.push(
+            row![
+                text(label).width(Length::Fill),
+                common::create_colored_button(
+                    app.i18n.t("settings.multi-monitor-select-image"),
+                    BUTTON_COLOR_BLUE,
+                    AppMessage::Settings(SettingsMessage::SelectMonitorImage(monitor.id.clone())),
+                ),
+            ]
+            .align_y(Alignment::Center),
+        );
+    }
+    list.into()
 }
 
 /// 创建壁纸配置区块
@@ -122,13 +159,22 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
             online_config_row(app),
             theme_colors,
         ),
-        // 预留：多显示器独立壁纸
-        super::create_setting_row(
-            app.i18n.t("settings.multi-monitor"),
-            Some(app.i18n.t("settings.multi-monitor-desc")),
-            super::create_coming_soon_badge(app.i18n.t("settings.coming-soon"), theme_colors),
-            theme_colors,
-        ),
+        // 多显示器独立壁纸（仅支持按显示器设置的环境展示列表）
+        if crate::platform::supports_per_monitor_wallpaper() {
+            super::create_full_width_row(
+                app.i18n.t("settings.multi-monitor"),
+                Some(app.i18n.t("settings.multi-monitor-desc")),
+                create_multi_monitor_content(app),
+                theme_colors,
+            )
+        } else {
+            super::create_setting_row(
+                app.i18n.t("settings.multi-monitor"),
+                Some(app.i18n.t("settings.multi-monitor-desc")),
+                text(app.i18n.t("settings.multi-monitor-unsupported")),
+                theme_colors,
+            )
+        },
     ];
 
     super::create_config_section(

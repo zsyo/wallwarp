@@ -1,6 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::services::wallhaven;
+use crate::services::source::SourceKind;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
 use std::path::PathBuf;
@@ -8,8 +8,7 @@ use std::path::PathBuf;
 impl App {
     /// 辅助方法：开始下载壁纸（支持并行限制和进度更新）
     pub fn start_download(&mut self, url: String, id: &str, file_type: &str) -> Task<AppMessage> {
-        let file_name =
-            wallhaven::generate_file_name(id, file_type.split('/').next_back().unwrap_or("jpg"));
+        let file_name = SourceKind::Wallhaven.download_file_name(id, file_type);
         let data_path = self.config.data.data_path.clone();
         let proxy = self.config.resolved_proxy();
         let file_type = file_type

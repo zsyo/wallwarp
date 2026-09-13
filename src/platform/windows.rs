@@ -143,3 +143,152 @@ fn window_rect(hwnd: HWND) -> Option<RECT> {
     let mut rect = RECT::default();
     unsafe { GetWindowRect(hwnd, &mut rect) }.ok().map(|_| rect)
 }
+
+/// 桌面壁纸 COM 对象（IDesktopWallpaper，支持按显示器设置壁纸）
+fn desktop_wallpaper() -> Option<windows::Win32::UI::Shell::IDesktopWallpaper> {
+    use windows::Win32::System::Com::{
+        CLSCTX_ALL, COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE, CoCreateInstance,
+        CoInitializeEx,
+    };
+    use windows::Win32::UI::Shell::{DesktopWallpaper, IDesktopWallpaper};
+
+    unsafe {
+        // S_FALSE（本线程已初始化）同样视为成功；RPC_E_CHANGED_MODE 时仍尝试创建
+        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        let wallpaper: Result<IDesktopWallpaper, _> =
+            CoCreateInstance(&DesktopWallpaper, None, CLSCTX_ALL);
+        wallpaper.ok()
+    }
+}
+
+/// 枚举系统所有显示器
+///
+/// IDesktopWallpaper 提供可设置的显示器设备路径，Gdi 枚举提供设备名与
+/// 主屏标记，按显示器矩形一一对应合并
+pub fn enumerate_monitors() -> Vec<super::MonitorInfo> {
+    use windows::Win32::Foundation::{LPARAM, RECT};
+    use windows::Win32::Graphics::Gdi::{
+        EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW,
+    };
+    use windows::core::{BOOL, HSTRING};
+
+    struct GdiMonitor {
+        rect: RECT,
+        name: String,
+        primary: bool,
+    }
+
+    unsafe extern "system" fn enum_monitor(
+        hmonitor: HMONITOR,
+        _hdc: HDC,
+        _rect: *mut RECT,
+        lparam: LPARAM,
+    ) -> BOOL {
+        let list = unsafe { &mut *(lparam.0 as *mut Vec<GdiMonitor>) };
+        let mut info = MONITORINFOEXW::default();
+        info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+        unsafe {
+            if GetMonitorInfoW(hmonitor, &mut info.monitorInfo as *mut MONITORINFO).as_bool() {
+                let len = info
+                    .szDevice
+                    .iter()
+                    .position(|&c| c == 0)
+                    .unwrap_or(info.szDevice.len());
+                // MONITORINFOF_PRIMARY = 1（windows 0.62 未导出该常量）
+                list.push(GdiMonitor {
+                    rect: info.monitorInfo.rcMonitor,
+                    name: String::from_utf16_lossy(&info.szDevice[..len]),
+                    primary: (info.monitorInfo.dwFlags & 1u32) != 0,
+                });
+            }
+        }
+        true.into()
+    }
+
+    let mut gdi_monitors: Vec<GdiMonitor> = Vec::new();
+    unsafe {
+        let _ = EnumDisplayMonitors(
+            None,
+            None,
+            Some(enum_monitor),
+            LPARAM(&mut gdi_monitors as *mut _ as isize),
+        );
+    }
+
+    let Some(wallpaper) = desktop_wallpaper() else {
+        return Vec::new();
+    };
+
+    let count = match unsafe { wallpaper.GetMonitorDevicePathCount() } {
+        Ok(count) => count,
+        Err(_) => return Vec::new(),
+    };
+
+    let mut monitors = Vec::new();
+    for index in 0..count {
+        let Ok(id) = (unsafe { wallpaper.GetMonitorDevicePathAt(index) }) else {
+            continue;
+        };
+        let Ok(id) = (unsafe { id.to_string() }) else {
+            continue;
+        };
+        let Ok(rect) = (unsafe { wallpaper.GetMonitorRECT(&HSTRING::from(&id)) }) else {
+            continue;
+        };
+        let gdi = gdi_monitors.iter().find(|g| g.rect == rect);
+        monitors.push(super::MonitorInfo {
+            id,
+            name: gdi
+                .map(|g| g.name.clone())
+                .unwrap_or_else(|| format!("Display {}", index + 1)),
+            x: rect.left,
+            y: rect.top,
+            width: (rect.right - rect.left) as u32,
+            height: (rect.bottom - rect.top) as u32,
+            primary: gdi.map(|g| g.primary).unwrap_or(index == 0),
+        });
+    }
+    monitors
+}
+
+/// 当前环境支持按显示器独立设置壁纸（IDesktopWallpaper 恒可用）
+pub fn supports_per_monitor_wallpaper() -> bool {
+    true
+}
+
+/// 为指定显示器设置壁纸（IDesktopWallpaper SetWallpaper/SetPosition）
+pub fn set_wallpaper_for_monitor(
+    monitor_id: &str,
+    image_path: &str,
+    mode: crate::utils::config::WallpaperMode,
+) -> Result<(), String> {
+    use windows::Win32::UI::Shell::{
+        DWPOS_CENTER, DWPOS_FILL, DWPOS_FIT, DWPOS_SPAN, DWPOS_STRETCH, DWPOS_TILE,
+    };
+    use windows::core::{HSTRING, PCWSTR};
+
+    let wallpaper =
+        desktop_wallpaper().ok_or_else(|| "初始化 IDesktopWallpaper 失败".to_string())?;
+    let id = HSTRING::from(monitor_id);
+    let path = HSTRING::from(image_path);
+
+    let position = match mode {
+        crate::utils::config::WallpaperMode::Crop => DWPOS_FILL,
+        crate::utils::config::WallpaperMode::Fit => DWPOS_FIT,
+        crate::utils::config::WallpaperMode::Stretch => DWPOS_STRETCH,
+        crate::utils::config::WallpaperMode::Tile => DWPOS_TILE,
+        crate::utils::config::WallpaperMode::Center => DWPOS_CENTER,
+        crate::utils::config::WallpaperMode::Span => DWPOS_SPAN,
+    };
+
+    unsafe {
+        wallpaper
+            .SetWallpaper(PCWSTR(id.as_ptr()), PCWSTR(path.as_ptr()))
+            .map_err(|e| format!("设置显示器壁纸失败: {}", e))?;
+        // SetPosition 为全局铺满模式（跨显示器统一），与全局设置行为一致
+        wallpaper
+            .SetPosition(position)
+            .map_err(|e| format!("设置壁纸铺满模式失败: {}", e))?;
+    }
+    Ok(())
+}

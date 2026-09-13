@@ -4,6 +4,7 @@
 //!
 //! 定义 Wallhaven API 返回的数据结构
 
+use crate::services::source::{OnlineWallpaper, SourceKind};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -48,30 +49,6 @@ pub struct WallhavenThumbs {
     pub small: String,
 }
 
-/// 在线壁纸数据结构（UI层使用）
-#[derive(Debug, Clone)]
-pub struct OnlineWallpaper {
-    pub id: String,
-    pub url: String,
-    pub path: String,
-    pub thumb_large: String,
-    pub thumb_original: String,
-    pub thumb_small: String,
-    pub width: u32,
-    pub height: u32,
-    pub resolution: String,
-    pub ratio: String,
-    pub file_size: u64,
-    pub file_type: String,
-    pub category: String,
-    pub purity: String,
-    pub views: u32,
-    pub favorites: u32,
-    pub colors: Vec<String>,
-    /// 缓存的缩略图 Handle，避免每次渲染都重新创建
-    pub image_handle: Option<iced::widget::image::Handle>,
-}
-
 impl From<WallpaperData> for OnlineWallpaper {
     fn from(data: WallpaperData) -> Self {
         OnlineWallpaper {
@@ -92,6 +69,7 @@ impl From<WallpaperData> for OnlineWallpaper {
             views: data.views,
             favorites: data.favorites,
             colors: data.colors,
+            source: SourceKind::Wallhaven,
             image_handle: None, // Handle 将在后续加载时设置
         }
     }

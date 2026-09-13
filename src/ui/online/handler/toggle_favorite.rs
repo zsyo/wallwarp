@@ -2,8 +2,8 @@
 
 //! 在线壁纸收藏/取消收藏
 
-use crate::services::database::{FavoriteDB, FavoritesRepository, KIND_ONLINE};
 use crate::services::database::DatabaseManager;
+use crate::services::database::{FavoriteDB, FavoritesRepository, KIND_ONLINE};
 use crate::ui::online::OnlineMessage;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
@@ -44,10 +44,7 @@ impl App {
         let fav = FavoriteDB {
             wallhaven_id: wallpaper.id.clone(),
             kind: KIND_ONLINE.to_string(),
-            title: crate::services::wallhaven::generate_file_name(
-                &wallpaper.id,
-                wallpaper.file_type.split('/').next_back().unwrap_or("jpg"),
-            ),
+            title: wallpaper.download_file_name(),
             url: wallpaper.path.clone(),
             path: wallpaper.url.clone(),
             thumb_url: wallpaper.thumb_large.clone(),

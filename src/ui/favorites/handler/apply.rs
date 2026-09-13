@@ -2,7 +2,7 @@
 
 //! 收藏项设为壁纸 / 下载 / 在文件夹中查看
 
-use crate::services::wallhaven;
+use crate::services::source::SourceKind;
 use crate::ui::online::OnlineFileHit;
 use crate::ui::{App, AppMessage, NotificationType};
 use crate::utils::helpers;
@@ -37,8 +37,7 @@ impl App {
 
         match location.source {
             Some(OnlineFileHit::InData) => {
-                let full_path =
-                    helpers::get_absolute_path(&location.target_path.to_string_lossy());
+                let full_path = helpers::get_absolute_path(&location.target_path.to_string_lossy());
                 self.apply_wallpaper(full_path)
             }
             Some(OnlineFileHit::InCache(cache_file_path)) => {
@@ -46,13 +45,13 @@ impl App {
             }
             None => {
                 // 文件不存在：下载完成后自动设为壁纸
-                let file_name = wallhaven::generate_file_name(
-                    &id,
-                    file_type.split('/').next_back().unwrap_or("jpg"),
-                );
+                let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
                 self.favorites_state.pending_apply_filename = Some(file_name.clone());
 
-                info!("[收藏夹] [ID:{}] 文件未入库，下载后自动设为壁纸: {}", id, file_name);
+                info!(
+                    "[收藏夹] [ID:{}] 文件未入库，下载后自动设为壁纸: {}",
+                    id, file_name
+                );
 
                 let downloading_message = self
                     .i18n
@@ -93,10 +92,7 @@ impl App {
 
         match location.source {
             Some(OnlineFileHit::InData) => {
-                let file_name = wallhaven::generate_file_name(
-                    &id,
-                    file_type.split('/').next_back().unwrap_or("jpg"),
-                );
+                let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
                 let success_message = format!(
                     "{}: {}",
                     self.i18n.t("download-tasks.file-already-exists"),
@@ -106,17 +102,13 @@ impl App {
             }
             Some(OnlineFileHit::InCache(cache_file_path)) => {
                 // 缓存命中：复制到壁纸库
-                let file_name = wallhaven::generate_file_name(
-                    &id,
-                    file_type.split('/').next_back().unwrap_or("jpg"),
-                );
+                let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
                 let success_message = format!(
                     "{}: {}",
                     self.i18n.t("download-tasks.copied-from-cache"),
                     file_name
                 );
-                let copy_failed_message =
-                    self.i18n.t("download-tasks.copy-failed").to_string();
+                let copy_failed_message = self.i18n.t("download-tasks.copy-failed").to_string();
                 let target = location.target_path.to_string_lossy().to_string();
                 self.local_state.loaded_data_path = None;
                 Task::perform(
@@ -164,7 +156,10 @@ impl App {
     /// 在文件夹中查看收藏项（打开目录并选中文件）
     ///
     /// 本地项按 path 字段定位；在线项按壁纸库命名规则 wallhaven-{id}.{ext} 定位
-    pub(in crate::ui::favorites) fn view_favorite_file(&mut self, index: usize) -> Task<AppMessage> {
+    pub(in crate::ui::favorites) fn view_favorite_file(
+        &mut self,
+        index: usize,
+    ) -> Task<AppMessage> {
         let Some(entry) = self.favorites_state.entries.get(index) else {
             return Task::none();
         };
@@ -172,10 +167,8 @@ impl App {
         let full_path = if entry.fav.kind == crate::services::database::KIND_LOCAL {
             helpers::get_absolute_path(&entry.fav.path)
         } else {
-            let file_name = wallhaven::generate_file_name(
-                &entry.fav.wallhaven_id,
-                entry.fav.file_type.split('/').next_back().unwrap_or("jpg"),
-            );
+            let file_name = SourceKind::Wallhaven
+                .download_file_name(&entry.fav.wallhaven_id, &entry.fav.file_type);
             let data_path = self.config.data.data_path.clone();
             std::path::Path::new(&helpers::get_absolute_path(&data_path))
                 .join(file_name)

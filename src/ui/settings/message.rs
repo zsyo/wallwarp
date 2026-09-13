@@ -108,6 +108,20 @@ pub enum SettingsMessage {
     HotkeyRecordCancelled,
     /// 清除全局热键
     HotkeyCleared(crate::utils::hotkey_manager::HotkeyAction),
+    /// 检查更新
+    CheckUpdate,
+    /// 检查更新完成（成功为检查结果，失败为错误信息）
+    UpdateCheckFinished(Result<crate::services::update_checker::UpdateCheckResult, String>),
+    /// 加载显示器列表（首次进入壁纸分类时惰性触发）
+    LoadMonitors,
+    /// 显示器列表加载完成（失败为错误信息）
+    MonitorsLoaded(Result<Vec<crate::platform::MonitorInfo>, String>),
+    /// 为指定显示器选择壁纸图片（参数为显示器标识）
+    SelectMonitorImage(String),
+    /// 显示器壁纸图片已选择（显示器标识；路径为空串表示用户取消）
+    MonitorImageSelected(String, String),
+    /// 显示器壁纸设置完成（显示器标识；失败为错误信息）
+    MonitorWallpaperSet(String, Result<(), String>),
 }
 
 impl From<SettingsMessage> for AppMessage {
@@ -138,6 +152,21 @@ impl App {
                 self.settings_close_action_selected(action)
             }
             SettingsMessage::OpenUrl(url) => self.settings_open_url(url),
+            SettingsMessage::CheckUpdate => self.settings_check_update(),
+            SettingsMessage::UpdateCheckFinished(result) => {
+                self.settings_update_check_finished(result)
+            }
+            SettingsMessage::LoadMonitors => self.settings_load_monitors(),
+            SettingsMessage::MonitorsLoaded(result) => self.settings_monitors_loaded(result),
+            SettingsMessage::SelectMonitorImage(monitor_id) => {
+                self.settings_select_monitor_image(monitor_id)
+            }
+            SettingsMessage::MonitorImageSelected(monitor_id, path) => {
+                self.settings_monitor_image_selected(monitor_id, path)
+            }
+            SettingsMessage::MonitorWallpaperSet(monitor_id, result) => {
+                self.settings_monitor_wallpaper_set(monitor_id, result)
+            }
             SettingsMessage::DataPathSelected(path) => self.settings_data_path_selected(path),
             SettingsMessage::CachePathSelected(path) => self.settings_cache_path_selected(path),
             SettingsMessage::OpenPath(path_type) => self.settings_open_path(path_type),

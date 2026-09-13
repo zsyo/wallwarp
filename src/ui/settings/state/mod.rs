@@ -47,6 +47,13 @@ pub struct SettingsState {
     // 对话框状态
     pub show_path_clear_confirmation: bool,
     pub path_to_clear: String,
+
+    // 检查更新状态（内存态：是否正在检查，防止重复点击）
+    pub update_checking: bool,
+
+    // 多显示器独立壁纸状态（内存态）
+    pub monitors: Vec<crate::platform::MonitorInfo>,
+    pub monitors_loaded: bool,
 }
 
 impl Default for SettingsState {
@@ -76,6 +83,9 @@ impl Default for SettingsState {
             hotkey_recording: None,
             show_path_clear_confirmation: false,
             path_to_clear: String::new(),
+            update_checking: false,
+            monitors: Vec::new(),
+            monitors_loaded: false,
         }
     }
 }

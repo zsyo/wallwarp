@@ -6,7 +6,7 @@
 //! 判定逻辑原先在四个 handler 中各写一份且行为不一致，统一收敛到此处
 
 use crate::services::download::DownloadService;
-use crate::services::wallhaven;
+use crate::services::source::SourceKind;
 use crate::ui::App;
 use std::path::PathBuf;
 
@@ -38,8 +38,7 @@ impl App {
         file_size: u64,
     ) -> OnlineFileLocation {
         // 生成 data_path 中的目标文件路径
-        let file_name =
-            wallhaven::generate_file_name(id, file_type.split('/').next_back().unwrap_or("jpg"));
+        let file_name = SourceKind::Wallhaven.download_file_name(id, file_type);
         let data_path = self.config.data.data_path.clone();
         let target_path = PathBuf::from(&data_path).join(&file_name);
 

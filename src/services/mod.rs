@@ -7,6 +7,8 @@ pub mod local;
 pub mod proxy;
 pub mod request_context;
 pub mod retry;
+pub mod source;
+pub mod update_checker;
 pub mod wallhaven;
 
 use std::sync::Arc;

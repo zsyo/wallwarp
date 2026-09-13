@@ -51,6 +51,9 @@ impl SettingsState {
             hotkey_recording: None,
             show_path_clear_confirmation: false,
             path_to_clear: String::new(),
+            update_checking: false,
+            monitors: Vec::new(),
+            monitors_loaded: false,
         };
         // 初始化 API Key 脱敏显示串（默认隐藏状态）
         state.refresh_wallhaven_api_key_masked();

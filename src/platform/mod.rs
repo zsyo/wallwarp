@@ -137,6 +137,59 @@ pub fn set_wallpaper_kde(path: &str, mode: wallpaper::Mode) -> Result<(), String
     }
 }
 
+/// 显示器信息（原生标识与几何，供多显示器独立壁纸使用）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MonitorInfo {
+    /// 平台原生显示器标识（Windows: IDesktopWallpaper 设备路径；
+    /// macOS: NSScreenNumber；Linux X11: RandR 显示器名）
+    pub id: String,
+    /// 显示名称（Windows: 设备名如 \\.\DISPLAY1；macOS: localizedName；
+    /// Linux: RandR 名称）
+    pub name: String,
+    /// 显示器左上角横坐标（原生全屏坐标系）
+    pub x: i32,
+    /// 显示器左上角纵坐标（原生全屏坐标系）
+    pub y: i32,
+    /// 显示器宽度（物理像素）
+    pub width: u32,
+    /// 显示器高度（物理像素）
+    pub height: u32,
+    /// 是否主显示器
+    pub primary: bool,
+}
+
+/// 枚举系统所有显示器
+///
+/// Wayland 会话或查询失败时返回空列表（调用方按不支持处理）
+pub fn enumerate_monitors() -> Vec<MonitorInfo> {
+    imp::enumerate_monitors()
+}
+
+/// 当前环境是否支持按显示器独立设置壁纸
+///
+/// Windows（IDesktopWallpaper）与 macOS（NSWorkspace）恒支持；
+/// Linux 仅 KDE Plasma（X11/Wayland 经 PlasmaShell 按桌面索引设置）支持
+pub fn supports_per_monitor_wallpaper() -> bool {
+    imp::supports_per_monitor_wallpaper()
+}
+
+/// 为指定显示器设置壁纸（monitor_id 为 [`enumerate_monitors`] 返回的 id）
+///
+/// # 参数
+/// - `monitor_id`: 目标显示器的平台原生标识
+/// - `image_path`: 壁纸图片路径（绝对路径）
+/// - `mode`: 铺满模式（macOS 下由系统决定，仅 Windows/KDE 精确生效）
+///
+/// # 返回
+/// 当前环境不支持按显示器设置时返回 Err
+pub fn set_wallpaper_for_monitor(
+    monitor_id: &str,
+    image_path: &str,
+    mode: crate::utils::config::WallpaperMode,
+) -> Result<(), String> {
+    imp::set_wallpaper_for_monitor(monitor_id, image_path, mode)
+}
+
 /// 当前 KDE 会话是否正在注销/关机（非 Linux 平台恒为 false）
 ///
 /// 会话管理器（ksmserver）在注销/关机流程第一步 closeSession 即置位该

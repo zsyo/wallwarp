@@ -9,6 +9,11 @@ impl App {
         category: SettingsCategory,
     ) -> Task<AppMessage> {
         self.settings_state.active_category = category;
+        // 首次进入壁纸分类时加载显示器列表（多显示器独立壁纸区块）
+        let mut task = Task::none();
+        if category == SettingsCategory::Wallpaper && !self.settings_state.monitors_loaded {
+            task = self.settings_load_monitors();
+        }
         // 切换分类时收起全部下拉框，避免返回原分类时残留展开态
         self.settings_state.language_picker_expanded = false;
         self.settings_state.proxy_protocol_picker_expanded = false;
@@ -16,6 +21,6 @@ impl App {
         self.settings_state.log_level_picker_expanded = false;
         self.settings_state.sorting_picker_expanded = false;
         self.settings_state.time_range_picker_expanded = false;
-        Task::none()
+        task
     }
 }
