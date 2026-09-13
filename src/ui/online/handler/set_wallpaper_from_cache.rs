@@ -16,8 +16,9 @@ impl App {
             let id = wallpaper.id.clone();
             let file_type = wallpaper.file_type.clone();
             let file_size = wallpaper.file_size;
+            let source = wallpaper.source;
 
-            let location = self.resolve_online_file(&url, &id, &file_type, file_size);
+            let location = self.resolve_online_file(source, &url, &id, &file_type, file_size);
 
             return match location.source {
                 Some(OnlineFileHit::InData) => {

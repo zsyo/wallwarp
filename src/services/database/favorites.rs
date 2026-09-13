@@ -17,11 +17,13 @@ pub const KIND_LOCAL: &str = "local";
 /// 收藏项数据库结构
 #[derive(Debug, Clone)]
 pub struct FavoriteDB {
-    /// 主键：在线项为 wallhaven id，本地项为 "file:{规范化绝对路径}"
+    /// 主键：在线项为图源条目 id（如 wallhaven "94x38z"、bing 文件哈希），本地文件存 "file:{规范化绝对路径}"
     pub wallhaven_id: String,
     /// 类型：KIND_ONLINE / KIND_LOCAL
     pub kind: String,
-    /// 展示标题（在线项为 wallhaven-{id}，本地项为文件名）
+    /// 来源图源 id（services::source::SourceKind::id()；本地项为空串）
+    pub source: String,
+    /// 展示标题（在线项为图源命名规则的文件名，本地项为文件名）
     pub title: String,
     /// 在线项：原图直链；本地项：空
     pub url: String,
@@ -93,6 +95,7 @@ impl FavoritesRepository {
             "CREATE TABLE IF NOT EXISTS favorites (
                 wallhaven_id TEXT PRIMARY KEY,
                 kind TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT '',
                 title TEXT NOT NULL,
                 url TEXT NOT NULL DEFAULT '',
                 path TEXT NOT NULL DEFAULT '',
@@ -111,6 +114,23 @@ impl FavoritesRepository {
             [],
         )
         .map_err(|e| format!("创建表失败: {}", e))?;
+
+        // 迁移：存量库无 source 列，补充该列；在线收藏项统一回填 wallhaven
+        // （历史版本仅有此图源）。列已存在时 ALTER 报错，属预期，忽略即可
+        if let Err(e) = conn.execute(
+            "ALTER TABLE favorites ADD COLUMN source TEXT NOT NULL DEFAULT ''",
+            [],
+        ) {
+            let msg = e.to_string();
+            if !msg.contains("duplicate column name") {
+                return Err(format!("迁移 favorites.source 列失败: {}", msg));
+            }
+        }
+        let _ = conn.execute(
+            "UPDATE favorites SET source = 'wallhaven'
+             WHERE kind = 'online' AND (source IS NULL OR source = '')",
+            [],
+        );
 
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_favorites_created_at
@@ -140,12 +160,13 @@ impl FavoritesRepository {
 
         conn.execute(
             "INSERT INTO favorites (
-                wallhaven_id, kind, title, url, path, thumb_url, file_type,
+                wallhaven_id, kind, source, title, url, path, thumb_url, file_type,
                 file_size, width, height, purity, resolution, ratio, category,
                 group_id, created_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
             ON CONFLICT(wallhaven_id) DO UPDATE SET
                 kind = excluded.kind,
+                source = excluded.source,
                 title = excluded.title,
                 url = excluded.url,
                 path = excluded.path,
@@ -162,6 +183,7 @@ impl FavoritesRepository {
             params![
                 fav.wallhaven_id,
                 fav.kind,
+                fav.source,
                 fav.title,
                 fav.url,
                 fav.path,
@@ -324,8 +346,8 @@ impl FavoritesRepository {
     }
 
     /// SELECT 列清单（与 map_row 的读取顺序一致）
-    const FAVORITE_COLUMNS: &'static str = "wallhaven_id, kind, title, url, path, thumb_url, \
-        file_type, file_size, width, height, purity, resolution, ratio, category, \
+    const FAVORITE_COLUMNS: &'static str = "wallhaven_id, kind, source, title, url, path, \
+        thumb_url, file_type, file_size, width, height, purity, resolution, ratio, category, \
         group_id, created_at";
 
     /// 行映射（列顺序与 FAVORITE_COLUMNS 一致）
@@ -333,20 +355,21 @@ impl FavoritesRepository {
         Ok(FavoriteDB {
             wallhaven_id: row.get(0)?,
             kind: row.get(1)?,
-            title: row.get(2)?,
-            url: row.get(3)?,
-            path: row.get(4)?,
-            thumb_url: row.get(5)?,
-            file_type: row.get(6)?,
-            file_size: row.get(7)?,
-            width: row.get(8)?,
-            height: row.get(9)?,
-            purity: row.get(10)?,
-            resolution: row.get(11)?,
-            ratio: row.get(12)?,
-            category: row.get(13)?,
-            group_id: row.get(14)?,
-            created_at: row.get(15)?,
+            source: row.get(2)?,
+            title: row.get(3)?,
+            url: row.get(4)?,
+            path: row.get(5)?,
+            thumb_url: row.get(6)?,
+            file_type: row.get(7)?,
+            file_size: row.get(8)?,
+            width: row.get(9)?,
+            height: row.get(10)?,
+            purity: row.get(11)?,
+            resolution: row.get(12)?,
+            ratio: row.get(13)?,
+            category: row.get(14)?,
+            group_id: row.get(15)?,
+            created_at: row.get(16)?,
         })
     }
 }

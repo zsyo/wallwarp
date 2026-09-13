@@ -19,6 +19,7 @@ pub mod types;
 use std::future::Future;
 use std::pin::Pin;
 
+use crate::services::bing::BingService;
 use crate::services::request_context::RequestContext;
 use crate::services::wallhaven::WallhavenService;
 
@@ -32,13 +33,29 @@ pub type SourceFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceKind {
     Wallhaven,
+    /// Bing 每日一图（免密钥，无筛选维度）
+    Bing,
 }
 
 impl SourceKind {
+    /// 全部可用图源（设置页图源下拉顺序）
+    pub fn all() -> [SourceKind; 2] {
+        [SourceKind::Wallhaven, SourceKind::Bing]
+    }
+
+    /// 从配置取值解析图源；未知取值回退 Wallhaven（解析不会失败）
+    pub fn parse(s: &str) -> Self {
+        match s {
+            "bing" => SourceKind::Bing,
+            _ => SourceKind::Wallhaven,
+        }
+    }
+
     /// 图源唯一标识（用于日志、配置与持久化区分）
     pub fn id(self) -> &'static str {
         match self {
             SourceKind::Wallhaven => "wallhaven",
+            SourceKind::Bing => "bing",
         }
     }
 
@@ -49,6 +66,7 @@ impl SourceKind {
         let ext = file_type.split('/').next_back().unwrap_or("jpg");
         match self {
             SourceKind::Wallhaven => format!("wallhaven-{}.{}", item_id, ext),
+            SourceKind::Bing => format!("bing-{}.{}", item_id, ext),
         }
     }
 }
@@ -114,6 +132,12 @@ pub fn create_source(kind: SourceKind, config: SourceConfig) -> Box<dyn Wallpape
     match kind {
         SourceKind::Wallhaven => Box::new(WallhavenService::new(
             config.api_key,
+            config.proxy,
+            config.proxy_enabled,
+            config.use_env_fallback,
+        )),
+        // Bing 免密钥，api_key 不参与
+        SourceKind::Bing => Box::new(BingService::new(
             config.proxy,
             config.proxy_enabled,
             config.use_env_fallback,

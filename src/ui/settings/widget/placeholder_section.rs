@@ -1,40 +1,10 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::ui::common;
-use crate::ui::style::{ThemeColors, ThemeConfig};
-use crate::ui::style::{
-    SECTION_PADDING, SECTION_TITLE_SIZE, SETTING_ROW_DESC_SIZE, RADIUS_FULL, with_alpha,
-};
+use crate::ui::style::ThemeConfig;
+use crate::ui::style::{SECTION_PADDING, SECTION_TITLE_SIZE, SETTING_ROW_DESC_SIZE};
 use iced::widget::{column, container, text};
 use iced::{Alignment, Element, Font, Length};
-
-/// 创建"开发中"徽标
-///
-/// 浅底圆角小胶囊，用于标记预留功能行。
-pub fn create_coming_soon_badge<'a, Message: 'a>(
-    label: String,
-    theme_colors: ThemeColors,
-) -> Element<'a, Message> {
-    container(
-        text(label)
-            .size(SETTING_ROW_DESC_SIZE)
-            .color(theme_colors.light_text_sub),
-    )
-    .padding([2, 8])
-    .style(move |_theme| container::Style {
-        background: Some(iced::Background::Color(with_alpha(
-            theme_colors.light_text_sub,
-            0.12,
-        ))),
-        border: iced::border::Border {
-            color: iced::Color::TRANSPARENT,
-            width: 0.0,
-            radius: iced::border::Radius::from(RADIUS_FULL),
-        },
-        ..Default::default()
-    })
-    .into()
-}
 
 /// 创建"功能开发中"占位区块
 ///

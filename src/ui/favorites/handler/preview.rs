@@ -4,6 +4,7 @@
 
 use crate::services::async_task;
 use crate::services::download::DOWNLOAD_CANCELLED;
+use crate::services::source::SourceKind;
 use crate::ui::favorites::FavoritesMessage;
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -31,6 +32,7 @@ impl App {
         let id = entry.fav.wallhaven_id.clone();
         let file_type = entry.fav.file_type.clone();
         let file_size = entry.fav.file_size.max(0) as u64;
+        let source = SourceKind::parse(&entry.fav.source);
 
         self.favorites_state.modal_visible = true;
         self.favorites_state.modal_index = index;
@@ -46,7 +48,7 @@ impl App {
         }
 
         // 在线项：已入库读本地文件，否则流式下载原图
-        let location = self.resolve_online_file(&url, &id, &file_type, file_size);
+        let location = self.resolve_online_file(source, &url, &id, &file_type, file_size);
         match location.source {
             Some(hit) => {
                 let path = match hit {

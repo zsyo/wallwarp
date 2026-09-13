@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use super::OnlineState;
+use crate::services::source::SourceKind;
 use crate::services::wallhaven::{AspectRatio, Purity, Resolution, helper};
 use crate::ui::online::ResolutionMode;
 use crate::utils::config::Config;
@@ -10,6 +11,7 @@ impl OnlineState {
     pub fn load_from_config(config: &Config) -> Self {
         // 加载分类和纯净度（从字符串解析位掩码）
         let mut state = Self {
+            source: SourceKind::parse(&config.global.online_source),
             categories: helper::parse_category_bitmask(&config.wallhaven.category),
             purities: helper::parse_purity_bitmask(&config.wallhaven.purity),
             ..Self::default()

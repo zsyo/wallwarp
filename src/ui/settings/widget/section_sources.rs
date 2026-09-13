@@ -37,6 +37,13 @@ pub fn create_sources_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
     };
 
     let rows = vec![
+        // 在线图源选择（切换后在线页按图源加载与裁剪筛选器）
+        super::create_setting_row(
+            app.i18n.t("settings.online-source"),
+            Some(app.i18n.t("settings.online-source-desc")),
+            super::create_source_picker(app),
+            theme_colors,
+        ),
         super::create_setting_row(
             app.i18n.t("settings.wallhaven-api-key"),
             Some(app.i18n.t("settings.wallhaven-api-key-desc")),
@@ -58,15 +65,6 @@ pub fn create_sources_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
                 )
             ]
             .spacing(BUTTON_SPACING),
-            theme_colors,
-        ),
-        super::create_setting_row(
-            app.i18n.t("settings.more-sources"),
-            Some(app.i18n.t("settings.more-sources-desc")),
-            super::create_coming_soon_badge(
-                app.i18n.t("settings.coming-soon"),
-                theme_colors,
-            ),
             theme_colors,
         ),
     ];

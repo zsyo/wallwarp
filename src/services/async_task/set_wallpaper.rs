@@ -117,9 +117,9 @@ pub async fn async_set_random_online_wallpaper(
     // 创建请求上下文
     let context = RequestContext::new();
 
-    // 经图源抽象层创建图源实例（支持环境变量代理回退）
+    // 经图源抽象层创建图源实例（支持环境变量代理回退）；图源取当前配置的选择
     let source_impl = source::create_source(
-        SourceKind::Wallhaven,
+        SourceKind::parse(&config.global.online_source),
         SourceConfig {
             api_key: api_key.clone(),
             proxy: proxy.clone(),
@@ -227,7 +227,7 @@ pub async fn async_set_random_online_wallpaper(
         spawn_blocking(move || {
             // 1. 检查目标文件是否已存在于 cache_path/auto_change 中
             if let Ok(metadata) = std::fs::metadata(&target_path)
-                && metadata.len() == file_size
+                && DownloadService::file_size_matches(metadata.len(), file_size)
             {
                 debug!(
                     "[定时切换] [在线] 文件已存在于auto_change目录，直接设置: {}",
@@ -244,7 +244,7 @@ pub async fn async_set_random_online_wallpaper(
             ) {
                 let cache_file_path_obj = PathBuf::from(&cache_file_path);
                 if let Ok(metadata) = std::fs::metadata(&cache_file_path_obj)
-                    && metadata.len() == file_size
+                    && DownloadService::file_size_matches(metadata.len(), file_size)
                 {
                     // 缓存文件存在且大小匹配，移动到 cache_path/auto_change
                     // 因为这是原图且非主动浏览，不需要在 online 目录中保存对应的缓存

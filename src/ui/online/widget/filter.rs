@@ -1,6 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::i18n::I18n;
+use crate::services::source::SourceKind;
 use crate::services::wallhaven::{Category, Purity, Sorting};
 use crate::ui::AppMessage;
 use crate::ui::common;
@@ -57,9 +58,54 @@ pub fn create_filter_bar<'a>(
     config: &'a Config,
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
-    // 搜索框（放在最前面）
     let theme_colors = theme_config.get_theme_colors();
 
+    // 功能按钮（图源无关，始终展示）
+    let refresh_button = common::create_icon_button_with_size(
+        "\u{F130}", // arrow-repeat
+        theme_colors.light_text,
+        20,
+        OnlineMessage::Refresh.into(),
+    )
+    .height(Length::Fixed(FILTER_CONTROL_HEIGHT))
+    .style(solid_icon_button_style(
+        theme_colors.light_button,
+        theme_colors.light_text,
+    ));
+
+    // Bing 每日一图无搜索/筛选维度，仅展示说明与刷新按钮
+    if state.source != SourceKind::Wallhaven {
+        let hint_row = row![
+            text(i18n.t("online-wallpapers.bing-daily-hint"))
+                .size(14)
+                .color(theme_colors.light_text_sub),
+            Space::new().width(Length::Fill),
+            refresh_button,
+        ]
+        .spacing(4)
+        .align_y(Alignment::Center);
+
+        return container(row![
+            Space::new().width(Length::Fixed(2.0)),
+            container(hint_row)
+                .width(Length::Fill)
+                .height(Length::Fixed(50.0))
+                .padding(8)
+                .style(move |_theme: &iced::Theme| container::Style {
+                    background: Some(iced::Background::Color(theme_colors.light_bg)),
+                    border: Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.0,
+                        radius: Radius::from(RADIUS_SM),
+                    },
+                    shadow: shadows::FILTER_BAR_SHADOW,
+                    ..Default::default()
+                })
+        ])
+        .into();
+    }
+
+    // 搜索框（放在最前面）
     let search_input = text_input(
         &i18n.t("online-wallpapers.search-placeholder"),
         &state.search_text,
@@ -98,19 +144,6 @@ pub fn create_filter_bar<'a>(
     let sorting_picker = super::create_sorting_picker(i18n, state, theme_colors);
 
     let time_range_picker = super::create_time_range_picker(i18n, state, theme_colors);
-
-    // 功能按钮
-    let refresh_button = common::create_icon_button_with_size(
-        "\u{F130}", // arrow-repeat
-        theme_colors.light_text,
-        20,
-        OnlineMessage::Refresh.into(),
-    )
-    .height(Length::Fixed(FILTER_CONTROL_HEIGHT))
-    .style(solid_icon_button_style(
-        theme_colors.light_button,
-        theme_colors.light_text,
-    ));
 
     // 分类切换按钮（选中=强调色实底）
     let category_button = |label: String, category: Category, message: OnlineMessage| {

@@ -28,12 +28,13 @@ impl App {
         }
 
         // 在线项
+        let source = SourceKind::parse(&entry.fav.source);
         let url = entry.fav.url.clone();
         let id = entry.fav.wallhaven_id.clone();
         let file_type = entry.fav.file_type.clone();
         let file_size = entry.fav.file_size.max(0) as u64;
 
-        let location = self.resolve_online_file(&url, &id, &file_type, file_size);
+        let location = self.resolve_online_file(source, &url, &id, &file_type, file_size);
 
         match location.source {
             Some(OnlineFileHit::InData) => {
@@ -45,7 +46,7 @@ impl App {
             }
             None => {
                 // 文件不存在：下载完成后自动设为壁纸
-                let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
+                let file_name = source.download_file_name(&id, &file_type);
                 self.favorites_state.pending_apply_filename = Some(file_name.clone());
 
                 info!(
@@ -83,16 +84,17 @@ impl App {
             return Task::none();
         }
 
+        let source = SourceKind::parse(&entry.fav.source);
         let url = entry.fav.url.clone();
         let id = entry.fav.wallhaven_id.clone();
         let file_type = entry.fav.file_type.clone();
         let file_size = entry.fav.file_size.max(0) as u64;
 
-        let location = self.resolve_online_file(&url, &id, &file_type, file_size);
+        let location = self.resolve_online_file(source, &url, &id, &file_type, file_size);
 
         match location.source {
             Some(OnlineFileHit::InData) => {
-                let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
+                let file_name = source.download_file_name(&id, &file_type);
                 let success_message = format!(
                     "{}: {}",
                     self.i18n.t("download-tasks.file-already-exists"),
@@ -102,7 +104,7 @@ impl App {
             }
             Some(OnlineFileHit::InCache(cache_file_path)) => {
                 // 缓存命中：复制到壁纸库
-                let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
+                let file_name = source.download_file_name(&id, &file_type);
                 let success_message = format!(
                     "{}: {}",
                     self.i18n.t("download-tasks.copied-from-cache"),
@@ -167,7 +169,7 @@ impl App {
         let full_path = if entry.fav.kind == crate::services::database::KIND_LOCAL {
             helpers::get_absolute_path(&entry.fav.path)
         } else {
-            let file_name = SourceKind::Wallhaven
+            let file_name = SourceKind::parse(&entry.fav.source)
                 .download_file_name(&entry.fav.wallhaven_id, &entry.fav.file_type);
             let data_path = self.config.data.data_path.clone();
             std::path::Path::new(&helpers::get_absolute_path(&data_path))

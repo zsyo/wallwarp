@@ -13,6 +13,18 @@ pub const DOWNLOAD_CANCELLED: &str = "下载已取消";
 pub struct DownloadService;
 
 impl DownloadService {
+    /// 判定磁盘文件与预期大小是否匹配
+    ///
+    /// 图源未提供大小时（expected_size 为 0，如 Bing 每日一图接口不返回
+    /// 文件大小），文件存在且非空即视为匹配
+    pub fn file_size_matches(actual_len: u64, expected_size: u64) -> bool {
+        if expected_size == 0 {
+            actual_len > 0
+        } else {
+            actual_len == expected_size
+        }
+    }
+
     /// 根据 URL+文件大小哈希生成 online 缓存文件路径
     ///
     /// `downloading` 为 true 时附加 `.download` 后缀（表示下载中）

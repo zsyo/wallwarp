@@ -10,6 +10,7 @@ impl OnlineState {
     /// 只更新内存中的 config，磁盘写入统一由 App 层的
     /// request_config_save()（300ms 防抖）合并执行，调用方负责触发
     pub fn save_to_config(&self, config: &mut Config) {
+        config.global.online_source = self.source.id().to_string();
         config.wallhaven.category = format!("{:03b}", self.categories);
         config.wallhaven.purity = format!("{:03b}", self.purities);
         config.wallhaven.sorting = self.sorting.to_string();

@@ -2,7 +2,6 @@
 
 use crate::services::async_task;
 use crate::services::request_context::RequestContext;
-use crate::services::source::SourceKind;
 use crate::ui::App;
 use crate::ui::online::ResolutionMode;
 
@@ -78,7 +77,7 @@ impl App {
         };
 
         async_task::OnlineSearchParams {
-            source: SourceKind::Wallhaven,
+            source: self.online_state.source,
             categories,
             sorting,
             purities,

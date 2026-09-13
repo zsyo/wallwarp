@@ -44,6 +44,7 @@ impl App {
         let fav = FavoriteDB {
             wallhaven_id: wallpaper.id.clone(),
             kind: KIND_ONLINE.to_string(),
+            source: wallpaper.source.id().to_string(),
             title: wallpaper.download_file_name(),
             url: wallpaper.path.clone(),
             path: wallpaper.url.clone(),

@@ -5,6 +5,7 @@ mod load_from_config;
 mod save_to_config;
 
 use crate::services::request_context::RequestContext;
+use crate::services::source::SourceKind;
 use crate::services::wallhaven;
 use iced::widget::image::Handle;
 use std::sync::Arc;
@@ -45,6 +46,8 @@ pub enum ResolutionMode {
 /// 在线壁纸页面状态
 #[derive(Debug)]
 pub struct OnlineState {
+    /// 当前图源（筛选与列表内容随图源变化，持久化到 config）
+    pub source: SourceKind,
     /// 壁纸列表（带加载状态）
     pub wallpapers: Vec<WallpaperLoadStatus>,
     /// 壁纸原始数据
@@ -137,6 +140,7 @@ pub struct OnlineState {
 impl Default for OnlineState {
     fn default() -> Self {
         Self {
+            source: SourceKind::Wallhaven,
             wallpapers: Vec::new(),
             wallpapers_data: Vec::new(),
             loading_page: false,

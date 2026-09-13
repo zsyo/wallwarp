@@ -29,22 +29,24 @@ pub(in crate::ui) struct OnlineFileLocation {
 impl App {
     /// 解析在线壁纸文件的落库来源
     ///
-    /// 判定标准统一为"存在且大小匹配"(file_size 来自 Wallhaven API)
+    /// 判定标准统一为"存在且大小匹配"（file_size 来自图源 API，
+    /// 图源未提供大小时按"存在即匹配"处理）
     pub(in crate::ui) fn resolve_online_file(
         &self,
+        source: SourceKind,
         url: &str,
         id: &str,
         file_type: &str,
         file_size: u64,
     ) -> OnlineFileLocation {
         // 生成 data_path 中的目标文件路径
-        let file_name = SourceKind::Wallhaven.download_file_name(id, file_type);
+        let file_name = source.download_file_name(id, file_type);
         let data_path = self.config.data.data_path.clone();
         let target_path = PathBuf::from(&data_path).join(&file_name);
 
         // 1. 目标文件已存在且大小匹配
         if let Ok(metadata) = std::fs::metadata(&target_path)
-            && metadata.len() == file_size
+            && DownloadService::file_size_matches(metadata.len(), file_size)
         {
             return OnlineFileLocation {
                 target_path,
@@ -57,7 +59,7 @@ impl App {
         if let Ok(cache_file_path) =
             DownloadService::get_online_image_cache_final_path(&cache_path, url, file_size)
             && let Ok(metadata) = std::fs::metadata(&cache_file_path)
-            && metadata.len() == file_size
+            && DownloadService::file_size_matches(metadata.len(), file_size)
         {
             return OnlineFileLocation {
                 target_path,

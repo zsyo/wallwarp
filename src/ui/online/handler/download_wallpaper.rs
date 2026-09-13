@@ -1,6 +1,5 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
-use crate::services::source::SourceKind;
 use crate::ui::online::handler::resolve_online_file::OnlineFileHit;
 use crate::ui::{App, AppMessage, NotificationType};
 use iced::Task;
@@ -16,13 +15,14 @@ impl App {
             let id = wallpaper.id.clone();
             let file_type = wallpaper.file_type.clone();
             let file_size = wallpaper.file_size;
+            let source = wallpaper.source;
 
-            let location = self.resolve_online_file(&url, &id, &file_type, file_size);
+            let location = self.resolve_online_file(source, &url, &id, &file_type, file_size);
 
             return match location.source {
                 Some(OnlineFileHit::InData) => {
                     // 文件已存在于 data_path 中
-                    let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
+                    let file_name = source.download_file_name(&id, &file_type);
                     let success_message = format!(
                         "{}: {}",
                         self.i18n.t("download-tasks.file-already-exists"),
@@ -32,7 +32,7 @@ impl App {
                 }
                 Some(OnlineFileHit::InCache(cache_file_path)) => {
                     // 缓存文件存在且大小匹配，异步复制到 data_path
-                    let file_name = SourceKind::Wallhaven.download_file_name(&id, &file_type);
+                    let file_name = source.download_file_name(&id, &file_type);
                     let success_message = format!(
                         "{}: {}",
                         self.i18n.t("download-tasks.copied-from-cache"),

@@ -65,6 +65,9 @@ pub struct GlobalConfig {
     /// 全局热键"保存当前壁纸到库"（HotKey 字符串，空 = 未设置）
     #[serde(default)]
     pub hotkey_save_current: String,
+    /// 当前在线图源（services::source::SourceKind 的 id，默认 wallhaven）
+    #[serde(default = "default_online_source")]
+    pub online_source: String,
 }
 
 impl Default for GlobalConfig {
@@ -84,8 +87,13 @@ impl Default for GlobalConfig {
             hotkey_switch_previous: String::new(),
             hotkey_show_window: String::new(),
             hotkey_save_current: String::new(),
+            online_source: default_online_source(),
         }
     }
+}
+
+fn default_online_source() -> String {
+    "wallhaven".to_string()
 }
 
 fn default_language() -> String {

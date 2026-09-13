@@ -55,6 +55,7 @@ impl App {
         let fav = FavoriteDB {
             wallhaven_id: key.clone(),
             kind: KIND_LOCAL.to_string(),
+            source: String::new(),
             title,
             url: String::new(),
             path: normalized.clone(),
