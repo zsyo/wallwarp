@@ -100,6 +100,35 @@ pub fn get_proxy_from_env() -> Option<String> {
     None
 }
 
+/// 解析最终生效的代理（优先级：配置文件代理 > 环境变量代理 > 直连）
+///
+/// 日志经 `log_choice` 回调输出，由各入口决定前缀与级别。
+/// 下载路径调用方传入的 proxy 已含 proxy_enabled 语义（`resolved_proxy()`），
+/// 故传 `proxy_enabled = true` 不改变行为。
+fn resolve_proxy(
+    proxy: Option<String>,
+    proxy_enabled: bool,
+    use_env_fallback: bool,
+    log_choice: impl Fn(String),
+) -> Option<String> {
+    if proxy_enabled
+        && let Some(proxy_url) = proxy.clone().filter(|p| !p.is_empty())
+    {
+        log_choice(format!("使用配置文件代理: {}", proxy_url));
+        return Some(proxy_url);
+    }
+
+    if use_env_fallback
+        && let Some(env_proxy_url) = get_proxy_from_env()
+    {
+        log_choice(format!("使用环境变量代理: {}", env_proxy_url));
+        return Some(env_proxy_url);
+    }
+
+    log_choice("使用直连客户端".to_string());
+    None
+}
+
 /// 创建带代理的 HTTP 客户端（结果经 [`cached_client`] 缓存复用）
 ///
 /// # 参数
@@ -116,21 +145,9 @@ pub fn create_proxy_client(
     proxy_enabled: bool,
     use_env_fallback: bool,
 ) -> reqwest::Client {
-    // 解析最终生效的代理（优先级：配置文件代理 > 环境变量代理 > 直连）
-    let resolved_proxy = if proxy_enabled
-        && let Some(proxy_url) = proxy
-        && !proxy_url.is_empty()
-    {
-        info!("[代理客户端] 使用配置文件代理: {}", proxy_url);
-        Some(proxy_url)
-    } else if use_env_fallback && let Some(env_proxy_url) = get_proxy_from_env() {
-        info!("[代理客户端] 使用环境变量代理: {}", env_proxy_url);
-        Some(env_proxy_url)
-    } else {
-        debug!("[代理客户端] 使用直连客户端");
-        None
-    };
-
+    let resolved_proxy = resolve_proxy(proxy, proxy_enabled, use_env_fallback, |message| {
+        info!("[代理客户端] {}", message);
+    });
     cached_client(resolved_proxy)
 }
 
@@ -149,26 +166,13 @@ pub fn create_client_with_env_fallback(
     log_level_info: bool,
 ) -> reqwest::Client {
     // 按调用方的日志级别要求输出代理选择结果
-    let log_choice = |message: String| {
+    let resolved_proxy = resolve_proxy(proxy, true, true, |message| {
         if log_level_info {
             info!("[{}] [URL:{}] {}", log_prefix, url, message);
         } else {
             debug!("[{}] [URL:{}] {}", log_prefix, url, message);
         }
-    };
-
-    // 解析最终生效的代理（优先级：配置文件代理 > 环境变量代理 > 直连）
-    let resolved_proxy = if let Some(proxy_url) = proxy.filter(|p| !p.is_empty()) {
-        log_choice(format!("使用配置文件代理: {}", proxy_url));
-        Some(proxy_url)
-    } else if let Some(env_proxy_url) = get_proxy_from_env() {
-        log_choice(format!("使用环境变量代理: {}", env_proxy_url));
-        Some(env_proxy_url)
-    } else {
-        log_choice("使用直连客户端".to_string());
-        None
-    };
-
+    });
     cached_client(resolved_proxy)
 }
 
