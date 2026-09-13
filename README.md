@@ -125,6 +125,33 @@ sudo apt install libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
 sudo apt install libfuse2
 ```
 
+**WSL + Docker 一键构建 Linux 安装包**（无需在本机安装上述依赖）：
+
+在 WSL 的 zsh 中运行以下脚本，编译环境由 Docker 容器提供，与 CI 发布链路一致，
+一次构建出 AppImage / deb / rpm / pacman 四种安装包（默认 x64 全部四种）：
+
+```bash
+# 需要 WSL 内有 zsh（Ubuntu 默认无：sudo apt install zsh）与可用的 Docker
+zsh packaging/linux/build-packages.sh
+
+# 只构建指定格式（逗号组合）
+zsh packaging/linux/build-packages.sh -f deb,rpm
+
+# 构建 arm64（x86 宿主经 qemu 模拟，全量编译较慢）
+zsh packaging/linux/build-packages.sh -a arm64
+
+# 覆盖应用内显示版本（产物文件名恒用 Cargo.toml 版本）
+zsh packaging/linux/build-packages.sh -v 1.7.0_beta.1
+```
+
+产物输出到仓库根 `dist-linux/`。说明：
+
+- 编译缓存位于 `~/.cache/wallwarp-build/<arch>/`（WSL ext4，避免 /mnt 跨盘 IO
+  拖慢增量编译），`cargo clean` 不会清除；释放空间时手动删除该目录即可
+- Docker Hub / apt / crates.io 的国内加速源已内置并自动探测切换；GitHub 访问
+  异常时 AppImage 工具链（linuxdeploy）会自动改由 WSL 侧预下载
+- 仅需 Docker 守护进程可用（Docker Desktop 的 WSL 集成或 WSL 内原生 Docker 均可）
+
 ### 下载预编译版本
 
 访问 [Releases](https://github.com/zsyo/wallwarp/releases) 页面下载适合你系统的预编译版本（每个平台均提供 x64 与 arm64 架构）：
