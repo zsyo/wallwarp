@@ -22,6 +22,7 @@ online-wallpapers = Online Wallpapers
     .search-placeholder = Search... (English only)
     .bing-daily-hint = Bing daily featured wallpapers, click refresh to reload
     .group-picker-label = Groups
+    .group-picker-empty = No wallpaper groups yet. Save current filters as a group in Settings
     .group-applied = Wallpaper group applied: { $name }
     .loading-placeholder = Loading...
     .page-separator = ------- {$current}/{$total} -------

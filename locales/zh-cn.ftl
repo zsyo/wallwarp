@@ -22,6 +22,7 @@ online-wallpapers = 在线壁纸
     .search-placeholder = 搜索...（仅支持英文）
     .bing-daily-hint = Bing 每日精选壁纸，点右侧按钮刷新
     .group-picker-label = 壁纸组
+    .group-picker-empty = 暂无壁纸组，可在设置页保存当前筛选为一组
     .group-applied = 已应用壁纸组：{ $name }
     .loading-placeholder = 加载中...
     .page-separator = ------- {$current}/{$total} -------

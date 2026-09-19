@@ -2,9 +2,11 @@
 
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
+use crate::ui::common;
 use crate::ui::common::drop_down::{self, Displayable, dropdown_picker, flat_dropdown_trigger_button};
 use crate::ui::online::{OnlineMessage, OnlineState};
 use crate::ui::style::{FILTER_CONTROL_HEIGHT, ThemeColors};
+use iced::widget::text;
 use iced::{Element, Length};
 
 /// 创建壁纸组选择器（应用 = 写回图源/筛选/铺满模式并刷新列表）
@@ -26,7 +28,14 @@ pub fn create_group_picker<'a>(
     .height(Length::Fixed(FILTER_CONTROL_HEIGHT));
 
     if app_groups.is_empty() {
-        return trigger.into();
+        // 无组时无可展开内容，tooltip 说明创建入口，避免"点击无反应"的困惑
+        return iced::widget::tooltip(
+            trigger,
+            text(i18n.t("online-wallpapers.group-picker-empty")),
+            iced::widget::tooltip::Position::Top,
+        )
+        .style(common::create_tooltip_style(theme_colors))
+        .into();
     }
 
     let options: Vec<Displayable<i64>> = app_groups

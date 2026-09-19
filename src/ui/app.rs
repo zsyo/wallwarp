@@ -170,6 +170,9 @@ impl App {
         // 从数据库加载收藏标记（在线页/本地页卡片心形按钮的实心/空心状态）
         app.load_favorite_markers_from_db();
 
+        // 从数据库加载壁纸组列表（在线页筛选栏的组选择器需要，启动即用）
+        app.load_wallpaper_groups_from_db();
+
         // 初始化托盘与悬浮球菜单项的状态
         app.update_menu_items();
 
@@ -249,6 +252,27 @@ impl App {
                 tracing::info!("[收藏夹] [DB] 启动加载 {} 条收藏标记", favorites.len());
             }
             Err(e) => tracing::warn!("[收藏夹] [DB] 启动加载收藏标记失败: {}", e),
+        }
+    }
+
+    /// 从数据库加载壁纸组列表（在线页筛选栏组选择器的数据源）
+    ///
+    /// 启动时调用一次：壁纸组不在任何页面进入路径上重建，启动后直接
+    /// 进在线页即可使用组切换；设置页保存/删除组后会重载此缓存
+    fn load_wallpaper_groups_from_db(&mut self) {
+        use crate::services::database::{DatabaseManager, WallpaperGroupsRepository};
+
+        let Some(db) = DatabaseManager::try_get() else {
+            tracing::warn!("[壁纸组] [DB] 数据库未初始化，跳过启动加载壁纸组");
+            return;
+        };
+        match WallpaperGroupsRepository::new(db.connection().clone()).load_all() {
+            Ok(groups) => {
+                tracing::info!("[壁纸组] [DB] 启动加载 {} 个壁纸组", groups.len());
+                self.wallpaper_groups = groups;
+                self.wallpaper_groups_loaded = true;
+            }
+            Err(e) => tracing::warn!("[壁纸组] [DB] 启动加载失败: {}", e),
         }
     }
 
