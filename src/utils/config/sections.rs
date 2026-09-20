@@ -2,7 +2,7 @@
 
 //! 配置的各分节结构体（global/data/display/wallhaven/wallpaper）
 
-use super::{MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH, DEFAULT_DATA_PATH};
+use super::{DEFAULT_DATA_PATH, MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH};
 use crate::utils::config::enums::{
     CloseAction, LogLevel, Theme, WallpaperAutoChangeInterval, WallpaperAutoChangeMode,
     WallpaperMode, WallpaperReadability,

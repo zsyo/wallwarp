@@ -107,8 +107,7 @@ impl App {
         }
 
         // 开关状态持久化
-        self.config.wallpaper.auto_change_enabled =
-            self.auto_change_state.auto_change_enabled;
+        self.config.wallpaper.auto_change_enabled = self.auto_change_state.auto_change_enabled;
         // 磁盘写入经防抖合并
         self.request_config_save()
     }
@@ -298,7 +297,11 @@ impl App {
         info!(
             "[设置] [按主题分组选图] [{}] 目录修改: {} -> {}",
             dir_type,
-            if old_dir.is_empty() { "(空)" } else { &old_dir },
+            if old_dir.is_empty() {
+                "(空)"
+            } else {
+                &old_dir
+            },
             if path.is_empty() { "(空)" } else { &path }
         );
         match dir_type {

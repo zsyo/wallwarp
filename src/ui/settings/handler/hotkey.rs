@@ -2,8 +2,8 @@
 
 use crate::ui::{App, AppMessage};
 use crate::utils::hotkey_manager::{self, HotkeyAction};
-use iced::keyboard::{Key, key};
 use iced::Task;
+use iced::keyboard::{Key, key};
 use tracing::info;
 
 impl App {

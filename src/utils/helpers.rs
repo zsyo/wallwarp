@@ -32,9 +32,7 @@ pub fn open_file_in_explorer(path: &str) {
 
     #[cfg(target_os = "macos")]
     {
-        let _ = std::process::Command::new("open")
-            .args(["-R", &full_path])
-            .spawn();
+        let _ = std::process::Command::new("open").args(["-R", &full_path]).spawn();
     }
 
     #[cfg(target_os = "linux")]

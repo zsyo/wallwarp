@@ -15,12 +15,14 @@ impl App {
     pub(in crate::ui::settings) fn settings_load_groups(&mut self) -> Task<AppMessage> {
         Task::perform(
             async move {
-                tokio::task::spawn_blocking(|| -> Result<Vec<crate::services::database::WallpaperGroupDB>, String> {
-                    let Some(db) = DatabaseManager::try_get() else {
-                        return Err("数据库未初始化".to_string());
-                    };
-                    WallpaperGroupsRepository::new(db.connection().clone()).load_all()
-                })
+                tokio::task::spawn_blocking(
+                    || -> Result<Vec<crate::services::database::WallpaperGroupDB>, String> {
+                        let Some(db) = DatabaseManager::try_get() else {
+                            return Err("数据库未初始化".to_string());
+                        };
+                        WallpaperGroupsRepository::new(db.connection().clone()).load_all()
+                    },
+                )
                 .await
                 .map_err(|e| e.to_string())?
             },
@@ -46,9 +48,7 @@ impl App {
     /// 把当前在线筛选快照保存为壁纸组（同名覆盖）
     ///
     /// 快照内容：图源 + 在线筛选字段 + 铺满模式
-    pub(in crate::ui::settings) fn settings_save_group_from_current(
-        &mut self,
-    ) -> Task<AppMessage> {
+    pub(in crate::ui::settings) fn settings_save_group_from_current(&mut self) -> Task<AppMessage> {
         let name = self.settings_state.group_name_input.trim().to_string();
         if name.is_empty() {
             let message = self.i18n.t("settings.group-name-empty").to_string();
@@ -92,14 +92,15 @@ impl App {
                     let Some(db) = DatabaseManager::try_get() else {
                         return Err("数据库未初始化".to_string());
                     };
-                    WallpaperGroupsRepository::new(db.connection().clone()).upsert(
-                        &name,
-                        &source,
-                        &filters_json,
-                        &mode,
-                        chrono::Utc::now().timestamp(),
-                    )
-                    .map(|_| ())
+                    WallpaperGroupsRepository::new(db.connection().clone())
+                        .upsert(
+                            &name,
+                            &source,
+                            &filters_json,
+                            &mode,
+                            chrono::Utc::now().timestamp(),
+                        )
+                        .map(|_| ())
                 })
                 .await
                 .map_err(|e| e.to_string())?

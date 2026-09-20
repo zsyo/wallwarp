@@ -60,17 +60,13 @@ fn proxy_server_row<'a>(app: &'a App) -> Element<'a, AppMessage> {
         .style(styled_text_input(theme_colors)),
         {
             container(
-                iced_aw::NumberInput::new(
-                    &app.settings_state.proxy_port,
-                    1..=65535,
-                    move |n| {
-                        if proxy_enabled {
-                            SettingsMessage::ProxyPortChanged(n).into()
-                        } else {
-                            SettingsMessage::ProxyToggled(false).into()
-                        }
-                    },
-                )
+                iced_aw::NumberInput::new(&app.settings_state.proxy_port, 1..=65535, move |n| {
+                    if proxy_enabled {
+                        SettingsMessage::ProxyPortChanged(n).into()
+                    } else {
+                        SettingsMessage::ProxyToggled(false).into()
+                    }
+                })
                 .width(Length::Fill)
                 .align_x(Alignment::Start)
                 .padding(INPUT_PADDING)

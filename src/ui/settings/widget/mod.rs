@@ -40,13 +40,9 @@ use {
 
 // 供 settings::view 使用的区块入口
 pub(in crate::ui::settings) use {
-    section_about_info::create_about_info_section,
-    section_data_config::create_data_config_section,
-    section_general::create_general_section,
-    section_groups::create_groups_section,
-    section_hotkeys::create_hotkeys_section,
-    section_network::create_network_section,
-    section_sources::create_sources_section,
-    section_theme_aware::create_theme_aware_rows,
+    section_about_info::create_about_info_section, section_data_config::create_data_config_section,
+    section_general::create_general_section, section_groups::create_groups_section,
+    section_hotkeys::create_hotkeys_section, section_network::create_network_section,
+    section_sources::create_sources_section, section_theme_aware::create_theme_aware_rows,
     section_wallpaper_config::create_wallpaper_config_section,
 };
