@@ -40,7 +40,9 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
             .height(Length::Fixed(IMAGE_HEIGHT))
             .align_x(Alignment::Center)
             .align_y(Alignment::Center)
-            .style(move |_theme| common::create_bordered_container_style_with_bg(theme_config)(_theme))
+            .style(move |_theme| {
+                common::create_bordered_container_style_with_bg(theme_config)(_theme)
+            })
             .into();
     };
 
@@ -81,7 +83,11 @@ pub fn create_loaded_wallpaper_with_thumb<'a>(
         ("\u{F417}", BUTTON_COLOR_RED) // heart
     };
     let favorite_button = common::create_button_with_tooltip(
-        common::create_icon_button(heart_icon, heart_color, OnlineMessage::ToggleFavorite(index).into()),
+        common::create_icon_button(
+            heart_icon,
+            heart_color,
+            OnlineMessage::ToggleFavorite(index).into(),
+        ),
         i18n.t(if is_favorite {
             "favorites.tooltip-remove-favorite"
         } else {
