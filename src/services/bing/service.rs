@@ -11,7 +11,7 @@ use crate::services::request_context::RequestContext;
 use crate::services::source::{
     OnlineWallpaper, SearchQuery, SearchResult, SourceFuture, SourceKind, WallpaperSource,
 };
-use tracing::info;
+use tracing::{info, trace};
 
 /// Bing 每日一图服务
 pub struct BingService {
@@ -77,11 +77,18 @@ impl WallpaperSource for BingService {
     ) -> SourceFuture<'a, Result<SearchResult, String>> {
         Box::pin(async move {
             // 每日图集无筛选维度，忽略 Sorting/颜色/时间范围/纯净度等参数
+            trace!(
+                "[Bing API] [page{}] 每日图集无筛选维度，忽略 sorting/color/time_range/purities/categories 等参数",
+                query.page
+            );
             let _ = query;
 
             let response = client::fetch_images_page(&self.client, query.page, context).await?;
-            let wallpapers: Vec<OnlineWallpaper> =
-                response.images.into_iter().filter_map(Self::to_online_wallpaper).collect();
+            let wallpapers: Vec<OnlineWallpaper> = response
+                .images
+                .into_iter()
+                .filter_map(Self::to_online_wallpaper)
+                .collect();
 
             info!(
                 "[Bing API] [page{}] 返回 {} 张每日壁纸",

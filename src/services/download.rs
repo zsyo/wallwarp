@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
-use tracing::{debug, error};
+use tracing::{debug, error, trace};
 use xxhash_rust::xxh3::xxh3_128;
 
 /// 下载被取消时统一使用的错误文案
@@ -301,13 +301,19 @@ pub(crate) async fn download_to_file_streaming(
         Box::new(e) as Box<dyn std::error::Error + Send + Sync>
     })?;
 
-    debug!("[{}] [URL:{}] 响应状态: {}", log_prefix, url, response.status());
+    debug!(
+        "[{}] [URL:{}] 响应状态: {}",
+        log_prefix,
+        url,
+        response.status()
+    );
 
     if !response.status().is_success() {
         let error_msg = format!("下载失败: {}", response.status());
         error!("[{}] [URL:{}] {}", log_prefix, url, error_msg);
-        return Err(Box::new(std::io::Error::other(error_msg))
-            as Box<dyn std::error::Error + Send + Sync>);
+        return Err(
+            Box::new(std::io::Error::other(error_msg)) as Box<dyn std::error::Error + Send + Sync>
+        );
     }
 
     let total_size = response.content_length().unwrap_or(0);
@@ -340,6 +346,18 @@ pub(crate) async fn download_to_file_streaming(
         buffer.extend_from_slice(&chunk);
         downloaded += chunk.len() as u64;
         on_progress(downloaded, total_size);
+
+        trace!(
+            "[{}] [URL:{}] 已下载 {}/{} 字节",
+            log_prefix,
+            url,
+            downloaded,
+            if total_size == 0 {
+                "未知".to_string()
+            } else {
+                total_size.to_string()
+            }
+        );
 
         // 当缓冲区达到1MB时，批量写入文件
         if buffer.len() >= 1024 * 1024 {

@@ -9,6 +9,7 @@
 use super::connection::DatabaseConnection;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
+use tracing::{error, trace};
 
 /// 壁纸组在线筛选快照（当前覆盖 Wallhaven 筛选字段，取值与 config.wallhaven 一致）
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -50,8 +51,33 @@ pub struct WallpaperGroupDB {
 
 impl WallpaperGroupDB {
     /// 解析筛选快照 JSON；解析失败回退为全默认快照（不阻断组的应用）
+    ///
+    /// 解析结果落 trace 档（含各字段实际取值，便于排障降级映射的来源）；
+    /// 解析失败改 error 记录后回退，避免静默吞掉损坏的快照数据
     pub fn parse_filters(&self) -> GroupFilters {
-        serde_json::from_str(&self.filters).unwrap_or_default()
+        match serde_json::from_str::<GroupFilters>(&self.filters) {
+            Ok(filters) => {
+                trace!(
+                    "[壁纸组] [{}] 筛选快照解析成功: sorting={} color={} top_range={} resolution_mode={} atleast={} resolutions={} ratios={}",
+                    self.name,
+                    filters.sorting,
+                    filters.color,
+                    filters.top_range,
+                    filters.resolution_mode,
+                    filters.atleast_resolution,
+                    filters.resolutions,
+                    filters.ratios,
+                );
+                filters
+            }
+            Err(e) => {
+                error!(
+                    "[壁纸组] [{}] 筛选快照解析失败，回退默认快照: {}",
+                    self.name, e
+                );
+                GroupFilters::default()
+            }
+        }
     }
 }
 
