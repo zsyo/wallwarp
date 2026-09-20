@@ -65,7 +65,9 @@ impl App {
                     Self::normalize_local_favorite_path(&entry.fav.path, &absolute_data_dir);
                 entry.in_library = Path::new(&entry.fav.path).exists();
             } else {
-                let file_name = SourceKind::Wallhaven
+                // 文件命名按收藏项记录的来源图源分发（主键字段 wallhaven_id 为
+                // 历史命名，各图源存自身 id）
+                let file_name = SourceKind::parse(&entry.fav.source)
                     .download_file_name(&entry.fav.wallhaven_id, &entry.fav.file_type);
                 entry.in_library = Path::new(&absolute_data_dir).join(&file_name).exists();
             }

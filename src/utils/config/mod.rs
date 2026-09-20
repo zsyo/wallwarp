@@ -33,6 +33,10 @@ pub struct Config {
     #[serde(default)]
     pub wallhaven: WallhavenConfig,
     #[serde(default)]
+    pub pixabay: PixabayConfig,
+    #[serde(default)]
+    pub unsplash: UnsplashConfig,
+    #[serde(default)]
     pub wallpaper: WallpaperConfig,
 }
 
@@ -136,6 +140,14 @@ impl Config {
 
     pub fn set_wallhaven_api_key(&mut self, key: String) {
         self.wallhaven.api_key = key;
+    }
+
+    pub fn set_pixabay_api_key(&mut self, key: String) {
+        self.pixabay.api_key = key;
+    }
+
+    pub fn set_unsplash_api_key(&mut self, key: String) {
+        self.unsplash.api_key = key;
     }
 
     pub fn set_proxy(&mut self, proxy: String) {

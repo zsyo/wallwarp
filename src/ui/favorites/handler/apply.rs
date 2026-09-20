@@ -61,7 +61,7 @@ impl App {
                 let download_task = if self.has_active_download_for(&url) {
                     Task::none()
                 } else {
-                    self.start_download(url, &id, &file_type)
+                    self.start_download(url, &id, &file_type, source)
                 };
 
                 Task::batch([
@@ -145,7 +145,7 @@ impl App {
                     .i18n
                     .t("download-tasks.added-to-download-queue")
                     .to_string();
-                let download_task = self.start_download(url, &id, &file_type);
+                let download_task = self.start_download(url, &id, &file_type, source);
 
                 Task::batch([
                     download_task,

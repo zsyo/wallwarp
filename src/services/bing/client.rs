@@ -6,13 +6,16 @@
 //! （0 = 今天，8 = 8 天前），`n` 为单次返回天数（每日一张）
 
 use crate::services::request_context::RequestContext;
+use crate::services::source::http_log;
 use serde::Deserialize;
-use tracing::{debug, warn};
+use tracing::{debug, error, info, trace, warn};
 
 /// Bing 国内站根地址（图集接口与图片资源同源）
 pub const BASE_URL: &str = "https://cn.bing.com";
 /// 单次请求返回的天数（每页壁纸数）
 pub const IMAGES_PER_PAGE: u32 = 8;
+/// 图集请求超时秒数
+const TIMEOUT_SECS: u64 = 10;
 
 /// HPImageArchive 接口响应
 #[derive(Debug, Clone, Deserialize)]
@@ -47,7 +50,9 @@ pub async fn fetch_images_page(
     }
 
     // 获取并发控制许可（与其它图源共用全局并发上限）
-    let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER.acquire().await;
+    let _permit = crate::services::GLOBAL_CONCURRENCY_CONTROLLER
+        .acquire()
+        .await;
 
     if let Some(()) = context.check_cancelled() {
         return Err("请求已取消".to_string());
@@ -59,30 +64,32 @@ pub async fn fetch_images_page(
         BASE_URL, idx, IMAGES_PER_PAGE
     );
 
-    debug!("[Bing API] [page{}] 请求URL: {}", page, url);
+    let identifier = format!("page{}", page);
+    info!("[Bing API] [{}] 请求URL: {}", identifier, url);
 
     let response = client
         .get(&url)
-        .timeout(std::time::Duration::from_secs(10))
+        .timeout(std::time::Duration::from_secs(TIMEOUT_SECS))
         .send()
         .await
-        .map_err(|e| {
-            warn!("[Bing API] [page{}] 请求失败: {}", page, e);
-            format!("请求失败: {}", e)
-        })?;
+        .map_err(|e| http_log::log_send_error("Bing", &identifier, &e, Some(TIMEOUT_SECS)))?;
 
     debug!(
-        "[Bing API] [page{}] 响应状态: {}",
-        page,
+        "[Bing API] [{}] 响应状态: {}",
+        identifier,
         response.status()
     );
 
     if !response.status().is_success() {
-        return Err(format!("API返回错误: {}", response.status()));
+        return Err(http_log::log_api_error_status(
+            "Bing",
+            &identifier,
+            response.status(),
+        ));
     }
 
     let text = response.text().await.map_err(|e| {
-        warn!("[Bing API] [page{}] 读取响应失败: {}", page, e);
+        warn!("[Bing API] [{}] 读取响应失败: {}", identifier, e);
         format!("读取响应失败: {}", e)
     })?;
 
@@ -90,14 +97,21 @@ pub async fn fetch_images_page(
         return Err("请求已取消".to_string());
     }
 
+    trace!(
+        "[Bing API] [{}] 响应体 {} 字节，摘要: {}",
+        identifier,
+        text.len(),
+        http_log::body_excerpt(&text, 200)
+    );
+
     let parsed: BingResponse = serde_json::from_str(&text).map_err(|e| {
-        warn!("[Bing API] [page{}] JSON解析失败: {}", page, e);
+        error!("[Bing API] [{}] JSON解析失败: {}", identifier, e);
         format!("解析JSON失败: {}", e)
     })?;
 
     debug!(
-        "[Bing API] [page{}] 解析成功，获取到 {} 张壁纸",
-        page,
+        "[Bing API] [{}] 解析成功，获取到 {} 张壁纸",
+        identifier,
         parsed.images.len()
     );
     Ok(parsed)

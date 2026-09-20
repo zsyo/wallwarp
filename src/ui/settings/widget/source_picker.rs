@@ -15,6 +15,9 @@ fn source_display_name(i18n: &crate::i18n::I18n, kind: SourceKind) -> String {
     match kind {
         SourceKind::Wallhaven => i18n.t("settings.source-name-wallhaven"),
         SourceKind::Bing => i18n.t("settings.source-name-bing"),
+        SourceKind::Pixabay => i18n.t("settings.source-name-pixabay"),
+        SourceKind::Unsplash => i18n.t("settings.source-name-unsplash"),
+        SourceKind::Danbooru => i18n.t("settings.source-name-danbooru"),
     }
 }
 

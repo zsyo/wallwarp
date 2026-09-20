@@ -48,7 +48,7 @@ impl App {
                         .i18n
                         .t("download-tasks.downloading-for-wallpaper")
                         .to_string();
-                    let download_task = self.start_download(url, &id, &file_type);
+                    let download_task = self.start_download(url, &id, &file_type, source);
 
                     // 显示正在下载以完成设置的通知
                     return Task::batch([

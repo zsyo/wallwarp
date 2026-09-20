@@ -18,11 +18,8 @@ impl App {
         let time_range = self.online_state.time_range;
         let query = self.online_state.search_text.clone();
         let page = self.online_state.current_page;
-        let api_key = if self.config.wallhaven.api_key.is_empty() {
-            None
-        } else {
-            Some(self.config.wallhaven.api_key.clone())
-        };
+        // 按当前图源从对应配置节取 key（Wallhaven/Pixabay 各自独立，Bing 免密钥）
+        let api_key = self.online_state.source.api_key_from_config(&self.config);
 
         let proxy = self.config.resolved_proxy();
 

@@ -10,47 +10,84 @@ use iced::{Alignment, Element, Length};
 
 /// 创建图源配置区块
 ///
-/// 当前管理 Wallhaven API 密钥；预留多在线图源管理入口。
+/// 管理在线图源选择与各图源的 API 密钥（内容为空时强制显示以便输入；
+/// 隐藏状态下输入框展示脱敏内容且不可编辑，点击眼睛图标切换显隐）
 pub fn create_sources_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
     let theme_colors = app.theme_colors;
-    // 内容为空时强制显示以便输入；隐藏状态下输入框展示脱敏内容且不可编辑，点击眼睛图标切换显隐
-    let api_key_visible = app.settings_state.wallhaven_api_key_visible
+    let wallhaven_visible = app.settings_state.wallhaven_api_key_visible
         || app.settings_state.wallhaven_api_key.is_empty();
-    let api_key_display = if api_key_visible {
+    let wallhaven_display = if wallhaven_visible {
         &app.settings_state.wallhaven_api_key
     } else {
         &app.settings_state.wallhaven_api_key_masked
     };
-    let api_key_input = text_input(
+    let wallhaven_input = text_input(
         &app.i18n.t("settings.wallhaven-api-key-placeholder"),
-        api_key_display,
+        wallhaven_display,
     )
     .width(Length::Fill)
     .size(TEXT_INPUT_SIZE)
     .align_x(Alignment::Center)
     .padding(INPUT_PADDING)
     .style(styled_text_input(theme_colors));
-    let api_key_input = if api_key_visible {
-        api_key_input.on_input(|s| SettingsMessage::WallhavenApiKeyChanged(s).into())
+    let wallhaven_input = if wallhaven_visible {
+        wallhaven_input.on_input(|s| SettingsMessage::WallhavenApiKeyChanged(s).into())
     } else {
-        api_key_input
+        wallhaven_input
+    };
+
+    let pixabay_visible =
+        app.settings_state.pixabay_api_key_visible || app.settings_state.pixabay_api_key.is_empty();
+    let pixabay_display = if pixabay_visible {
+        &app.settings_state.pixabay_api_key
+    } else {
+        &app.settings_state.pixabay_api_key_masked
+    };
+    let pixabay_input = text_input(
+        &app.i18n.t("settings.pixabay-api-key-placeholder"),
+        pixabay_display,
+    )
+    .width(Length::Fill)
+    .size(TEXT_INPUT_SIZE)
+    .align_x(Alignment::Center)
+    .padding(INPUT_PADDING)
+    .style(styled_text_input(theme_colors));
+    let pixabay_input = if pixabay_visible {
+        pixabay_input.on_input(|s| SettingsMessage::PixabayApiKeyChanged(s).into())
+    } else {
+        pixabay_input
+    };
+
+    let unsplash_visible = app.settings_state.unsplash_api_key_visible
+        || app.settings_state.unsplash_api_key.is_empty();
+    let unsplash_display = if unsplash_visible {
+        &app.settings_state.unsplash_api_key
+    } else {
+        &app.settings_state.unsplash_api_key_masked
+    };
+    let unsplash_input = text_input(
+        &app.i18n.t("settings.unsplash-api-key-placeholder"),
+        unsplash_display,
+    )
+    .width(Length::Fill)
+    .size(TEXT_INPUT_SIZE)
+    .align_x(Alignment::Center)
+    .padding(INPUT_PADDING)
+    .style(styled_text_input(theme_colors));
+    let unsplash_input = if unsplash_visible {
+        unsplash_input.on_input(|s| SettingsMessage::UnsplashApiKeyChanged(s).into())
+    } else {
+        unsplash_input
     };
 
     let rows = vec![
-        // 在线图源选择（切换后在线页按图源加载与裁剪筛选器）
-        super::create_setting_row(
-            app.i18n.t("settings.online-source"),
-            Some(app.i18n.t("settings.online-source-desc")),
-            super::create_source_picker(app),
-            theme_colors,
-        ),
         super::create_setting_row(
             app.i18n.t("settings.wallhaven-api-key"),
             Some(app.i18n.t("settings.wallhaven-api-key-desc")),
             row![
-                api_key_input,
+                wallhaven_input,
                 common::create_icon_button(
-                    if api_key_visible {
+                    if wallhaven_visible {
                         "\u{F340}" // eye-slash (点击隐藏)
                     } else {
                         "\u{F341}" // eye (点击显示)
@@ -62,6 +99,52 @@ pub fn create_sources_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
                     app.i18n.t("settings.save"),
                     crate::ui::style::BUTTON_COLOR_BLUE,
                     SettingsMessage::SaveWallhavenApiKey.into()
+                )
+            ]
+            .spacing(BUTTON_SPACING),
+            theme_colors,
+        ),
+        super::create_setting_row(
+            app.i18n.t("settings.pixabay-api-key"),
+            Some(app.i18n.t("settings.pixabay-api-key-desc")),
+            row![
+                pixabay_input,
+                common::create_icon_button(
+                    if pixabay_visible {
+                        "\u{F340}" // eye-slash (点击隐藏)
+                    } else {
+                        "\u{F341}" // eye (点击显示)
+                    },
+                    theme_colors.primary,
+                    SettingsMessage::TogglePixabayApiKeyVisible.into(),
+                ),
+                common::create_colored_button(
+                    app.i18n.t("settings.save"),
+                    crate::ui::style::BUTTON_COLOR_BLUE,
+                    SettingsMessage::SavePixabayApiKey.into()
+                )
+            ]
+            .spacing(BUTTON_SPACING),
+            theme_colors,
+        ),
+        super::create_setting_row(
+            app.i18n.t("settings.unsplash-api-key"),
+            Some(app.i18n.t("settings.unsplash-api-key-desc")),
+            row![
+                unsplash_input,
+                common::create_icon_button(
+                    if unsplash_visible {
+                        "\u{F340}" // eye-slash (点击隐藏)
+                    } else {
+                        "\u{F341}" // eye (点击显示)
+                    },
+                    theme_colors.primary,
+                    SettingsMessage::ToggleUnsplashApiKeyVisible.into(),
+                ),
+                common::create_colored_button(
+                    app.i18n.t("settings.save"),
+                    crate::ui::style::BUTTON_COLOR_BLUE,
+                    SettingsMessage::SaveUnsplashApiKey.into()
                 )
             ]
             .spacing(BUTTON_SPACING),

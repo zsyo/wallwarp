@@ -19,8 +19,12 @@ impl App {
     ) -> Task<AppMessage> {
         // 更新在线壁纸状态，并开始加载缩略图
         let is_empty_data = wallpapers.is_empty();
-        self.online_state
-            .update_paging_from_result(wallpapers.len(), last_page, total_pages, current_page);
+        self.online_state.update_paging_from_result(
+            wallpapers.len(),
+            last_page,
+            total_pages,
+            current_page,
+        );
 
         // 处理空数据但非最后一页的情况：自动加载下一页
         if is_empty_data && !last_page && current_page < total_pages {

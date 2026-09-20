@@ -51,11 +51,8 @@ pub(super) fn prepare_random_online_params(
         Some(config.wallhaven.ratios.clone())
     };
 
-    let api_key = if config.wallhaven.api_key.is_empty() {
-        None
-    } else {
-        Some(config.wallhaven.api_key.clone())
-    };
+    // key 按图源取用：定时切换的图源取当前配置选择，经 create_source 分发
+    let api_key = SourceKind::parse(&config.global.online_source).api_key_from_config(config);
 
     let proxy = config.resolved_proxy();
 

@@ -14,13 +14,17 @@
 //!   文件命名规则经其 [`OnlineWallpaper::download_file_name`] 按来源分发
 
 pub mod filters;
+pub mod http_log;
 pub mod types;
 
 use std::future::Future;
 use std::pin::Pin;
 
 use crate::services::bing::BingService;
+use crate::services::danbooru::DanbooruService;
+use crate::services::pixabay::PixabayService;
 use crate::services::request_context::RequestContext;
+use crate::services::unsplash::UnsplashService;
 use crate::services::wallhaven::WallhavenService;
 
 pub use filters::{ColorOption, Sorting, TimeRange};
@@ -35,18 +39,44 @@ pub enum SourceKind {
     Wallhaven,
     /// Bing 每日一图（免密钥，无筛选维度）
     Bing,
+    /// Pixabay 图库（需密钥，支持关键词/方向/排序）
+    Pixabay,
+    /// Unsplash 摄影图库（需密钥，支持关键词/方向/排序）
+    Unsplash,
+    /// Danbooru 图库（免密钥，支持 tags 关键词/分级/排序）
+    Danbooru,
+}
+
+/// 图源搜索能力（在线页筛选栏按能力分档渲染）
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchCapability {
+    /// 完整筛选：关键词 + 分类/纯净度/分辨率/比例/颜色/排序/时间范围
+    Full,
+    /// 基础筛选：关键词 + 排序，其余维度由图源 service 层映射或忽略
+    Basic,
+    /// 无搜索维度：仅翻阅固定图集
+    Bare,
 }
 
 impl SourceKind {
     /// 全部可用图源（设置页图源下拉顺序）
-    pub fn all() -> [SourceKind; 2] {
-        [SourceKind::Wallhaven, SourceKind::Bing]
+    pub fn all() -> [SourceKind; 5] {
+        [
+            SourceKind::Wallhaven,
+            SourceKind::Bing,
+            SourceKind::Pixabay,
+            SourceKind::Unsplash,
+            SourceKind::Danbooru,
+        ]
     }
 
     /// 从配置取值解析图源；未知取值回退 Wallhaven（解析不会失败）
     pub fn parse(s: &str) -> Self {
         match s {
             "bing" => SourceKind::Bing,
+            "pixabay" => SourceKind::Pixabay,
+            "unsplash" => SourceKind::Unsplash,
+            "danbooru" => SourceKind::Danbooru,
             _ => SourceKind::Wallhaven,
         }
     }
@@ -56,6 +86,33 @@ impl SourceKind {
         match self {
             SourceKind::Wallhaven => "wallhaven",
             SourceKind::Bing => "bing",
+            SourceKind::Pixabay => "pixabay",
+            SourceKind::Unsplash => "unsplash",
+            SourceKind::Danbooru => "danbooru",
+        }
+    }
+
+    /// 图源搜索能力（筛选栏渲染档位，新增图源时在此声明）
+    pub fn search_capability(self) -> SearchCapability {
+        match self {
+            SourceKind::Wallhaven => SearchCapability::Full,
+            SourceKind::Bing => SearchCapability::Bare,
+            SourceKind::Pixabay | SourceKind::Unsplash | SourceKind::Danbooru => {
+                SearchCapability::Basic
+            }
+        }
+    }
+
+    /// 按图源从配置解析 API Key（未配置返回 None）
+    ///
+    /// 检索入口（UI 在线搜索、定时切换）统一经本方法取 key，避免图源间
+    /// 错配（如把 Wallhaven 的 key 传给 Pixabay）
+    pub fn api_key_from_config(self, config: &crate::utils::config::Config) -> Option<String> {
+        match self {
+            SourceKind::Wallhaven => non_empty(config.wallhaven.api_key.clone()),
+            SourceKind::Pixabay => non_empty(config.pixabay.api_key.clone()),
+            SourceKind::Unsplash => non_empty(config.unsplash.api_key.clone()),
+            SourceKind::Danbooru | SourceKind::Bing => None,
         }
     }
 
@@ -67,8 +124,16 @@ impl SourceKind {
         match self {
             SourceKind::Wallhaven => format!("wallhaven-{}.{}", item_id, ext),
             SourceKind::Bing => format!("bing-{}.{}", item_id, ext),
+            SourceKind::Pixabay => format!("pixabay-{}.{}", item_id, ext),
+            SourceKind::Unsplash => format!("unsplash-{}.{}", item_id, ext),
+            SourceKind::Danbooru => format!("danbooru-{}.{}", item_id, ext),
         }
     }
+}
+
+/// 空串视为未配置
+fn non_empty(key: String) -> Option<String> {
+    if key.is_empty() { None } else { Some(key) }
 }
 
 /// 图源网络配置（构建图源实例所需，与具体筛选参数无关）
@@ -138,6 +203,26 @@ pub fn create_source(kind: SourceKind, config: SourceConfig) -> Box<dyn Wallpape
         )),
         // Bing 免密钥，api_key 不参与
         SourceKind::Bing => Box::new(BingService::new(
+            config.proxy,
+            config.proxy_enabled,
+            config.use_env_fallback,
+        )),
+        // Pixabay 检索需 API Key（未配置时 search() 直接返回错误）
+        SourceKind::Pixabay => Box::new(PixabayService::new(
+            config.api_key,
+            config.proxy,
+            config.proxy_enabled,
+            config.use_env_fallback,
+        )),
+        // Unsplash 检索需 API Key（未配置时 search() 直接返回错误）
+        SourceKind::Unsplash => Box::new(UnsplashService::new(
+            config.api_key,
+            config.proxy,
+            config.proxy_enabled,
+            config.use_env_fallback,
+        )),
+        // Danbooru 免密钥，api_key 不参与
+        SourceKind::Danbooru => Box::new(DanbooruService::new(
             config.proxy,
             config.proxy_enabled,
             config.use_env_fallback,

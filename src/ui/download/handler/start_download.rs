@@ -7,8 +7,20 @@ use std::path::PathBuf;
 
 impl App {
     /// 辅助方法：开始下载壁纸（支持并行限制和进度更新）
-    pub fn start_download(&mut self, url: String, id: &str, file_type: &str) -> Task<AppMessage> {
-        let file_name = SourceKind::Wallhaven.download_file_name(id, file_type);
+    ///
+    /// # 参数
+    /// - `url`: 图片直链
+    /// - `id`: 壁纸 ID
+    /// - `file_type`: 文件 MIME 类型
+    /// - `source`: 来源图源（文件名规则按图源分发）
+    pub fn start_download(
+        &mut self,
+        url: String,
+        id: &str,
+        file_type: &str,
+        source: SourceKind,
+    ) -> Task<AppMessage> {
+        let file_name = source.download_file_name(id, file_type);
         let data_path = self.config.data.data_path.clone();
         let proxy = self.config.resolved_proxy();
         let file_type = file_type

@@ -60,6 +60,8 @@ impl App {
 
                 // 重置API KEY设置状态
                 self.settings_state.wallhaven_api_key = self.config.wallhaven.api_key.clone();
+                self.settings_state.pixabay_api_key = self.config.pixabay.api_key.clone();
+                self.settings_state.unsplash_api_key = self.config.unsplash.api_key.clone();
 
                 // 重置壁纸模式状态
                 self.settings_state.wallpaper_mode = self.config.wallpaper.mode;

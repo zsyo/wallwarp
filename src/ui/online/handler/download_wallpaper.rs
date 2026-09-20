@@ -83,7 +83,7 @@ impl App {
                         .i18n
                         .t("download-tasks.added-to-download-queue")
                         .to_string();
-                    let download_task = self.start_download(url, &id, &file_type);
+                    let download_task = self.start_download(url, &id, &file_type, source);
 
                     // 显示添加到下载队列的通知
                     return Task::batch([

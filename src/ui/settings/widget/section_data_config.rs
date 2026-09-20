@@ -40,12 +40,6 @@ pub fn create_data_config_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
                 },
                 theme_colors,
             ),
-            super::create_logs_path_row(
-                &app.i18n,
-                app.i18n.t("settings.logs-path"),
-                app.i18n.t("settings.logs-path-desc"),
-                theme_colors,
-            ),
         ],
         &app.theme_config,
     )

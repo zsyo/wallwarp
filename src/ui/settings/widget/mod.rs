@@ -5,7 +5,6 @@ mod config_section;
 mod info_row;
 mod language_picker;
 mod log_level_picker;
-mod logs_path;
 mod path_config;
 mod placeholder_section;
 mod proxy_protocol_picker;
@@ -31,7 +30,6 @@ use {
     info_row::create_info_row,
     language_picker::create_language_picker,
     log_level_picker::create_log_level_picker,
-    logs_path::create_logs_path_row,
     path_config::{PathRowActions, create_path_config_row},
     placeholder_section::create_placeholder_section,
     proxy_protocol_picker::create_proxy_protocol_picker,

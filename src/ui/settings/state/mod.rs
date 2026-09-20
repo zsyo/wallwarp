@@ -31,6 +31,16 @@ pub struct SettingsState {
     pub wallhaven_api_key_masked: String,
     /// Wallhaven API Key 输入框内容是否可见（仅内存状态，默认隐藏，重启后恢复隐藏）
     pub wallhaven_api_key_visible: bool,
+    pub pixabay_api_key: String,
+    /// Pixabay API Key 的脱敏显示串，隐藏状态下输入框展示用
+    pub pixabay_api_key_masked: String,
+    /// Pixabay API Key 输入框内容是否可见（仅内存状态，默认隐藏，重启后恢复隐藏）
+    pub pixabay_api_key_visible: bool,
+    pub unsplash_api_key: String,
+    /// Unsplash API Key 的脱敏显示串，隐藏状态下输入框展示用
+    pub unsplash_api_key_masked: String,
+    /// Unsplash API Key 输入框内容是否可见（仅内存状态，默认隐藏，重启后恢复隐藏）
+    pub unsplash_api_key_visible: bool,
 
     // 壁纸设置临时状态
     pub wallpaper_mode: WallpaperMode,
@@ -80,6 +90,12 @@ impl Default for SettingsState {
             wallhaven_api_key: String::new(),
             wallhaven_api_key_masked: String::new(),
             wallhaven_api_key_visible: false,
+            pixabay_api_key: String::new(),
+            pixabay_api_key_masked: String::new(),
+            pixabay_api_key_visible: false,
+            unsplash_api_key: String::new(),
+            unsplash_api_key_masked: String::new(),
+            unsplash_api_key_visible: false,
             wallpaper_mode: WallpaperMode::default(),
             wallpaper_readability: WallpaperReadability::default(),
             auto_change_mode: WallpaperAutoChangeMode::default(),
@@ -110,6 +126,24 @@ impl SettingsState {
             String::new()
         } else {
             wallhaven::mask_api_key(&self.wallhaven_api_key)
+        };
+    }
+
+    /// 刷新 Pixabay API Key 的脱敏显示串（规则同 Wallhaven）
+    pub fn refresh_pixabay_api_key_masked(&mut self) {
+        self.pixabay_api_key_masked = if self.pixabay_api_key.is_empty() {
+            String::new()
+        } else {
+            wallhaven::mask_api_key(&self.pixabay_api_key)
+        };
+    }
+
+    /// 刷新 Unsplash API Key 的脱敏显示串（规则同 Wallhaven）
+    pub fn refresh_unsplash_api_key_masked(&mut self) {
+        self.unsplash_api_key_masked = if self.unsplash_api_key.is_empty() {
+            String::new()
+        } else {
+            wallhaven::mask_api_key(&self.unsplash_api_key)
         };
     }
 }

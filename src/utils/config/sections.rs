@@ -197,6 +197,20 @@ impl Default for WallhavenConfig {
     }
 }
 
+/// Unsplash 图源配置
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct UnsplashConfig {
+    #[serde(default)]
+    pub api_key: String,
+}
+
+/// Pixabay 图源配置
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct PixabayConfig {
+    #[serde(default)]
+    pub api_key: String,
+}
+
 fn default_category() -> String {
     "111".to_string()
 }

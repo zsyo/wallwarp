@@ -60,6 +60,9 @@ fn build_client(proxy_url: Option<&str>) -> Result<reqwest::Client, Box<dyn std:
         .connect_timeout(CONNECT_TIMEOUT)
         .timeout(REQUEST_TIMEOUT)
         .tcp_nodelay(true)
+        // 统一 UA：Danbooru 等图床 API 禁止库默认 UA 或伪装浏览器，
+        // 要求客户端用独特 UA 标识自身
+        .user_agent(concat!("WallWarp/", env!("WALLWARP_VERSION")))
         // 启用gzip压缩（reqwest默认支持）
         .gzip(true)
         // 启用brotli压缩（需要features支持）

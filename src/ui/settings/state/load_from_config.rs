@@ -33,6 +33,12 @@ impl SettingsState {
             wallhaven_api_key: config.wallhaven.api_key.clone(),
             wallhaven_api_key_masked: String::new(),
             wallhaven_api_key_visible: false,
+            pixabay_api_key: config.pixabay.api_key.clone(),
+            pixabay_api_key_masked: String::new(),
+            pixabay_api_key_visible: false,
+            unsplash_api_key: config.unsplash.api_key.clone(),
+            unsplash_api_key_masked: String::new(),
+            unsplash_api_key_visible: false,
             wallpaper_mode: config.wallpaper.mode,
             wallpaper_readability: config.wallpaper.readability,
             auto_change_mode: config.wallpaper.auto_change_mode,
@@ -59,6 +65,8 @@ impl SettingsState {
         };
         // 初始化 API Key 脱敏显示串（默认隐藏状态）
         state.refresh_wallhaven_api_key_masked();
+        state.refresh_pixabay_api_key_masked();
+        state.refresh_unsplash_api_key_masked();
         state
     }
 
