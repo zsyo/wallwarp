@@ -108,14 +108,20 @@ pub fn get_absolute_path(path: &str) -> String {
     }
 }
 
-/// 根据平台返回最通用的系统 UI 字体名称
+/// 根据平台返回默认 UI 字体（作为 iced default_font 的 family）
+///
+/// 选型约束：字体必须**同时覆盖中文与拉丁字形**。cosmic-text 对缺失字形
+/// 的字符按字体回退链逐个补齐（实测 Windows 上中文会回退到 MS Gothic /
+/// NSimSun 等点阵风格字体），小字号下渲染发虚，且回退字体与主字体的
+/// metrics 不一致会导致同一行内中英文高低不齐。因此不选拉丁-only 字体
+/// （如 Helvetica Neue），直接选各平台覆盖中英文的系统字体
 pub fn get_system_ui_font() -> &'static str {
     if cfg!(target_os = "windows") {
-        "Microsoft YaHei" // 微软雅黑
+        "Microsoft YaHei" // 微软雅黑（含中文与拉丁）
     } else if cfg!(target_os = "macos") {
-        "Helvetica Neue" // 或使用 ".AppleSystemUIFont"
+        "PingFang SC" // macOS 系统中文字体（含拉丁，避免中文回退）
     } else {
-        "Noto Sans CJK SC" // Linux 常用中文字体
+        "Noto Sans CJK SC" // Linux 常用中文字体（含拉丁）
     }
 }
 
