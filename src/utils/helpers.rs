@@ -63,7 +63,7 @@ pub fn format_resolution(width: u32, height: u32) -> String {
     format!("{}x{}", width, height)
 }
 
-/// 将宽高约分为最简比例串（如 1920x1080 -> "16x9")
+/// 将宽高约分为最简比例串（如 1920x1080 -> "16x9"）
 ///
 /// 无原生比例字段的图源（Pixabay 等）用它生成与 Wallhaven 风格一致的展示值
 pub fn simplified_ratio(width: u32, height: u32) -> String {
