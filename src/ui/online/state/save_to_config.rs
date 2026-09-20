@@ -15,6 +15,13 @@ impl OnlineState {
         config.wallhaven.purity = format!("{:03b}", self.purities);
         config.wallhaven.sorting = self.sorting.to_string();
         config.wallhaven.color = self.color.value().to_string();
+        config.wallhaven.source_color = self.source_color.value().to_string();
+        config.wallhaven.pixabay_category = self
+            .pixabay_category
+            .api_value()
+            .unwrap_or_default()
+            .to_string();
+        config.wallhaven.editors_choice = self.editors_choice;
         config.wallhaven.top_range = self.time_range.value().to_string();
 
         config.wallhaven.resolution_mode = match self.resolution_mode {

@@ -3,8 +3,8 @@
 //! Basic 档图源（Pixabay/Unsplash/Danbooru）的筛选栏行
 //!
 //! 公共控件：图源 + 搜索框 + 排序 + 壁纸组 + 刷新；筛选项按图源能力追加：
-//! Pixabay/Unsplash 有方向能力（横竖屏 chip 写 ratios 快捷项，由各图源
-//! service 层映射为 orientation 参数），Danbooru 有 rating 分级能力
+//! Pixabay 有方向/分类/颜色/精选能力，Unsplash 有方向能力（颜色见
+//! Unsplash service 映射就绪后补充），Danbooru 有 rating 分级能力
 //! （纯净度 chip 写 purities 位掩码，由 service 层映射为 rating metatag）
 
 use crate::i18n::I18n;
@@ -34,7 +34,34 @@ pub(super) fn create_basic_filter_row<'a>(
     // 按图源能力追加筛选项
     let mut source_filters: Vec<Element<'a, AppMessage>> = Vec::new();
     match state.source {
-        SourceKind::Pixabay | SourceKind::Unsplash => {
+        SourceKind::Pixabay => {
+            source_filters.push(super::filter_chips::orientation_chip(
+                i18n,
+                state.ratio_landscape_selected,
+                "online-wallpapers.ratio-landscape",
+                OnlineMessage::RatioLandscapeToggled,
+                theme_colors,
+            ));
+            source_filters.push(super::filter_chips::orientation_chip(
+                i18n,
+                state.ratio_portrait_selected,
+                "online-wallpapers.ratio-portrait",
+                OnlineMessage::RatioPortraitToggled,
+                theme_colors,
+            ));
+            source_filters.push(super::create_pixabay_category_picker(
+                i18n,
+                state,
+                theme_colors,
+            ));
+            source_filters.push(super::create_source_color_picker(i18n, state, theme_colors));
+            source_filters.push(super::filter_chips::editors_choice_chip(
+                i18n,
+                state,
+                theme_colors,
+            ));
+        }
+        SourceKind::Unsplash => {
             source_filters.push(super::filter_chips::orientation_chip(
                 i18n,
                 state.ratio_landscape_selected,

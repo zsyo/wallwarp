@@ -15,6 +15,13 @@ impl App {
         let sorting = self.online_state.sorting;
         let purities = self.online_state.purities;
         let color = self.online_state.color;
+        let source_color = self.online_state.source_color;
+        let pixabay_category = self
+            .online_state
+            .pixabay_category
+            .api_value()
+            .map(|value| value.to_string());
+        let editors_choice = self.online_state.editors_choice;
         let time_range = self.online_state.time_range;
         let query = self.online_state.search_text.clone();
         let page = self.online_state.current_page;
@@ -79,6 +86,9 @@ impl App {
             sorting,
             purities,
             color,
+            source_color,
+            pixabay_category,
+            editors_choice,
             query,
             time_range,
             atleast,

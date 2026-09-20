@@ -3,7 +3,8 @@
 use crate::services::download::DownloadService;
 use crate::services::request_context::RequestContext;
 use crate::services::source::{
-    self, ColorOption, OnlineWallpaper, SearchQuery, Sorting, SourceConfig, SourceKind, TimeRange,
+    self, ColorOption, OnlineWallpaper, SearchQuery, Sorting, SourceColor, SourceConfig,
+    SourceKind, TimeRange,
 };
 use iced::widget::image::Handle;
 use std::error::Error;
@@ -18,6 +19,12 @@ pub struct OnlineSearchParams {
     pub sorting: Sorting,
     pub purities: u32,
     pub color: ColorOption,
+    /// Basic 档图源共用色板（Pixabay/Unsplash 各自映射）
+    pub source_color: SourceColor,
+    /// Pixabay 内容分类（None 不限）
+    pub pixabay_category: Option<String>,
+    /// Pixabay 精选过滤
+    pub editors_choice: bool,
     pub query: String,
     pub time_range: TimeRange,
     pub atleast: Option<String>,
@@ -51,6 +58,9 @@ pub async fn async_load_online_wallpapers(
         sorting: params.sorting,
         purities: params.purities,
         color: params.color,
+        source_color: params.source_color,
+        pixabay_category: params.pixabay_category,
+        editors_choice: params.editors_choice,
         query: params.query,
         time_range: params.time_range,
         atleast: params.atleast,

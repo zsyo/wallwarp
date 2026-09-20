@@ -9,7 +9,8 @@
 use crate::services::download::DownloadService;
 use crate::services::request_context::RequestContext;
 use crate::services::source::{
-    SearchQuery, SourceConfig, SourceKind, WallpaperSource, create_source,
+    PixabayCategory, SearchQuery, SourceColor, SourceConfig, SourceKind, WallpaperSource,
+    create_source,
 };
 use crate::services::wallhaven;
 use crate::utils::config::Config;
@@ -29,6 +30,11 @@ pub(super) fn prepare_random_online_params(
     let categories = wallhaven::parse_category_bitmask(&config.wallhaven.category);
     let purities = wallhaven::parse_purity_bitmask(&config.wallhaven.purity);
     let color = wallhaven::ColorOption::parse(&config.wallhaven.color);
+    let source_color = SourceColor::parse(&config.wallhaven.source_color);
+    let pixabay_category = PixabayCategory::parse(&config.wallhaven.pixabay_category)
+        .api_value()
+        .map(|value| value.to_string());
+    let editors_choice = config.wallhaven.editors_choice;
     // 使用配置文件中的排序方式和时间范围（从 config.wallpaper 读取）
     let sorting = wallhaven::Sorting::parse(&config.wallpaper.auto_change_sorting);
     let time_range = wallhaven::TimeRange::parse(&config.wallpaper.auto_change_top_range);
@@ -73,6 +79,9 @@ pub(super) fn prepare_random_online_params(
         sorting,
         purities,
         color,
+        source_color,
+        pixabay_category,
+        editors_choice,
         query: config.wallpaper.auto_change_query.clone(),
         time_range,
         atleast,
@@ -96,7 +105,11 @@ pub(super) async fn pick_random_online_wallpaper(
         debug!(
             "[定时切换] [在线] 请求第 {} 页壁纸，关键词: {}",
             page,
-            if query.query.is_empty() { "(无)" } else { &query.query }
+            if query.query.is_empty() {
+                "(无)"
+            } else {
+                &query.query
+            }
         );
 
         match source_impl.search(&query, context).await {
@@ -125,12 +138,18 @@ pub(super) async fn pick_random_online_wallpaper(
     }
 
     if wallpapers.is_empty() {
-        error!("[定时切换] [在线] 请求 {} 页后仍无可用壁纸", MAX_RANDOM_PAGES);
+        error!(
+            "[定时切换] [在线] 请求 {} 页后仍无可用壁纸",
+            MAX_RANDOM_PAGES
+        );
         return Err("未找到可用的在线壁纸".into());
     }
 
     // 随机选择一张壁纸
-    wallpapers.choose(&mut rand::rng()).cloned().ok_or("随机选择壁纸失败".into())
+    wallpapers
+        .choose(&mut rand::rng())
+        .cloned()
+        .ok_or("随机选择壁纸失败".into())
 }
 
 /// 缓存判定与落盘：确保壁纸文件存在于 cache_path/auto_change 并返回其路径

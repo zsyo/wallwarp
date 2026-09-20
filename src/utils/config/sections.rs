@@ -173,6 +173,10 @@ fn default_window_height() -> u32 {
 }
 
 /// Wallhaven 图源筛选配置
+///
+/// 同时承载各图源共用的在线筛选字段（source_color/pixabay_category/
+/// editors_choice 由 Basic 档图源使用），图源无关字段按需由各图源
+/// service 层映射，无能力的图源忽略
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct WallhavenConfig {
     #[serde(default = "default_category")]
@@ -183,6 +187,15 @@ pub struct WallhavenConfig {
     pub sorting: String,
     #[serde(default = "default_color")]
     pub color: String,
+    /// Basic 档图源共用色板（SourceColor 取值，默认 any 不限）
+    #[serde(default = "default_source_color")]
+    pub source_color: String,
+    /// Pixabay 内容分类（PixabayCategory 取值，默认空 = 不限）
+    #[serde(default)]
+    pub pixabay_category: String,
+    /// Pixabay 精选过滤（默认关）
+    #[serde(default)]
+    pub editors_choice: bool,
     #[serde(default = "default_top_range")]
     pub top_range: String,
     #[serde(default)]
@@ -204,6 +217,9 @@ impl Default for WallhavenConfig {
             purity: default_purity(),
             sorting: default_sorting(),
             color: default_color(),
+            source_color: default_source_color(),
+            pixabay_category: String::new(),
+            editors_choice: false,
             top_range: default_top_range(),
             api_key: String::new(),
             resolution_mode: default_resolution_mode(),
@@ -241,6 +257,10 @@ fn default_sorting() -> String {
 }
 
 fn default_color() -> String {
+    "any".to_string()
+}
+
+fn default_source_color() -> String {
     "any".to_string()
 }
 

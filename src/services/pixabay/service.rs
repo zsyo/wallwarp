@@ -3,14 +3,15 @@
 //! Pixabay 服务层
 //!
 //! 实现图源抽象的 [`WallpaperSource`] trait：把统一筛选参数映射为 Pixabay
-//! 接口参数（接口仅支持关键词/方向/排序，其余维度忽略），并把检索结果映射
-//! 为图源无关的 [`OnlineWallpaper`]
+//! 接口参数（关键词/方向/排序/分类/颜色/精选，其余维度忽略），并把检索
+//! 结果映射为图源无关的 [`OnlineWallpaper`]
 
 use super::client::{self, PixabayHit};
 use crate::services::proxy;
 use crate::services::request_context::RequestContext;
 use crate::services::source::{
-    OnlineWallpaper, SearchQuery, SearchResult, Sorting, SourceFuture, SourceKind, WallpaperSource,
+    OnlineWallpaper, SearchQuery, SearchResult, Sorting, SourceColor, SourceFuture, SourceKind,
+    WallpaperSource,
 };
 use crate::utils::helpers::{format_resolution, simplified_ratio};
 use tracing::{error, info, trace};
@@ -78,6 +79,30 @@ impl PixabayService {
             .and_then(|w| w.trim().parse().ok())
     }
 
+    /// 统一色板映射 Pixabay colors 参数
+    ///
+    /// Pixabay 的取值为 grayscale/transparent/red/orange/yellow/green/
+    /// turquoise/blue/lilac/pink/white/gray/black/brown；灰与黑白在
+    /// Pixabay 为两个独立取值，本枚举 Gray 语义为黑白（grayscale），
+    /// Any 不限制
+    fn map_color(source_color: SourceColor) -> Option<&'static str> {
+        match source_color {
+            SourceColor::Any => None,
+            SourceColor::Gray => Some("grayscale"),
+            SourceColor::Red => Some("red"),
+            SourceColor::Orange => Some("orange"),
+            SourceColor::Yellow => Some("yellow"),
+            SourceColor::Green => Some("green"),
+            SourceColor::Teal => Some("turquoise"),
+            SourceColor::Blue => Some("blue"),
+            SourceColor::Purple => Some("lilac"),
+            SourceColor::Pink => Some("pink"),
+            SourceColor::Brown => Some("brown"),
+            SourceColor::Black => Some("black"),
+            SourceColor::White => Some("white"),
+        }
+    }
+
     /// 将 Pixabay 条目映射为图源无关的在线壁纸条目
     ///
     /// 接口不返回比例与颜色信息：ratio 由宽高约分生成，colors 留空；
@@ -140,7 +165,9 @@ impl WallpaperSource for PixabayService {
                 return Err("未配置 Pixabay API Key，请在设置页填写".to_string());
             };
 
-            let editors_choice = matches!(query.sorting, Sorting::Relevance | Sorting::Hot);
+            // 精选过滤：显式勾选，或排序本身即精选语义（Relevance/Hot 映射 order=ec）
+            let editors_choice =
+                query.editors_choice || matches!(query.sorting, Sorting::Relevance | Sorting::Hot);
             let params = client::SearchParams {
                 key,
                 query: &query.query,
@@ -148,11 +175,13 @@ impl WallpaperSource for PixabayService {
                 orientation: Self::map_orientation(&query.ratios),
                 min_width: Self::map_min_width(&query.atleast),
                 order: Self::map_order(query.sorting),
+                category: query.pixabay_category.as_deref(),
+                color: Self::map_color(query.source_color),
                 editors_choice,
             };
 
             trace!(
-                "[Pixabay API] [page{}] 筛选映射: sorting={}->order={}, ratios={:?}->orientation={:?}, atleast={:?}->min_width={:?}, editors_choice={}",
+                "[Pixabay API] [page{}] 筛选映射: sorting={}->order={}, ratios={:?}->orientation={:?}, atleast={:?}->min_width={:?}, category={:?}, source_color={}->colors={:?}, editors_choice={}",
                 query.page,
                 query.sorting.value(),
                 Self::map_order(query.sorting),
@@ -160,6 +189,9 @@ impl WallpaperSource for PixabayService {
                 Self::map_orientation(&query.ratios),
                 query.atleast,
                 Self::map_min_width(&query.atleast),
+                query.pixabay_category,
+                query.source_color.value(),
+                Self::map_color(query.source_color),
                 editors_choice,
             );
 

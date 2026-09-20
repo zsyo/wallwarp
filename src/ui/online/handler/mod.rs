@@ -7,6 +7,7 @@ mod copy_image_link;
 mod download_from_cache;
 mod download_wallpaper;
 mod filter;
+mod filter_basic;
 mod filter_widget_state;
 mod load_next_page;
 mod load_page;

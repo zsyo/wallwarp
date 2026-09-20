@@ -8,13 +8,16 @@
 //!
 //! 当前阶段约定：
 //! - [`SearchQuery`] 的筛选字段沿用 Wallhaven 的参数形状（Sorting/ColorOption/
-//!   TimeRange，见 [`filters`]），接入第二个图源时再演进为图源无关的筛选模型，
-//!   由各图源实现自己的映射层
+//!   TimeRange，见 [`filters`]），另含 Basic 档图源共用的筛选字段
+//!   （[`SourceColor`] 色板、[`PixabayCategory`] 分类、editors_choice），
+//!   由各图源 service 层实现自己的映射层，无能力的图源忽略对应字段
 //! - 壁纸条目 [`OnlineWallpaper`] 已图源无关，携带 [`SourceKind`] 标识来源，
 //!   文件命名规则经其 [`OnlineWallpaper::download_file_name`] 按来源分发
 
 pub mod filters;
 pub mod http_log;
+pub mod pixabay_category;
+pub mod source_color;
 pub mod types;
 
 use std::future::Future;
@@ -28,6 +31,8 @@ use crate::services::unsplash::UnsplashService;
 use crate::services::wallhaven::WallhavenService;
 
 pub use filters::{ColorOption, Sorting, TimeRange};
+pub use pixabay_category::PixabayCategory;
+pub use source_color::SourceColor;
 pub use types::OnlineWallpaper;
 
 /// trait 方法返回的 boxed Future（保持 trait 对象安全，可用 `dyn WallpaperSource`）
@@ -39,7 +44,7 @@ pub enum SourceKind {
     Wallhaven,
     /// Bing 每日一图（免密钥，无筛选维度）
     Bing,
-    /// Pixabay 图库（需密钥，支持关键词/方向/排序）
+    /// Pixabay 图库（需密钥，支持关键词/方向/排序/分类/颜色/精选）
     Pixabay,
     /// Unsplash 摄影图库（需密钥，支持关键词/方向/排序）
     Unsplash,
@@ -153,7 +158,14 @@ pub struct SearchQuery {
     pub sorting: Sorting,
     /// 纯净度位掩码（100=SFW, 010=Sketchy, 001=NSFW）
     pub purities: u32,
+    /// Wallhaven 29 色板（Full 档）
     pub color: ColorOption,
+    /// Basic 档图源共用色板（Pixabay/Unsplash，各自映射；Wallhaven 忽略）
+    pub source_color: SourceColor,
+    /// Pixabay 内容分类（None 不限；其余图源忽略）
+    pub pixabay_category: Option<String>,
+    /// Pixabay 精选过滤（其余图源忽略）
+    pub editors_choice: bool,
     pub query: String,
     /// 时间范围（仅 toplist 排序生效）
     pub time_range: TimeRange,

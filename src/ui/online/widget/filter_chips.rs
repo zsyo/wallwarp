@@ -179,6 +179,24 @@ pub(super) fn orientation_chip<'a>(
         .into()
 }
 
+/// Pixabay 精选过滤切换 chip（选中=强调色实底；仅 Pixabay service 层映射）
+pub(super) fn editors_choice_chip<'a>(
+    i18n: &'a I18n,
+    state: &'a OnlineState,
+    theme_colors: ThemeColors,
+) -> Element<'a, AppMessage> {
+    button(text(i18n.t("online-wallpapers.editors-choice")).size(14))
+        .on_press(OnlineMessage::EditorsChoiceToggled.into())
+        .padding(6)
+        .style(toggle_chip_style(
+            theme_colors,
+            state.editors_choice,
+            theme_colors.primary,
+            Color::WHITE,
+        ))
+        .into()
+}
+
 /// 顶栏刷新按钮（图源无关，各能力档位共用）
 pub(super) fn create_refresh_button(theme_colors: ThemeColors) -> Element<'static, AppMessage> {
     common::create_icon_button_with_size(

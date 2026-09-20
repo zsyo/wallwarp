@@ -24,10 +24,7 @@ impl App {
         self.online_state.current_page = 1;
         // 选择后关闭选择器，磁盘写入经防抖合并
         self.online_state.source_picker_expanded = false;
-        Task::batch([
-            self.request_config_save(),
-            self.load_online_wallpapers(),
-        ])
+        Task::batch([self.request_config_save(), self.load_online_wallpapers()])
     }
 
     pub(in crate::ui::online) fn online_source_picker_expanded(&mut self) -> Task<AppMessage> {

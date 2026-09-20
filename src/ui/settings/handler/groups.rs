@@ -61,6 +61,14 @@ impl App {
             purity: format!("{:03b}", self.online_state.purities),
             sorting: self.online_state.sorting.to_string(),
             color: self.online_state.color.value().to_string(),
+            source_color: self.online_state.source_color.value().to_string(),
+            pixabay_category: self
+                .online_state
+                .pixabay_category
+                .api_value()
+                .unwrap_or_default()
+                .to_string(),
+            editors_choice: self.online_state.editors_choice,
             top_range: self.online_state.time_range.value().to_string(),
             resolution_mode: match self.online_state.resolution_mode {
                 ResolutionMode::All => "all".to_string(),

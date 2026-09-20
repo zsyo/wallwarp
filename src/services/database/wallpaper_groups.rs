@@ -11,7 +11,8 @@ use rusqlite::params;
 use serde::{Deserialize, Serialize};
 use tracing::{error, trace};
 
-/// 壁纸组在线筛选快照（当前覆盖 Wallhaven 筛选字段，取值与 config.wallhaven 一致）
+/// 壁纸组在线筛选快照（覆盖 Wallhaven 筛选字段与 Basic 档图源共用字段，
+/// 取值与 config.wallhaven 一致；旧记录缺字段按 serde 默认值回退）
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GroupFilters {
     #[serde(default)]
@@ -22,6 +23,12 @@ pub struct GroupFilters {
     pub sorting: String,
     #[serde(default)]
     pub color: String,
+    #[serde(default)]
+    pub source_color: String,
+    #[serde(default)]
+    pub pixabay_category: String,
+    #[serde(default)]
+    pub editors_choice: bool,
     #[serde(default)]
     pub top_range: String,
     #[serde(default)]

@@ -66,6 +66,10 @@ pub struct SearchParams<'a> {
     pub min_width: Option<u32>,
     /// ec / latest / popular
     pub order: &'a str,
+    /// 官方分类值（backgrounds/fashion/...，None 不限制）
+    pub category: Option<&'a str>,
+    /// 官方颜色值（grayscale/red/...，None 不限制）
+    pub color: Option<&'a str>,
     pub editors_choice: bool,
 }
 
@@ -107,6 +111,12 @@ pub async fn search(
     }
     if let Some(min_width) = params.min_width {
         url.push_str(&format!("&min_width={}", min_width));
+    }
+    if let Some(category) = params.category {
+        url.push_str(&format!("&category={}", category));
+    }
+    if let Some(color) = params.color {
+        url.push_str(&format!("&colors={}", color));
     }
     if params.editors_choice {
         url.push_str("&editors_choice=true");

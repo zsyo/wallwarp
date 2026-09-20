@@ -1,5 +1,6 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
+use crate::services::source;
 use crate::services::wallhaven;
 use crate::ui::{App, AppMessage};
 use iced::Task;
@@ -75,6 +76,20 @@ pub enum OnlineMessage {
     RatioChanged(wallhaven::Ratio),
     /// 改变颜色
     ColorChanged(wallhaven::ColorOption),
+    /// 改变 Basic 档图源共用色板的颜色
+    SourceColorChanged(source::SourceColor),
+    /// 展开 Basic 档色板选择器
+    SourceColorPickerExpanded,
+    /// 关闭 Basic 档色板选择器
+    SourceColorPickerDismiss,
+    /// 改变 Pixabay 内容分类
+    PixabayCategoryChanged(source::PixabayCategory),
+    /// 展开 Pixabay 分类选择器
+    PixabayCategoryPickerExpanded,
+    /// 关闭 Pixabay 分类选择器
+    PixabayCategoryPickerDismiss,
+    /// 切换 Pixabay 精选过滤
+    EditorsChoiceToggled,
     /// 展开颜色选择器
     ColorPickerExpanded,
     /// 关闭颜色选择器
@@ -202,6 +217,25 @@ impl App {
             }
             OnlineMessage::RatioChanged(ratio) => self.online_filter_ratio_changed(ratio),
             OnlineMessage::ColorChanged(color) => self.online_filter_color_changed(color),
+            OnlineMessage::SourceColorChanged(color) => {
+                self.online_filter_source_color_changed(color)
+            }
+            OnlineMessage::SourceColorPickerExpanded => {
+                self.online_filter_source_color_picker_expanded()
+            }
+            OnlineMessage::SourceColorPickerDismiss => {
+                self.online_filter_source_color_picker_dismiss()
+            }
+            OnlineMessage::PixabayCategoryChanged(category) => {
+                self.online_filter_pixabay_category_changed(category)
+            }
+            OnlineMessage::PixabayCategoryPickerExpanded => {
+                self.online_filter_pixabay_category_picker_expanded()
+            }
+            OnlineMessage::PixabayCategoryPickerDismiss => {
+                self.online_filter_pixabay_category_picker_dismiss()
+            }
+            OnlineMessage::EditorsChoiceToggled => self.online_filter_editors_choice_toggled(),
             OnlineMessage::ColorPickerExpanded => self.online_filter_color_picker_expanded(),
             OnlineMessage::ColorPickerDismiss => self.online_filter_color_picker_dismiss(),
             OnlineMessage::TimeRangeChanged(time_range) => {
