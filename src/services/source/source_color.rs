@@ -91,6 +91,7 @@ impl SourceColor {
     /// 解析配置取值；未知取值回退到 Any，不会失败
     pub fn parse(s: &str) -> Self {
         match s {
+            "any" => SourceColor::Any,
             "gray" => SourceColor::Gray,
             "red" => SourceColor::Red,
             "orange" => SourceColor::Orange,
