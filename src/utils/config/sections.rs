@@ -51,7 +51,18 @@ pub struct GlobalConfig {
     /// 当前在线图源（services::source::SourceKind 的 id，默认 wallhaven）
     #[serde(default = "default_online_source")]
     pub online_source: String,
+    /// 日志展示窗口的等级（仅控制该窗口显示，不影响文件与控制台日志）
+    #[serde(default)]
+    pub log_window_level: LogLevel,
+    /// 日志展示窗口最大保留行数（区间 50-10000，setter 与 UI 校验共用）
+    #[serde(default = "default_log_window_max_lines")]
+    pub log_window_max_lines: u32,
 }
+
+/// 日志展示窗口最大保留行数下限
+pub const LOG_WINDOW_MAX_LINES_MIN: u32 = 50;
+/// 日志展示窗口最大保留行数上限
+pub const LOG_WINDOW_MAX_LINES_MAX: u32 = 10000;
 
 impl Default for GlobalConfig {
     fn default() -> Self {
@@ -71,6 +82,8 @@ impl Default for GlobalConfig {
             hotkey_show_window: String::new(),
             hotkey_save_current: String::new(),
             online_source: default_online_source(),
+            log_window_level: LogLevel::default(),
+            log_window_max_lines: default_log_window_max_lines(),
         }
     }
 }
@@ -89,6 +102,10 @@ fn default_floating_ball_pos() -> i32 {
 
 fn default_online_source() -> String {
     "wallhaven".to_string()
+}
+
+fn default_log_window_max_lines() -> u32 {
+    1000
 }
 
 /// 数据与缓存目录配置

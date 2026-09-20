@@ -2,7 +2,7 @@
 
 //! 配置文件的读写与修复（Config 的 IO 相关方法）
 
-use super::{Config, WallpaperAutoChangeInterval, MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH};
+use super::{Config, MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH, WallpaperAutoChangeInterval};
 use crate::utils::helpers;
 use std::fs;
 use tracing::error;

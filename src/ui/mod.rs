@@ -7,6 +7,7 @@ pub mod download;
 pub mod favorites;
 pub mod history;
 pub mod local;
+pub mod log_window;
 pub mod main;
 pub mod online;
 pub mod settings;

@@ -72,13 +72,37 @@ pub fn create_general_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
         .spacing(ROW_SPACING),
         theme_colors,
     ));
+    // 运行日志相关拆分为三行：开关（是否记录）、级别（记录详细度）、
+    // 查看入口（定位文件 / 实时窗口），每行语义单一，避免一行混放多类控件
     rows.push(super::create_setting_row(
         app.i18n.t("settings.enable-logging"),
         Some(app.i18n.t("settings.enable-logging-desc")),
+        toggler(app.config.global.enable_logging)
+            .on_toggle(|state| SettingsMessage::LoggingToggled(state).into()),
+        theme_colors,
+    ));
+    rows.push(super::create_setting_row(
+        app.i18n.t("settings.log-level"),
+        Some(app.i18n.t("settings.log-level-desc")),
+        super::create_log_level_picker(app),
+        theme_colors,
+    ));
+    rows.push(super::create_setting_row(
+        app.i18n.t("settings.log-view"),
+        Some(app.i18n.t("settings.log-view-desc")),
         row![
-            toggler(app.config.global.enable_logging)
-                .on_toggle(|state| SettingsMessage::LoggingToggled(state).into()),
-            super::create_log_level_picker(app),
+            common::create_icon_button_with_tooltip(
+                "\u{F1C5}", // box-arrow-up-right (定位日志文件)
+                theme_colors.primary,
+                SettingsMessage::OpenLogFile.into(),
+                app.i18n.t("settings.locate-log-file"),
+                theme_colors,
+            ),
+            common::create_colored_button(
+                app.i18n.t("settings.open-log-window"),
+                crate::ui::style::BUTTON_COLOR_BLUE,
+                SettingsMessage::OpenLogWindow.into(),
+            ),
         ]
         .spacing(ROW_SPACING)
         .align_y(Alignment::Center),

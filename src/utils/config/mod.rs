@@ -146,6 +146,17 @@ impl Config {
         self.pixabay.api_key = key;
     }
 
+    /// 设置日志展示窗口等级（只影响展示窗口，不动文件/控制台日志配置）
+    pub fn set_log_window_level(&mut self, level: LogLevel) {
+        self.global.log_window_level = level;
+    }
+
+    /// 设置日志展示窗口最大保留行数（钳制到 50-10000，UI 提交前另有区间校验）
+    pub fn set_log_window_max_lines(&mut self, max_lines: u32) {
+        self.global.log_window_max_lines =
+            max_lines.clamp(LOG_WINDOW_MAX_LINES_MIN, LOG_WINDOW_MAX_LINES_MAX);
+    }
+
     pub fn set_unsplash_api_key(&mut self, key: String) {
         self.unsplash.api_key = key;
     }

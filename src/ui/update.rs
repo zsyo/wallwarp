@@ -31,6 +31,7 @@ impl App {
             AppMessage::Settings(message) => self.handle_settings_message(message),
             AppMessage::History(message) => self.handle_history_message(message),
             AppMessage::Favorites(message) => self.handle_favorites_message(message),
+            AppMessage::LogWindow(message) => self.handle_log_window_message(message),
         };
 
         match initial_task {

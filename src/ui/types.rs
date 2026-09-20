@@ -15,6 +15,7 @@ pub enum AppMessage {
     AutoChange(crate::ui::auto_change::AutoChangeMessage),
     History(crate::ui::history::HistoryMessage),
     Favorites(crate::ui::favorites::FavoritesMessage),
+    LogWindow(crate::ui::log_window::LogWindowMessage),
 }
 
 #[derive(Debug, Clone)]

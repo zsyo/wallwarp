@@ -3,6 +3,7 @@
 use crate::ui::{App, AppMessage};
 use crate::utils::helpers;
 use iced::Task;
+use std::path::Path;
 use tracing::error;
 
 impl App {
@@ -42,15 +43,17 @@ impl App {
         Task::none()
     }
 
-    pub(in crate::ui::settings) fn settings_open_logs_path(&mut self) -> Task<AppMessage> {
-        let logs_path = "logs";
-        let full_path = helpers::get_absolute_path(logs_path);
+    pub(in crate::ui::settings) fn settings_open_log_file(&mut self) -> Task<AppMessage> {
+        let full_path = helpers::get_absolute_path("logs");
 
         // 检查并创建日志目录
         helpers::ensure_directory_exists(&full_path, "日志目录");
 
-        // 打开日志目录
-        if let Err(e) = open::that(&full_path) {
+        // latest.log 存在时在文件管理器中选中它，否则打开日志目录
+        let latest_log = Path::new(&full_path).join("latest.log");
+        if latest_log.exists() {
+            helpers::open_file_in_explorer(&latest_log.to_string_lossy());
+        } else if let Err(e) = open::that(&full_path) {
             error!("[设置] [日志目录] 打开目录失败 {}: {}", full_path, e);
         }
 

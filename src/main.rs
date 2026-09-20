@@ -108,7 +108,14 @@ fn main() -> iced::Result {
         App::view,
     )
     .subscription(|app: &App| app.subscription())
-    .title(|app: &App, _id: window::Id| app.title())
+    .title(|app: &App, id: window::Id| {
+        // 日志展示窗口使用独立标题
+        if Some(id) == app.log_window_id {
+            app.i18n.t("log-window.title")
+        } else {
+            app.title()
+        }
+    })
     // 悬浮球窗口使用“背景透明”的专用主题（style 闭包中识别），实现圆形透出
     .theme(|app: &App, id: window::Id| {
         if Some(id) == app.floating_ball_id {

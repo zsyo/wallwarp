@@ -132,6 +132,8 @@ pub fn init_logger(enable_logging: bool, log_level: LogLevel) {
     tracing_subscriber::registry()
         .with(file_layer)
         .with(console_layer)
+        // 内存层（日志展示窗口数据源，初始 off，与文件/控制台互不影响）
+        .with(crate::utils::log_window_layer::MemoryLayer)
         .init();
 
     if enable_logging {

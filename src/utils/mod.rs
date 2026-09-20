@@ -4,6 +4,7 @@ pub mod assets;
 pub mod config;
 pub mod helpers;
 pub mod hotkey_manager;
+pub mod log_window_layer;
 pub mod logger;
 pub mod single_instance;
 pub mod startup;

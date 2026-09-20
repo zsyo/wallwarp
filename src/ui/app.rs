@@ -26,6 +26,10 @@ pub struct App {
     pub floating_ball_state: FloatingBallState,
     /// 悬浮球位置防抖保存标志
     pub(crate) floating_ball_save_pending: bool,
+    /// 日志展示窗口 Id（None 表示未打开）
+    pub log_window_id: Option<iced::window::Id>,
+    /// 日志展示窗口状态
+    pub log_window_state: crate::ui::log_window::LogWindowState,
     /// 配置文件待写盘标志（300ms 防抖）
     pub config_save_dirty: bool,
     /// 配置文件防抖计时器
@@ -129,6 +133,8 @@ impl App {
             floating_ball_id: None,
             floating_ball_state: FloatingBallState::default(),
             floating_ball_save_pending: false,
+            log_window_id: None,
+            log_window_state: crate::ui::log_window::LogWindowState::default(),
             config_save_dirty: false,
             config_save_debounce_timer: std::time::Instant::now(),
             theme_config,

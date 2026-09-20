@@ -17,6 +17,11 @@ impl App {
             return crate::ui::main::floating_ball_view(self);
         }
 
+        // 日志展示窗口：独立视图
+        if Some(window_id) == self.log_window_id {
+            return crate::ui::log_window::log_window_view(self);
+        }
+
         // 主窗口：先渲染底层内容
         let base_content = main_view(self);
 

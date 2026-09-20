@@ -8,6 +8,13 @@ use iced::Task;
 
 impl App {
     pub(in crate::ui::main) fn window_close_requested(&mut self, id: iced::window::Id) -> Task<AppMessage> {
+        // 日志展示窗口：按窗口关闭流程收尾（内存层停止收集、清空状态）
+        if Some(id) == self.log_window_id {
+            return self.handle_log_window_message(
+                crate::ui::log_window::LogWindowMessage::CloseRequested(id),
+            );
+        }
+
         // 仅响应主窗口的关闭请求（悬浮球窗口 closeable=false 不会触发）
         if id != self.main_window_id {
             return Task::none();

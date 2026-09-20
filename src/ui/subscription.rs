@@ -241,6 +241,26 @@ impl App {
                     }
                 }
             }),
+            // 日志展示窗口开启时的定时拉取（间隔从内存层取增量日志，
+            // 未开启窗口时为零开销的 none）
+            if self.log_window_id.is_some() {
+                Subscription::run(|| {
+                    use tokio::time::MissedTickBehavior;
+
+                    async_stream::stream! {
+                        let mut timer =
+                            tokio::time::interval(crate::ui::log_window::TICK_INTERVAL);
+                        // 错过节拍直接跳过，避免卡顿后补发批量旧 tick
+                        timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
+                        loop {
+                            timer.tick().await;
+                            yield crate::ui::log_window::LogWindowMessage::Tick.into();
+                        }
+                    }
+                })
+            } else {
+                Subscription::none()
+            },
         ])
     }
 }

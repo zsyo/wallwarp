@@ -11,6 +11,7 @@ mod language_select;
 mod log_level_select;
 mod logging_toggle;
 mod monitor_wallpaper;
+mod open_log_window;
 mod open_path;
 mod open_url;
 mod path_clear;

@@ -43,8 +43,10 @@ pub enum SettingsMessage {
     CachePathSelected(String),
     /// 打开路径
     OpenPath(String),
-    /// 打开日志目录
-    OpenLogsPath,
+    /// 打开运行日志（latest.log 存在时在文件管理器中选中它，否则打开日志目录）
+    OpenLogFile,
+    /// 打开日志展示窗口（独立窗口实时滚动展示日志）
+    OpenLogWindow,
     /// 显示路径清空确认对话框，参数为路径类型 ("data" 或 "cache")
     ShowPathClearConfirmation(String),
     /// 确认清空路径，参数为路径类型
@@ -222,7 +224,8 @@ impl App {
             SettingsMessage::DataPathSelected(path) => self.settings_data_path_selected(path),
             SettingsMessage::CachePathSelected(path) => self.settings_cache_path_selected(path),
             SettingsMessage::OpenPath(path_type) => self.settings_open_path(path_type),
-            SettingsMessage::OpenLogsPath => self.settings_open_logs_path(),
+            SettingsMessage::OpenLogFile => self.settings_open_log_file(),
+            SettingsMessage::OpenLogWindow => self.settings_open_log_window(),
             SettingsMessage::ShowPathClearConfirmation(path_type) => {
                 self.settings_show_path_clear_confirm(path_type)
             }
