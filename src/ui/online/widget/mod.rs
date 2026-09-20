@@ -2,6 +2,8 @@
 
 mod diagonal_line;
 mod filter;
+mod filter_basic_row;
+mod filter_chips;
 mod filter_color_grid_options;
 mod filter_color_picker;
 mod filter_group_picker;
@@ -23,6 +25,7 @@ mod modal;
 mod modal_info;
 mod modal_loading_placeholder;
 
+use filter_basic_row::create_basic_filter_row;
 use filter_group_picker::create_group_picker;
 use filter_source_picker::create_source_picker;
 use {

@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use super::OnlineState;
-use crate::services::source::{ColorOption, Sorting, TimeRange};
+use crate::services::source::{ColorOption, Sorting, SourceKind, TimeRange};
 use crate::services::wallhaven::{AspectRatio, Purity, Resolution, helper};
 use crate::ui::online::ResolutionMode;
 use crate::utils::config::Config;
@@ -16,8 +16,9 @@ impl OnlineState {
         self.categories = helper::parse_category_bitmask(&config.wallhaven.category);
         self.purities = helper::parse_purity_bitmask(&config.wallhaven.purity);
 
-        // 如果 API Key 为空，移除 NSFW 选项
-        if config.wallhaven.api_key.is_empty() {
+        // Wallhaven 未配置 API Key 时移除 NSFW 选项（Danbooru 免密钥、
+        // 分级由其 rating metatag 自行映射，不依赖该 key）
+        if self.source == SourceKind::Wallhaven && config.wallhaven.api_key.is_empty() {
             self.purities &= !Purity::NSFW.bit_value();
         }
 
