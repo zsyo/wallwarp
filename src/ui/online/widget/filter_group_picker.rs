@@ -3,7 +3,9 @@
 use crate::i18n::I18n;
 use crate::ui::AppMessage;
 use crate::ui::common;
-use crate::ui::common::drop_down::{self, Displayable, dropdown_picker, flat_dropdown_trigger_button};
+use crate::ui::common::drop_down::{
+    self, Displayable, dropdown_picker, flat_dropdown_trigger_button,
+};
 use crate::ui::online::{OnlineMessage, OnlineState};
 use crate::ui::style::{FILTER_CONTROL_HEIGHT, ThemeColors};
 use iced::widget::text;

@@ -22,7 +22,10 @@ impl App {
     }
 
     /// 应用壁纸组：写回图源/筛选快照/铺满模式，刷新在线页与配置
-    pub(in crate::ui::online) fn apply_wallpaper_group(&mut self, group_id: i64) -> Task<AppMessage> {
+    pub(in crate::ui::online) fn apply_wallpaper_group(
+        &mut self,
+        group_id: i64,
+    ) -> Task<AppMessage> {
         let Some(group) = self.wallpaper_groups.iter().find(|g| g.id == group_id) else {
             return Task::none();
         };
