@@ -93,6 +93,8 @@ pub struct SearchParams<'a> {
     pub orientation: Option<&'a str>,
     /// relevant / latest
     pub order_by: &'a str,
+    /// 官方颜色值（black_and_white/red/...，None 不限制）
+    pub color: Option<&'a str>,
 }
 
 /// 按条件检索一页图片
@@ -129,6 +131,9 @@ pub async fn search(
     );
     if let Some(orientation) = params.orientation {
         url.push_str(&format!("&orientation={}", orientation));
+    }
+    if let Some(color) = params.color {
+        url.push_str(&format!("&color={}", color));
     }
 
     let identifier = format!("page{}", params.page);

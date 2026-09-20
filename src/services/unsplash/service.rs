@@ -3,14 +3,15 @@
 //! Unsplash 服务层
 //!
 //! 实现图源抽象的 [`WallpaperSource`] trait：把统一筛选参数映射为 Unsplash
-//! 接口参数（接口仅支持关键词/方向/排序，其余维度忽略），并把检索结果映射
+//! 接口参数（关键词/方向/排序/颜色，其余维度忽略），并把检索结果映射
 //! 为图源无关的 [`OnlineWallpaper`]
 
 use super::client::{self, UnsplashPhoto};
 use crate::services::proxy;
 use crate::services::request_context::RequestContext;
 use crate::services::source::{
-    OnlineWallpaper, SearchQuery, SearchResult, Sorting, SourceFuture, SourceKind, WallpaperSource,
+    OnlineWallpaper, SearchQuery, SearchResult, Sorting, SourceColor, SourceFuture, SourceKind,
+    WallpaperSource,
 };
 use crate::utils::helpers::{format_resolution, simplified_ratio};
 use tracing::{error, info, trace};
@@ -65,6 +66,28 @@ impl UnsplashService {
             (false, true) => Some("portrait"),
             // 都选/都未选/仅具体比例均不限制方向
             _ => None,
+        }
+    }
+
+    /// 统一色板映射 Unsplash color 参数
+    ///
+    /// Unsplash 的取值为 black_and_white/black/white/yellow/orange/red/
+    /// purple/magenta/green/teal/blue；无棕色取值，选中 Brown 时不限制
+    fn map_color(source_color: SourceColor) -> Option<&'static str> {
+        match source_color {
+            SourceColor::Any => None,
+            SourceColor::Gray => Some("black_and_white"),
+            SourceColor::Red => Some("red"),
+            SourceColor::Orange => Some("orange"),
+            SourceColor::Yellow => Some("yellow"),
+            SourceColor::Green => Some("green"),
+            SourceColor::Teal => Some("teal"),
+            SourceColor::Blue => Some("blue"),
+            SourceColor::Purple => Some("purple"),
+            SourceColor::Pink => Some("magenta"),
+            SourceColor::Brown => None,
+            SourceColor::Black => Some("black"),
+            SourceColor::White => Some("white"),
         }
     }
 
@@ -136,15 +159,18 @@ impl WallpaperSource for UnsplashService {
                 page: query.page,
                 orientation: Self::map_orientation(&query.ratios),
                 order_by: Self::map_order(query.sorting),
+                color: Self::map_color(query.source_color),
             };
 
             trace!(
-                "[Unsplash API] [page{}] 筛选映射: sorting={}->order_by={}, ratios={:?}->orientation={:?}",
+                "[Unsplash API] [page{}] 筛选映射: sorting={}->order_by={}, ratios={:?}->orientation={:?}, source_color={}->color={:?}",
                 query.page,
                 query.sorting.value(),
                 Self::map_order(query.sorting),
                 query.ratios,
                 Self::map_orientation(&query.ratios),
+                query.source_color.value(),
+                Self::map_color(query.source_color),
             );
 
             let response = client::search(&self.client, params, context).await?;

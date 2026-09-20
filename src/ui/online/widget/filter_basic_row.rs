@@ -3,9 +3,9 @@
 //! Basic 档图源（Pixabay/Unsplash/Danbooru）的筛选栏行
 //!
 //! 公共控件：图源 + 搜索框 + 排序 + 壁纸组 + 刷新；筛选项按图源能力追加：
-//! Pixabay 有方向/分类/颜色/精选能力，Unsplash 有方向能力（颜色见
-//! Unsplash service 映射就绪后补充），Danbooru 有 rating 分级能力
-//! （纯净度 chip 写 purities 位掩码，由 service 层映射为 rating metatag）
+//! Pixabay 有方向/分类/颜色/精选能力，Unsplash 有方向/颜色能力，
+//! Danbooru 有 rating 分级能力（纯净度 chip 写 purities 位掩码，由
+//! service 层映射为 rating metatag）
 
 use crate::i18n::I18n;
 use crate::services::source::SourceKind;
@@ -76,6 +76,7 @@ pub(super) fn create_basic_filter_row<'a>(
                 OnlineMessage::RatioPortraitToggled,
                 theme_colors,
             ));
+            source_filters.push(super::create_source_color_picker(i18n, state, theme_colors));
         }
         SourceKind::Danbooru => {
             for purity in Purity::all() {

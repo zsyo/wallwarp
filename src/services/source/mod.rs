@@ -46,7 +46,7 @@ pub enum SourceKind {
     Bing,
     /// Pixabay 图库（需密钥，支持关键词/方向/排序/分类/颜色/精选）
     Pixabay,
-    /// Unsplash 摄影图库（需密钥，支持关键词/方向/排序）
+    /// Unsplash 摄影图库（需密钥，支持关键词/方向/排序/颜色）
     Unsplash,
     /// Danbooru 图库（免密钥，支持 tags 关键词/分级/排序）
     Danbooru,
