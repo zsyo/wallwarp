@@ -198,23 +198,21 @@ pub fn create_wallpaper_config_section<'a>(app: &'a App) -> Element<'a, AppMessa
     // 定时切换按主题分组选图（开关 + 浅色/深色目录）
     rows.extend(super::create_theme_aware_rows(app));
     // 多显示器独立壁纸（仅支持按显示器设置的环境展示列表）
-    rows.push(
-        if crate::platform::supports_per_monitor_wallpaper() {
-            super::create_full_width_row(
-                app.i18n.t("settings.multi-monitor"),
-                Some(app.i18n.t("settings.multi-monitor-desc")),
-                create_multi_monitor_content(app),
-                theme_colors,
-            )
-        } else {
-            super::create_setting_row(
-                app.i18n.t("settings.multi-monitor"),
-                Some(app.i18n.t("settings.multi-monitor-desc")),
-                text(app.i18n.t("settings.multi-monitor-unsupported")),
-                theme_colors,
-            )
-        },
-    );
+    rows.push(if crate::platform::supports_per_monitor_wallpaper() {
+        super::create_full_width_row(
+            app.i18n.t("settings.multi-monitor"),
+            Some(app.i18n.t("settings.multi-monitor-desc")),
+            create_multi_monitor_content(app),
+            theme_colors,
+        )
+    } else {
+        super::create_setting_row(
+            app.i18n.t("settings.multi-monitor"),
+            Some(app.i18n.t("settings.multi-monitor-desc")),
+            text(app.i18n.t("settings.multi-monitor-unsupported")),
+            theme_colors,
+        )
+    });
 
     super::create_config_section(
         "\u{F42A}", // image
