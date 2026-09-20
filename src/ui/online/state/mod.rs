@@ -120,6 +120,8 @@ pub struct OnlineState {
     pub time_range_picker_expanded: bool,
     /// 壁纸组选择器展开状态
     pub group_picker_expanded: bool,
+    /// 图源选择器展开状态
+    pub source_picker_expanded: bool,
     /// 请求上下文，用于取消正在进行的请求
     pub request_context: RequestContext,
     /// 待设置壁纸的文件名（用于在下载完成后自动设置壁纸）
@@ -205,6 +207,7 @@ impl Default for OnlineState {
             sorting_picker_expanded: false,
             time_range_picker_expanded: false,
             group_picker_expanded: false,
+            source_picker_expanded: false,
             request_context: RequestContext::new(),
             pending_set_wallpaper_filename: None,
             modal_download_cancel_token: None,

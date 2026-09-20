@@ -44,7 +44,10 @@ pub enum OnlineMessage {
     /// 切换收藏状态（收藏/取消收藏）
     ToggleFavorite(usize),
     /// 收藏状态切换完成（Ok 表示数据库已更新）
-    FavoriteToggled { id: String, result: Result<(), String> },
+    FavoriteToggled {
+        id: String,
+        result: Result<(), String>,
+    },
     /// 模态窗口图片加载完成
     ModalImageLoaded(iced::widget::image::Handle),
     /// 模态窗口图片下载完成
@@ -123,6 +126,13 @@ pub enum OnlineMessage {
     GroupPickerDismiss,
     /// 应用壁纸组（组 id；写回图源/筛选/铺满模式并刷新列表）
     ApplyGroup(i64),
+    // 图源切换相关消息
+    /// 切换在线图源（顶栏图源选择器）
+    SourceSelected(crate::services::source::SourceKind),
+    /// 展开图源选择器
+    SourcePickerExpanded,
+    /// 关闭图源选择器
+    SourcePickerDismiss,
 }
 
 impl From<OnlineMessage> for AppMessage {
@@ -227,6 +237,9 @@ impl App {
             OnlineMessage::GroupPickerExpanded => self.online_group_picker_expanded(),
             OnlineMessage::GroupPickerDismiss => self.online_group_picker_dismiss(),
             OnlineMessage::ApplyGroup(group_id) => self.apply_wallpaper_group(group_id),
+            OnlineMessage::SourceSelected(kind) => self.online_source_selected(kind),
+            OnlineMessage::SourcePickerExpanded => self.online_source_picker_expanded(),
+            OnlineMessage::SourcePickerDismiss => self.online_source_picker_dismiss(),
         }
     }
 }

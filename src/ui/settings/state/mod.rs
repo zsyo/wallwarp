@@ -53,8 +53,6 @@ pub struct SettingsState {
     pub auto_change_time_range: TimeRange,
     pub sorting_picker_expanded: bool,
     pub time_range_picker_expanded: bool,
-    /// 在线图源选择器展开状态
-    pub online_source_picker_expanded: bool,
     /// 壁纸组名称输入（保存当前筛选为组的临时状态）
     pub group_name_input: String,
     /// 定时切换"按主题分组选图"开关
@@ -106,7 +104,6 @@ impl Default for SettingsState {
             auto_change_time_range: TimeRange::Month,
             sorting_picker_expanded: false,
             time_range_picker_expanded: false,
-            online_source_picker_expanded: false,
             group_name_input: String::new(),
             auto_change_theme_aware: false,
             hotkey_recording: None,

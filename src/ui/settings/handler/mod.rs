@@ -19,7 +19,6 @@ mod path_select;
 mod pixabay_api_key;
 mod proxy_change;
 mod restore_default_path;
-mod source;
 mod thumbs_stale;
 mod unsplash_api_key;
 mod update_check;

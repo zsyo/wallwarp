@@ -20,7 +20,6 @@ mod section_wallpaper_config;
 mod setting_row;
 mod settings_sorting_picker;
 mod settings_time_range_picker;
-mod source_picker;
 mod theme_picker;
 
 // 供本目录各区块文件经 `super::` 使用的内部构件
@@ -36,7 +35,6 @@ use {
     setting_row::{create_full_width_row, create_setting_row},
     settings_sorting_picker::create_sorting_picker,
     settings_time_range_picker::create_time_range_picker,
-    source_picker::create_source_picker,
     theme_picker::create_theme_picker,
 };
 

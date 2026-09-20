@@ -24,8 +24,9 @@ mod scroll_to_bottom;
 mod search;
 mod set_online_wallpaper;
 mod set_wallpaper_from_cache;
-mod thumb_loaded;
+mod source;
 mod thumb_load_failed;
+mod thumb_loaded;
 mod toggle_favorite;
 
 pub(in crate::ui) use resolve_online_file::OnlineFileHit;

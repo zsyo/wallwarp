@@ -25,7 +25,6 @@ impl App {
         self.settings_state.log_level_picker_expanded = false;
         self.settings_state.sorting_picker_expanded = false;
         self.settings_state.time_range_picker_expanded = false;
-        self.settings_state.online_source_picker_expanded = false;
         task
     }
 }

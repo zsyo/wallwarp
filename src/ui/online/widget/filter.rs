@@ -1,7 +1,7 @@
 // Copyright (C) 2026 zsyo - GNU AGPL v3.0
 
 use crate::i18n::I18n;
-use crate::services::source::SourceKind;
+use crate::services::source::SearchCapability;
 use crate::services::wallhaven::{Category, Purity, Sorting};
 use crate::ui::AppMessage;
 use crate::ui::common;
@@ -51,6 +51,31 @@ fn toggle_chip_style(
     }
 }
 
+/// 筛选栏外层容器（各搜索能力档位共用的外观包装）
+fn wrap_filter_bar<'a>(
+    content: impl Into<Element<'a, AppMessage>>,
+    theme_colors: ThemeColors,
+) -> Element<'a, AppMessage> {
+    container(row![
+        Space::new().width(Length::Fixed(2.0)),
+        container(content)
+            .width(Length::Fill)
+            .height(Length::Fixed(50.0))
+            .padding(8)
+            .style(move |_theme: &iced::Theme| container::Style {
+                background: Some(iced::Background::Color(theme_colors.light_bg)),
+                border: Border {
+                    color: Color::TRANSPARENT,
+                    width: 0.0,
+                    radius: Radius::from(RADIUS_SM),
+                },
+                shadow: shadows::FILTER_BAR_SHADOW,
+                ..Default::default()
+            })
+    ])
+    .into()
+}
+
 /// 创建筛选栏
 pub fn create_filter_bar<'a>(
     i18n: &'a I18n,
@@ -77,9 +102,14 @@ pub fn create_filter_bar<'a>(
     // 壁纸组选择器（组含图源与筛选快照，应用后整体切换）
     let group_picker = super::create_group_picker(i18n, app_groups, state, theme_colors);
 
-    // Bing 每日一图无搜索/筛选维度，仅展示说明与刷新按钮
-    if state.source != SourceKind::Wallhaven {
+    // 图源选择器（顶栏最前，各能力档位共用）
+    let source_picker = super::create_source_picker(i18n, state, theme_colors);
+
+    // 无搜索维度的图源（如 Bing 每日一图），仅展示说明与刷新按钮
+    if state.source.search_capability() == SearchCapability::Bare {
         let hint_row = row![
+            source_picker,
+            Space::new().width(4),
             text(i18n.t("online-wallpapers.bing-daily-hint"))
                 .size(14)
                 .color(theme_colors.light_text_sub),
@@ -90,24 +120,7 @@ pub fn create_filter_bar<'a>(
         .spacing(4)
         .align_y(Alignment::Center);
 
-        return container(row![
-            Space::new().width(Length::Fixed(2.0)),
-            container(hint_row)
-                .width(Length::Fill)
-                .height(Length::Fixed(50.0))
-                .padding(8)
-                .style(move |_theme: &iced::Theme| container::Style {
-                    background: Some(iced::Background::Color(theme_colors.light_bg)),
-                    border: Border {
-                        color: Color::TRANSPARENT,
-                        width: 0.0,
-                        radius: Radius::from(RADIUS_SM),
-                    },
-                    shadow: shadows::FILTER_BAR_SHADOW,
-                    ..Default::default()
-                })
-        ])
-        .into();
+        return wrap_filter_bar(hint_row, theme_colors);
     }
 
     // 搜索框（放在最前面）
@@ -148,6 +161,23 @@ pub fn create_filter_bar<'a>(
 
     let sorting_picker = super::create_sorting_picker(i18n, state, theme_colors);
 
+    // Basic 档图源：支持关键词搜索与排序，其余筛选维度由图源 service 层映射或忽略
+    if state.source.search_capability() == SearchCapability::Basic {
+        let basic_row = row![
+            source_picker,
+            Space::new().width(2),
+            search_container,
+            Space::new().width(2),
+            sorting_picker,
+            group_picker,
+            refresh_button,
+        ]
+        .spacing(4)
+        .align_y(Alignment::Center);
+
+        return wrap_filter_bar(basic_row, theme_colors);
+    }
+
     let time_range_picker = super::create_time_range_picker(i18n, state, theme_colors);
 
     // 分类切换按钮（选中=强调色实底）
@@ -184,6 +214,8 @@ pub fn create_filter_bar<'a>(
 
     // 组合所有元素
     let filter_row = row![
+        source_picker,
+        Space::new().width(2),
         search_container,
         Space::new().width(2),
         category_button(
@@ -245,22 +277,5 @@ pub fn create_filter_bar<'a>(
     .spacing(4)
     .align_y(Alignment::Center);
 
-    container(row![
-        Space::new().width(Length::Fixed(2.0)),
-        container(filter_row)
-            .width(Length::Fill)
-            .height(Length::Fixed(50.0))
-            .padding(8)
-            .style(move |_theme: &iced::Theme| container::Style {
-                background: Some(iced::Background::Color(theme_colors.light_bg)),
-                border: Border {
-                    color: Color::TRANSPARENT,
-                    width: 0.0,
-                    radius: Radius::from(RADIUS_SM),
-                },
-                shadow: shadows::FILTER_BAR_SHADOW,
-                ..Default::default()
-            })
-    ])
-    .into()
+    wrap_filter_bar(filter_row, theme_colors)
 }

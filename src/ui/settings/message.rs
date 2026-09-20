@@ -31,12 +31,6 @@ pub enum SettingsMessage {
     CloseActionSelected(CloseAction),
     /// 打开链接
     OpenUrl(String),
-    /// 在线图源选择
-    OnlineSourceSelected(crate::services::source::SourceKind),
-    /// 展开在线图源选择器
-    OnlineSourcePickerExpanded,
-    /// 关闭在线图源选择器
-    OnlineSourcePickerDismiss,
     /// 数据路径选择
     DataPathSelected(String),
     /// 缓存路径选择
@@ -197,15 +191,6 @@ impl App {
                 self.settings_close_action_selected(action)
             }
             SettingsMessage::OpenUrl(url) => self.settings_open_url(url),
-            SettingsMessage::OnlineSourceSelected(kind) => {
-                self.settings_online_source_selected(kind)
-            }
-            SettingsMessage::OnlineSourcePickerExpanded => {
-                self.settings_online_source_picker_expanded()
-            }
-            SettingsMessage::OnlineSourcePickerDismiss => {
-                self.settings_online_source_picker_dismiss()
-            }
             SettingsMessage::CheckUpdate => self.settings_check_update(),
             SettingsMessage::UpdateCheckFinished(result) => {
                 self.settings_update_check_finished(result)
