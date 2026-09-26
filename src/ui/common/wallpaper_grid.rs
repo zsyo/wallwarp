@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 壁纸网格布局估算：本地页与在线页共用的响应式分块公式
 

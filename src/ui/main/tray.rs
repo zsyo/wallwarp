@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 系统托盘：图标 + 6 项菜单（显示主窗口/上一张/下一张/保存当前/设置/退出）
 //!

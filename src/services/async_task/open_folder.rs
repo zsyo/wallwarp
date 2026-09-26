@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 /// 异步函数用于打开目录选择对话框
 ///

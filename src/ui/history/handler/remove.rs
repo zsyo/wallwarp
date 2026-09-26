@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 历史记录移除/清空（均只操作记录，不删除源文件）
 

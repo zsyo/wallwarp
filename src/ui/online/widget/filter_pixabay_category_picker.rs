@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! Pixabay 分类选择器（21 项，下拉面板限高滚动）
 //!

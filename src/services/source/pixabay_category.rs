@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! Pixabay 内容分类筛选枚举（官方 API category 参数取值表）
 //!

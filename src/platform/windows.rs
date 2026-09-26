@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! Windows 平台实现：Win32 窗口几何、工作区、窗口移动与 DWM 修饰
 

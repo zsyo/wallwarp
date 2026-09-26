@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 历史记录列表行与顶部工具条（参考 SnowShot 截图历史布局）
 

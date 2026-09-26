@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 use crate::ui::main::MainMessage;
 use crate::ui::style::{MENU_ICON_SIZE, MENU_ITEM_HEIGHT, RADIUS_MD, SIDEBAR_INDICATOR_WIDTH, ThemeConfig, tint};

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 主窗口参数：启动与 Wayland 重建窗口共用，保证两次创建的参数一致
 

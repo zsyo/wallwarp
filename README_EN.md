@@ -400,7 +400,7 @@ Contributions are welcome! Please follow these steps:
 
 ## License
 
-This project is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 ## Author
 

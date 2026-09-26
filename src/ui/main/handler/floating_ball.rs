@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 悬浮球交互处理：按下/移动/释放、菜单弹出、位置持久化、开关窗口、
 //! 空闲贴边半圆与悬停展开

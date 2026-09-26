@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 use crate::ui::style::{ICON_BUTTON_PADDING, ICON_BUTTON_TEXT_SIZE, RADIUS_SM, darken, with_alpha};
 use iced::border::{Border, Radius};

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 use crate::ui::common::drop_down::{
     self, DropDown, dropdown_option_style, dropdown_panel_style, dropdown_trigger_button,

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 壁纸可读性处理：为壁纸生成暗化/模糊副本，避免浅色壁纸下桌面图标看不清
 //!

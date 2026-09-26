@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 壁纸组设置区块：把当前在线筛选快照保存为命名组，支持删除
 //!

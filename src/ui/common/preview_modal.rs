@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 图片预览模态层（本地壁纸页/历史记录页/在线壁纸页共用）
 //!

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 //
 // 本文件移植自 iced_aw 0.14.1 (MIT License) 的 drop_down 组件并修复了
 // 下拉层定位问题：iced_aw 0.14 将越界处理从“贴边钳制”改为“整体翻转”，

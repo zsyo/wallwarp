@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 // 分辨率选项
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

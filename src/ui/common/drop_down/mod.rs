@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 //
 // 本地化的下拉框组件，API 与 iced_aw::drop_down 保持一致。
 // 移植原因：iced_aw 0.14 的 overlay 定位存在回归（详见 overlay.rs 头部说明），

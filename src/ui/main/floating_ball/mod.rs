@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 桌面悬浮球：置顶透明小窗口，点击弹出操作菜单，可拖动并记忆位置
 

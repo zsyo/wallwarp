@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 平台抽象层：窗口几何查询（物理坐标）、原生菜单锚点、平台专属窗口修饰。
 //!

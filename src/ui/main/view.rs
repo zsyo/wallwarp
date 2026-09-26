@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 use crate::ui::main::{MainMessage, widget};
 use crate::ui::style::{APP_NAME_SIZE, LOGO_DISPLAY_SIZE, LOGO_SPACING, SIDEBAR_WIDTH};

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 全局热键管理：注册/注销系统级快捷键，并将触发事件映射回动作。
 //!

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 use crate::ui::online::handler::resolve_online_file::OnlineFileHit;
 use crate::ui::{App, AppMessage, NotificationType};

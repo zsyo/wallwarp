@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 壁纸卡片通用组件：内容区 + 底部信息遮罩 + 卡片按钮样式
 //!

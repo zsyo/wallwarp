@@ -4,7 +4,7 @@ version = "1.6.0"
 authors = ["zsyo <zephyr@aico.top>"]
 repository = "https://github.com/zsyo/wallwarp"
 edition = "2024"
-license = "AGPL-3.0"
+license = "GPL-3.0"
 readme = "README.md"
 exclude = ["target/*", "cache/*", "data/*", "db/*", "logs/*", "*.log", "*.db"]
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 收藏卡片：类型徽章 + 缩略图 + 底部信息遮罩 + 操作按钮
 

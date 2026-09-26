@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 收藏夹顶部工具条：统计 + 类型/时间筛选 + 排序 + 刷新
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 壁纸组管理（设置页：保存当前筛选为组 / 删除组 / 列表加载）
 

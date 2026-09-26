@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! KDE Wayland 托盘化的任务栏条目控制（kwinrulesrc 窗口规则）
 //!

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 //
 // I18n 模块：基于 fluent-bundle 的多语言支持。
 // - mod.rs 负责 locales 目录扫描、语言包加载与语言列表管理

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 日志展示窗口视图：顶栏（等级/最大行数/自动滚动/清空）+ 日志滚动区
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 悬浮球视图：48px 圆形容器 + 居中 logo，窗口背景透明
 //!

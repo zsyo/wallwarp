@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 /// 解析分类位掩码
 pub fn parse_category_bitmask(category: &str) -> u32 {

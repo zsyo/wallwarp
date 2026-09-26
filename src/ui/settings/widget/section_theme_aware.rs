@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 定时切换"按主题分组选图"设置行（开关 + 浅色/深色选图目录）
 

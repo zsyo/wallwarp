@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 历史条目保存到正式壁纸目录（针对缓存目录中的壁纸，如定时切换/在线切换产生的文件）
 

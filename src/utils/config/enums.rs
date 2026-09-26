@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 配置枚举定义（含"纯标记枚举"的 as_str/parse/Display 样板宏）
 

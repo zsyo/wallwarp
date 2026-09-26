@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 use iced::widget::{Space, container, mouse_area, stack};
 use iced::{Alignment, Element, Length, mouse, window};

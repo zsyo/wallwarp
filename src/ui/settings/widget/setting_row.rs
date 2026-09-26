@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 use crate::ui::style::{ROW_SPACING, SETTING_ROW_DESC_SIZE, SETTING_ROW_PADDING_Y, ThemeColors};
 use iced::widget::{column, container, row, text};

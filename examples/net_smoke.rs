@@ -1,4 +1,4 @@
-// Copyright (C) 2026 zsyo - GNU AGPL v3.0
+// Copyright (C) 2026 zsyo - GNU GPL v3.0
 
 //! 临时网络冒烟测试：验证代理 + TLS 请求链路（复现在线壁纸页的请求方式）
 //!
