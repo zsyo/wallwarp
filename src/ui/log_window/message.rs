@@ -38,6 +38,8 @@ pub enum LogWindowMessage {
     FilterChanged(String),
     /// 自动滚动开关切换
     AutoScrollToggled(bool),
+    /// 置顶显示开关切换
+    AlwaysOnTopToggled(bool),
     /// 清空当前展示内容与内存缓冲
     ClearBuffer,
     /// 定时拉取内存层增量日志
@@ -74,6 +76,19 @@ impl App {
                 self.log_window_state.auto_scroll = enabled;
                 if enabled {
                     self.log_window_scroll_to_bottom()
+                } else {
+                    Task::none()
+                }
+            }
+            LogWindowMessage::AlwaysOnTopToggled(enabled) => {
+                self.log_window_state.always_on_top = enabled;
+                if let Some(id) = self.log_window_id {
+                    let level = if enabled {
+                        iced::window::Level::AlwaysOnTop
+                    } else {
+                        iced::window::Level::Normal
+                    };
+                    iced::window::set_level::<AppMessage>(id, level)
                 } else {
                     Task::none()
                 }

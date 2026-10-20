@@ -159,6 +159,12 @@ pub fn log_window_view(app: &App) -> Element<'_, AppMessage> {
             .color(theme_colors.text),
         iced::widget::toggler(state.auto_scroll)
             .on_toggle(|enabled| LogWindowMessage::AutoScrollToggled(enabled).into()),
+        Space::new().width(12),
+        text(app.i18n.t("log-window.always-on-top"))
+            .size(14)
+            .color(theme_colors.text),
+        iced::widget::toggler(state.always_on_top)
+            .on_toggle(|enabled| LogWindowMessage::AlwaysOnTopToggled(enabled).into()),
         Space::new().width(Length::Fill),
         common::create_colored_button(
             app.i18n.t("log-window.clear"),

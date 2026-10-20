@@ -61,6 +61,8 @@ pub struct LogWindowState {
     pub cursor_seq: u64,
     /// 是否自动滚动到底部
     pub auto_scroll: bool,
+    /// 是否置顶显示
+    pub always_on_top: bool,
     /// 等级下拉框展开状态
     pub level_picker_expanded: bool,
     /// 最大行数输入框内容（允许中间态，提交时解析）
@@ -75,6 +77,7 @@ impl Default for LogWindowState {
             lines: VecDeque::new(),
             cursor_seq: 0,
             auto_scroll: true,
+            always_on_top: false,
             level_picker_expanded: false,
             max_lines_input: String::new(),
             filter_text: String::new(),

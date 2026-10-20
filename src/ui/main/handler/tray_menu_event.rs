@@ -37,6 +37,10 @@ impl App {
                 // 保存当前壁纸到库
                 Task::done(MainMessage::TraySaveCurrentWallpaper.into())
             }
+            Some(MenuAction::OpenLogWindow) => {
+                // 打开实时日志窗口
+                self.handle_log_window_message(crate::ui::log_window::LogWindowMessage::Open)
+            }
             Some(MenuAction::Settings) => {
                 // 打开设置窗口
                 self.active_page = ActivePage::Settings;

@@ -2,7 +2,7 @@
 
 //! 托盘菜单与悬浮球菜单的共享定义
 //!
-//! 两个菜单的 5 个动作项完全同源(仅菜单事件 id 前缀不同)，
+//! 两个菜单的 6 个动作项完全同源(仅菜单事件 id 前缀不同)，
 //! 末项分别为"退出程序"(托盘)与"关闭悬浮球"(悬浮球)。
 //! 菜单事件统一经 [`menu_action_from_id`] 解析后分发。
 
@@ -25,6 +25,7 @@ pub(in crate::ui::main) enum MenuAction {
     SwitchPrevious,
     SwitchNext,
     SaveCurrent,
+    OpenLogWindow,
     Settings,
 }
 
@@ -36,6 +37,7 @@ impl MenuAction {
             MenuAction::SwitchPrevious => "switch_previous",
             MenuAction::SwitchNext => "switch_next",
             MenuAction::SaveCurrent => "save_current",
+            MenuAction::OpenLogWindow => "open_log_window",
             MenuAction::Settings => "settings",
         }
     }
@@ -47,6 +49,7 @@ impl MenuAction {
             MenuAction::SwitchPrevious => "menu.tray-switch-previous",
             MenuAction::SwitchNext => "menu.tray-switch-next",
             MenuAction::SaveCurrent => "menu.tray-save-current",
+            MenuAction::OpenLogWindow => "menu.tray-open-log-window",
             MenuAction::Settings => "menu.tray-settings",
         }
     }
@@ -58,11 +61,12 @@ impl MenuAction {
 }
 
 /// 公共动作项定义表(顺序即菜单顺序)
-pub(in crate::ui::main) const MENU_ACTIONS: [MenuAction; 5] = [
+pub(in crate::ui::main) const MENU_ACTIONS: [MenuAction; 6] = [
     MenuAction::ShowWindow,
     MenuAction::SwitchPrevious,
     MenuAction::SwitchNext,
     MenuAction::SaveCurrent,
+    MenuAction::OpenLogWindow,
     MenuAction::Settings,
 ];
 
@@ -71,7 +75,7 @@ pub(in crate::ui::main) fn menu_item_id(prefix: &str, action: MenuAction) -> Str
     format!("{prefix}{}", action.id_suffix())
 }
 
-/// 构建"5 个公共动作项 + 1 个专属末项"的菜单定义
+/// 构建"6 个公共动作项 + 1 个专属末项"的菜单定义
 ///
 /// 返回 (菜单项定义列表, 事件 id → i18n key 映射，用于语言切换时刷新文本)
 pub(in crate::ui::main) fn build_menu_defs(
