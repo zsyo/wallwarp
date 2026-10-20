@@ -95,6 +95,11 @@ pub fn create_sources_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
                     theme_colors.primary,
                     SettingsMessage::ToggleWallhavenApiKeyVisible.into(),
                 ),
+                common::create_icon_button(
+                    "\u{F1C5}", // box-arrow-up-right (查看/获取API Key)
+                    theme_colors.primary,
+                    SettingsMessage::OpenUrl("https://wallhaven.cc/settings/account".to_string()).into(),
+                ),
                 common::create_colored_button(
                     app.i18n.t("settings.save"),
                     crate::ui::style::BUTTON_COLOR_BLUE,
@@ -118,6 +123,11 @@ pub fn create_sources_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
                     theme_colors.primary,
                     SettingsMessage::TogglePixabayApiKeyVisible.into(),
                 ),
+                common::create_icon_button(
+                    "\u{F1C5}", // box-arrow-up-right (查看/获取API Key)
+                    theme_colors.primary,
+                    SettingsMessage::OpenUrl("https://pixabay.com/api/docs/".to_string()).into(),
+                ),
                 common::create_colored_button(
                     app.i18n.t("settings.save"),
                     crate::ui::style::BUTTON_COLOR_BLUE,
@@ -140,6 +150,11 @@ pub fn create_sources_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
                     },
                     theme_colors.primary,
                     SettingsMessage::ToggleUnsplashApiKeyVisible.into(),
+                ),
+                common::create_icon_button(
+                    "\u{F1C5}", // box-arrow-up-right (查看/获取API Key)
+                    theme_colors.primary,
+                    SettingsMessage::OpenUrl("https://unsplash.com/oauth/applications".to_string()).into(),
                 ),
                 common::create_colored_button(
                     app.i18n.t("settings.save"),
