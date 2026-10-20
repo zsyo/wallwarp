@@ -70,7 +70,7 @@
   新增平台能力时先在 platform/mod.rs 定义公共签名，再补三平台实现
 - **编译隔离**：平台专属依赖必须放 `[target.'cfg(...)'.dependencies]`
   （windows/winreg、objc2 系、x11rb/gtk）；tray-icon 为全平台依赖
-  （0.25 起 default-features = false 剔除 muda/libxdo——libxdo 仅服务于未
+  （0.26 起 default-features = false 剔除 muda/libxdo——libxdo 仅服务于未
   使用的菜单 accelerator，且 xdotool 4 起各发行版 soname 滚动至 .so.4，
   编译期链接 .so.3 会在滚动发行版缺库；Linux 需
   `features = ["libappindicator"]` 启用 libappindicator 托盘后端）
@@ -114,11 +114,12 @@
   移动窗口用 `configure_window` + `ConfigureWindowAux::new().x().y()`
   （X11 无独立 MoveWindow 请求）；RandR `Monitor` 的 x/y 为 i16、
   width/height 为 u16，混算必须分别 `as f32`。
-  版本保持 0.13：arboard 与 winit 均依赖 x11rb ^0.13，升级到 0.14 会造成
-  依赖树双版本并存且无功能收益。
+  版本已升级至 0.14：arboard 与 winit 仍依赖 x11rb ^0.13，导致
+  依赖树双版本并存（用户要求升级）。
   验证方法：platform/linux.rs 无法在 Windows 本机编译，需临时 crate +
   `cargo check --target x86_64-unknown-linux-gnu`（x11rb 纯 Rust 无 C 依赖；
   含 gtk/tray 的部分只能靠 CI 验证）
+- **gtk**（platform/menu/menu_linux.rs）：保持 0.18 不升级。libappindicator 0.9.0（tray-icon 0.26 的 Linux 依赖）锁 gtk-sys ^0.18，与 gtk 0.19 的 gtk-sys 0.19 存在 native library 链接冲突（两者均 links = "gtk-3"），无法共存。
 - **打包**：`[package.metadata.packager]` 三平台共用（product_name/identifier/
   icons=assets/logo-*.png/resources=locales），CI 用 `cargo packager --release
   --formats X --target T` 指定；macOS 的 icns 由 cargo-packager 从 PNG 自动生成；

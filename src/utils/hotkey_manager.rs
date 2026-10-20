@@ -293,7 +293,7 @@ pub fn format_hotkey_display(hotkey_str: &str) -> String {
     if hotkey.mods.contains(Modifiers::SHIFT) {
         parts.push("Shift".to_string());
     }
-    if hotkey.mods.contains(Modifiers::SUPER) {
+    if hotkey.mods.contains(Modifiers::META) {
         // 平台习惯名称：Windows 为 Win、macOS 为 Cmd、Linux 为 Super
         parts.push(platform_super_name().to_string());
     }
