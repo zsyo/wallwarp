@@ -405,3 +405,4 @@ jobs:
           # tag 版本号含 '_'（如 v1.5.1_beta.1）时标记为预发布
           prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
           body_path: ${{ steps.tagmsg.outputs.source == 'tag-message' && 'release-notes.md' || '' }}
+          generate_release_notes: true
