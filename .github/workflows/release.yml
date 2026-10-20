@@ -356,6 +356,39 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Read tag message
+        id: tagmsg
+        shell: bash
+        run: |
+          TAG=${GITHUB_REF_NAME}
+          # 拉取 tag 对象（annotated tag 需要单独 fetch）
+          git fetch --depth=1 origin tag "refs/tags/$TAG:refs/tags/$TAG" 2>/dev/null || true
+          
+          # 判断是否为 annotated tag
+          TAG_TYPE=$(git cat-file -t "refs/tags/$TAG" 2>/dev/null || echo "unknown")
+          
+          if [ "$TAG_TYPE" = "tag" ]; then
+            # Annotated tag: 提取 message
+            TAG_MSG=$(git for-each-ref --format='%(contents)' "refs/tags/$TAG")
+            if [ -n "$TAG_MSG" ]; then
+              echo "$TAG_MSG" > release-notes.md
+              echo "" >> release-notes.md
+              echo "source=tag-message" >> $GITHUB_OUTPUT
+              echo "Tag message found, using as release body prefix"
+            else
+              echo "source=none" >> $GITHUB_OUTPUT
+              echo "Tag message is empty"
+            fi
+          else
+            echo "source=none" >> $GITHUB_OUTPUT
+            echo "Lightweight tag or tag object not found, using auto-generated notes only"
+          fi
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
@@ -371,4 +404,4 @@ jobs:
           draft: false
           # tag 版本号含 '_'（如 v1.5.1_beta.1）时标记为预发布
           prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
-          generate_release_notes: true
+          body_path: ${{ steps.tagmsg.outputs.source == 'tag-message' && 'release-notes.md' || '' }}
