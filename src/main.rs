@@ -71,6 +71,9 @@ fn main() -> iced::Result {
                 let (ball_id, open_ball_task) = window::open(window_settings(&app.config.global));
                 app.floating_ball_id = Some(ball_id);
                 tasks.push(open_ball_task.map(|_| AppMessage::None));
+                // 启动时鼠标不在球上，主动贴边呈半圆（否则停留在完整圆形，
+                // 需鼠标划过一次才进入半隐状态）
+                tasks.push(wallwarp::ui::main::snap_to_edge_after_open());
                 info!("[启动] [悬浮球] 已按配置打开: {:?}", ball_id);
             }
 

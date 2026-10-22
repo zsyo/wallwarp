@@ -251,10 +251,7 @@ impl App {
             task.map(|_| AppMessage::None),
             Self::disable_ball_dwm_frame(ball_id),
             // 打开后鼠标不在球上，自动贴边呈半圆
-            Task::perform(
-                tokio::time::sleep(tokio::time::Duration::from_millis(400)),
-                |_| MainMessage::FloatingBallSnapToEdge.into(),
-            ),
+            floating_ball::snap_to_edge_after_open(),
         ])
     }
 

@@ -14,7 +14,7 @@ mod widget;
 pub use close_confirm::close_confirm_view;
 pub use floating_ball::{
     FloatingBallManager, FloatingBallState, SnapEdge, SnapState, floating_ball_view,
-    window_settings,
+    snap_to_edge_after_open, window_settings,
 };
 pub use main_window::main_window_settings;
 pub use message::MainMessage;

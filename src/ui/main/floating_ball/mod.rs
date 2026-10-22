@@ -224,3 +224,18 @@ pub fn window_settings(global: &GlobalConfig) -> iced::window::Settings {
         ..window::Settings::default()
     }
 }
+
+/// 窗口创建后调度一次贴边（启动与运行时打开共用）
+///
+/// 贴边状态只由"鼠标离开球体"（on_exit）触发，而窗口刚创建时鼠标并不在球上，
+/// 不会有 on_exit 事件；不主动调度的话视图会一直停留在完整圆形，
+/// 直到用户把鼠标划过球体一次才进入半圆贴边形态。
+/// 延迟与运行时打开一致（400ms），等窗口完成创建与初始定位后再吸附。
+pub fn snap_to_edge_after_open() -> iced::Task<crate::ui::AppMessage> {
+    use crate::ui::main::MainMessage;
+
+    iced::Task::perform(
+        tokio::time::sleep(tokio::time::Duration::from_millis(400)),
+        |_| MainMessage::FloatingBallSnapToEdge.into(),
+    )
+}
