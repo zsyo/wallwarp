@@ -15,10 +15,9 @@ use iced::widget::{button, column, container, text};
 use iced::{Alignment, Element, Length, Padding};
 
 /// 全部分类，按子菜单顺序排列
-pub const ALL_CATEGORIES: [SettingsCategory; 8] = [
+pub const ALL_CATEGORIES: [SettingsCategory; 7] = [
     SettingsCategory::General,
     SettingsCategory::Wallpaper,
-    SettingsCategory::Groups,
     SettingsCategory::Sources,
     SettingsCategory::Hotkeys,
     SettingsCategory::Network,
@@ -32,7 +31,6 @@ fn category_label_key(category: SettingsCategory) -> &'static str {
         SettingsCategory::General => "settings.category-general",
         SettingsCategory::Wallpaper => "settings.category-wallpaper",
         SettingsCategory::Sources => "settings.category-sources",
-        SettingsCategory::Groups => "settings.category-groups",
         SettingsCategory::Hotkeys => "settings.category-hotkeys",
         SettingsCategory::Network => "settings.category-network",
         SettingsCategory::Data => "settings.category-data",

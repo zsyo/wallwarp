@@ -126,8 +126,6 @@ pub struct OnlineState {
     pub sorting_picker_expanded: bool,
     /// 时间范围选择器展开状态
     pub time_range_picker_expanded: bool,
-    /// 壁纸组选择器展开状态
-    pub group_picker_expanded: bool,
     /// 图源选择器展开状态
     pub source_picker_expanded: bool,
     /// 请求上下文，用于取消正在进行的请求
@@ -218,7 +216,6 @@ impl Default for OnlineState {
             ratio_all_selected: false,
             sorting_picker_expanded: false,
             time_range_picker_expanded: false,
-            group_picker_expanded: false,
             source_picker_expanded: false,
             request_context: RequestContext::new(),
             pending_set_wallpaper_filename: None,

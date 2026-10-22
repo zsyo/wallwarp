@@ -132,13 +132,6 @@ pub enum OnlineMessage {
     TimeRangePickerExpanded,
     /// 关闭时间范围选择器
     TimeRangePickerDismiss,
-    // 壁纸组相关消息
-    /// 展开壁纸组选择器
-    GroupPickerExpanded,
-    /// 关闭壁纸组选择器
-    GroupPickerDismiss,
-    /// 应用壁纸组（组 id；写回图源/筛选/铺满模式并刷新列表）
-    ApplyGroup(i64),
     // 图源切换相关消息
     /// 切换在线图源（顶栏图源选择器）
     SourceSelected(crate::services::source::SourceKind),
@@ -265,9 +258,6 @@ impl App {
                 self.online_filter_time_range_picker_expanded()
             }
             OnlineMessage::TimeRangePickerDismiss => self.online_filter_time_range_picker_dismiss(),
-            OnlineMessage::GroupPickerExpanded => self.online_group_picker_expanded(),
-            OnlineMessage::GroupPickerDismiss => self.online_group_picker_dismiss(),
-            OnlineMessage::ApplyGroup(group_id) => self.apply_wallpaper_group(group_id),
             OnlineMessage::SourceSelected(kind) => self.online_source_selected(kind),
             OnlineMessage::SourcePickerExpanded => self.online_source_picker_expanded(),
             OnlineMessage::SourcePickerDismiss => self.online_source_picker_dismiss(),

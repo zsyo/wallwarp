@@ -2,7 +2,7 @@
 
 //! Basic 档图源（wp.upx8）的筛选栏行
 //!
-//! 公共控件：图源 + 搜索框 + 排序 + 壁纸组 + 刷新；筛选项按图源能力追加：
+//! 公共控件：图源 + 搜索框 + 排序 + 刷新；筛选项按图源能力追加：
 //! wp.upx8 支持站点分类与分辨率（6 档），其余维度由 service 层忽略
 
 use crate::i18n::I18n;
@@ -17,11 +17,9 @@ use iced::{Alignment, Element};
 pub(super) fn create_basic_filter_row<'a>(
     i18n: &'a I18n,
     state: &'a OnlineState,
-    app_groups: &'a [crate::services::database::WallpaperGroupDB],
     theme_colors: ThemeColors,
 ) -> Element<'a, AppMessage> {
     let source_picker = super::create_source_picker(i18n, state, theme_colors);
-    let group_picker = super::create_group_picker(i18n, app_groups, state, theme_colors);
     let refresh_button = super::filter_chips::create_refresh_button(theme_colors);
     let sorting_picker = super::create_sorting_picker(i18n, state, theme_colors);
 
@@ -47,7 +45,6 @@ pub(super) fn create_basic_filter_row<'a>(
     children.extend(source_filters);
     children.push(Space::new().width(2).into());
     children.push(sorting_picker);
-    children.push(group_picker);
     children.push(refresh_button);
 
     super::filter_chips::wrap_filter_bar(

@@ -17,7 +17,6 @@ pub fn main_view(app: &App) -> Element<'_, AppMessage> {
             functional_area_width as u32,
             &app.online_state,
             &app.config,
-            &app.wallpaper_groups,
             &app.theme_config,
         ),
         ActivePage::LocalList => local::local_view(

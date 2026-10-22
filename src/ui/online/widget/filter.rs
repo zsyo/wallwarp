@@ -15,13 +15,9 @@ pub fn create_filter_bar<'a>(
     i18n: &'a I18n,
     state: &'a OnlineState,
     config: &'a Config,
-    app_groups: &'a [crate::services::database::WallpaperGroupDB],
     theme_config: &'a ThemeConfig,
 ) -> Element<'a, AppMessage> {
     let theme_colors = theme_config.get_theme_colors();
-
-    // 壁纸组选择器（组含图源与筛选快照，应用后整体切换）
-    let group_picker = super::create_group_picker(i18n, app_groups, state, theme_colors);
 
     // 图源选择器（顶栏最前，各能力档位共用）
     let source_picker = super::create_source_picker(i18n, state, theme_colors);
@@ -35,7 +31,6 @@ pub fn create_filter_bar<'a>(
                 .size(14)
                 .color(theme_colors.light_text_sub),
             Space::new().width(Length::Fill),
-            group_picker,
             super::filter_chips::create_refresh_button(theme_colors),
         ]
         .spacing(4)
@@ -46,7 +41,7 @@ pub fn create_filter_bar<'a>(
 
     // Basic 档图源：公共控件 + 按图源能力追加的筛选项（见 filter_basic_row）
     if state.source.search_capability() == SearchCapability::Basic {
-        return super::create_basic_filter_row(i18n, state, app_groups, theme_colors);
+        return super::create_basic_filter_row(i18n, state, theme_colors);
     }
 
     // Standard 档图源（wallpaperscraft）：关键词 + 站点分类 + 分辨率 + 排序
@@ -62,7 +57,6 @@ pub fn create_filter_bar<'a>(
             super::create_site_category_picker(i18n, state, theme_colors),
             super::create_resolution_picker(i18n, state, theme_colors),
             super::create_sorting_picker(i18n, state, theme_colors),
-            group_picker,
             super::filter_chips::create_refresh_button(theme_colors),
         ]
         .spacing(4)
@@ -118,7 +112,6 @@ pub fn create_filter_bar<'a>(
         } else {
             None
         },
-        group_picker,
         super::filter_chips::create_refresh_button(theme_colors),
     ]
     .spacing(4)

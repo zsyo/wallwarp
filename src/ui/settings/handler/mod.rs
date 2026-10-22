@@ -5,7 +5,6 @@ mod auto_wallpaper;
 mod category_select;
 mod close_action_select;
 mod floating_ball_toggle;
-mod groups;
 mod hotkey;
 mod language_select;
 mod log_level_select;

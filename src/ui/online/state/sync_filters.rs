@@ -11,8 +11,7 @@ use crate::utils::config::Config;
 impl OnlineState {
     /// 从 config.wallhaven 同步在线筛选字段
     ///
-    /// 进入页面加载（load_from_config）与应用壁纸组（apply_group）共用：
-    /// 应用组先把快照写入 config，再经本方法刷新筛选状态
+    /// 进入页面与切换图源后共用：先从配置读取筛选快照，再刷新内存状态
     pub fn sync_filters_from_config(&mut self, config: &Config) {
         // 分类和纯净度（从字符串解析位掩码）
         self.categories = helper::parse_category_bitmask(&config.wallhaven.category);

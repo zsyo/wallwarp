@@ -31,7 +31,6 @@ fn category_content(app: &App) -> Element<'_, AppMessage> {
         SettingsCategory::General => widget::create_general_section(app),
         SettingsCategory::Wallpaper => widget::create_wallpaper_config_section(app),
         SettingsCategory::Sources => widget::create_sources_section(app),
-        SettingsCategory::Groups => widget::create_groups_section(app),
         SettingsCategory::Hotkeys => widget::create_hotkeys_section(app),
         SettingsCategory::Network => widget::create_network_section(app),
         SettingsCategory::Data => widget::create_data_config_section(app),
