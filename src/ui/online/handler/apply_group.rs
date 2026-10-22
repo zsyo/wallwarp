@@ -42,8 +42,7 @@ impl App {
         self.config.wallhaven.sorting = filters.sorting;
         self.config.wallhaven.color = filters.color;
         self.config.wallhaven.source_color = filters.source_color;
-        self.config.wallhaven.pixabay_category = filters.pixabay_category;
-        self.config.wallhaven.editors_choice = filters.editors_choice;
+        self.config.wallhaven.site_category = filters.site_category;
         self.config.wallhaven.top_range = filters.top_range;
         self.config.wallhaven.resolution_mode = filters.resolution_mode;
         self.config.wallhaven.atleast_resolution = filters.atleast_resolution;

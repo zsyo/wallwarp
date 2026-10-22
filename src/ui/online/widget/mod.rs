@@ -8,13 +8,12 @@ mod filter_color_grid_options;
 mod filter_color_picker;
 mod filter_group_picker;
 mod filter_grouped_grid;
-mod filter_pixabay_category_picker;
 mod filter_ratio_grid_options;
 mod filter_ratio_picker;
 mod filter_resolution_grid_options;
 mod filter_resolution_picker;
 mod filter_sorting_picker;
-mod filter_source_color_picker;
+mod filter_site_category_picker;
 mod filter_source_picker;
 mod filter_time_range_picker;
 mod list_failed_placeholder;
@@ -33,12 +32,11 @@ use filter_source_picker::create_source_picker;
 use {
     diagonal_line::DiagonalLine, filter_color_grid_options::create_color_grid_options,
     filter_color_picker::create_color_picker,
-    filter_pixabay_category_picker::create_pixabay_category_picker,
     filter_ratio_grid_options::create_ratio_grid_options, filter_ratio_picker::create_ratio_picker,
     filter_resolution_grid_options::create_resolution_grid_options,
     filter_resolution_picker::create_resolution_picker,
     filter_sorting_picker::create_sorting_picker,
-    filter_source_color_picker::create_source_color_picker,
+    filter_site_category_picker::create_site_category_picker,
     filter_time_range_picker::create_time_range_picker,
 };
 

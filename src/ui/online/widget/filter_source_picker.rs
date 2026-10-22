@@ -13,9 +13,8 @@ fn source_display_name(i18n: &I18n, kind: SourceKind) -> String {
     match kind {
         SourceKind::Wallhaven => i18n.t("online-wallpapers.source-name-wallhaven"),
         SourceKind::Bing => i18n.t("online-wallpapers.source-name-bing"),
-        SourceKind::Pixabay => i18n.t("online-wallpapers.source-name-pixabay"),
-        SourceKind::Unsplash => i18n.t("online-wallpapers.source-name-unsplash"),
-        SourceKind::Danbooru => i18n.t("online-wallpapers.source-name-danbooru"),
+        SourceKind::Wallpaperscraft => i18n.t("online-wallpapers.source-name-wallpaperscraft"),
+        SourceKind::Upx8 => i18n.t("online-wallpapers.source-name-upx8"),
     }
 }
 

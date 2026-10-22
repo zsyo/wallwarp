@@ -16,16 +16,16 @@ impl App {
         let purities = self.online_state.purities;
         let color = self.online_state.color;
         let source_color = self.online_state.source_color;
-        let pixabay_category = self
+        // 站点分类按当前图源输出各自的 key（无该维度的图源不携带参数）
+        let site_category = self
             .online_state
-            .pixabay_category
-            .api_value()
+            .site_category
+            .api_value(self.online_state.source)
             .map(|value| value.to_string());
-        let editors_choice = self.online_state.editors_choice;
         let time_range = self.online_state.time_range;
         let query = self.online_state.search_text.clone();
         let page = self.online_state.current_page;
-        // 按当前图源从对应配置节取 key（Wallhaven/Pixabay 各自独立，Bing 免密钥）
+        // 按当前图源从对应配置节取 key（Wallhaven 需密钥，其余图源免密钥）
         let api_key = self.online_state.source.api_key_from_config(&self.config);
 
         let proxy = self.config.resolved_proxy();
@@ -87,8 +87,7 @@ impl App {
             purities,
             color,
             source_color,
-            pixabay_category,
-            editors_choice,
+            site_category,
             query,
             time_range,
             atleast,

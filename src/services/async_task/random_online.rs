@@ -9,7 +9,7 @@
 use crate::services::download::DownloadService;
 use crate::services::request_context::RequestContext;
 use crate::services::source::{
-    PixabayCategory, SearchQuery, SourceColor, SourceConfig, SourceKind, WallpaperSource,
+    SearchQuery, SiteCategory, SourceColor, SourceConfig, SourceKind, WallpaperSource,
     create_source,
 };
 use crate::services::wallhaven;
@@ -31,10 +31,11 @@ pub(super) fn prepare_random_online_params(
     let purities = wallhaven::parse_purity_bitmask(&config.wallhaven.purity);
     let color = wallhaven::ColorOption::parse(&config.wallhaven.color);
     let source_color = SourceColor::parse(&config.wallhaven.source_color);
-    let pixabay_category = PixabayCategory::parse(&config.wallhaven.pixabay_category)
-        .api_value()
+    // 站点分类按当前图源输出各自的 key（无该维度的图源不携带参数）
+    let current_source = SourceKind::parse(&config.global.online_source);
+    let site_category = SiteCategory::parse(&config.wallhaven.site_category)
+        .api_value(current_source)
         .map(|value| value.to_string());
-    let editors_choice = config.wallhaven.editors_choice;
     // 使用配置文件中的排序方式和时间范围（从 config.wallpaper 读取）
     let sorting = wallhaven::Sorting::parse(&config.wallpaper.auto_change_sorting);
     let time_range = wallhaven::TimeRange::parse(&config.wallpaper.auto_change_top_range);
@@ -80,8 +81,7 @@ pub(super) fn prepare_random_online_params(
         purities,
         color,
         source_color,
-        pixabay_category,
-        editors_choice,
+        site_category,
         query: config.wallpaper.auto_change_query.clone(),
         time_range,
         atleast,

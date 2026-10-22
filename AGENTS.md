@@ -31,6 +31,10 @@
   - main/floating_ball/ - 桌面悬浮球（菜单管理 + 视图 + 窗口参数）
 - src/services/ - 业务逻辑服务
   - mod.rs - 服务模块声明
+  - source/ - 在线图源抽象层（`SourceKind`/`WallpaperSource` trait/
+    `SearchQuery`/`SearchResult`/`SearchCapability`/`SiteCategory`，
+    `create_source` 按图源分发）
+  - wallhaven/、bing/、wallpaperscraft/、upx8/ - 四个在线图源实现
 - src/utils/ - 工具函数
   - helpers.rs - 辅助函数（app_root_dir 为各平台数据根目录）
   - mod.rs - 工具模块声明
@@ -108,6 +112,20 @@
   教训：编辑 Cargo.toml 触发依赖重解析时锁版本可能被降级
   （reqwest 0.13.4 → 0.13.1 曾导致 SOCKS5 代理全部失效），升级后必须核对
   Cargo.lock 中关键包版本是否与改动前一致
+- **在线图源**：四个图源按能力分档（`SearchCapability`）——Full=Wallhaven
+  （分类/纯净度/颜色/时间范围/分辨率/比例）、Standard=Wallpaperscraft
+  （关键词/站点分类/分辨率/排序）、Basic=Upx8（关键词/站点分类/分辨率）、
+  Bare=Bing（无筛选）。wallpaperscraft 无 JSON API，走 HTML 列表页 +
+  `regex` 提取（列表项类名固定，不引入完整 HTML 解析器）；排序与分辨率
+  是**路径段**不是 query（`/tag/{kw}/{sort}/{res}/page{N}`，query 一律 404），
+  多词关键词不支持（`/tag/forest_fog` 404，只能单 token），
+  原图直链必须走 `images.wallpaperscraft.com`（`/download/` 是 HTML 跳转页），
+  缩略图唯一可用档 `_300x168.jpg`。wp.upx8 是 JSON API 但无分页
+  （`count≤10` 单次返回，`is_last` 恒 true），`data` 字段在 count=1 时是
+  对象、count>1 时是数组（`#[serde(untagged)]` 兼容），图片 CDN 走
+  `?x-oss-process=image/resize,w_N` 取缩略图。
+  curl 验证站点时必须带 `--compressed`（响应 gzip，不加得到二进制乱码，
+  会误判为"被拦截返回 0 项"）
 - **x11rb**（platform/linux.rs）：依赖必须带 `features = ["randr"]`（默认特性
   不含任何协议扩展）；trait 方法返回 `Result<Cookie>`，惯用链式
   `.ok()?.reply().ok()?`；`GetPropertyReply::value32()` 返回 `Option`；

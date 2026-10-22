@@ -12,7 +12,7 @@ use tracing::{error, warn};
 /// send 阶段失败的分类与日志
 ///
 /// # 参数
-/// - `source`: 图源名（日志前缀，如 Pixabay）
+/// - `source`: 图源名（日志前缀，如 wallpaperscraft）
 /// - `identifier`: 请求标识（如 page1）
 /// - `error`: reqwest 传输层错误
 /// - `timeout_secs`: 本次请求设置的超时秒数（超时日志展示用）

@@ -49,6 +49,28 @@ pub fn create_filter_bar<'a>(
         return super::create_basic_filter_row(i18n, state, app_groups, theme_colors);
     }
 
+    // Standard 档图源（wallpaperscraft）：关键词 + 站点分类 + 分辨率 + 排序
+    //
+    // 站点无比例与颜色维度（比例只能靠分辨率档位间接表达，如 1920x1200 即
+    // 16:10），故不渲染比例选择器，避免出现点击无效的控件
+    if state.source.search_capability() == SearchCapability::Standard {
+        let filter_row = row![
+            source_picker,
+            Space::new().width(2),
+            super::filter_chips::create_search_container(i18n, state, theme_colors),
+            Space::new().width(2),
+            super::create_site_category_picker(i18n, state, theme_colors),
+            super::create_resolution_picker(i18n, state, theme_colors),
+            super::create_sorting_picker(i18n, state, theme_colors),
+            group_picker,
+            super::filter_chips::create_refresh_button(theme_colors),
+        ]
+        .spacing(4)
+        .align_y(Alignment::Center);
+
+        return super::filter_chips::wrap_filter_bar(filter_row, theme_colors);
+    }
+
     // 分辨率选择器 - 使用 DropDown 组件
     let resolution_picker = super::create_resolution_picker(i18n, state, theme_colors);
 

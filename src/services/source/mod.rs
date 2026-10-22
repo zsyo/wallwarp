@@ -9,14 +9,14 @@
 //! 当前阶段约定：
 //! - [`SearchQuery`] 的筛选字段沿用 Wallhaven 的参数形状（Sorting/ColorOption/
 //!   TimeRange，见 [`filters`]），另含 Basic 档图源共用的筛选字段
-//!   （[`SourceColor`] 色板、[`PixabayCategory`] 分类、editors_choice），
-//!   由各图源 service 层实现自己的映射层，无能力的图源忽略对应字段
+//!   （[`SourceColor`] 色板、[`SiteCategory`] 站点分类），由各图源 service 层
+//!   实现自己的映射层，无能力的图源忽略对应字段
 //! - 壁纸条目 [`OnlineWallpaper`] 已图源无关，携带 [`SourceKind`] 标识来源，
 //!   文件命名规则经其 [`OnlineWallpaper::download_file_name`] 按来源分发
 
 pub mod filters;
 pub mod http_log;
-pub mod pixabay_category;
+pub mod site_category;
 pub mod source_color;
 pub mod types;
 
@@ -24,14 +24,13 @@ use std::future::Future;
 use std::pin::Pin;
 
 use crate::services::bing::BingService;
-use crate::services::danbooru::DanbooruService;
-use crate::services::pixabay::PixabayService;
 use crate::services::request_context::RequestContext;
-use crate::services::unsplash::UnsplashService;
+use crate::services::upx8::Upx8Service;
 use crate::services::wallhaven::WallhavenService;
+use crate::services::wallpaperscraft::WallpaperscraftService;
 
 pub use filters::{ColorOption, Sorting, TimeRange};
-pub use pixabay_category::PixabayCategory;
+pub use site_category::SiteCategory;
 pub use source_color::SourceColor;
 pub use types::OnlineWallpaper;
 
@@ -44,12 +43,11 @@ pub enum SourceKind {
     Wallhaven,
     /// Bing 每日一图（免密钥，无筛选维度）
     Bing,
-    /// Pixabay 图库（需密钥，支持关键词/方向/排序/分类/颜色/精选）
-    Pixabay,
-    /// Unsplash 摄影图库（需密钥，支持关键词/方向/排序/颜色）
-    Unsplash,
-    /// Danbooru 图库（免密钥，支持 tags 关键词/分级/排序）
-    Danbooru,
+    /// wallpaperscraft 壁纸站（免密钥，HTML 列表页抓取；支持关键词/分类/
+    /// 分辨率/比例/排序/分页）
+    Wallpaperscraft,
+    /// wp.upx8 壁纸 API（免密钥，JSON；支持关键词/分类/分辨率，无分页）
+    Upx8,
 }
 
 /// 图源搜索能力（在线页筛选栏按能力分档渲染）
@@ -57,6 +55,9 @@ pub enum SourceKind {
 pub enum SearchCapability {
     /// 完整筛选：关键词 + 分类/纯净度/分辨率/比例/颜色/排序/时间范围
     Full,
+    /// 标准筛选：关键词 + 站点分类 + 分辨率/比例 + 排序（无纯净度/颜色/
+    /// 时间范围维度）
+    Standard,
     /// 基础筛选：关键词 + 排序，其余维度由图源 service 层映射或忽略
     Basic,
     /// 无搜索维度：仅翻阅固定图集
@@ -65,13 +66,12 @@ pub enum SearchCapability {
 
 impl SourceKind {
     /// 全部可用图源（设置页图源下拉顺序）
-    pub fn all() -> [SourceKind; 5] {
+    pub fn all() -> [SourceKind; 4] {
         [
             SourceKind::Wallhaven,
             SourceKind::Bing,
-            SourceKind::Pixabay,
-            SourceKind::Unsplash,
-            SourceKind::Danbooru,
+            SourceKind::Wallpaperscraft,
+            SourceKind::Upx8,
         ]
     }
 
@@ -79,9 +79,8 @@ impl SourceKind {
     pub fn parse(s: &str) -> Self {
         match s {
             "bing" => SourceKind::Bing,
-            "pixabay" => SourceKind::Pixabay,
-            "unsplash" => SourceKind::Unsplash,
-            "danbooru" => SourceKind::Danbooru,
+            "wallpaperscraft" => SourceKind::Wallpaperscraft,
+            "upx8" => SourceKind::Upx8,
             _ => SourceKind::Wallhaven,
         }
     }
@@ -91,9 +90,8 @@ impl SourceKind {
         match self {
             SourceKind::Wallhaven => "wallhaven",
             SourceKind::Bing => "bing",
-            SourceKind::Pixabay => "pixabay",
-            SourceKind::Unsplash => "unsplash",
-            SourceKind::Danbooru => "danbooru",
+            SourceKind::Wallpaperscraft => "wallpaperscraft",
+            SourceKind::Upx8 => "upx8",
         }
     }
 
@@ -101,23 +99,21 @@ impl SourceKind {
     pub fn search_capability(self) -> SearchCapability {
         match self {
             SourceKind::Wallhaven => SearchCapability::Full,
+            SourceKind::Wallpaperscraft => SearchCapability::Standard,
+            SourceKind::Upx8 => SearchCapability::Basic,
             SourceKind::Bing => SearchCapability::Bare,
-            SourceKind::Pixabay | SourceKind::Unsplash | SourceKind::Danbooru => {
-                SearchCapability::Basic
-            }
         }
     }
 
     /// 按图源从配置解析 API Key（未配置返回 None）
     ///
     /// 检索入口（UI 在线搜索、定时切换）统一经本方法取 key，避免图源间
-    /// 错配（如把 Wallhaven 的 key 传给 Pixabay）
+    /// 错配（如把 Wallhaven 的 key 传给其它图源）
     pub fn api_key_from_config(self, config: &crate::utils::config::Config) -> Option<String> {
         match self {
             SourceKind::Wallhaven => non_empty(config.wallhaven.api_key.clone()),
-            SourceKind::Pixabay => non_empty(config.pixabay.api_key.clone()),
-            SourceKind::Unsplash => non_empty(config.unsplash.api_key.clone()),
-            SourceKind::Danbooru | SourceKind::Bing => None,
+            // wallpaperscraft 与 wp.upx8 均免密钥
+            SourceKind::Wallpaperscraft | SourceKind::Upx8 | SourceKind::Bing => None,
         }
     }
 
@@ -129,9 +125,8 @@ impl SourceKind {
         match self {
             SourceKind::Wallhaven => format!("wallhaven-{}.{}", item_id, ext),
             SourceKind::Bing => format!("bing-{}.{}", item_id, ext),
-            SourceKind::Pixabay => format!("pixabay-{}.{}", item_id, ext),
-            SourceKind::Unsplash => format!("unsplash-{}.{}", item_id, ext),
-            SourceKind::Danbooru => format!("danbooru-{}.{}", item_id, ext),
+            SourceKind::Wallpaperscraft => format!("wallpaperscraft-{}.{}", item_id, ext),
+            SourceKind::Upx8 => format!("upx8-{}.{}", item_id, ext),
         }
     }
 }
@@ -160,12 +155,10 @@ pub struct SearchQuery {
     pub purities: u32,
     /// Wallhaven 29 色板（Full 档）
     pub color: ColorOption,
-    /// Basic 档图源共用色板（Pixabay/Unsplash，各自映射；Wallhaven 忽略）
+    /// Basic 档图源共用色板（各图源自行映射；Wallhaven 忽略）
     pub source_color: SourceColor,
-    /// Pixabay 内容分类（None 不限；其余图源忽略）
-    pub pixabay_category: Option<String>,
-    /// Pixabay 精选过滤（其余图源忽略）
-    pub editors_choice: bool,
+    /// 站点内容分类（None 不限；仅 wallpaperscraft/upx8 使用）
+    pub site_category: Option<String>,
     pub query: String,
     /// 时间范围（仅 toplist 排序生效）
     pub time_range: TimeRange,
@@ -219,22 +212,14 @@ pub fn create_source(kind: SourceKind, config: SourceConfig) -> Box<dyn Wallpape
             config.proxy_enabled,
             config.use_env_fallback,
         )),
-        // Pixabay 检索需 API Key（未配置时 search() 直接返回错误）
-        SourceKind::Pixabay => Box::new(PixabayService::new(
-            config.api_key,
+        // wallpaperscraft 免密钥，api_key 不参与
+        SourceKind::Wallpaperscraft => Box::new(WallpaperscraftService::new(
             config.proxy,
             config.proxy_enabled,
             config.use_env_fallback,
         )),
-        // Unsplash 检索需 API Key（未配置时 search() 直接返回错误）
-        SourceKind::Unsplash => Box::new(UnsplashService::new(
-            config.api_key,
-            config.proxy,
-            config.proxy_enabled,
-            config.use_env_fallback,
-        )),
-        // Danbooru 免密钥，api_key 不参与
-        SourceKind::Danbooru => Box::new(DanbooruService::new(
+        // wp.upx8 免密钥，api_key 不参与
+        SourceKind::Upx8 => Box::new(Upx8Service::new(
             config.proxy,
             config.proxy_enabled,
             config.use_env_fallback,

@@ -33,10 +33,6 @@ pub struct Config {
     #[serde(default)]
     pub wallhaven: WallhavenConfig,
     #[serde(default)]
-    pub pixabay: PixabayConfig,
-    #[serde(default)]
-    pub unsplash: UnsplashConfig,
-    #[serde(default)]
     pub wallpaper: WallpaperConfig,
 }
 
@@ -142,10 +138,6 @@ impl Config {
         self.wallhaven.api_key = key;
     }
 
-    pub fn set_pixabay_api_key(&mut self, key: String) {
-        self.pixabay.api_key = key;
-    }
-
     /// 设置日志展示窗口等级（只影响展示窗口，不动文件/控制台日志配置）
     pub fn set_log_window_level(&mut self, level: LogLevel) {
         self.global.log_window_level = level;
@@ -155,10 +147,6 @@ impl Config {
     pub fn set_log_window_max_lines(&mut self, max_lines: u32) {
         self.global.log_window_max_lines =
             max_lines.clamp(LOG_WINDOW_MAX_LINES_MIN, LOG_WINDOW_MAX_LINES_MAX);
-    }
-
-    pub fn set_unsplash_api_key(&mut self, key: String) {
-        self.unsplash.api_key = key;
     }
 
     pub fn set_proxy(&mut self, proxy: String) {

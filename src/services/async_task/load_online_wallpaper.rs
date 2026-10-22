@@ -13,18 +13,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 /// 在线壁纸搜索参数（UI 层载荷：筛选参数 + 图源标识 + 网络配置）
 pub struct OnlineSearchParams {
-    /// 目标图源（当前仅 Wallhaven，后续新增图源时由 UI 选择）
+    /// 目标图源（由 UI 图源选择器指定）
     pub source: SourceKind,
     pub categories: u32,
     pub sorting: Sorting,
     pub purities: u32,
     pub color: ColorOption,
-    /// Basic 档图源共用色板（Pixabay/Unsplash 各自映射）
+    /// Basic 档图源共用色板（各图源自行映射）
     pub source_color: SourceColor,
-    /// Pixabay 内容分类（None 不限）
-    pub pixabay_category: Option<String>,
-    /// Pixabay 精选过滤
-    pub editors_choice: bool,
+    /// 站点内容分类（None 不限）
+    pub site_category: Option<String>,
     pub query: String,
     pub time_range: TimeRange,
     pub atleast: Option<String>,
@@ -59,8 +57,7 @@ pub async fn async_load_online_wallpapers(
         purities: params.purities,
         color: params.color,
         source_color: params.source_color,
-        pixabay_category: params.pixabay_category,
-        editors_choice: params.editors_choice,
+        site_category: params.site_category,
         query: params.query,
         time_range: params.time_range,
         atleast: params.atleast,

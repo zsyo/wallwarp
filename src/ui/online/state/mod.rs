@@ -6,7 +6,7 @@ mod save_to_config;
 mod sync_filters;
 
 use crate::services::request_context::RequestContext;
-use crate::services::source::{PixabayCategory, SourceColor, SourceKind};
+use crate::services::source::{SiteCategory, SourceColor, SourceKind};
 use crate::services::wallhaven;
 use iced::widget::image::Handle;
 use std::sync::Arc;
@@ -82,12 +82,10 @@ pub struct OnlineState {
     pub ratio: wallhaven::Ratio,
     /// 颜色（Wallhaven 29 色板）
     pub color: wallhaven::ColorOption,
-    /// 颜色（Basic 档图源共用色板，Pixabay/Unsplash 各自映射）
+    /// 颜色（Basic 档图源共用色板，各图源自行映射）
     pub source_color: SourceColor,
-    /// Pixabay 内容分类（Any 不限）
-    pub pixabay_category: PixabayCategory,
-    /// Pixabay 精选过滤
-    pub editors_choice: bool,
+    /// 站点内容分类（Any 不限；按图源输出各自 key）
+    pub site_category: SiteCategory,
     /// 时间范围
     pub time_range: wallhaven::TimeRange,
     /// 搜索文本
@@ -102,8 +100,8 @@ pub struct OnlineState {
     pub color_picker_expanded: bool,
     /// Basic 档图源共用色板选择器展开状态
     pub source_color_picker_expanded: bool,
-    /// Pixabay 分类选择器展开状态
-    pub pixabay_category_picker_expanded: bool,
+    /// 站点分类选择器展开状态
+    pub site_category_picker_expanded: bool,
     // 分辨率筛选器状态
     /// 分辨率选择器展开状态
     pub resolution_picker_expanded: bool,
@@ -200,8 +198,7 @@ impl Default for OnlineState {
             ratio: wallhaven::Ratio::Any,
             color: wallhaven::ColorOption::Any,
             source_color: SourceColor::Any,
-            pixabay_category: PixabayCategory::Any,
-            editors_choice: false,
+            site_category: SiteCategory::Any,
             time_range: wallhaven::TimeRange::Month,
             search_text: String::new(),
             last_page: false,
@@ -209,7 +206,7 @@ impl Default for OnlineState {
             page_info: Vec::new(),
             color_picker_expanded: false,
             source_color_picker_expanded: false,
-            pixabay_category_picker_expanded: false,
+            site_category_picker_expanded: false,
             resolution_picker_expanded: false,
             resolution_mode: ResolutionMode::All,
             selected_resolutions: Vec::new(),

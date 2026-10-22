@@ -3,8 +3,7 @@
 //! 在线筛选栏的共用零件（各搜索能力档位共享）
 //!
 //! 含：外层容器、切换 chip（分类/纯净度/横竖屏方向）、搜索框、刷新按钮。
-//! chip 选中态语义：分类/方向用强调色，纯净度用语义色（Wallhaven Full 与
-//! Danbooru Basic 共用）
+//! chip 选中态语义：分类/方向用强调色，纯净度用语义色（仅 Wallhaven Full 使用）
 
 use crate::i18n::I18n;
 use crate::services::wallhaven::{Category, Purity};
@@ -134,7 +133,7 @@ pub(super) fn category_chip<'a>(
         .into()
 }
 
-/// 纯净度切换 chip（选中=纯净度语义色实底；Wallhaven 与 Danbooru 共用）
+/// 纯净度切换 chip（选中=纯净度语义色实底；仅 Wallhaven Full 使用）
 pub(super) fn purity_chip<'a>(
     i18n: &'a I18n,
     state: &'a OnlineState,
@@ -155,44 +154,6 @@ pub(super) fn purity_chip<'a>(
             is_checked,
             accent,
             checked_text,
-        ))
-        .into()
-}
-
-/// 横竖屏方向切换 chip（Basic 档图源的方向筛选，选中态写入 ratios 快捷项）
-pub(super) fn orientation_chip<'a>(
-    i18n: &'a I18n,
-    is_checked: bool,
-    label_key: &'static str,
-    message: OnlineMessage,
-    theme_colors: ThemeColors,
-) -> Element<'a, AppMessage> {
-    button(text(i18n.t(label_key)).size(14))
-        .on_press(message.into())
-        .padding(6)
-        .style(toggle_chip_style(
-            theme_colors,
-            is_checked,
-            theme_colors.primary,
-            Color::WHITE,
-        ))
-        .into()
-}
-
-/// Pixabay 精选过滤切换 chip（选中=强调色实底；仅 Pixabay service 层映射）
-pub(super) fn editors_choice_chip<'a>(
-    i18n: &'a I18n,
-    state: &'a OnlineState,
-    theme_colors: ThemeColors,
-) -> Element<'a, AppMessage> {
-    button(text(i18n.t("online-wallpapers.editors-choice")).size(14))
-        .on_press(OnlineMessage::EditorsChoiceToggled.into())
-        .padding(6)
-        .style(toggle_chip_style(
-            theme_colors,
-            state.editors_choice,
-            theme_colors.primary,
-            Color::WHITE,
         ))
         .into()
 }

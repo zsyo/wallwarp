@@ -82,14 +82,12 @@ pub enum OnlineMessage {
     SourceColorPickerExpanded,
     /// 关闭 Basic 档色板选择器
     SourceColorPickerDismiss,
-    /// 改变 Pixabay 内容分类
-    PixabayCategoryChanged(source::PixabayCategory),
-    /// 展开 Pixabay 分类选择器
-    PixabayCategoryPickerExpanded,
-    /// 关闭 Pixabay 分类选择器
-    PixabayCategoryPickerDismiss,
-    /// 切换 Pixabay 精选过滤
-    EditorsChoiceToggled,
+    /// 改变站点内容分类（wallpaperscraft/upx8）
+    SiteCategoryChanged(source::SiteCategory),
+    /// 展开站点分类选择器
+    SiteCategoryPickerExpanded,
+    /// 关闭站点分类选择器
+    SiteCategoryPickerDismiss,
     /// 展开颜色选择器
     ColorPickerExpanded,
     /// 关闭颜色选择器
@@ -226,16 +224,15 @@ impl App {
             OnlineMessage::SourceColorPickerDismiss => {
                 self.online_filter_source_color_picker_dismiss()
             }
-            OnlineMessage::PixabayCategoryChanged(category) => {
-                self.online_filter_pixabay_category_changed(category)
+            OnlineMessage::SiteCategoryChanged(category) => {
+                self.online_filter_site_category_changed(category)
             }
-            OnlineMessage::PixabayCategoryPickerExpanded => {
-                self.online_filter_pixabay_category_picker_expanded()
+            OnlineMessage::SiteCategoryPickerExpanded => {
+                self.online_filter_site_category_picker_expanded()
             }
-            OnlineMessage::PixabayCategoryPickerDismiss => {
-                self.online_filter_pixabay_category_picker_dismiss()
+            OnlineMessage::SiteCategoryPickerDismiss => {
+                self.online_filter_site_category_picker_dismiss()
             }
-            OnlineMessage::EditorsChoiceToggled => self.online_filter_editors_choice_toggled(),
             OnlineMessage::ColorPickerExpanded => self.online_filter_color_picker_expanded(),
             OnlineMessage::ColorPickerDismiss => self.online_filter_color_picker_dismiss(),
             OnlineMessage::TimeRangeChanged(time_range) => {

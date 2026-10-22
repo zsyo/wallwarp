@@ -2,9 +2,10 @@
 
 //! Basic 档图源共用的颜色筛选枚举
 //!
-//! 取 Pixabay colors 与 Unsplash color 两个参数的能力并集，各图源 service
-//! 层按自己的取值表映射（如图源无对应语义则忽略该筛选，见各 service 的
-//! map_color）；Wallhaven 的 29 色板仍用 [`super::filters::ColorOption`]
+//! 各图源 service 层按自己的取值表映射（如图源无对应语义则忽略该筛选，
+//! 见各 service 的 map_color）；Wallhaven 的 29 色板仍用
+//! [`super::filters::ColorOption`]。当前 wallpaperscraft 与 wp.upx8 均无
+//! 颜色维度，本枚举保留给后续支持该维度的图源
 
 use serde::{Deserialize, Serialize};
 
@@ -14,18 +15,18 @@ use serde::{Deserialize, Serialize};
 pub enum SourceColor {
     /// 不限颜色
     Any,
-    /// 黑白（Pixabay grayscale / Unsplash black_and_white）
+    /// 黑白（各图源对应 grayscale / black_and_white 等取值）
     Gray,
     Red,
     Orange,
     Yellow,
     Green,
-    /// 青（Pixabay turquoise / Unsplash teal）
+    /// 青
     Teal,
     Blue,
-    /// 紫（Pixabay lilac / Unsplash purple）
+    /// 紫
     Purple,
-    /// 粉（Pixabay pink / Unsplash magenta）
+    /// 粉
     Pink,
     Brown,
     Black,

@@ -1,17 +1,14 @@
 // Copyright (C) 2026 zsyo - GNU GPL v3.0
 
-//! Basic 档图源（Pixabay/Unsplash/Danbooru）的筛选栏行
+//! Basic 档图源（wp.upx8）的筛选栏行
 //!
 //! 公共控件：图源 + 搜索框 + 排序 + 壁纸组 + 刷新；筛选项按图源能力追加：
-//! Pixabay 有方向/分类/颜色/精选能力，Unsplash 有方向/颜色能力，
-//! Danbooru 有 rating 分级能力（纯净度 chip 写 purities 位掩码，由
-//! service 层映射为 rating metatag）
+//! wp.upx8 支持站点分类与分辨率（6 档），其余维度由 service 层忽略
 
 use crate::i18n::I18n;
 use crate::services::source::SourceKind;
-use crate::services::wallhaven::Purity;
 use crate::ui::AppMessage;
-use crate::ui::online::{OnlineMessage, OnlineState};
+use crate::ui::online::OnlineState;
 use crate::ui::style::*;
 use iced::widget::{Space, row};
 use iced::{Alignment, Element};
@@ -34,62 +31,13 @@ pub(super) fn create_basic_filter_row<'a>(
     // 按图源能力追加筛选项
     let mut source_filters: Vec<Element<'a, AppMessage>> = Vec::new();
     match state.source {
-        SourceKind::Pixabay => {
-            source_filters.push(super::filter_chips::orientation_chip(
-                i18n,
-                state.ratio_landscape_selected,
-                "online-wallpapers.ratio-landscape",
-                OnlineMessage::RatioLandscapeToggled,
-                theme_colors,
-            ));
-            source_filters.push(super::filter_chips::orientation_chip(
-                i18n,
-                state.ratio_portrait_selected,
-                "online-wallpapers.ratio-portrait",
-                OnlineMessage::RatioPortraitToggled,
-                theme_colors,
-            ));
-            source_filters.push(super::create_pixabay_category_picker(
-                i18n,
-                state,
-                theme_colors,
-            ));
-            source_filters.push(super::create_source_color_picker(i18n, state, theme_colors));
-            source_filters.push(super::filter_chips::editors_choice_chip(
-                i18n,
-                state,
-                theme_colors,
-            ));
+        SourceKind::Upx8 => {
+            source_filters.push(super::create_site_category_picker(i18n, state, theme_colors));
+            source_filters.push(super::create_resolution_picker(i18n, state, theme_colors));
         }
-        SourceKind::Unsplash => {
-            source_filters.push(super::filter_chips::orientation_chip(
-                i18n,
-                state.ratio_landscape_selected,
-                "online-wallpapers.ratio-landscape",
-                OnlineMessage::RatioLandscapeToggled,
-                theme_colors,
-            ));
-            source_filters.push(super::filter_chips::orientation_chip(
-                i18n,
-                state.ratio_portrait_selected,
-                "online-wallpapers.ratio-portrait",
-                OnlineMessage::RatioPortraitToggled,
-                theme_colors,
-            ));
-            source_filters.push(super::create_source_color_picker(i18n, state, theme_colors));
-        }
-        SourceKind::Danbooru => {
-            for purity in Purity::all() {
-                source_filters.push(super::filter_chips::purity_chip(
-                    i18n,
-                    state,
-                    purity,
-                    theme_colors,
-                ));
-            }
-        }
-        // Bing（Bare）与 Wallhaven（Full）不经本函数，由 create_filter_bar 分派
-        SourceKind::Bing | SourceKind::Wallhaven => unreachable!(),
+        // Bare（Bing）与 Full（Wallhaven）与 Standard（wallpaperscraft）
+        // 不经本函数，由 create_filter_bar 分派
+        SourceKind::Bing | SourceKind::Wallhaven | SourceKind::Wallpaperscraft => unreachable!(),
     }
 
     let mut children: Vec<Element<'a, AppMessage>> = vec![source_picker];

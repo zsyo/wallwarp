@@ -57,18 +57,6 @@ pub enum SettingsMessage {
     ToggleWallhavenApiKeyVisible,
     /// 保存壁纸API密钥
     SaveWallhavenApiKey,
-    /// Pixabay API密钥更改
-    PixabayApiKeyChanged(String),
-    /// 切换 Pixabay API密钥显示/隐藏
-    TogglePixabayApiKeyVisible,
-    /// 保存 Pixabay API密钥
-    SavePixabayApiKey,
-    /// Unsplash API密钥更改
-    UnsplashApiKeyChanged(String),
-    /// 切换 Unsplash API密钥显示/隐藏
-    ToggleUnsplashApiKeyVisible,
-    /// 保存 Unsplash API密钥
-    SaveUnsplashApiKey,
     /// 代理协议更改
     ProxyProtocolChanged(String),
     /// 代理地址更改
@@ -231,20 +219,6 @@ impl App {
                 self.settings_toggle_wallhaven_api_key_visible()
             }
             SettingsMessage::SaveWallhavenApiKey => self.settings_save_wallhaven_api_key(),
-            SettingsMessage::PixabayApiKeyChanged(api_key) => {
-                self.settings_pixabay_api_key_changed(api_key)
-            }
-            SettingsMessage::TogglePixabayApiKeyVisible => {
-                self.settings_toggle_pixabay_api_key_visible()
-            }
-            SettingsMessage::SavePixabayApiKey => self.settings_save_pixabay_api_key(),
-            SettingsMessage::UnsplashApiKeyChanged(api_key) => {
-                self.settings_unsplash_api_key_changed(api_key)
-            }
-            SettingsMessage::ToggleUnsplashApiKeyVisible => {
-                self.settings_toggle_unsplash_api_key_visible()
-            }
-            SettingsMessage::SaveUnsplashApiKey => self.settings_save_unsplash_api_key(),
             SettingsMessage::ProxyProtocolChanged(protocol) => {
                 self.settings_proxy_protocol_changed(protocol)
             }

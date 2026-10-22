@@ -21,8 +21,7 @@ impl App {
         self.online_state.source = kind;
         self.config.global.online_source = kind.id().to_string();
         // 切到未配置 API Key 的 Wallhaven 时不携带 NSFW 位（与
-        // sync_filters 的加载期收紧一致；Danbooru 免密钥，分级由
-        // rating metatag 自行映射，不受此限制）
+        // sync_filters 的加载期收紧一致；其余图源无纯净度维度）
         if kind == SourceKind::Wallhaven && self.config.wallhaven.api_key.is_empty() {
             self.online_state.purities &= !wallhaven::Purity::NSFW.bit_value();
         }

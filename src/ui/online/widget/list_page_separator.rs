@@ -12,13 +12,22 @@ pub fn create_page_separator<'a>(
     current_page: usize,
     total_pages: usize,
 ) -> Element<'a, AppMessage> {
-    let page_text = i18n.t_with_args(
-        "online-wallpapers.page-separator",
-        &[
-            ("current", current_page.to_string()),
-            ("total", total_pages.to_string()),
-        ],
-    );
+    // 图源未提供总页数时（如 Bing 每日一图、wp.upx8 无分页）只展示当前页码，
+    // 避免出现 "1/0" 这类无意义的分母
+    let page_text = if total_pages > 0 {
+        i18n.t_with_args(
+            "online-wallpapers.page-separator",
+            &[
+                ("current", current_page.to_string()),
+                ("total", total_pages.to_string()),
+            ],
+        )
+    } else {
+        i18n.t_with_args(
+            "online-wallpapers.page-separator-single",
+            &[("current", current_page.to_string())],
+        )
+    };
 
     let separator = container(text(page_text).size(PAGE_SEPARATOR_TEXT_SIZE).style(
         |_theme: &iced::Theme| text::Style {

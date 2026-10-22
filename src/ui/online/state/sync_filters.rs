@@ -2,7 +2,7 @@
 
 use super::OnlineState;
 use crate::services::source::{
-    ColorOption, PixabayCategory, Sorting, SourceColor, SourceKind, TimeRange,
+    ColorOption, SiteCategory, Sorting, SourceColor, SourceKind, TimeRange,
 };
 use crate::services::wallhaven::{AspectRatio, Purity, Resolution, helper};
 use crate::ui::online::ResolutionMode;
@@ -18,8 +18,7 @@ impl OnlineState {
         self.categories = helper::parse_category_bitmask(&config.wallhaven.category);
         self.purities = helper::parse_purity_bitmask(&config.wallhaven.purity);
 
-        // Wallhaven 未配置 API Key 时移除 NSFW 选项（Danbooru 免密钥、
-        // 分级由其 rating metatag 自行映射，不依赖该 key）
+        // Wallhaven 未配置 API Key 时移除 NSFW 选项（其余图源无该维度）
         if self.source == SourceKind::Wallhaven && config.wallhaven.api_key.is_empty() {
             self.purities &= !Purity::NSFW.bit_value();
         }
@@ -27,8 +26,7 @@ impl OnlineState {
         self.sorting = Sorting::parse(&config.wallhaven.sorting);
         self.color = ColorOption::parse(&config.wallhaven.color);
         self.source_color = SourceColor::parse(&config.wallhaven.source_color);
-        self.pixabay_category = PixabayCategory::parse(&config.wallhaven.pixabay_category);
-        self.editors_choice = config.wallhaven.editors_choice;
+        self.site_category = SiteCategory::parse(&config.wallhaven.site_category);
         self.time_range = TimeRange::parse(&config.wallhaven.top_range);
 
         // 分辨率模式与选中项

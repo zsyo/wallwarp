@@ -57,9 +57,10 @@ pub fn create_groups_section<'a>(app: &'a App) -> Element<'a, AppMessage> {
             let source_name = match SourceKind::parse(&group.source) {
                 SourceKind::Wallhaven => app.i18n.t("online-wallpapers.source-name-wallhaven"),
                 SourceKind::Bing => app.i18n.t("online-wallpapers.source-name-bing"),
-                SourceKind::Pixabay => app.i18n.t("online-wallpapers.source-name-pixabay"),
-                SourceKind::Unsplash => app.i18n.t("online-wallpapers.source-name-unsplash"),
-                SourceKind::Danbooru => app.i18n.t("online-wallpapers.source-name-danbooru"),
+                SourceKind::Wallpaperscraft => {
+                    app.i18n.t("online-wallpapers.source-name-wallpaperscraft")
+                }
+                SourceKind::Upx8 => app.i18n.t("online-wallpapers.source-name-upx8"),
             };
             rows.push(super::create_setting_row(
                 group.name.clone(),

@@ -2,19 +2,18 @@
 
 pub mod async_task;
 pub mod bing;
-pub mod danbooru;
 pub mod database;
 pub mod download;
 pub mod image_process;
 pub mod local;
-pub mod pixabay;
 pub mod proxy;
 pub mod request_context;
 pub mod retry;
 pub mod source;
 pub mod update_checker;
-pub mod unsplash;
+pub mod upx8;
 pub mod wallhaven;
+pub mod wallpaperscraft;
 
 use std::sync::Arc;
 use tokio::sync::Semaphore;
